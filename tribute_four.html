@@ -892,6 +892,7 @@
             <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
           </div>
           <p class="chooser-line" id="onlineStatus">Offline local game.</p>
+          <p class="chooser-line hidden" id="roomCodeDisplay">Room code: -----</p>
           <div class="share-links hidden" id="shareLinks">
             <div class="share-link" id="domShareLink"></div>
             <div class="copy-row">
@@ -899,6 +900,22 @@
               <button id="copyInviteBtn">Copy</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Join Room</h2>
+        </div>
+        <div class="panel-body">
+          <label class="field-label">
+            Room code
+            <input id="joinRoomCodeInput" type="text" autocomplete="off" placeholder="ABCDE" maxlength="8">
+          </label>
+          <div class="setup-actions">
+            <button id="joinRoomBtn" class="primary">Join Room</button>
+          </div>
+          <p class="chooser-line">Open the main site, enter the host's code, then confirm your name.</p>
         </div>
       </div>
 
@@ -1537,11 +1554,14 @@
       tributeChessCard: document.getElementById("tributeChessCard"),
       createRoomBtn: document.getElementById("createRoomBtn"),
       onlineStatus: document.getElementById("onlineStatus"),
+      roomCodeDisplay: document.getElementById("roomCodeDisplay"),
       shareLinks: document.getElementById("shareLinks"),
       domShareLink: document.getElementById("domShareLink"),
       subShareLink: document.getElementById("subShareLink"),
       lobbyNameInput: document.getElementById("lobbyNameInput"),
       confirmLobbyNameBtn: document.getElementById("confirmLobbyNameBtn"),
+      joinRoomCodeInput: document.getElementById("joinRoomCodeInput"),
+      joinRoomBtn: document.getElementById("joinRoomBtn"),
       localTestingPanel: document.getElementById("localTestingPanel"),
       playLocalBtn: document.getElementById("playLocalBtn"),
       lobbyPlayerList: document.getElementById("lobbyPlayerList"),
@@ -2209,6 +2229,7 @@
     function updateOnlineUi() {
       if (!state.online.room) {
         els.onlineStatus.textContent = "Offline local game.";
+        els.roomCodeDisplay.classList.add("hidden");
         els.shareLinks.classList.add("hidden");
         els.setupRoomPanel.classList.add("hidden");
         els.localTestingPanel.classList.remove("hidden");
@@ -2218,6 +2239,8 @@
       const seat = localSeat() || state.online.seat || "one";
       const seatName = seat === "two" ? "Player Two" : "Player One";
       els.onlineStatus.textContent = `Room ${state.online.room}. You are ${seatName}.`;
+      els.roomCodeDisplay.textContent = `Room code: ${state.online.room}`;
+      els.roomCodeDisplay.classList.remove("hidden");
       els.shareLinks.classList.remove("hidden");
       els.domShareLink.textContent = `Your link: ${roomUrl(seat)}`;
       els.subShareLink.textContent = `Invite link: ${roomUrl(seat === "two" ? "one" : "two")}`;
@@ -2288,18 +2311,46 @@
       window.setInterval(pollState, 900);
     }
 
+    async function joinOnlineRoom(room, requestedSeat = null) {
+      if (!room) return;
+      state.online.room = room.toUpperCase();
+      const response = await fetch(`/api/state?room=${encodeURIComponent(state.online.room)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        state.online.room = null;
+        els.onlineStatus.textContent = data.error || "Room unavailable.";
+        return;
+      }
+      state.online.rev = data.rev;
+      applySnapshot(data.snapshot);
+      state.online.room = room.toUpperCase();
+      const seats = state.online.seats || { one: false, two: false };
+      const preferredSeat = requestedSeat === "one" || requestedSeat === "two" ? requestedSeat : null;
+      const seat = preferredSeat && !seats[preferredSeat]
+        ? preferredSeat
+        : (!seats.two ? "two" : (!seats.one ? "one" : preferredSeat || "two"));
+      rememberSeat(seat);
+      state.online.seats[state.online.seat] = true;
+      setLocalRoomUrl(state.online.seat);
+      await publishState();
+      startPolling();
+      updateOnlineUi();
+    }
+
+    async function joinRoomFromInput() {
+      const code = els.joinRoomCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (!code) {
+        els.onlineStatus.textContent = "Enter a room code first.";
+        return;
+      }
+      await joinOnlineRoom(code);
+    }
+
     async function joinOnlineRoomFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const room = params.get("room");
       if (!room) return;
-      state.online.room = room.toUpperCase();
-      rememberSeat(params.get("seat") === "one" ? "one" : "two");
-      state.online.seats[state.online.seat] = true;
-      await pollState();
-      state.online.seats[state.online.seat] = true;
-      await publishState();
-      startPolling();
-      updateOnlineUi();
+      await joinOnlineRoom(room, params.get("seat"));
     }
 
     function startNormalMatch() {
@@ -4180,6 +4231,10 @@
     els.backToMenuBtn.addEventListener("click", backToMenu);
     if (els.continueSetupBtn) els.continueSetupBtn.addEventListener("click", continueToSetup);
     els.confirmLobbyNameBtn.addEventListener("click", confirmLobbyName);
+    els.joinRoomBtn.addEventListener("click", joinRoomFromInput);
+    els.joinRoomCodeInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") joinRoomFromInput();
+    });
     els.playLocalBtn.addEventListener("click", playLocally);
     els.chooseDomBtn.addEventListener("click", () => chooseOnlineRole(DOM));
     els.chooseSubBtn.addEventListener("click", () => chooseOnlineRole(SUB));
