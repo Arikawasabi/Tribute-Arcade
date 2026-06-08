@@ -1,0 +1,4032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tribute Four</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #15120f;
+      --panel: #211b17;
+      --panel-2: #2d251f;
+      --text: #f4efe8;
+      --muted: #b9aa9b;
+      --line: #5f4c3f;
+      --sub: #56b5ff;
+      --dom: #f04e78;
+      --gold: #efc75e;
+      --green: #65d28f;
+      --warning: #ff9e58;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(239, 199, 94, 0.12), transparent 28rem),
+        linear-gradient(135deg, #15120f 0%, #261920 52%, #17191d 100%);
+      color: var(--text);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      border: 2px solid rgba(239, 199, 94, 0.16);
+      box-shadow: inset 0 0 34px rgba(239, 199, 94, 0.08);
+      transition: border-color 260ms ease, box-shadow 260ms ease;
+      z-index: 20;
+    }
+
+    body.control-dom::before {
+      border-color: rgba(240, 78, 120, 0.58);
+      box-shadow:
+        inset 0 0 46px rgba(240, 78, 120, 0.28),
+        inset 0 0 120px rgba(240, 78, 120, 0.12);
+    }
+
+    body.control-sub::before {
+      border-color: rgba(86, 181, 255, 0.58);
+      box-shadow:
+        inset 0 0 46px rgba(86, 181, 255, 0.28),
+        inset 0 0 120px rgba(86, 181, 255, 0.12);
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      min-height: 2.5rem;
+      border: 1px solid rgba(244, 239, 232, 0.16);
+      border-radius: 6px;
+      background: #332a23;
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(239, 199, 94, 0.55);
+      background: #3e3229;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .screen {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 24px 0;
+    }
+
+    .screen.hidden {
+      display: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .splash {
+      min-height: 100vh;
+      display: grid;
+      align-content: center;
+      gap: 18px;
+    }
+
+    .splash-header {
+      display: grid;
+      gap: 8px;
+      border-bottom: 1px solid rgba(244, 239, 232, 0.12);
+      padding-bottom: 16px;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .player-card {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border: 1px solid rgba(244, 239, 232, 0.13);
+      border-radius: 8px;
+      background: rgba(33, 27, 23, 0.92);
+    }
+
+    .field-label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .role-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .role-btn.active {
+      border-color: rgba(239, 199, 94, 0.75);
+      background: rgba(239, 199, 94, 0.16);
+      color: var(--gold);
+      font-weight: 800;
+    }
+
+    .setup-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .menu-dashboard {
+      display: grid;
+      grid-template-columns: minmax(240px, 320px) minmax(280px, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .chooser-line {
+      color: var(--muted);
+      line-height: 1.4;
+      min-height: 1.4em;
+    }
+
+    .settings-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .settings-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .settings-tab {
+      min-height: 2.25rem;
+      padding: 6px 12px;
+    }
+
+    .settings-tab.active {
+      border-color: rgba(239, 199, 94, 0.62);
+      background: rgba(239, 199, 94, 0.14);
+      color: var(--text);
+    }
+
+    .settings-pane {
+      display: grid;
+      gap: 10px;
+    }
+
+    .settings-row {
+      display: grid;
+      gap: 6px;
+    }
+
+    .settings-row select,
+    .settings-row input {
+      width: 100%;
+    }
+
+    .share-links {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .share-link {
+      padding: 9px 10px;
+      border-radius: 6px;
+      background: rgba(15, 19, 25, 0.72);
+      color: var(--muted);
+      overflow-wrap: anywhere;
+      font-size: 0.9rem;
+    }
+
+    .copy-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .player-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .player-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--muted);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.62);
+      z-index: 30;
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .role-modal {
+      width: min(460px, 100%);
+    }
+
+    .game-card {
+      min-height: 180px;
+      padding: 16px;
+      display: grid;
+      align-content: space-between;
+      gap: 16px;
+      text-align: left;
+    }
+
+    .game-card h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+
+    .game-card p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .empty-card {
+      min-height: 180px;
+      padding: 16px;
+      border: 1px dashed rgba(244, 239, 232, 0.2);
+      border-radius: 8px;
+      color: var(--muted);
+      display: grid;
+      align-content: center;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(340px, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid rgba(244, 239, 232, 0.12);
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.45;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 164px;
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid rgba(239, 199, 94, 0.35);
+      border-radius: 6px;
+      color: var(--gold);
+      background: rgba(239, 199, 94, 0.08);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .panel {
+      border: 1px solid rgba(244, 239, 232, 0.13);
+      border-radius: 8px;
+      background: rgba(33, 27, 23, 0.92);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.26);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      background: rgba(244, 239, 232, 0.05);
+      border-bottom: 1px solid rgba(244, 239, 232, 0.11);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 0.98rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #dcc8b5;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .ledger {
+      display: grid;
+      gap: 10px;
+    }
+
+    .metric {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .metric span:first-child {
+      color: var(--muted);
+    }
+
+    .metric strong {
+      color: var(--text);
+      font-size: 1.05rem;
+    }
+
+    .bet-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      min-height: 2.5rem;
+      border: 1px solid rgba(244, 239, 232, 0.16);
+      border-radius: 6px;
+      background: #181410;
+      color: var(--text);
+      padding: 0 10px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #a73955, #d54b74);
+      border-color: rgba(255, 255, 255, 0.18);
+      font-weight: 800;
+    }
+
+    .primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #bd405f, #ee5c86);
+    }
+
+    .secondary {
+      background: rgba(86, 181, 255, 0.13);
+      border-color: rgba(86, 181, 255, 0.32);
+    }
+
+    .rules {
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.94rem;
+    }
+
+    .rules li {
+      padding: 9px 10px;
+      border-left: 3px solid rgba(239, 199, 94, 0.55);
+      background: rgba(239, 199, 94, 0.06);
+    }
+
+    .game-shell {
+      display: grid;
+      gap: 14px;
+    }
+
+    .turn-strip {
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: rgba(244, 239, 232, 0.07);
+      border: 1px solid rgba(244, 239, 232, 0.12);
+    }
+
+    .turn-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .turn-copy strong {
+      color: var(--text);
+    }
+
+    .queen-charge-tray {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+      min-height: 2.5rem;
+      flex-wrap: wrap;
+    }
+
+    .charge-chip {
+      display: grid;
+      grid-template-columns: auto auto;
+      align-items: center;
+      gap: 4px 8px;
+      min-width: 96px;
+      min-height: 2.5rem;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(244, 239, 232, 0.14);
+      background: rgba(244, 239, 232, 0.055);
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1;
+      text-align: left;
+    }
+
+    .charge-chip.ready {
+      border-color: rgba(239, 199, 94, 0.56);
+      background: rgba(239, 199, 94, 0.12);
+      color: var(--text);
+    }
+
+    .charge-chip.active {
+      border-color: rgba(86, 181, 255, 0.64);
+      background: rgba(86, 181, 255, 0.14);
+      color: var(--text);
+    }
+
+    .charge-chip:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+      transform: none;
+    }
+
+    .charge-label {
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .charge-count {
+      justify-self: end;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .charge-pips {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(var(--pip-count), 1fr);
+      gap: 3px;
+    }
+
+    .charge-pip {
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(244, 239, 232, 0.16);
+    }
+
+    .charge-pip.filled {
+      background: var(--gold);
+      box-shadow: 0 0 10px rgba(239, 199, 94, 0.32);
+    }
+
+    .board-wrap {
+      padding: clamp(10px, 2vw, 18px);
+      border-radius: 8px;
+      background: #0f1319;
+      border: 1px solid rgba(244, 239, 232, 0.13);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: clamp(5px, 1.3vw, 10px);
+      aspect-ratio: 7 / 6;
+      max-height: min(68vh, 680px);
+      margin: 0 auto;
+    }
+
+    .cell {
+      width: 100%;
+      aspect-ratio: 1;
+      min-height: 0;
+      padding: 0;
+      border-radius: 50%;
+      background: #191f28;
+      border: 3px solid #2d3948;
+      box-shadow: inset 0 8px 18px rgba(0, 0, 0, 0.42);
+    }
+
+    .cell.sub {
+      background: radial-gradient(circle at 34% 30%, #b9e8ff, var(--sub) 42%, #1b6fa6 100%);
+      border-color: #7ccaff;
+    }
+
+    .cell.dom {
+      background: radial-gradient(circle at 34% 30%, #ffd2dd, var(--dom) 42%, #9e163b 100%);
+      border-color: #ff8ca7;
+    }
+
+    .cell.win {
+      outline: 4px solid var(--gold);
+      outline-offset: -5px;
+    }
+
+    .cell.blocked {
+      border-color: rgba(239, 199, 94, 0.55);
+      box-shadow:
+        inset 0 8px 18px rgba(0, 0, 0, 0.42),
+        inset 0 0 0 999px rgba(239, 199, 94, 0.12);
+    }
+
+    .fleet-layout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .fleet-panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .fleet-panel h3 {
+      margin: 0;
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #dcc8b5;
+    }
+
+    .fleet-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 5px;
+      aspect-ratio: 1;
+    }
+
+    .fleet-cell {
+      min-height: 0;
+      aspect-ratio: 1;
+      padding: 0;
+      border-radius: 5px;
+      border: 1px solid rgba(86, 181, 255, 0.18);
+      background: linear-gradient(135deg, #101923, #142332);
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.28);
+    }
+
+    .fleet-cell.ship {
+      background: linear-gradient(135deg, #37424c, #5d6872);
+      border-color: rgba(244, 239, 232, 0.28);
+    }
+
+    .fleet-cell.hit {
+      background: radial-gradient(circle at 50% 45%, #ffd2dd, var(--dom) 45%, #7d1431 100%);
+      border-color: #ff8ca7;
+    }
+
+    .fleet-cell.miss {
+      background: radial-gradient(circle at 50% 45%, #d8f2ff, #3e8ab7 42%, #183d58 100%);
+      border-color: rgba(157, 217, 255, 0.8);
+    }
+
+    .fleet-cell.revealed {
+      outline: 3px solid var(--gold);
+      outline-offset: -4px;
+    }
+
+    .fleet-cell.fogged {
+      border-color: rgba(244, 239, 232, 0.32);
+      background: linear-gradient(135deg, #24272e, #171a21);
+    }
+
+    .fleet-cell.noisy {
+      border-color: rgba(101, 210, 143, 0.65);
+      background: linear-gradient(135deg, #172c25, #11201d);
+      box-shadow:
+        inset 0 0 18px rgba(0, 0, 0, 0.28),
+        0 0 16px rgba(101, 210, 143, 0.16);
+    }
+
+    .fleet-cell.blocked {
+      border-color: rgba(239, 199, 94, 0.65);
+      background: linear-gradient(135deg, #302819, #4a3518);
+    }
+
+    .twentyone-table {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hand-panel {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(244, 239, 232, 0.12);
+      background: linear-gradient(135deg, rgba(18, 42, 35, 0.92), rgba(28, 30, 35, 0.92));
+    }
+
+    .hand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .card-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 104px;
+      align-items: center;
+    }
+
+    .playing-card {
+      width: clamp(58px, 9vw, 78px);
+      aspect-ratio: 5 / 7;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      border: 1px solid rgba(20, 16, 13, 0.28);
+      background: #f4efe8;
+      color: #17120f;
+      font-weight: 900;
+      font-size: 1.15rem;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+    }
+
+    .playing-card.red {
+      color: #b61f3f;
+    }
+
+    .playing-card.hidden-card {
+      background:
+        linear-gradient(135deg, rgba(239, 199, 94, 0.18), rgba(240, 78, 120, 0.18)),
+        #201813;
+      color: var(--gold);
+      border-color: rgba(239, 199, 94, 0.36);
+    }
+
+    .chess-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0;
+      aspect-ratio: 1;
+      max-height: min(72vh, 720px);
+      margin: 0 auto;
+      border: 1px solid rgba(244, 239, 232, 0.18);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .chess-square {
+      min-height: 0;
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 0;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      font-size: clamp(1.6rem, 6vw, 3.5rem);
+      line-height: 1;
+      box-shadow: none;
+    }
+
+    .chess-square.light {
+      background: #cdbf9e;
+      color: #17120f;
+    }
+
+    .chess-square.dark {
+      background: #5a6b58;
+      color: #17120f;
+    }
+
+    .chess-square.selected {
+      outline: 4px solid var(--gold);
+      outline-offset: -4px;
+    }
+
+    .chess-square.legal {
+      box-shadow: inset 0 0 0 999px rgba(101, 210, 143, 0.22);
+    }
+
+    .chess-square.frozen {
+      box-shadow: inset 0 0 0 999px rgba(86, 181, 255, 0.24);
+    }
+
+    .chess-square.queen-affected {
+      box-shadow: inset 0 0 0 999px rgba(239, 199, 94, 0.22);
+    }
+
+    .chess-square.frozen.queen-affected {
+      box-shadow:
+        inset 0 0 0 999px rgba(86, 181, 255, 0.20),
+        inset 0 0 0 4px rgba(239, 199, 94, 0.72);
+    }
+
+    .chess-square.queen-shielded {
+      outline: 4px solid rgba(239, 199, 94, 0.86);
+      outline-offset: -6px;
+    }
+
+    .chess-square.dom-piece {
+      color: #8d1534;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .chess-square.sub-piece {
+      color: #134f79;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .log {
+      height: 180px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+    }
+
+    .entry {
+      padding: 9px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.94rem;
+    }
+
+    .entry strong {
+      color: var(--text);
+    }
+
+    .danger {
+      color: var(--warning);
+    }
+
+    @media (max-width: 820px) {
+      .screen {
+        width: min(100vw - 20px, 680px);
+        padding: 14px 0;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .setup-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .menu-dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .status-pill {
+        width: 100%;
+      }
+
+      .fleet-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .mode-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="screen splash" id="lobbyScreen">
+    <header class="splash-header">
+      <h1>Tribute Arcade</h1>
+      <p class="subtitle">Pick a name, host or join a room, then choose roles once both players are present.</p>
+    </header>
+
+    <section class="menu-dashboard">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Online Room</h2>
+          <button id="createRoomBtn" class="primary">Host Game</button>
+        </div>
+        <div class="panel-body">
+          <label class="field-label">
+            Your name
+            <input id="lobbyNameInput" type="text" autocomplete="off" placeholder="Enter name">
+          </label>
+          <div class="setup-actions">
+            <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
+          </div>
+          <p class="chooser-line" id="onlineStatus">Offline local game.</p>
+          <div class="share-links hidden" id="shareLinks">
+            <div class="share-link" id="domShareLink"></div>
+            <div class="copy-row">
+              <div class="share-link" id="subShareLink"></div>
+              <button id="copyInviteBtn">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="localTestingPanel">
+        <div class="panel-header">
+          <h2 class="panel-title">Local Testing</h2>
+        </div>
+        <div class="panel-body">
+          <p class="chooser-line">Play both sides on this device without creating a room.</p>
+          <div class="setup-actions">
+            <button id="playLocalBtn" class="primary">Play Locally</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Players</h2>
+        </div>
+        <div class="panel-body">
+          <div class="player-list" id="lobbyPlayerList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="screen splash hidden" id="setupScreen">
+    <header class="splash-header">
+      <h1>Tribute Arcade</h1>
+      <p class="subtitle">Choose roles and names. In online rooms, each player controls their own card.</p>
+    </header>
+
+    <section class="setup-grid">
+      <div class="player-card">
+        <h2 class="panel-title">Player One</h2>
+        <div class="role-row">
+          <button class="role-btn" data-player="one" data-role="dom">Dom</button>
+          <button class="role-btn" data-player="one" data-role="sub">Sub</button>
+        </div>
+        <label class="field-label">
+          Name
+          <input id="playerOneName" type="text" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="player-card">
+        <h2 class="panel-title">Player Two</h2>
+        <div class="role-row">
+          <button class="role-btn" data-player="two" data-role="dom">Dom</button>
+          <button class="role-btn" data-player="two" data-role="sub">Sub</button>
+        </div>
+        <label class="field-label">
+          Name
+          <input id="playerTwoName" type="text" autocomplete="off">
+        </label>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="setupRoomPanel">
+      <div class="panel-header">
+        <h2 class="panel-title">Room Link</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="setupRoomStatus">Offline local setup.</p>
+        <div class="copy-row">
+          <div class="share-link" id="setupShareLink"></div>
+          <button id="copySetupInviteBtn">Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="setup-actions">
+      <p class="turn-copy" id="setupMessage"></p>
+      <button id="confirmPlayersBtn" class="primary">Confirm</button>
+    </div>
+  </main>
+
+  <main class="screen splash hidden" id="gameSelectScreen">
+    <header class="splash-header">
+      <h1>Game Select</h1>
+      <p class="subtitle" id="playerSummary">Choose a game.</p>
+    </header>
+
+    <section class="menu-dashboard">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Global Bank</h2>
+        </div>
+        <div class="panel-body">
+          <div class="metric"><span id="menuBankLabel">Dom's bank</span><strong id="menuDomBank">$0</strong></div>
+        </div>
+      </div>
+
+      <div class="panel settings-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Settings</h2>
+        </div>
+        <div class="panel-body">
+          <div class="settings-tabs">
+            <button class="settings-tab active" data-settings-tab="dom">Dom</button>
+            <button class="settings-tab" data-settings-tab="sub">Sub</button>
+            <button class="settings-tab" data-settings-tab="chess">Chess</button>
+          </div>
+
+          <div class="settings-pane" id="domSettingsPane">
+            <label class="settings-row">
+              Dom advantages
+              <select id="domAdvantageMode">
+                <option value="dom">Enabled for dom</option>
+                <option value="off">Disabled globally</option>
+                <option value="both">Enabled for both players</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-pane hidden" id="subSettingsPane">
+            <label class="settings-row">
+              Default bet
+              <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
+            </label>
+          </div>
+
+          <div class="settings-pane hidden" id="chessSettingsPane">
+            <label class="settings-row">
+              Queen powers
+              <select id="queenPowerMode">
+                <option value="tiered">Unlock by tilt</option>
+                <option value="always">Always enabled</option>
+                <option value="off">Disabled</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              Queen power users
+              <select id="queenPowerUsers">
+                <option value="dom">Dom only</option>
+                <option value="both">Both players</option>
+              </select>
+            </label>
+          </div>
+          <p class="chooser-line" id="chooserStatus">Dom picks the next game.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <section class="game-grid">
+      <button class="panel game-card" id="tributeFourCard">
+        <span>
+          <h2>Tribute Four</h2>
+          <p>Connect Four with normal bets, reclaim matches, and tilted dom-favored rules.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeFleetCard">
+        <span>
+          <h2>Tribute Fleet</h2>
+          <p>Battleship with hidden fleets, cash stakes, and reclaim pressure on the sub's shots.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeTwentyOneCard">
+        <span>
+          <h2>Tribute 21</h2>
+          <p>Blackjack-inspired casino hands with fast bets, reclaim pressure, and a sharp dealer edge.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeChessCard">
+        <span>
+          <h2>Tribute Chess</h2>
+          <p>Classic chess with queen stances, shared charges, and reclaim commands.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+    </section>
+  </main>
+
+  <main class="screen app hidden" id="gameScreen">
+    <header class="topbar">
+      <div>
+        <h1 id="gameTitle">Tribute Four</h1>
+        <p class="subtitle" id="gameSubtitle">Connect Four with cash stakes. The sub chooses a normal bet to start. If the dom wins, that cash enters her bank; later the sub can risk a tilted reclaim match to win the banked cash back.</p>
+      </div>
+      <div class="setup-actions">
+        <button id="backToMenuBtn">Games</button>
+        <div class="status-pill" id="modeLabel">Normal Match</div>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Cash Ledger</h2>
+      </div>
+      <div class="panel-body">
+        <div class="ledger">
+          <div class="metric"><span>Current pot</span><strong id="pot">0</strong></div>
+          <div class="metric"><span>Dom's bank</span><strong id="domVault">0</strong></div>
+          <div class="metric"><span>Cash to reclaim</span><strong id="lockedTribute">0</strong></div>
+        </div>
+
+        <div class="bet-row">
+          <input id="betInput" type="number" min="1" step="1" value="10" aria-label="Bet amount">
+          <button id="normalBtn" class="primary">Bet</button>
+        </div>
+
+        <div class="mode-grid">
+          <button id="reclaimBtn" class="secondary">Reclaim</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+
+        <ul class="rules" id="ruleList"></ul>
+      </div>
+    </section>
+
+    <section class="game-shell">
+      <div class="turn-strip">
+        <p class="turn-copy" id="turnText"><strong>Sub</strong> must make a normal bet to begin.</p>
+        <select id="queenStanceSelect" class="hidden" title="Choose the dom queen's stance">
+          <option value="none">None</option>
+          <option value="gaze">Gaze</option>
+          <option value="tithe">Tithe</option>
+          <option value="leash">Leash</option>
+        </select>
+        <span id="queenChargeText" class="queen-charge-tray hidden">No charges</span>
+        <button id="hitBtn" class="hidden">Hit</button>
+        <button id="queenRepositionBtn" class="hidden">Reposition</button>
+        <button id="queenShieldBtn" class="hidden">Shield</button>
+        <button id="chessSkipBtn" class="hidden">Queue Skip</button>
+        <button id="passBtn" title="Use the dom's reclaim privilege to pass once">Pass</button>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Match Log</h2>
+        </div>
+        <div class="panel-body">
+          <div class="log" id="log"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="modal-backdrop hidden" id="roleModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Choose Role</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="roleModalText">Choose your role for this room.</p>
+        <div class="role-row">
+          <button id="chooseDomBtn" class="role-btn">Dom</button>
+          <button id="chooseSubBtn" class="role-btn">Sub</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script>
+    if (typeof window.Chess !== "function") {
+      window.Chess = class SimpleChess {
+        constructor(fen) {
+          this.board = {};
+          this.active = "w";
+          this.load(fen || SimpleChess.START);
+        }
+
+        load(fen) {
+          const source = !fen || fen === "start" ? SimpleChess.START : fen;
+          const parts = source.split(" ");
+          this.board = {};
+          this.active = parts[1] || "w";
+          const ranks = parts[0].split("/");
+          for (let r = 0; r < 8; r += 1) {
+            let file = 0;
+            for (const char of ranks[r]) {
+              if (/\d/.test(char)) {
+                file += Number(char);
+              } else {
+                const color = char === char.toUpperCase() ? "w" : "b";
+                const type = char.toLowerCase();
+                this.board[`${"abcdefgh"[file]}${8 - r}`] = { color, type };
+                file += 1;
+              }
+            }
+          }
+        }
+
+        fen() {
+          const ranks = [];
+          for (let rank = 8; rank >= 1; rank -= 1) {
+            let row = "";
+            let empty = 0;
+            for (const file of "abcdefgh") {
+              const piece = this.board[`${file}${rank}`];
+              if (!piece) {
+                empty += 1;
+              } else {
+                if (empty) {
+                  row += empty;
+                  empty = 0;
+                }
+                const letter = piece.type === "n" ? "n" : piece.type;
+                row += piece.color === "w" ? letter.toUpperCase() : letter;
+              }
+            }
+            if (empty) row += empty;
+            ranks.push(row);
+          }
+          return `${ranks.join("/")} ${this.active} - - 0 1`;
+        }
+
+        turn() {
+          return this.active;
+        }
+
+        get(square) {
+          const piece = this.board[square];
+          return piece ? { ...piece } : null;
+        }
+
+        moves(options = {}) {
+          const color = this.active;
+          const squares = options.square ? [options.square] : Object.keys(this.board).filter((sq) => this.board[sq].color === color);
+          const moves = [];
+          squares.forEach((square) => {
+            const piece = this.board[square];
+            if (!piece || piece.color !== color) return;
+            this.pseudoMoves(square, piece).forEach((move) => {
+              if (!this.leavesKingInCheck(move, color)) moves.push(move);
+            });
+          });
+          return options.verbose ? moves : moves.map((move) => move.to);
+        }
+
+        move(input) {
+          const legal = this.moves({ square: input.from, verbose: true }).find((move) => move.to === input.to);
+          if (!legal) return null;
+          const piece = this.board[input.from];
+          const captured = this.board[input.to];
+          delete this.board[input.from];
+          const promotionRank = piece.color === "w" ? "8" : "1";
+          const type = piece.type === "p" && input.to[1] === promotionRank ? (input.promotion || "q") : piece.type;
+          this.board[input.to] = { color: piece.color, type };
+          this.active = this.active === "w" ? "b" : "w";
+          return { ...legal, captured: captured ? captured.type : undefined };
+        }
+
+        game_over() {
+          return this.moves({ verbose: true }).length === 0;
+        }
+
+        in_checkmate() {
+          return this.inCheck(this.active) && this.moves({ verbose: true }).length === 0;
+        }
+
+        isGameOver() {
+          return this.game_over();
+        }
+
+        isCheckmate() {
+          return this.in_checkmate();
+        }
+
+        pseudoMoves(square, piece) {
+          const [file, rank] = SimpleChess.toCoord(square);
+          const moves = [];
+          const add = (f, r, onlyCapture = false, onlyEmpty = false) => {
+            if (!SimpleChess.onBoard(f, r)) return false;
+            const to = SimpleChess.toSquare(f, r);
+            const target = this.board[to];
+            if (onlyCapture && (!target || target.color === piece.color)) return false;
+            if (onlyEmpty && target) return false;
+            if (!target || target.color !== piece.color) {
+              moves.push({ color: piece.color, from: square, to, piece: piece.type, captured: target ? target.type : undefined });
+            }
+            return !target;
+          };
+
+          if (piece.type === "p") {
+            const dir = piece.color === "w" ? 1 : -1;
+            const startRank = piece.color === "w" ? 2 : 7;
+            if (add(file, rank + dir, false, true) && rank === startRank) add(file, rank + dir * 2, false, true);
+            add(file - 1, rank + dir, true, false);
+            add(file + 1, rank + dir, true, false);
+            return moves;
+          }
+
+          if (piece.type === "n") {
+            [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]].forEach(([df, dr]) => add(file + df, rank + dr));
+            return moves;
+          }
+
+          if (piece.type === "k") {
+            for (let df = -1; df <= 1; df += 1) {
+              for (let dr = -1; dr <= 1; dr += 1) {
+                if (df || dr) add(file + df, rank + dr);
+              }
+            }
+            return moves;
+          }
+
+          const directions = {
+            b: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
+            r: [[1, 0], [-1, 0], [0, 1], [0, -1]],
+            q: [[1, 1], [1, -1], [-1, 1], [-1, -1], [1, 0], [-1, 0], [0, 1], [0, -1]]
+          }[piece.type] || [];
+          directions.forEach(([df, dr]) => {
+            let f = file + df;
+            let r = rank + dr;
+            while (SimpleChess.onBoard(f, r)) {
+              if (!add(f, r)) break;
+              f += df;
+              r += dr;
+            }
+          });
+          return moves;
+        }
+
+        leavesKingInCheck(move, color) {
+          const moving = this.board[move.from];
+          const captured = this.board[move.to];
+          delete this.board[move.from];
+          this.board[move.to] = moving;
+          const inCheck = this.inCheck(color);
+          this.board[move.from] = moving;
+          if (captured) this.board[move.to] = captured;
+          else delete this.board[move.to];
+          return inCheck;
+        }
+
+        inCheck(color) {
+          const kingSquare = Object.keys(this.board).find((sq) => {
+            const piece = this.board[sq];
+            return piece.color === color && piece.type === "k";
+          });
+          if (!kingSquare) return false;
+          const enemy = color === "w" ? "b" : "w";
+          return this.isAttacked(kingSquare, enemy);
+        }
+
+        isAttacked(square, byColor) {
+          const [file, rank] = SimpleChess.toCoord(square);
+          const enemyPieces = Object.entries(this.board).filter(([, piece]) => piece.color === byColor);
+          return enemyPieces.some(([from, piece]) => {
+            const [f, r] = SimpleChess.toCoord(from);
+            if (piece.type === "p") {
+              const dir = piece.color === "w" ? 1 : -1;
+              return r + dir === rank && Math.abs(f - file) === 1;
+            }
+            if (piece.type === "n") return [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]].some(([df, dr]) => f + df === file && r + dr === rank);
+            if (piece.type === "k") return Math.max(Math.abs(f - file), Math.abs(r - rank)) === 1;
+            const dirs = {
+              b: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
+              r: [[1, 0], [-1, 0], [0, 1], [0, -1]],
+              q: [[1, 1], [1, -1], [-1, 1], [-1, -1], [1, 0], [-1, 0], [0, 1], [0, -1]]
+            }[piece.type] || [];
+            return dirs.some(([df, dr]) => {
+              let cf = f + df;
+              let cr = r + dr;
+              while (SimpleChess.onBoard(cf, cr)) {
+                const sq = SimpleChess.toSquare(cf, cr);
+                if (sq === square) return true;
+                if (this.board[sq]) return false;
+                cf += df;
+                cr += dr;
+              }
+              return false;
+            });
+          });
+        }
+
+        static toCoord(square) {
+          return ["abcdefgh".indexOf(square[0]) + 1, Number(square[1])];
+        }
+
+        static toSquare(file, rank) {
+          return `${"abcdefgh"[file - 1]}${rank}`;
+        }
+
+        static onBoard(file, rank) {
+          return file >= 1 && file <= 8 && rank >= 1 && rank <= 8;
+        }
+      };
+      window.Chess.START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+    }
+  </script>
+  <script>
+    const ROWS = 6;
+    const COLS = 7;
+    const FLEET_SIZE = 6;
+    const FLEET_SHIPS = [3, 2, 2];
+    const EMPTY = "";
+    const SUB = "sub";
+    const DOM = "dom";
+
+    const state = {
+      screen: "lobby",
+      roles: {
+        one: null,
+        two: null
+      },
+      names: {
+        dom: "",
+        sub: ""
+      },
+      settings: {
+        activeTab: "dom",
+        domAdvantageMode: "dom",
+        subDefaultBet: 10,
+        queenPowerMode: "tiered",
+        queenPowerUsers: "dom"
+      },
+      online: {
+        room: null,
+        seat: null,
+        rev: 0,
+        applying: false,
+        polling: false,
+        inviteUrl: "",
+        playerNames: {
+          one: "",
+          two: ""
+        },
+        roleChoices: {
+          one: null,
+          two: null
+        },
+        seats: {
+          one: false,
+          two: false
+        }
+      },
+      currentGame: "tributeFour",
+      board: createBoard(),
+      turn: SUB,
+      active: false,
+      mode: "normal",
+      pot: 0,
+      domVault: 0,
+      lockedTribute: 0,
+      tiltLevel: 0,
+      blockedColumns: [],
+      skipAvailable: false,
+      skipArmed: false,
+      reclaimPassAvailable: false,
+      domOpened: false,
+      winningCells: [],
+      fleet: createFleetState(),
+      twentyOne: createTwentyOneState(),
+      chess: createChessState()
+    };
+
+    const els = {
+      lobbyScreen: document.getElementById("lobbyScreen"),
+      setupScreen: document.getElementById("setupScreen"),
+      gameSelectScreen: document.getElementById("gameSelectScreen"),
+      gameScreen: document.getElementById("gameScreen"),
+      playerOneName: document.getElementById("playerOneName"),
+      playerTwoName: document.getElementById("playerTwoName"),
+      continueSetupBtn: document.getElementById("continueSetupBtn"),
+      confirmPlayersBtn: document.getElementById("confirmPlayersBtn"),
+      setupMessage: document.getElementById("setupMessage"),
+      setupRoomPanel: document.getElementById("setupRoomPanel"),
+      setupRoomStatus: document.getElementById("setupRoomStatus"),
+      setupShareLink: document.getElementById("setupShareLink"),
+      copyInviteBtn: document.getElementById("copyInviteBtn"),
+      playerSummary: document.getElementById("playerSummary"),
+      menuBankLabel: document.getElementById("menuBankLabel"),
+      menuDomBank: document.getElementById("menuDomBank"),
+      chooserStatus: document.getElementById("chooserStatus"),
+      settingsTabs: document.querySelectorAll(".settings-tab"),
+      domSettingsPane: document.getElementById("domSettingsPane"),
+      subSettingsPane: document.getElementById("subSettingsPane"),
+      chessSettingsPane: document.getElementById("chessSettingsPane"),
+      domAdvantageMode: document.getElementById("domAdvantageMode"),
+      subDefaultBetInput: document.getElementById("subDefaultBetInput"),
+      queenPowerMode: document.getElementById("queenPowerMode"),
+      queenPowerUsers: document.getElementById("queenPowerUsers"),
+      tributeFourCard: document.getElementById("tributeFourCard"),
+      tributeFleetCard: document.getElementById("tributeFleetCard"),
+      tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
+      tributeChessCard: document.getElementById("tributeChessCard"),
+      createRoomBtn: document.getElementById("createRoomBtn"),
+      onlineStatus: document.getElementById("onlineStatus"),
+      shareLinks: document.getElementById("shareLinks"),
+      domShareLink: document.getElementById("domShareLink"),
+      subShareLink: document.getElementById("subShareLink"),
+      lobbyNameInput: document.getElementById("lobbyNameInput"),
+      confirmLobbyNameBtn: document.getElementById("confirmLobbyNameBtn"),
+      localTestingPanel: document.getElementById("localTestingPanel"),
+      playLocalBtn: document.getElementById("playLocalBtn"),
+      lobbyPlayerList: document.getElementById("lobbyPlayerList"),
+      roleModal: document.getElementById("roleModal"),
+      roleModalText: document.getElementById("roleModalText"),
+      chooseDomBtn: document.getElementById("chooseDomBtn"),
+      chooseSubBtn: document.getElementById("chooseSubBtn"),
+      gameTitle: document.getElementById("gameTitle"),
+      gameSubtitle: document.getElementById("gameSubtitle"),
+      board: document.getElementById("board"),
+      turnText: document.getElementById("turnText"),
+      modeLabel: document.getElementById("modeLabel"),
+      pot: document.getElementById("pot"),
+      domVault: document.getElementById("domVault"),
+      lockedTribute: document.getElementById("lockedTribute"),
+      betInput: document.getElementById("betInput"),
+      normalBtn: document.getElementById("normalBtn"),
+      reclaimBtn: document.getElementById("reclaimBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      hitBtn: document.getElementById("hitBtn"),
+      queenRepositionBtn: document.getElementById("queenRepositionBtn"),
+      queenShieldBtn: document.getElementById("queenShieldBtn"),
+      chessSkipBtn: document.getElementById("chessSkipBtn"),
+      passBtn: document.getElementById("passBtn"),
+      queenStanceSelect: document.getElementById("queenStanceSelect"),
+      queenChargeText: document.getElementById("queenChargeText"),
+      backToMenuBtn: document.getElementById("backToMenuBtn"),
+      ruleList: document.getElementById("ruleList"),
+      log: document.getElementById("log")
+    };
+
+    function createBoard() {
+      return Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+    }
+
+    function createFleetGrid() {
+      return Array.from({ length: FLEET_SIZE }, () => Array(FLEET_SIZE).fill(false));
+    }
+
+    function createShotGrid() {
+      return Array.from({ length: FLEET_SIZE }, () => Array(FLEET_SIZE).fill(EMPTY));
+    }
+
+    function createFleetState() {
+      return {
+        boards: {
+          dom: createFleetGrid(),
+          sub: createFleetGrid()
+        },
+        shots: {
+          dom: createShotGrid(),
+          sub: createShotGrid()
+        },
+        scanAvailable: false,
+        scanReveals: [],
+        modifiers: [],
+        doubleTapAvailable: false,
+        commandFog: null,
+        noisyWaters: null,
+        priorityIntel: null
+      };
+    }
+
+    function createTwentyOneState() {
+      return {
+        deck: [],
+        hands: {
+          dom: [],
+          sub: []
+        },
+        stood: false,
+        revealDom: false,
+        softSaveAvailable: false,
+        forceHitAvailable: false,
+        outcome: ""
+      };
+    }
+
+    function createChessState() {
+      return {
+        fen: "start",
+        colors: {
+          w: SUB,
+          b: DOM
+        },
+        selected: null,
+        legalMoves: [],
+        freezeAvailable: false,
+        freezeMode: false,
+        freezeSquare: null,
+        freezeTurnsRemaining: 0,
+        skipAvailable: false,
+        skipQueued: false,
+        commandAvailable: false,
+        commandQueued: false,
+        commandMode: false,
+        repositionMode: false,
+        repositionUsed: false,
+        postDomPowerWindow: false,
+        queenShield: false,
+        queenStance: "none",
+        queenTriggerUsed: false,
+        charges: 0,
+        outcome: ""
+      };
+    }
+
+    function normalizeChessState(chess) {
+      const base = createChessState();
+      const merged = {
+        ...base,
+        ...(chess || {})
+      };
+      if (typeof merged.charges === "object") {
+        merged.charges = Number(merged.charges.freeze || 0)
+          + Number(merged.charges.skip || 0)
+          + Number(merged.charges.command || 0);
+      } else {
+        merged.charges = Number(merged.charges || 0);
+      }
+      return merged;
+    }
+
+    function money(value) {
+      return `$${value.toLocaleString()}`;
+    }
+
+    function labelFor(player) {
+      return player === DOM ? state.names.dom : state.names.sub;
+    }
+
+    function applyDefaultBet() {
+      els.betInput.value = normalizeBuyIn(state.settings.subDefaultBet);
+    }
+
+    function localSeat() {
+      const seatParam = new URLSearchParams(window.location.search).get("seat");
+      if (seatParam === "one" || seatParam === "two") return seatParam;
+      return state.online.seat;
+    }
+
+    function rememberSeat(seat) {
+      state.online.seat = seat;
+    }
+
+    function localOnlineRole() {
+      const seat = localSeat();
+      return seat ? state.roles[seat] : null;
+    }
+
+    function domAdvantagesEnabled() {
+      return state.settings.domAdvantageMode !== "off";
+    }
+
+    function domAdvantageControlsAllowed(role) {
+      if (!domAdvantagesEnabled()) return false;
+      if (!role) return true;
+      return state.settings.domAdvantageMode === "both" || role === DOM;
+    }
+
+    function queenPowerControlsAllowed(role) {
+      if (!role) return true;
+      return state.settings.queenPowerUsers === "both" || role === DOM;
+    }
+
+    function setScreen(screen) {
+      state.screen = screen;
+      els.setupScreen.classList.toggle("hidden", screen !== "setup");
+      els.lobbyScreen.classList.toggle("hidden", screen !== "lobby");
+      els.gameSelectScreen.classList.toggle("hidden", screen !== "select");
+      els.gameScreen.classList.toggle("hidden", screen !== "game");
+      renderControlGlow();
+      renderMenu();
+    }
+
+    function setRole(player, role) {
+      if (localSeat() && localSeat() !== player) return;
+      const other = player === "one" ? "two" : "one";
+      state.roles[player] = role;
+      state.roles[other] = role === DOM ? SUB : DOM;
+      renderRoles();
+      publishState();
+    }
+
+    function renderRoles() {
+      document.querySelectorAll(".role-btn").forEach((button) => {
+        const player = button.dataset.player;
+        if (!player) return;
+        button.classList.toggle("active", state.roles[player] === button.dataset.role);
+        button.disabled = Boolean(localSeat() && localSeat() !== player);
+      });
+      els.playerOneName.disabled = Boolean(localSeat() && localSeat() !== "one");
+      els.playerTwoName.disabled = Boolean(localSeat() && localSeat() !== "two");
+    }
+
+    function confirmPlayers() {
+      const oneName = els.playerOneName.value.trim();
+      const twoName = els.playerTwoName.value.trim();
+      if (!oneName || !twoName) {
+        addSetupWarning("Both players need a name.");
+        return;
+      }
+      if (!state.roles.one || !state.roles.two) {
+        addSetupWarning("Both players need roles.");
+        return;
+      }
+
+      state.names[state.roles.one] = oneName;
+      state.names[state.roles.two] = twoName;
+      els.setupMessage.textContent = "";
+      els.playerSummary.textContent = `${state.names.dom} is the dom. ${state.names.sub} is the sub.`;
+      setScreen("select");
+      publishState();
+    }
+
+    function addSetupWarning(message) {
+      els.setupMessage.textContent = message;
+    }
+
+    function continueToSetup() {
+      setScreen("setup");
+      publishState();
+    }
+
+    function playLocally() {
+      state.online.room = null;
+      state.online.seat = null;
+      state.online.rev = 0;
+      state.online.playerNames = { one: "", two: "" };
+      state.online.roleChoices = { one: null, two: null };
+      state.online.seats = { one: false, two: false };
+      state.roles = { one: null, two: null };
+      state.names = { dom: "", sub: "" };
+      els.playerOneName.value = "";
+      els.playerTwoName.value = "";
+      els.setupMessage.textContent = "";
+      setScreen("setup");
+      renderRoles();
+      updateOnlineUi();
+    }
+
+    function renderLobby() {
+      const rows = ["one", "two"].map((seat) => {
+        const label = seat === "one" ? "Player One" : "Player Two";
+        const name = state.online.playerNames[seat] || "Waiting";
+        const role = state.online.roleChoices[seat] ? state.online.roleChoices[seat].toUpperCase() : "No role";
+        return `<div class="player-row"><span>${label}: ${name}</span><strong>${role}</strong></div>`;
+      });
+      els.lobbyPlayerList.innerHTML = rows.join("");
+
+      const seat = localSeat();
+      const bothNamed = Boolean(state.online.playerNames.one && state.online.playerNames.two);
+      const ownRole = seat ? state.online.roleChoices[seat] : null;
+      const bothRoles = Boolean(state.online.roleChoices.one && state.online.roleChoices.two);
+      const roleConflict = bothRoles && state.online.roleChoices.one === state.online.roleChoices.two;
+      els.roleModal.classList.toggle("hidden", !(state.online.room && bothNamed && seat && (!ownRole || roleConflict)));
+      if (seat && bothNamed && (!ownRole || roleConflict)) {
+        els.roleModalText.textContent = roleConflict
+          ? "Both players chose the same role. Choose again."
+          : `${state.online.playerNames[seat]}, choose your role.`;
+      }
+
+      if (state.online.room && bothNamed && bothRoles && !roleConflict && state.screen === "lobby") {
+        applyOnlineRoles();
+        setScreen("select");
+        publishState();
+      }
+    }
+
+    function applyOnlineRoles() {
+      state.roles.one = state.online.roleChoices.one;
+      state.roles.two = state.online.roleChoices.two;
+      const oneName = state.online.playerNames.one;
+      const twoName = state.online.playerNames.two;
+      state.names = {
+        dom: state.roles.one === DOM ? oneName : twoName,
+        sub: state.roles.one === SUB ? oneName : twoName
+      };
+      els.playerSummary.textContent = `${state.names.dom} is the dom. ${state.names.sub} is the sub.`;
+    }
+
+    function confirmLobbyName() {
+      const seat = localSeat();
+      const name = els.lobbyNameInput.value.trim();
+      if (!name) {
+        els.onlineStatus.textContent = "Pick a name first.";
+        return;
+      }
+      if (!state.online.room) {
+        els.onlineStatus.textContent = "Host a game first, or open an invite link.";
+        return;
+      }
+      state.online.playerNames[seat] = name;
+      state.online.seats[seat] = true;
+      updateOnlineUi();
+      publishState();
+    }
+
+    function chooseOnlineRole(role) {
+      const seat = localSeat();
+      if (!seat) return;
+      state.online.roleChoices[seat] = role;
+      renderLobby();
+      publishState();
+    }
+
+    function openTributeFour() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.currentGame = "tributeFour";
+      setScreen("game");
+      resetTributeFourBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>${state.names.dom}</strong> controls the bank. <strong>${state.names.sub}</strong> makes the first normal bet.`);
+      render();
+      publishState();
+    }
+
+    function openTributeFleet() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.currentGame = "tributeFleet";
+      setScreen("game");
+      resetTributeFleetBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>${state.names.dom}</strong> controls the bank. <strong>${state.names.sub}</strong> makes the first fleet bet.`);
+      render();
+      publishState();
+    }
+
+    function openTributeTwentyOne() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.currentGame = "tributeTwentyOne";
+      setScreen("game");
+      resetTributeTwentyOneBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>${state.names.dom}</strong> holds the table. <strong>${state.names.sub}</strong> buys into the first hand.`);
+      render();
+      publishState();
+    }
+
+    function openTributeChess() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.currentGame = "tributeChess";
+      setScreen("game");
+      resetTributeChessBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>${state.names.dom}</strong> claims the board. <strong>${state.names.sub}</strong> buys into the first game.`);
+      render();
+      publishState();
+    }
+
+    function backToMenu() {
+      state.active = false;
+      state.pot = 0;
+      setScreen("select");
+      render();
+      publishState();
+    }
+
+    function renderMenu() {
+      els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
+      els.menuDomBank.textContent = money(state.domVault);
+      updateOnlineUi();
+      const localRole = localOnlineRole();
+      const domPickBlocked = Boolean(state.online.room && localRole && localRole !== DOM);
+      els.tributeFourCard.disabled = domPickBlocked;
+      els.tributeFleetCard.disabled = domPickBlocked;
+      els.tributeTwentyOneCard.disabled = domPickBlocked;
+      els.tributeChessCard.disabled = domPickBlocked;
+      els.chooserStatus.textContent = domPickBlocked
+        ? `${state.names.dom} picks the next game.`
+        : `${state.names.dom || "Dom"} picks the next game.`;
+      renderSettings();
+      renderControlGlow();
+    }
+
+    function renderControlGlow() {
+      const controller = state.screen === "game"
+        ? (state.active ? state.turn : SUB)
+        : DOM;
+      document.body.classList.toggle("control-dom", controller === DOM);
+      document.body.classList.toggle("control-sub", controller === SUB);
+    }
+
+    function visibleSettingsTabs() {
+      const role = localOnlineRole();
+      if (!state.online.room || !role) return ["dom", "sub", "chess"];
+      return role === DOM ? ["dom", "chess"] : ["sub"];
+    }
+
+    function renderSettings() {
+      const visibleTabs = visibleSettingsTabs();
+      if (!visibleTabs.includes(state.settings.activeTab)) {
+        state.settings.activeTab = visibleTabs[0];
+      }
+      els.settingsTabs.forEach((button) => {
+        const visible = visibleTabs.includes(button.dataset.settingsTab);
+        button.classList.toggle("hidden", !visible);
+        button.classList.toggle("active", button.dataset.settingsTab === state.settings.activeTab);
+      });
+      els.domSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "dom");
+      els.subSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "sub");
+      els.chessSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "chess");
+      els.domAdvantageMode.value = state.settings.domAdvantageMode;
+      els.subDefaultBetInput.value = state.settings.subDefaultBet;
+      els.queenPowerMode.value = state.settings.queenPowerMode;
+      els.queenPowerUsers.value = state.settings.queenPowerUsers;
+    }
+
+    function updateSettings(changes) {
+      state.settings = {
+        ...state.settings,
+        ...changes
+      };
+      state.settings.subDefaultBet = normalizeBuyIn(Number(state.settings.subDefaultBet));
+      if (!state.active) els.betInput.value = state.settings.subDefaultBet;
+      renderSettings();
+      publishState();
+    }
+
+    function addLog(html) {
+      const entry = document.createElement("div");
+      entry.className = "entry";
+      entry.innerHTML = html;
+      els.log.prepend(entry);
+    }
+
+    function snapshotState() {
+      return {
+        screen: state.screen,
+        roles: state.roles,
+        names: state.names,
+        settings: state.settings,
+        currentGame: state.currentGame,
+        board: state.board,
+        turn: state.turn,
+        active: state.active,
+        mode: state.mode,
+        pot: state.pot,
+        domVault: state.domVault,
+        lockedTribute: state.lockedTribute,
+        tiltLevel: state.tiltLevel,
+        blockedColumns: state.blockedColumns,
+        skipAvailable: state.skipAvailable,
+        skipArmed: state.skipArmed,
+        reclaimPassAvailable: state.reclaimPassAvailable,
+        domOpened: state.domOpened,
+        winningCells: state.winningCells,
+        fleet: state.fleet,
+        twentyOne: state.twentyOne,
+        chess: state.chess,
+        onlineLobby: {
+          seats: state.online.seats,
+          playerNames: state.online.playerNames,
+          roleChoices: state.online.roleChoices
+        },
+        logHtml: els.log.innerHTML
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      if (!snapshot) return;
+      state.online.applying = true;
+      state.screen = snapshot.screen || state.screen;
+      state.roles = snapshot.roles || state.roles;
+      state.names = snapshot.names || state.names;
+      state.settings = {
+        ...state.settings,
+        ...(snapshot.settings || {})
+      };
+      state.currentGame = snapshot.currentGame || state.currentGame;
+      state.board = snapshot.board || state.board;
+      state.turn = snapshot.turn || state.turn;
+      state.active = Boolean(snapshot.active);
+      state.mode = snapshot.mode || state.mode;
+      state.pot = Number(snapshot.pot || 0);
+      state.domVault = Number(snapshot.domVault || 0);
+      state.lockedTribute = Number(snapshot.lockedTribute || state.domVault);
+      state.tiltLevel = Number(snapshot.tiltLevel || 0);
+      state.blockedColumns = snapshot.blockedColumns || [];
+      state.skipAvailable = Boolean(snapshot.skipAvailable);
+      state.skipArmed = Boolean(snapshot.skipArmed);
+      state.reclaimPassAvailable = Boolean(snapshot.reclaimPassAvailable);
+      state.domOpened = Boolean(snapshot.domOpened);
+      state.winningCells = snapshot.winningCells || [];
+      state.fleet = snapshot.fleet || state.fleet;
+      state.twentyOne = snapshot.twentyOne || state.twentyOne;
+      state.chess = normalizeChessState(snapshot.chess || state.chess);
+      if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
+        state.online.seats = snapshot.onlineLobby.seats;
+        state.online.playerNames = snapshot.onlineLobby.playerNames || state.online.playerNames;
+        state.online.roleChoices = snapshot.onlineLobby.roleChoices || state.online.roleChoices;
+      }
+      els.log.innerHTML = snapshot.logHtml || "";
+      els.playerSummary.textContent = `${state.names.dom} is the dom. ${state.names.sub} is the sub.`;
+      setScreen(state.screen);
+      renderRoles();
+      render();
+      state.online.applying = false;
+    }
+
+    async function createOnlineRoom() {
+      try {
+        rememberSeat("one");
+        state.online.seats.one = true;
+        state.online.seats.two = false;
+        setScreen("lobby");
+        renderRoles();
+        const response = await fetch("/api/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ snapshot: snapshotState() })
+        });
+        const room = await response.json();
+        if (!response.ok) throw new Error(room.error || "Could not create room");
+        state.online.room = room.id;
+        state.online.rev = room.rev;
+        setLocalRoomUrl("one");
+        updateOnlineUi();
+        startPolling();
+        publishState();
+      } catch (error) {
+        els.onlineStatus.textContent = "Server is not running. Start outputs/start_multiplayer_server.bat, then press Host again.";
+      }
+    }
+
+    function roomUrl(seat) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("room", state.online.room);
+      url.searchParams.set("seat", seat);
+      return url.toString();
+    }
+
+    function setLocalRoomUrl(seat) {
+      if (!state.online.room) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set("room", state.online.room);
+      url.searchParams.set("seat", seat);
+      window.history.replaceState({}, "", url.toString());
+    }
+
+    function updateOnlineUi() {
+      if (!state.online.room) {
+        els.onlineStatus.textContent = "Offline local game.";
+        els.shareLinks.classList.add("hidden");
+        els.setupRoomPanel.classList.add("hidden");
+        els.localTestingPanel.classList.remove("hidden");
+        return;
+      }
+      els.localTestingPanel.classList.add("hidden");
+      const seat = localSeat() || state.online.seat || "one";
+      const seatName = seat === "two" ? "Player Two" : "Player One";
+      els.onlineStatus.textContent = `Room ${state.online.room}. You are ${seatName}.`;
+      els.shareLinks.classList.remove("hidden");
+      els.domShareLink.textContent = `Your link: ${roomUrl(seat)}`;
+      els.subShareLink.textContent = `Invite link: ${roomUrl(seat === "two" ? "one" : "two")}`;
+      els.setupRoomPanel.classList.remove("hidden");
+      els.setupRoomStatus.textContent = state.online.seats.one && state.online.seats.two
+        ? "Both players are in the lobby."
+        : "Waiting for the other player.";
+      state.online.inviteUrl = roomUrl(seat === "two" ? "one" : "two");
+      els.setupShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
+      renderRoles();
+      renderLobby();
+    }
+
+    async function copyInviteLink() {
+      if (!state.online.inviteUrl) return;
+      try {
+        await navigator.clipboard.writeText(state.online.inviteUrl);
+        els.setupRoomStatus.textContent = "Invite link copied.";
+      } catch (error) {
+        els.setupRoomStatus.textContent = "Copy failed. Select the invite link and copy it manually.";
+      }
+    }
+
+    async function publishState() {
+      if (!state.online.room || state.online.applying) return;
+      try {
+        const response = await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room: state.online.room,
+            baseRev: state.online.rev,
+            snapshot: snapshotState()
+          })
+        });
+        const data = await response.json();
+        if (response.status === 409) {
+          state.online.rev = data.rev;
+          applySnapshot(data.snapshot);
+          return;
+        }
+        if (!response.ok) throw new Error(data.error || "Sync failed");
+        state.online.rev = data.rev;
+      } catch (error) {
+        els.onlineStatus.textContent = `Sync paused: ${error.message}`;
+      }
+    }
+
+    async function pollState() {
+      if (!state.online.room) return;
+      try {
+        const response = await fetch(`/api/state?room=${encodeURIComponent(state.online.room)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Room unavailable");
+        if (data.rev > state.online.rev) {
+          state.online.rev = data.rev;
+          applySnapshot(data.snapshot);
+        }
+        updateOnlineUi();
+      } catch (error) {
+        els.onlineStatus.textContent = `Disconnected: ${error.message}`;
+      }
+    }
+
+    function startPolling() {
+      if (state.online.polling) return;
+      state.online.polling = true;
+      window.setInterval(pollState, 900);
+    }
+
+    async function joinOnlineRoomFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const room = params.get("room");
+      if (!room) return;
+      state.online.room = room.toUpperCase();
+      rememberSeat(params.get("seat") === "one" ? "one" : "two");
+      state.online.seats[state.online.seat] = true;
+      await pollState();
+      state.online.seats[state.online.seat] = true;
+      await publishState();
+      startPolling();
+      updateOnlineUi();
+    }
+
+    function startNormalMatch() {
+      if (state.currentGame === "tributeChess") {
+        startChessNormalMatch();
+        return;
+      }
+      if (state.currentGame === "tributeTwentyOne") {
+        startTwentyOneNormalMatch();
+        return;
+      }
+      if (state.currentGame === "tributeFleet") {
+        startFleetNormalMatch();
+        return;
+      }
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const bet = normalizeBuyIn(Number(els.betInput.value));
+      els.betInput.value = bet;
+      state.pot = bet;
+      state.mode = "normal";
+      state.blockedColumns = [];
+      state.skipAvailable = false;
+      state.skipArmed = false;
+      state.reclaimPassAvailable = false;
+      resetMatch(SUB);
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. If ${state.names.dom} wins, it goes into her bank.`);
+      publishState();
+    }
+
+    function startReclaimMatch() {
+      if (state.currentGame === "tributeChess") {
+        startChessReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "tributeTwentyOne") {
+        startTwentyOneReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "tributeFleet") {
+        startFleetReclaimMatch();
+        return;
+      }
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (state.domVault <= 0) {
+        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal match first to unlock reclaim.`);
+        return;
+      }
+      state.pot = state.domVault;
+      state.mode = "reclaim";
+      resetMatch(DOM);
+      state.reclaimPassAvailable = domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.skipAvailable = domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.skipArmed = false;
+      state.domOpened = true;
+      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to win back ${money(state.pot)} from ${state.names.dom}'s bank. Tilt level ${state.tiltLevel}.`);
+      publishState();
+    }
+
+    function resetMatch(firstTurn) {
+      state.board = createBoard();
+      state.turn = firstTurn;
+      state.active = true;
+      state.winningCells = [];
+      state.reclaimPassAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.skipAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.skipArmed = false;
+      state.domOpened = state.mode === "reclaim";
+      state.blockedColumns = [];
+      render();
+    }
+
+    function normalizeBuyIn(value) {
+      if (!Number.isFinite(value)) return Math.max(1, Math.round(state.settings.subDefaultBet || 10));
+      return Math.max(1, Math.round(value));
+    }
+
+    function blockedColumnCount() {
+      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return 0;
+      if (state.tiltLevel >= 5) return 2;
+      if (state.tiltLevel >= 2) return 1;
+      return 0;
+    }
+
+    function chooseBlockedColumns() {
+      const count = blockedColumnCount();
+      const open = [];
+      for (let col = 0; col < COLS; col += 1) {
+        if (lowestOpenRow(col) >= 0) open.push(col);
+      }
+      const blocked = [];
+      while (blocked.length < count && open.length > 0) {
+        const index = Math.floor(Math.random() * open.length);
+        blocked.push(open.splice(index, 1)[0]);
+      }
+      state.blockedColumns = blocked;
+    }
+
+    function isColumnBlockedForSub(col) {
+      return state.mode === "reclaim" && state.turn === SUB && state.blockedColumns.includes(col);
+    }
+
+    function tiltDescription() {
+      if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
+      if (state.tiltLevel >= 5) return "two sub columns are blocked each sub turn, and the dom gets one skip.";
+      if (state.tiltLevel >= 3) return "one sub column is blocked each sub turn, and the dom gets one skip.";
+      if (state.tiltLevel >= 2) return "one sub column is blocked each sub turn.";
+      if (state.tiltLevel >= 1) return "the dom starts and wins ties.";
+      return "the dom starts and wins ties.";
+    }
+
+    function setTurn(nextTurn) {
+      state.turn = nextTurn;
+      if (state.mode === "reclaim" && state.turn === SUB) {
+        chooseBlockedColumns();
+      } else {
+        state.blockedColumns = [];
+      }
+    }
+
+    function dropToken(col) {
+      if (!state.active) return;
+      if (localOnlineRole() && localOnlineRole() !== state.turn) return;
+      if (isColumnBlockedForSub(col)) return;
+      const row = lowestOpenRow(col);
+      if (row < 0) return;
+
+      const movingPlayer = state.turn;
+      state.board[row][col] = movingPlayer;
+      const result = evaluateBoard(row, col);
+
+      if (result.winner) {
+        endMatch(result.winner, result.cells);
+        return;
+      }
+
+      if (isBoardFull()) {
+        endMatch(state.mode === "reclaim" ? DOM : "draw", []);
+        return;
+      }
+
+      if (state.mode === "reclaim" && movingPlayer === DOM && state.skipArmed) {
+        state.skipArmed = false;
+        state.skipAvailable = false;
+        state.reclaimPassAvailable = false;
+        setTurn(DOM);
+        addLog(`<strong>${state.names.sub}'s turn is skipped.</strong> ${state.names.dom} moves again.`);
+      } else {
+        setTurn(state.turn === SUB ? DOM : SUB);
+      }
+      render();
+      publishState();
+    }
+
+    function lowestOpenRow(col) {
+      for (let row = ROWS - 1; row >= 0; row -= 1) {
+        if (!state.board[row][col]) return row;
+      }
+      return -1;
+    }
+
+    function evaluateBoard(row, col) {
+      const player = state.board[row][col];
+      const directions = [
+        [0, 1],
+        [1, 0],
+        [1, 1],
+        [1, -1]
+      ];
+
+      for (const [dr, dc] of directions) {
+        const cells = [[row, col]];
+        cells.push(...collect(row, col, dr, dc, player));
+        cells.push(...collect(row, col, -dr, -dc, player));
+        if (cells.length >= 4) {
+          return { winner: player, cells: cells.slice(0, 4) };
+        }
+      }
+
+      return { winner: null, cells: [] };
+    }
+
+    function collect(row, col, dr, dc, player) {
+      const cells = [];
+      let r = row + dr;
+      let c = col + dc;
+      while (r >= 0 && r < ROWS && c >= 0 && c < COLS && state.board[r][c] === player) {
+        cells.push([r, c]);
+        r += dr;
+        c += dc;
+      }
+      return cells;
+    }
+
+    function isBoardFull() {
+      return state.board[0].every(Boolean);
+    }
+
+    function endMatch(winner, cells) {
+      state.active = false;
+      state.winningCells = cells;
+
+      if (winner === SUB) {
+        if (state.mode === "reclaim") {
+          const reclaimed = state.pot;
+          state.domVault = Math.max(0, state.domVault - reclaimed);
+          state.lockedTribute = 0;
+          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
+          addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${money(reclaimed)} is taken back from ${state.names.dom}'s bank.`);
+        } else {
+          addLog(`<strong>${state.names.sub} wins.</strong> Nothing enters ${state.names.dom}'s bank.`);
+        }
+      } else if (winner === DOM) {
+        const won = state.pot;
+        state.domVault += won;
+        state.lockedTribute = state.domVault;
+        if (state.mode === "reclaim") {
+          state.tiltLevel += 1;
+          addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(won)} is added to her bank. She now has ${money(state.domVault)}.`);
+        } else {
+          addLog(`<strong>${state.names.dom} wins.</strong> ${money(won)} moves into her bank and becomes reclaimable cash.`);
+        }
+      } else {
+        addLog(`<strong>Draw.</strong> The pot is returned.`);
+      }
+
+      state.pot = 0;
+      render();
+      publishState();
+    }
+
+    function domPass() {
+      if (state.currentGame === "tributeChess") {
+        chessDomPrimaryAction();
+        return;
+      }
+      if (state.currentGame === "tributeTwentyOne") {
+        if (domAdvantageControlsAllowed(localOnlineRole()) && canForceTwentyOneHit()) {
+          forceTwentyOneHit();
+          return;
+        }
+        standTwentyOne();
+        return;
+      }
+      if (state.currentGame === "tributeFleet") {
+        fleetScan();
+        return;
+      }
+      if (!state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.skipAvailable || state.skipArmed) return;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
+      state.skipArmed = true;
+      addLog(`<strong>${state.names.dom} arms Skip.</strong> After this move, ${state.names.sub}'s turn will be skipped.`);
+      render();
+      publishState();
+    }
+
+    function resetPrototype() {
+      if (state.currentGame === "tributeChess") {
+        resetTributeChessBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Tribute Chess reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
+      if (state.currentGame === "tributeTwentyOne") {
+        resetTributeTwentyOneBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Tribute 21 reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
+      if (state.currentGame === "tributeFleet") {
+        resetTributeFleetBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Tribute Fleet reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
+      resetTributeFourBoard();
+      els.log.innerHTML = "";
+      addLog(`<strong>Tribute Four reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+      render();
+      publishState();
+    }
+
+    function resetTributeFourBoard() {
+      state.board = createBoard();
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.reclaimPassAvailable = false;
+      state.skipAvailable = false;
+      state.skipArmed = false;
+      state.blockedColumns = [];
+      state.domOpened = false;
+      state.winningCells = [];
+    }
+
+    function resetTributeFleetBoard() {
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.blockedColumns = [];
+      state.skipAvailable = false;
+      state.skipArmed = false;
+      state.reclaimPassAvailable = false;
+      state.domOpened = false;
+      state.winningCells = [];
+      state.fleet = createFleetState();
+    }
+
+    function resetTributeTwentyOneBoard() {
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+      state.twentyOne = createTwentyOneState();
+    }
+
+    function resetTributeChessBoard() {
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+      state.chess = createChessState();
+    }
+
+    function chessEngine() {
+      if (typeof window.Chess !== "function") return null;
+      const game = state.chess.fen === "start" ? new window.Chess() : new window.Chess(state.chess.fen);
+      return game;
+    }
+
+    function startChessNormalMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const bet = normalizeBuyIn(Number(els.betInput.value));
+      els.betInput.value = bet;
+      state.pot = bet;
+      state.mode = "normal";
+      resetChessMatch({ w: SUB, b: DOM });
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and plays white.`);
+      publishState();
+    }
+
+    function startChessReclaimMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (state.domVault <= 0) {
+        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal game first to unlock reclaim.`);
+        return;
+      }
+      state.pot = state.domVault;
+      state.mode = "reclaim";
+      resetChessMatch({ w: DOM, b: SUB });
+      addLog(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(state.pot)}. ${state.names.dom} plays white.`);
+      publishState();
+    }
+
+    function resetChessMatch(colors) {
+      const game = typeof window.Chess !== "function" ? null : new window.Chess();
+      state.chess = createChessState();
+      state.chess.fen = game ? game.fen() : "start";
+      state.chess.colors = colors;
+      state.chess.queenStance = chessQueenStancesActive() ? "none" : "";
+      state.turn = colors.w;
+      state.active = true;
+      render();
+    }
+
+    function roleForChessColor(color) {
+      return state.chess.colors[color];
+    }
+
+    function colorForChessRole(role) {
+      return state.chess.colors.w === role ? "w" : "b";
+    }
+
+    function chessQueenStancesActive() {
+      if (!domAdvantagesEnabled() || state.currentGame !== "tributeChess" || state.mode !== "reclaim") return false;
+      if (state.settings.queenPowerMode === "off") return false;
+      if (state.settings.queenPowerMode === "always") return true;
+      return state.tiltLevel >= 1;
+    }
+
+    function queenAffectedTypes() {
+      if (state.tiltLevel >= 5) return ["p", "n", "b", "r", "q"];
+      if (state.tiltLevel >= 4) return ["p", "n", "b", "r"];
+      if (state.tiltLevel >= 3) return ["p", "n", "b"];
+      if (state.tiltLevel >= 2) return ["p", "n"];
+      if (state.tiltLevel >= 1) return ["p"];
+      if (state.settings.queenPowerMode === "always") return ["p"];
+      return [];
+    }
+
+    function queenAffectedLabel() {
+      const labels = {
+        p: "pawns",
+        n: "knights",
+        b: "bishops",
+        r: "rooks",
+        q: "queen"
+      };
+      return queenAffectedTypes().map(type => labels[type]).join(", ");
+    }
+
+    function findDomQueenSquare(game) {
+      const domColor = colorForChessRole(DOM);
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      for (let rank = 1; rank <= 8; rank += 1) {
+        for (const file of files) {
+          const square = `${file}${rank}`;
+          const piece = game.get(square);
+          if (piece && piece.color === domColor && piece.type === "q") return square;
+        }
+      }
+      return null;
+    }
+
+    function canUseDomQueenPower(game) {
+      if (!game || !state.active || state.currentGame !== "tributeChess" || state.mode !== "reclaim") return false;
+      if (!domAdvantagesEnabled() || !queenPowerControlsAllowed(localOnlineRole())) return false;
+      if (state.settings.queenPowerMode === "off") return false;
+      if (state.chess.freezeMode || state.chess.commandMode || state.chess.repositionMode) return false;
+      return roleForChessColor(game.turn()) === DOM || state.chess.postDomPowerWindow;
+    }
+
+    function squareCoords(square) {
+      return {
+        file: square.charCodeAt(0) - 97,
+        rank: Number(square[1]) - 1
+      };
+    }
+
+    function coordsSquare(file, rank) {
+      return `${String.fromCharCode(97 + file)}${rank + 1}`;
+    }
+
+    function areAdjacentSquares(first, second) {
+      if (!first || !second || first === second) return false;
+      const a = squareCoords(first);
+      const b = squareCoords(second);
+      return Math.max(Math.abs(a.file - b.file), Math.abs(a.rank - b.rank)) === 1;
+    }
+
+    function expandFenBoard(boardFen) {
+      return boardFen.split("/").map((row) => (
+        row.split("").flatMap((char) => /\d/.test(char) ? Array(Number(char)).fill("") : [char])
+      ));
+    }
+
+    function compressFenBoard(rows) {
+      return rows.map((row) => {
+        let result = "";
+        let empty = 0;
+        row.forEach((cell) => {
+          if (!cell) {
+            empty += 1;
+          } else {
+            if (empty) {
+              result += empty;
+              empty = 0;
+            }
+            result += cell;
+          }
+        });
+        return result + (empty ? empty : "");
+      }).join("/");
+    }
+
+    function queenLineHasSight(game, queenSquare, targetSquare) {
+      if (!queenSquare || queenSquare === targetSquare) return false;
+      const queen = squareCoords(queenSquare);
+      const target = squareCoords(targetSquare);
+      const df = Math.sign(target.file - queen.file);
+      const dr = Math.sign(target.rank - queen.rank);
+      const aligned = queen.file === target.file
+        || queen.rank === target.rank
+        || Math.abs(target.file - queen.file) === Math.abs(target.rank - queen.rank);
+      if (!aligned) return false;
+      let file = queen.file + df;
+      let rank = queen.rank + dr;
+      while (file !== target.file || rank !== target.rank) {
+        if (game.get(coordsSquare(file, rank))) return false;
+        file += df;
+        rank += dr;
+      }
+      return true;
+    }
+
+    function isQueenAffectedPiece(piece) {
+      return Boolean(piece && piece.color === colorForChessRole(SUB) && queenAffectedTypes().includes(piece.type));
+    }
+
+    function isQueenGazedSquare(game, square, piece) {
+      return chessQueenStancesActive()
+        && state.chess.queenStance === "gaze"
+        && isQueenAffectedPiece(piece)
+        && queenLineHasSight(game, findDomQueenSquare(game), square);
+    }
+
+    function isQueenLeashedSquare(game, square, piece) {
+      if (!chessQueenStancesActive() || state.chess.queenStance !== "leash" || !isQueenAffectedPiece(piece)) return false;
+      const queenSquare = findDomQueenSquare(game);
+      if (!queenSquare) return false;
+      const queen = squareCoords(queenSquare);
+      const target = squareCoords(square);
+      return Math.max(Math.abs(queen.file - target.file), Math.abs(queen.rank - target.rank)) <= 1;
+    }
+
+    function countLeashedSubPieces(game) {
+      let count = 0;
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      for (let rank = 1; rank <= 8; rank += 1) {
+        for (const file of files) {
+          const square = `${file}${rank}`;
+          if (isQueenLeashedSquare(game, square, game.get(square))) count += 1;
+        }
+      }
+      return count;
+    }
+
+    function awardRandomQueenCharge(reason, count = 1) {
+      if (!chessQueenStancesActive() || state.chess.queenTriggerUsed) return;
+      state.chess.charges += count;
+      state.chess.queenTriggerUsed = true;
+      const chargeText = count === 1
+        ? "1 queen charge"
+        : `${count} queen charges`;
+      addLog(`<strong>Queen's ${stanceLabel(state.chess.queenStance)}.</strong> ${reason} ${state.names.dom} gains ${chargeText}.`);
+    }
+
+    function stanceLabel(stance) {
+      return {
+        none: "None",
+        gaze: "Gaze",
+        tithe: "Tithe",
+        leash: "Leash"
+      }[stance] || "Stance";
+    }
+
+    function queenStanceDescription() {
+      const affected = queenAffectedLabel() || "affected pieces";
+      return {
+        none: "None: the queen has no active stance.",
+        gaze: `Gaze: when ${state.names.sub} moves ${affected} in the dom queen's line of sight, ${state.names.dom} gains 1 queen charge.`,
+        tithe: `Tithe: when ${state.names.dom}'s queen captures ${affected}, she gains 1 queen charge.`,
+        leash: `Leash: nearby ${affected} must stay near the dom queen or capture her; when the sub ends a turn, ${state.names.dom} gains 1 queen charge per leashed unit.`
+      }[state.chess.queenStance || "none"];
+    }
+
+    function chargeLabel(type) {
+      return {
+        reposition: "Reposition",
+        freeze: "Freeze",
+        shield: "Shield",
+        skip: "Skip",
+        command: "Command"
+      }[type] || "Queen";
+    }
+
+    function queenPowerCost(type) {
+      return {
+        reposition: 1,
+        freeze: 1,
+        shield: 2,
+        skip: 2,
+        command: 3
+      }[type] || 0;
+    }
+
+    function canUseQueenPowerType(type) {
+      const game = chessEngine();
+      if (!game || !state.active || state.currentGame !== "tributeChess" || state.mode !== "reclaim") return false;
+      const localRole = localOnlineRole();
+      if (localRole && localRole !== DOM) return false;
+      if (state.chess.charges < queenPowerCost(type)) return false;
+      const movingRole = roleForChessColor(game.turn());
+      if (type === "reposition") return canUseDomQueenPower(game) && !state.chess.repositionUsed && Boolean(findDomQueenSquare(game));
+      if (type === "shield") return canUseDomQueenPower(game) && !state.chess.queenShield && Boolean(findDomQueenSquare(game));
+      if (state.chess.freezeMode || state.chess.repositionMode || state.chess.commandMode) return false;
+      if (movingRole !== DOM) return false;
+      if (type === "skip") return !state.chess.skipQueued;
+      return type === "freeze" || type === "command";
+    }
+
+    function renderQueenCharges() {
+      const value = state.chess.charges || 0;
+      return ["reposition", "freeze", "shield", "skip", "command"].map((type) => {
+        const cost = queenPowerCost(type);
+        const filled = Math.min(value, cost);
+        const active = (type === "freeze" && state.chess.freezeMode)
+          || (type === "reposition" && state.chess.repositionMode)
+          || (type === "shield" && state.chess.queenShield)
+          || (type === "command" && state.chess.commandMode);
+        const ready = value >= cost;
+        const disabled = !canUseQueenPowerType(type);
+        const pips = Array.from({ length: cost }, (_, index) => (
+          `<span class="charge-pip ${index < filled ? "filled" : ""}"></span>`
+        )).join("");
+        return `<button class="charge-chip ${ready ? "ready" : ""} ${active ? "active" : ""}" data-queen-power="${type}" style="--pip-count:${cost}" ${disabled ? "disabled" : ""}>
+          <span class="charge-label">${chargeLabel(type)}</span>
+          <span class="charge-count">${value}/${cost}</span>
+          <span class="charge-pips">${pips}</span>
+        </button>`;
+      }).join("");
+    }
+
+    function activateQueenPower(type) {
+      if (!canUseQueenPowerType(type)) return;
+      if (type === "reposition") chessRepositionAction();
+      else if (type === "freeze") chessFreezeAction();
+      else if (type === "shield") chessShieldAction();
+      else if (type === "skip") chessSkipAction();
+      else if (type === "command") chessDomPrimaryAction();
+    }
+
+    function chessSquareClick(square) {
+      const game = chessEngine();
+      if (!game || !state.active) return;
+      const movingRole = roleForChessColor(game.turn());
+      const localRole = localOnlineRole();
+      const commandMove = state.chess.commandMode && queenPowerControlsAllowed(localRole) && movingRole === SUB;
+
+      const piece = game.get(square);
+      if (state.chess.freezeMode && queenPowerControlsAllowed(localRole)) {
+        freezeChessSquare(square, piece);
+        return;
+      }
+
+      if (state.chess.repositionMode && queenPowerControlsAllowed(localRole)) {
+        repositionQueen(square, piece);
+        return;
+      }
+
+      if (!commandMove && localRole && localRole !== movingRole) return;
+
+      if (!state.chess.selected) {
+        if (!piece || piece.color !== game.turn()) return;
+        if (!commandMove && square === state.chess.freezeSquare && movingRole === SUB) return;
+        state.chess.selected = square;
+        state.chess.legalMoves = legalChessMoves(game, square, commandMove);
+        render();
+        return;
+      }
+
+      const move = state.chess.legalMoves.find((candidate) => candidate.to === square);
+      if (!move) {
+        state.chess.selected = null;
+        state.chess.legalMoves = [];
+        render();
+        return;
+      }
+      const fromSquare = state.chess.selected;
+      const movingPiece = game.get(fromSquare);
+      const capturedPiece = game.get(square);
+      const gazeTriggered = movingRole === SUB && !commandMove && isQueenGazedSquare(game, fromSquare, movingPiece);
+      const titheTriggered = movingRole === DOM
+        && chessQueenStancesActive()
+        && state.chess.queenStance === "tithe"
+        && movingPiece
+        && movingPiece.type === "q"
+        && isQueenAffectedPiece(capturedPiece);
+      const result = game.move({ from: fromSquare, to: square, promotion: "q" });
+      if (!result) return;
+      const movedRole = movingRole;
+      state.chess.fen = game.fen();
+      if (state.chess.freezeSquare === fromSquare) {
+        state.chess.freezeSquare = square;
+      } else if (state.chess.freezeSquare) {
+        const frozenPiece = game.get(state.chess.freezeSquare);
+        if (!frozenPiece || frozenPiece.color !== colorForChessRole(SUB)) {
+          state.chess.freezeSquare = null;
+          state.chess.freezeTurnsRemaining = 0;
+        }
+      }
+      state.chess.selected = null;
+      state.chess.legalMoves = [];
+      state.chess.commandMode = false;
+      if (movedRole === SUB) tickChessFreeze();
+      if (gazeTriggered) awardRandomQueenCharge(`${state.names.sub} moves through the queen's sight.`);
+      if (titheTriggered) awardRandomQueenCharge(`${state.names.dom}'s queen claims an affected piece.`);
+      if (movedRole === SUB && !commandMove && state.chess.queenStance === "leash") {
+        const leashedCount = countLeashedSubPieces(game);
+        if (leashedCount > 0) {
+          awardRandomQueenCharge(`${state.names.sub} ends the turn with ${leashedCount} leashed unit${leashedCount === 1 ? "" : "s"}.`, leashedCount);
+        }
+      }
+      addLog(commandMove
+        ? `<strong>Command Move.</strong> ${state.names.dom} moves ${state.names.sub}'s piece.`
+        : `<strong>${labelFor(movedRole)} moves.</strong>`);
+      resolveChessAfterMove(game, movedRole);
+    }
+
+    function legalChessMoves(game, square, commandMove) {
+      const moves = game.moves({ square, verbose: true });
+      const movingRole = roleForChessColor(game.turn());
+      if (!commandMove && square === state.chess.freezeSquare && movingRole === SUB) return [];
+      const piece = game.get(square);
+      let legalMoves = moves;
+      if (!commandMove && movingRole === SUB && state.chess.queenShield && piece && piece.type === "p") {
+        const queenSquare = findDomQueenSquare(game);
+        legalMoves = legalMoves.filter((move) => move.to !== queenSquare);
+      }
+      if (!commandMove && movingRole === SUB && isQueenLeashedSquare(game, square, piece)) {
+        const queenSquare = findDomQueenSquare(game);
+        return legalMoves.filter((move) => move.to === queenSquare || isQueenLeashedSquare(game, move.to, piece));
+      }
+      return legalMoves;
+    }
+
+    function freezeChessSquare(square, piece) {
+      if (!state.chess.freezeMode || !piece || piece.color !== colorForChessRole(SUB)) return;
+      state.chess.freezeSquare = square;
+      state.chess.freezeTurnsRemaining = 2;
+      state.chess.charges = Math.max(0, state.chess.charges - 1);
+      state.chess.freezeMode = false;
+      addLog(`<strong>Freeze.</strong> ${state.names.dom} freezes one ${state.names.sub} piece for the next two ${state.names.sub} turns.`);
+      render();
+      publishState();
+    }
+
+    function chessFreezeAction() {
+      if (state.currentGame !== "tributeChess" || !state.active || state.chess.charges < 1) return;
+      if (!queenPowerControlsAllowed(localOnlineRole())) return;
+      const game = chessEngine();
+      if (!game || roleForChessColor(game.turn()) !== DOM) return;
+      state.chess.freezeMode = true;
+      state.chess.selected = null;
+      state.chess.legalMoves = [];
+      addLog(`<strong>Freeze ready.</strong> ${state.names.dom} can click one ${state.names.sub} piece.`);
+      render();
+      publishState();
+    }
+
+    function tickChessFreeze() {
+      if (!state.chess.freezeSquare || state.chess.freezeTurnsRemaining <= 0) return;
+      state.chess.freezeTurnsRemaining -= 1;
+      if (state.chess.freezeTurnsRemaining <= 0) {
+        state.chess.freezeSquare = null;
+        state.chess.freezeTurnsRemaining = 0;
+        addLog(`<strong>Freeze fades.</strong> ${state.names.sub}'s piece is free again.`);
+      }
+    }
+
+    function chessDomPrimaryAction() {
+      if (state.currentGame !== "tributeChess" || !state.active) return;
+      if (!queenPowerControlsAllowed(localOnlineRole())) return;
+      const game = chessEngine();
+      if (!game) return;
+      if (state.chess.commandMode || state.chess.freezeMode) return;
+      if (roleForChessColor(game.turn()) === DOM && state.chess.charges >= 3) {
+        state.chess.charges -= 3;
+        state.chess.commandQueued = true;
+        addLog(`<strong>Command Move queued.</strong> It will activate on ${state.names.sub}'s next turn.`);
+        render();
+        publishState();
+        return;
+      }
+    }
+
+    function chessSkipAction() {
+      if (state.currentGame !== "tributeChess" || !state.active || state.chess.charges < 2) return;
+      if (!queenPowerControlsAllowed(localOnlineRole())) return;
+      const game = chessEngine();
+      if (!game || roleForChessColor(game.turn()) !== DOM) return;
+      if (state.chess.commandMode || state.chess.freezeMode) return;
+      state.chess.charges -= 2;
+      state.chess.skipQueued = true;
+      addLog(`<strong>Skip queued.</strong> It will skip ${state.names.sub}'s next turn.`);
+      render();
+      publishState();
+    }
+
+    function chessRepositionAction() {
+      if (state.currentGame !== "tributeChess" || !state.active || state.chess.charges < 1) return;
+      const game = chessEngine();
+      if (!canUseDomQueenPower(game)) return;
+      if (!findDomQueenSquare(game)) return;
+      state.chess.repositionMode = true;
+      state.chess.selected = null;
+      state.chess.legalMoves = [];
+      addLog(`<strong>Reposition ready.</strong> ${state.names.dom} can move her queen to one adjacent empty square.`);
+      render();
+      publishState();
+    }
+
+    function repositionQueen(square, piece) {
+      if (!state.chess.repositionMode || piece || state.chess.charges < 1) return;
+      const game = chessEngine();
+      if (!game || !state.active || !queenPowerControlsAllowed(localOnlineRole())) return;
+      if (!(roleForChessColor(game.turn()) === DOM || state.chess.postDomPowerWindow)) return;
+      const queenSquare = findDomQueenSquare(game);
+      if (!areAdjacentSquares(queenSquare, square)) return;
+      const parts = state.chess.fen.split(" ");
+      const board = expandFenBoard(parts[0]);
+      const from = squareCoords(queenSquare);
+      const to = squareCoords(square);
+      board[7 - from.rank][from.file] = "";
+      board[7 - to.rank][to.file] = colorForChessRole(DOM) === "w" ? "Q" : "q";
+      parts[0] = compressFenBoard(board);
+      state.chess.fen = parts.join(" ");
+      state.chess.charges = Math.max(0, state.chess.charges - 1);
+      state.chess.repositionMode = false;
+      state.chess.repositionUsed = true;
+      addLog(`<strong>Reposition.</strong> ${state.names.dom}'s queen slides to ${square}.`);
+      render();
+      publishState();
+    }
+
+    function chessShieldAction() {
+      if (state.currentGame !== "tributeChess" || !state.active || state.chess.charges < 2 || state.chess.queenShield) return;
+      const game = chessEngine();
+      if (!canUseDomQueenPower(game)) return;
+      if (!findDomQueenSquare(game)) return;
+      state.chess.charges -= 2;
+      state.chess.queenShield = true;
+      addLog(`<strong>Shield.</strong> ${state.names.dom}'s queen cannot be captured by pawns until ${state.names.dom}'s next turn.`);
+      render();
+      publishState();
+    }
+
+    function setQueenStance(stance) {
+      if (!["none", "gaze", "tithe", "leash"].includes(stance)) return;
+      if (!chessQueenStancesActive() || !state.active) return;
+      if (!queenPowerControlsAllowed(localOnlineRole())) return;
+      const game = chessEngine();
+      if (!game || roleForChessColor(game.turn()) !== DOM) return;
+      if (state.chess.freezeMode || state.chess.commandMode) return;
+      state.chess.queenStance = stance;
+      addLog(`<strong>Queen stance.</strong> ${state.names.dom}'s queen shifts to ${stanceLabel(stance)}.`);
+      render();
+      publishState();
+    }
+
+    function setChessFenTurn(color) {
+      const parts = state.chess.fen.split(" ");
+      if (parts.length >= 2) {
+        parts[1] = color;
+        state.chess.fen = parts.join(" ");
+      }
+    }
+
+    function resolveChessAfterMove(game, movedRole) {
+      if (isChessGameOver(game)) {
+        if (isChessCheckmate(game)) {
+          endChessMatch(movedRole, `${labelFor(movedRole)} delivers checkmate.`);
+        } else if (state.mode === "reclaim") {
+          endChessMatch(DOM, `Drawn positions go to ${state.names.dom} in reclaim.`);
+        } else {
+          endChessMatch("draw", "The game is drawn.");
+        }
+        return;
+      }
+      state.turn = roleForChessColor(game.turn());
+      state.chess.postDomPowerWindow = movedRole === DOM && state.turn === SUB;
+      if (state.turn === DOM) {
+        state.chess.postDomPowerWindow = false;
+        state.chess.repositionUsed = false;
+        if (state.chess.queenShield) {
+          state.chess.queenShield = false;
+          addLog(`<strong>Shield fades.</strong> ${state.names.dom}'s queen can be captured by pawns again.`);
+        }
+      }
+      state.chess.queenTriggerUsed = false;
+      activateQueuedChessPowers();
+      render();
+      publishState();
+    }
+
+    function activateQueuedChessPowers() {
+      if (state.mode !== "reclaim" || state.turn !== SUB) return;
+      if (state.chess.skipQueued) {
+        state.chess.skipQueued = false;
+        setChessFenTurn(colorForChessRole(DOM));
+        state.turn = DOM;
+        state.chess.postDomPowerWindow = false;
+        state.chess.repositionUsed = false;
+        if (state.chess.queenShield) {
+          state.chess.queenShield = false;
+          addLog(`<strong>Shield fades.</strong> ${state.names.dom}'s queen can be captured by pawns again.`);
+        }
+        state.chess.queenTriggerUsed = false;
+        state.chess.freezeMode = false;
+        state.chess.commandMode = false;
+        addLog(`<strong>Skip.</strong> ${state.names.sub}'s turn is skipped. ${state.names.dom} moves again.`);
+        return;
+      }
+      if (state.chess.commandQueued) {
+        state.chess.commandQueued = false;
+        state.chess.commandMode = true;
+        addLog(`<strong>Command Move active.</strong> ${state.names.dom} may move one legal ${state.names.sub} piece.`);
+      }
+    }
+
+    function isChessGameOver(game) {
+      if (typeof game.game_over === "function") return game.game_over();
+      if (typeof game.isGameOver === "function") return game.isGameOver();
+      return false;
+    }
+
+    function isChessCheckmate(game) {
+      if (typeof game.in_checkmate === "function") return game.in_checkmate();
+      if (typeof game.isCheckmate === "function") return game.isCheckmate();
+      return false;
+    }
+
+    function endChessMatch(winner, reason) {
+      state.active = false;
+      if (winner === SUB) {
+        if (state.mode === "reclaim") {
+          const reclaimed = state.pot;
+          state.domVault = Math.max(0, state.domVault - reclaimed);
+          state.lockedTribute = 0;
+          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
+          addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${reason} ${money(reclaimed)} is taken back from ${state.names.dom}'s bank.`);
+        } else {
+          addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
+        }
+      } else if (winner === DOM) {
+        const won = state.pot;
+        state.domVault += won;
+        state.lockedTribute = state.domVault;
+        if (state.mode === "reclaim") {
+          state.tiltLevel += 1;
+          addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(won)} is added to her bank.`);
+        } else {
+          addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(won)} moves into her bank.`);
+        }
+      } else {
+        addLog(`<strong>Draw.</strong> ${reason}`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
+    }
+
+    function startTwentyOneNormalMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const bet = normalizeBuyIn(Number(els.betInput.value));
+      els.betInput.value = bet;
+      state.pot = bet;
+      state.mode = "normal";
+      resetTwentyOneHand();
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and takes the first decision.`);
+      publishState();
+    }
+
+    function startTwentyOneReclaimMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (state.domVault <= 0) {
+        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal hand first to unlock reclaim.`);
+        return;
+      }
+      state.pot = state.domVault;
+      state.mode = "reclaim";
+      resetTwentyOneHand();
+      addLog(`<strong>Reclaim hand:</strong> ${state.names.sub} is trying to win back ${money(state.pot)} from ${state.names.dom}'s bank.`);
+      publishState();
+    }
+
+    function resetTwentyOneHand() {
+      state.twentyOne = createTwentyOneState();
+      state.twentyOne.deck = shuffleDeck(createTwentyOneDeck());
+      state.twentyOne.hands.sub.push(drawTwentyOneCard());
+      state.twentyOne.hands.dom.push(drawTwentyOneCard());
+      state.twentyOne.hands.sub.push(drawTwentyOneCard());
+      state.twentyOne.hands.dom.push(drawTwentyOneCard());
+      state.twentyOne.revealDom = false;
+      state.twentyOne.stood = false;
+      state.twentyOne.softSaveAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 2;
+      state.twentyOne.forceHitAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.twentyOne.outcome = "";
+      state.turn = SUB;
+      state.active = true;
+      render();
+    }
+
+    function createTwentyOneDeck() {
+      const suits = ["S", "H", "D", "C"];
+      const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+      const deck = [];
+      suits.forEach((suit) => ranks.forEach((rank) => deck.push(`${rank}${suit}`)));
+      return deck;
+    }
+
+    function shuffleDeck(deck) {
+      const copy = [...deck];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function drawTwentyOneCard() {
+      if (!state.twentyOne.deck.length) state.twentyOne.deck = shuffleDeck(createTwentyOneDeck());
+      return state.twentyOne.deck.pop();
+    }
+
+    function hitTwentyOne() {
+      if (state.currentGame !== "tributeTwentyOne" || !state.active || state.turn !== SUB) return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      state.twentyOne.hands.sub.push(drawTwentyOneCard());
+      addLog(`<strong>${state.names.sub} hits.</strong>`);
+      if (twentyOneScore(state.twentyOne.hands.sub).bust) {
+        state.twentyOne.revealDom = true;
+        endTwentyOneHand(DOM, `${state.names.sub} busts.`);
+        return;
+      }
+      render();
+      publishState();
+    }
+
+    function standTwentyOne() {
+      if (state.currentGame !== "tributeTwentyOne" || !state.active || state.turn !== SUB) return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      state.twentyOne.stood = true;
+      state.twentyOne.revealDom = true;
+      addLog(`<strong>${state.names.sub} stands.</strong> ${state.names.dom} plays the dealer hand.`);
+      playTwentyOneDealer();
+    }
+
+    function canForceTwentyOneHit() {
+      return state.currentGame === "tributeTwentyOne"
+        && state.active
+        && state.mode === "reclaim"
+        && domAdvantagesEnabled()
+        && state.turn === SUB
+        && state.tiltLevel >= 3
+        && state.twentyOne.forceHitAvailable;
+    }
+
+    function forceTwentyOneHit() {
+      if (!canForceTwentyOneHit()) return;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
+      state.twentyOne.forceHitAvailable = false;
+      state.twentyOne.hands.sub.push(drawTwentyOneCard());
+      addLog(`<strong>Forced Hit.</strong> ${state.names.dom} makes ${state.names.sub} take one card.`);
+      if (twentyOneScore(state.twentyOne.hands.sub).bust) {
+        state.twentyOne.revealDom = true;
+        endTwentyOneHand(DOM, `${state.names.sub} busts on the forced hit.`);
+        return;
+      }
+      render();
+      publishState();
+    }
+
+    function playTwentyOneDealer() {
+      state.turn = DOM;
+      const standAt = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 4 ? 16 : 17;
+      while (twentyOneScore(state.twentyOne.hands.dom).total < standAt) {
+        state.twentyOne.hands.dom.push(drawTwentyOneCard());
+      }
+      const subScore = twentyOneScore(state.twentyOne.hands.sub);
+      const domScore = twentyOneScore(state.twentyOne.hands.dom);
+      if (domScore.bust) {
+        if (state.twentyOne.softSaveAvailable && domScore.total <= 24) {
+          state.twentyOne.softSaveAvailable = false;
+          endTwentyOneHand(DOM, `Soft Save catches ${state.names.dom}'s ${domScore.total} and treats it as 21.`);
+        } else {
+          endTwentyOneHand(SUB, `${state.names.dom} busts.`);
+        }
+      } else if (domScore.total > subScore.total) {
+        endTwentyOneHand(DOM, `${state.names.dom} holds ${domScore.total} against ${subScore.total}.`);
+      } else if (subScore.total > domScore.total) {
+        if (state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 5 && subScore.total - domScore.total <= 1) {
+          endTwentyOneHand(DOM, `House Sweep takes the close hand: ${subScore.total} against ${domScore.total}.`);
+        } else {
+          endTwentyOneHand(SUB, `${state.names.sub} holds ${subScore.total} against ${domScore.total}.`);
+        }
+      } else if (state.mode === "reclaim") {
+        endTwentyOneHand(DOM, `Tie at ${domScore.total}. Reclaim ties go to ${state.names.dom}.`);
+      } else {
+        endTwentyOneHand("draw", `Tie at ${domScore.total}. The pot is returned.`);
+      }
+    }
+
+    function twentyOneScore(hand) {
+      let total = 0;
+      let aces = 0;
+      hand.forEach((card) => {
+        const rank = card.slice(0, -1);
+        if (rank === "A") {
+          aces += 1;
+          total += 11;
+        } else if (["K", "Q", "J"].includes(rank)) {
+          total += 10;
+        } else {
+          total += Number(rank);
+        }
+      });
+      while (total > 21 && aces > 0) {
+        total -= 10;
+        aces -= 1;
+      }
+      return { total, bust: total > 21 };
+    }
+
+    function endTwentyOneHand(winner, reason) {
+      state.active = false;
+      state.twentyOne.revealDom = true;
+      state.twentyOne.outcome = reason;
+
+      if (winner === SUB) {
+        if (state.mode === "reclaim") {
+          const reclaimed = state.pot;
+          state.domVault = Math.max(0, state.domVault - reclaimed);
+          state.lockedTribute = 0;
+          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
+          addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${reason} ${money(reclaimed)} is taken back from ${state.names.dom}'s bank.`);
+        } else {
+          addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
+        }
+      } else if (winner === DOM) {
+        const won = state.pot;
+        state.domVault += won;
+        state.lockedTribute = state.domVault;
+        if (state.mode === "reclaim") {
+          state.tiltLevel += 1;
+          addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(won)} is added to her bank.`);
+        } else {
+          addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(won)} moves into her bank.`);
+        }
+      } else {
+        addLog(`<strong>Push.</strong> ${reason}`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
+    }
+
+    function startFleetNormalMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const bet = normalizeBuyIn(Number(els.betInput.value));
+      els.betInput.value = bet;
+      state.pot = bet;
+      state.mode = "normal";
+      resetFleetMatch(SUB);
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and opens fire first.`);
+      publishState();
+    }
+
+    function startFleetReclaimMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (state.domVault <= 0) {
+        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal match first to unlock reclaim.`);
+        return;
+      }
+      state.pot = state.domVault;
+      state.mode = "reclaim";
+      resetFleetMatch(DOM);
+      state.fleet.scanAvailable = domAdvantagesEnabled() && state.tiltLevel >= 1;
+      const modifierText = state.fleet.modifiers.length
+        ? ` Extra modifiers: ${state.fleet.modifiers.map(fleetModifierLabel).join(", ")}.`
+        : "";
+      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to sink the fleet and reclaim ${money(state.pot)}. Tilt level ${state.tiltLevel}.${modifierText}`);
+      if (state.fleet.priorityIntel) {
+        addLog(`<strong>Priority Intel.</strong> ${state.fleet.priorityIntel.label} contains ${state.fleet.priorityIntel.count} ${state.fleet.priorityIntel.count === 1 ? "ship segment" : "ship segments"}.`);
+      }
+      publishState();
+    }
+
+    function resetFleetMatch(firstTurn) {
+      state.fleet = createFleetState();
+      placeFleet(state.fleet.boards.dom);
+      placeFleet(state.fleet.boards.sub);
+      state.turn = firstTurn;
+      state.active = true;
+      state.winningCells = [];
+      state.fleet.scanAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 1;
+      state.fleet.scanReveals = [];
+      rollFleetModifiers();
+      chooseFleetTurnHazards();
+      render();
+    }
+
+    function fleetModifierCount() {
+      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return 0;
+      if (state.tiltLevel >= 5) return 3;
+      if (state.tiltLevel >= 4) return 2;
+      if (state.tiltLevel >= 2) return 1;
+      return 0;
+    }
+
+    function rollFleetModifiers() {
+      state.fleet.modifiers = [];
+      state.fleet.doubleTapAvailable = false;
+      state.fleet.commandFog = null;
+      state.fleet.noisyWaters = null;
+      state.fleet.priorityIntel = null;
+      const pool = ["doubleTap", "commandFog", "counterfire", "noisyWaters", "priorityIntel"];
+      if (state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel === 3) {
+        state.fleet.modifiers.push("commandFog");
+        pool.splice(pool.indexOf("commandFog"), 1);
+      }
+      const targetCount = domAdvantagesEnabled() && state.tiltLevel === 3 ? 2 : fleetModifierCount();
+      const count = Math.min(targetCount, state.fleet.modifiers.length + pool.length);
+      while (state.fleet.modifiers.length < count) {
+        const index = Math.floor(Math.random() * pool.length);
+        state.fleet.modifiers.push(pool.splice(index, 1)[0]);
+      }
+      state.fleet.doubleTapAvailable = state.fleet.modifiers.includes("doubleTap");
+      if (state.fleet.modifiers.includes("priorityIntel")) {
+        choosePriorityIntel();
+      }
+    }
+
+    function hasFleetModifier(modifier) {
+      return domAdvantagesEnabled() && Boolean(state.fleet.modifiers && state.fleet.modifiers.includes(modifier));
+    }
+
+    function fleetModifierLabel(modifier) {
+      const labels = {
+        doubleTap: "Double Tap",
+        commandFog: "Command Fog",
+        counterfire: "Dom Counterfire",
+        noisyWaters: "Noisy Waters",
+        priorityIntel: "Priority Intel"
+      };
+      return labels[modifier] || modifier;
+    }
+
+    function fleetModifierDescription(modifier) {
+      const descriptions = {
+        doubleTap: "Double Tap: the first time the dom hits, she immediately fires one extra shot.",
+        commandFog: "Command Fog: a random row or column is blocked on each sub turn.",
+        counterfire: "Dom Counterfire: when the sub misses, there is a 30% chance the dom's Scan recharges.",
+        noisyWaters: "Noisy Waters: half of the target board is blocked on each sub turn.",
+        priorityIntel: "Priority Intel: the dom gets one row or column clue at the start of reclaim."
+      };
+      return descriptions[modifier] || `${fleetModifierLabel(modifier)}: active this match.`;
+    }
+
+    function choosePriorityIntel() {
+      const axis = Math.random() < 0.5 ? "row" : "col";
+      const index = Math.floor(Math.random() * FLEET_SIZE);
+      let count = 0;
+      for (let i = 0; i < FLEET_SIZE; i += 1) {
+        const row = axis === "row" ? index : i;
+        const col = axis === "row" ? i : index;
+        if (state.fleet.boards.sub[row][col]) count += 1;
+      }
+      state.fleet.priorityIntel = {
+        axis,
+        index,
+        count,
+        label: `${axis === "row" ? "Row" : "Column"} ${index + 1}`
+      };
+    }
+
+    function placeFleet(grid) {
+      FLEET_SHIPS.forEach((size) => {
+        let placed = false;
+        while (!placed) {
+          const horizontal = Math.random() < 0.5;
+          const row = Math.floor(Math.random() * (horizontal ? FLEET_SIZE : FLEET_SIZE - size + 1));
+          const col = Math.floor(Math.random() * (horizontal ? FLEET_SIZE - size + 1 : FLEET_SIZE));
+          const cells = [];
+          for (let i = 0; i < size; i += 1) {
+            cells.push([row + (horizontal ? 0 : i), col + (horizontal ? i : 0)]);
+          }
+          if (cells.every(([r, c]) => !grid[r][c])) {
+            cells.forEach(([r, c]) => {
+              grid[r][c] = true;
+            });
+            placed = true;
+          }
+        }
+      });
+    }
+
+    function otherRole(role) {
+      return role === DOM ? SUB : DOM;
+    }
+
+    function chooseFleetTurnHazards() {
+      chooseCommandFog();
+      chooseNoisyWaters();
+    }
+
+    function chooseCommandFog() {
+      if (state.mode !== "reclaim" || state.turn !== SUB || !hasFleetModifier("commandFog")) {
+        state.fleet.commandFog = null;
+        return;
+      }
+      state.fleet.commandFog = {
+        axis: Math.random() < 0.5 ? "row" : "col",
+        index: Math.floor(Math.random() * FLEET_SIZE)
+      };
+    }
+
+    function chooseNoisyWaters() {
+      if (state.mode !== "reclaim" || state.turn !== SUB || !hasFleetModifier("noisyWaters")) {
+        state.fleet.noisyWaters = null;
+        return;
+      }
+      const open = [];
+      for (let row = 0; row < FLEET_SIZE; row += 1) {
+        for (let col = 0; col < FLEET_SIZE; col += 1) {
+          if (!state.fleet.shots.sub[row][col]) open.push([row, col]);
+        }
+      }
+      const blocked = [];
+      const count = Math.min(Math.floor((FLEET_SIZE * FLEET_SIZE) / 2), open.length);
+      while (blocked.length < count && open.length) {
+        const index = Math.floor(Math.random() * open.length);
+        blocked.push(open.splice(index, 1)[0]);
+      }
+      state.fleet.noisyWaters = blocked;
+    }
+
+    function isFleetTargetFogged(row, col) {
+      if (state.mode !== "reclaim" || state.turn !== SUB || !state.fleet.commandFog) return false;
+      return state.fleet.commandFog.axis === "row"
+        ? state.fleet.commandFog.index === row
+        : state.fleet.commandFog.index === col;
+    }
+
+    function isFleetTargetNoisyAllowed(row, col) {
+      if (state.mode !== "reclaim" || state.turn !== SUB || !state.fleet.noisyWaters) return true;
+      if (!Array.isArray(state.fleet.noisyWaters)) return true;
+      return !state.fleet.noisyWaters.some(([r, c]) => r === row && c === col);
+    }
+
+    function fireFleetShot(row, col) {
+      if (!state.active) return;
+      if (localOnlineRole() && localOnlineRole() !== state.turn) return;
+      if (isFleetTargetFogged(row, col)) return;
+      if (!isFleetTargetNoisyAllowed(row, col)) return;
+      const attacker = state.turn;
+      const target = otherRole(attacker);
+      if (state.fleet.shots[attacker][row][col]) return;
+      const hit = state.fleet.boards[target][row][col];
+      state.fleet.shots[attacker][row][col] = hit ? "hit" : "miss";
+      addLog(hit
+        ? `<strong>${labelFor(attacker)} scores a hit.</strong>`
+        : `<strong>${labelFor(attacker)} misses.</strong>`);
+
+      if (fleetAllSunk(target)) {
+        endFleetMatch(attacker);
+        return;
+      }
+
+      if (attacker === DOM && hit && state.fleet.doubleTapAvailable) {
+        state.fleet.doubleTapAvailable = false;
+        state.turn = DOM;
+        state.fleet.commandFog = null;
+        state.fleet.noisyWaters = null;
+        addLog(`<strong>Double Tap.</strong> ${state.names.dom} keeps control for one more shot.`);
+        render();
+        publishState();
+        return;
+      }
+
+      if (attacker === SUB) {
+        if (!hit && hasFleetModifier("counterfire")) {
+          if (Math.random() < 0.3) {
+            state.fleet.scanAvailable = true;
+            addLog(`<strong>Dom Counterfire.</strong> ${state.names.sub}'s miss recharges ${state.names.dom}'s Scan.`);
+          } else {
+            addLog(`<strong>Dom Counterfire.</strong> ${state.names.sub}'s miss draws no response.`);
+          }
+        }
+      }
+
+      state.turn = target;
+      chooseFleetTurnHazards();
+      render();
+      publishState();
+    }
+
+    function fleetAllSunk(target) {
+      const attacker = otherRole(target);
+      for (let row = 0; row < FLEET_SIZE; row += 1) {
+        for (let col = 0; col < FLEET_SIZE; col += 1) {
+          if (state.fleet.boards[target][row][col] && state.fleet.shots[attacker][row][col] !== "hit") {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function fleetScan() {
+      if (!state.active || state.mode !== "reclaim" || state.currentGame !== "tributeFleet" || state.turn !== DOM || !state.fleet.scanAvailable) return;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
+      const options = [];
+      for (let row = 0; row < FLEET_SIZE; row += 1) {
+        for (let col = 0; col < FLEET_SIZE; col += 1) {
+          const alreadyRevealed = state.fleet.scanReveals.some(([r, c]) => r === row && c === col);
+          if (state.fleet.boards.sub[row][col] && state.fleet.shots.dom[row][col] !== "hit" && !alreadyRevealed) {
+            options.push([row, col]);
+          }
+        }
+      }
+      if (!options.length) return;
+      state.fleet.scanReveals.push(options[Math.floor(Math.random() * options.length)]);
+      state.fleet.scanAvailable = false;
+      addLog(`<strong>${state.names.dom} scans the water.</strong> One hidden ship segment is marked.`);
+      render();
+      publishState();
+    }
+
+    function endFleetMatch(winner) {
+      state.active = false;
+      if (winner === SUB) {
+        if (state.mode === "reclaim") {
+          const reclaimed = state.pot;
+          state.domVault = Math.max(0, state.domVault - reclaimed);
+          state.lockedTribute = 0;
+          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
+          addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${money(reclaimed)} is taken back from ${state.names.dom}'s bank.`);
+        } else {
+          addLog(`<strong>${state.names.sub} wins.</strong> Nothing enters ${state.names.dom}'s bank.`);
+        }
+      } else {
+        const won = state.pot;
+        state.domVault += won;
+        state.lockedTribute = state.domVault;
+        if (state.mode === "reclaim") {
+          state.tiltLevel += 1;
+          addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(won)} is added to her bank. She now has ${money(state.domVault)}.`);
+        } else {
+          addLog(`<strong>${state.names.dom} wins.</strong> ${money(won)} moves into her bank and becomes reclaimable cash.`);
+        }
+      }
+      state.pot = 0;
+      render();
+      publishState();
+    }
+
+    function renderBoard() {
+      if (state.currentGame === "tributeChess") {
+        renderChessBoard();
+        return;
+      }
+      if (state.currentGame === "tributeTwentyOne") {
+        renderTwentyOneBoard();
+        return;
+      }
+      if (state.currentGame === "tributeFleet") {
+        renderFleetBoard();
+        return;
+      }
+      els.board.innerHTML = "";
+      els.board.className = "board";
+      const winSet = new Set(state.winningCells.map(([r, c]) => `${r},${c}`));
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const cell = document.createElement("button");
+          const value = state.board[row][col];
+          cell.className = `cell ${value}`;
+          if (winSet.has(`${row},${col}`)) cell.classList.add("win");
+          if (isColumnBlockedForSub(col)) cell.classList.add("blocked");
+          cell.setAttribute("aria-label", value ? `${value} token, column ${col + 1}` : `empty cell, column ${col + 1}`);
+          cell.disabled = !state.active || lowestOpenRow(col) < 0 || isColumnBlockedForSub(col) || (localOnlineRole() && localOnlineRole() !== state.turn);
+          cell.addEventListener("click", () => dropToken(col));
+          els.board.appendChild(cell);
+        }
+      }
+    }
+
+    function renderChessBoard() {
+      els.board.className = "chess-board";
+      els.board.innerHTML = "";
+      const game = chessEngine();
+      if (!game) {
+        els.board.innerHTML = `<div class="entry">Chess engine unavailable. Check the chess.js script connection.</div>`;
+        return;
+      }
+      const legalTargets = new Set((state.chess.legalMoves || []).map((move) => move.to));
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      const localRole = localOnlineRole();
+      const localColor = localRole ? colorForChessRole(localRole) : "w";
+      const ranks = localColor === "b" ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
+      const fileIndexes = localColor === "b" ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+      const shieldedQueenSquare = state.chess.queenShield ? findDomQueenSquare(game) : null;
+      for (const rank of ranks) {
+        for (const fileIndex of fileIndexes) {
+          const square = `${files[fileIndex]}${rank}`;
+          const piece = game.get(square);
+          const cell = document.createElement("button");
+          cell.className = `chess-square ${(rank + fileIndex) % 2 ? "light" : "dark"}`;
+          if (state.chess.selected === square) cell.classList.add("selected");
+          if (legalTargets.has(square)) cell.classList.add("legal");
+          if (state.chess.freezeSquare === square) cell.classList.add("frozen");
+          if (shieldedQueenSquare === square) cell.classList.add("queen-shielded");
+          if (piece && (isQueenGazedSquare(game, square, piece) || isQueenLeashedSquare(game, square, piece))) {
+            cell.classList.add("queen-affected");
+          }
+          if (piece) cell.classList.add(roleForChessColor(piece.color) === DOM ? "dom-piece" : "sub-piece");
+          cell.textContent = piece ? chessPieceGlyph(piece) : "";
+          cell.setAttribute("aria-label", piece ? `${piece.color} ${piece.type} on ${square}` : `empty ${square}`);
+          cell.disabled = !state.active;
+          cell.addEventListener("click", () => chessSquareClick(square));
+          els.board.appendChild(cell);
+        }
+      }
+    }
+
+    function chessPieceGlyph(piece) {
+      const glyphs = {
+        wp: "\u2659",
+        wn: "\u2658",
+        wb: "\u2657",
+        wr: "\u2656",
+        wq: "\u2655",
+        wk: "\u2654",
+        bp: "\u265F",
+        bn: "\u265E",
+        bb: "\u265D",
+        br: "\u265C",
+        bq: "\u265B",
+        bk: "\u265A"
+      };
+      return glyphs[`${piece.color}${piece.type}`] || "";
+    }
+
+    function renderTwentyOneBoard() {
+      els.board.className = "twentyone-table";
+      els.board.innerHTML = "";
+      els.board.appendChild(renderTwentyOneHand(DOM));
+      els.board.appendChild(renderTwentyOneHand(SUB));
+    }
+
+    function renderTwentyOneHand(player) {
+      const panel = document.createElement("section");
+      panel.className = "hand-panel";
+      const hand = state.twentyOne.hands[player] || [];
+      const domPeek = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 1 && localOnlineRole() === DOM;
+      const hiddenDomCard = player === DOM && state.active && !state.twentyOne.revealDom && !domPeek;
+      const visibleCards = hiddenDomCard ? hand.slice(0, 1) : hand;
+      const score = twentyOneScore(visibleCards);
+      const scoreText = hiddenDomCard ? `${score.total}+` : score.total;
+      panel.innerHTML = `<div class="hand-header"><span>${labelFor(player)}</span><strong>${hand.length ? scoreText : "-"}</strong></div>`;
+      const row = document.createElement("div");
+      row.className = "card-row";
+      hand.forEach((card, index) => {
+        const hidden = hiddenDomCard && index > 0;
+        row.appendChild(renderPlayingCard(card, hidden));
+      });
+      panel.appendChild(row);
+      return panel;
+    }
+
+    function renderPlayingCard(card, hidden) {
+      const element = document.createElement("div");
+      element.className = "playing-card";
+      if (hidden) {
+        element.classList.add("hidden-card");
+        element.textContent = "21";
+        return element;
+      }
+      const suit = card.slice(-1);
+      const rank = card.slice(0, -1);
+      if (suit === "H" || suit === "D") element.classList.add("red");
+      element.textContent = `${rank}${suitSymbol(suit)}`;
+      return element;
+    }
+
+    function suitSymbol(suit) {
+      if (suit === "H") return "\u2665";
+      if (suit === "D") return "\u2666";
+      if (suit === "C") return "\u2663";
+      return "\u2660";
+    }
+
+    function renderFleetBoard() {
+      const viewer = localOnlineRole() || state.turn || SUB;
+      const target = otherRole(viewer);
+      els.board.className = "fleet-layout";
+      els.board.innerHTML = "";
+
+      const targetPanel = document.createElement("div");
+      targetPanel.className = "fleet-panel";
+      targetPanel.innerHTML = `<h3>${labelFor(target)}'s waters</h3>`;
+      const targetGrid = document.createElement("div");
+      targetGrid.className = "fleet-grid";
+
+      const ownPanel = document.createElement("div");
+      ownPanel.className = "fleet-panel";
+      ownPanel.innerHTML = `<h3>${labelFor(viewer)}'s fleet</h3>`;
+      const ownGrid = document.createElement("div");
+      ownGrid.className = "fleet-grid";
+
+      for (let row = 0; row < FLEET_SIZE; row += 1) {
+        for (let col = 0; col < FLEET_SIZE; col += 1) {
+          const targetCell = document.createElement("button");
+          const shot = state.fleet.shots[viewer][row][col];
+          const revealed = viewer === DOM && state.fleet.scanReveals.some(([r, c]) => r === row && c === col);
+          targetCell.className = `fleet-cell ${shot || ""}`;
+          if (revealed && !shot) targetCell.classList.add("revealed");
+          if (viewer === SUB && isFleetTargetFogged(row, col)) targetCell.classList.add("fogged");
+          if (viewer === SUB && state.fleet.noisyWaters && !isFleetTargetNoisyAllowed(row, col)) targetCell.classList.add("noisy");
+          targetCell.setAttribute("aria-label", `${labelFor(target)} waters row ${row + 1}, column ${col + 1}`);
+          targetCell.disabled = !state.active
+            || viewer !== state.turn
+            || Boolean(shot)
+            || (viewer === SUB && isFleetTargetFogged(row, col))
+            || (viewer === SUB && !isFleetTargetNoisyAllowed(row, col))
+            || Boolean(localOnlineRole() && localOnlineRole() !== state.turn);
+          targetCell.addEventListener("click", () => fireFleetShot(row, col));
+          targetGrid.appendChild(targetCell);
+
+          const ownCell = document.createElement("button");
+          const incoming = state.fleet.shots[target][row][col];
+          ownCell.className = `fleet-cell ${state.fleet.boards[viewer][row][col] ? "ship" : ""} ${incoming || ""}`;
+          ownCell.setAttribute("aria-label", `${labelFor(viewer)} fleet row ${row + 1}, column ${col + 1}`);
+          ownCell.disabled = true;
+          ownGrid.appendChild(ownCell);
+        }
+      }
+
+      targetPanel.appendChild(targetGrid);
+      ownPanel.appendChild(ownGrid);
+      els.board.appendChild(targetPanel);
+      els.board.appendChild(ownPanel);
+    }
+
+    function renderControls() {
+    }
+
+    function renderRules() {
+      if (state.currentGame === "tributeChess") {
+        renderChessRules();
+        return;
+      }
+      if (state.currentGame === "tributeTwentyOne") {
+        renderTwentyOneRules();
+        return;
+      }
+      if (state.currentGame === "tributeFleet") {
+        renderFleetRules();
+        return;
+      }
+      const normalRules = [
+        `Normal: ${state.names.sub} chooses any cash bet.`,
+        `${state.names.sub} moves first. Four in a row wins.`,
+        `If ${state.names.sub} wins, nothing changes. If ${state.names.dom} wins, the bet goes to her bank.`
+      ];
+      const reclaimRules = [
+        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
+        `${state.names.dom} starts first and wins full-board ties.`,
+        `Tilt level ${state.tiltLevel}: ${tiltDescription()}`
+      ];
+      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
+      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+    }
+
+    function renderChessRules() {
+      const normalRules = [
+        `Normal: ${state.names.sub} chooses any cash bet and plays white.`,
+        `Standard chess rules decide the board.`,
+        `If ${state.names.dom} wins, the bet goes to her bank. Draws return the pot.`
+      ];
+      const reclaimRules = [
+        `Reclaim: ${state.names.dom} plays white and wins drawn positions.`,
+        `Tilt level ${state.tiltLevel}: ${chessTiltSummary()}`
+      ];
+      if (state.tiltLevel >= 1) {
+        reclaimRules.push(
+          queenStanceDescription(),
+        `Queen charges: Reposition costs 1, Freeze costs 1, Shield costs 2, Skip costs 2, and Command Move costs 3.`
+        );
+      }
+      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
+      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+    }
+
+    function chessTiltSummary() {
+      if (state.tiltLevel >= 1) return `queen stances affect ${queenAffectedLabel()}.`;
+      return "dom plays white and wins draws.";
+    }
+
+    function renderTwentyOneRules() {
+      const normalRules = [
+        `Normal: ${state.names.sub} chooses any cash bet.`,
+        `${state.names.sub} plays Hit or Stand. ${state.names.dom} auto-plays after the stand.`,
+        `Closest to 21 wins. Busts lose. Normal ties push.`
+      ];
+      const reclaimRules = [
+        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
+        `${state.names.dom} wins tied reclaim hands.`,
+        `If ${state.names.dom} wins, the reclaim stake is added to her bank.`
+      ];
+      if (state.mode === "reclaim") {
+        reclaimRules.push(...twentyOneTiltRules());
+      }
+      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
+      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+    }
+
+    function twentyOneTiltRules() {
+      if (!domAdvantagesEnabled()) return [`Tilt level ${state.tiltLevel}: dom advantages are disabled.`];
+      const rules = [`Tilt level ${state.tiltLevel}: ${twentyOneTiltSummary()}`];
+      if (state.tiltLevel >= 1) rules.push("Peek: the dom can see her hidden dealer card.");
+      if (state.tiltLevel >= 2) rules.push("Soft Save: once per reclaim, a dom bust from 22 to 24 is treated as 21.");
+      if (state.tiltLevel >= 3) rules.push("Forced Hit: once before the sub stands, the dom can force one extra sub card.");
+      if (state.tiltLevel >= 4) rules.push("Dealer Lock: the dom dealer stands on 16 or higher.");
+      if (state.tiltLevel >= 5) rules.push("House Sweep: in reclaim, the sub must beat the dom by at least 2.");
+      return rules;
+    }
+
+    function twentyOneTiltSummary() {
+      if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
+      if (state.tiltLevel >= 5) return "Peek, Soft Save, Forced Hit, Dealer Lock, and House Sweep.";
+      if (state.tiltLevel >= 4) return "Peek, Soft Save, Forced Hit, and Dealer Lock.";
+      if (state.tiltLevel >= 3) return "Peek, Soft Save, and Forced Hit.";
+      if (state.tiltLevel >= 2) return "Peek and Soft Save.";
+      if (state.tiltLevel >= 1) return "Peek.";
+      return "ties go to the dom.";
+    }
+
+    function fleetTiltDescription() {
+      if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
+      const modifiers = state.fleet.modifiers || [];
+      const extras = modifiers.length
+        ? ` Active modifiers: ${modifiers.map(fleetModifierLabel).join(", ")}.`
+        : "";
+      if (state.tiltLevel >= 2) return `the dom gets one scan.${extras}`;
+      if (state.tiltLevel >= 1) return "the dom gets one scan.";
+      return "the dom starts the reclaim hunt.";
+    }
+
+    function renderFleetRules() {
+      const normalRules = [
+        `Normal: ${state.names.sub} chooses any cash bet.`,
+        `${state.names.sub} fires first. Sink every enemy ship segment to win.`,
+        `If ${state.names.sub} wins, nothing changes. If ${state.names.dom} wins, the bet goes to her bank.`
+      ];
+      const reclaimRules = [
+        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
+        `${state.names.dom} fires first.`,
+        `Tilt level ${state.tiltLevel}: ${fleetTiltDescription()}`
+      ];
+      if (state.mode === "reclaim" && state.fleet.modifiers && state.fleet.modifiers.length) {
+        reclaimRules.push(...state.fleet.modifiers.map(fleetModifierDescription));
+      }
+      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
+      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+    }
+
+    function renderText() {
+      renderGameChrome();
+      els.pot.textContent = money(state.pot);
+      els.domVault.textContent = money(state.domVault);
+      els.lockedTribute.textContent = money(state.domVault);
+      els.modeLabel.textContent = state.mode === "reclaim" ? "Reclaim Match" : "Normal Match";
+
+      if (!state.active) {
+        els.turnText.innerHTML = state.domVault > 0
+          ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
+          : `<strong>${state.names.sub}</strong> must make a normal bet to begin.`;
+      } else {
+        const actor = labelFor(state.turn);
+        els.turnText.innerHTML = `<strong>${actor}</strong> to move. ${state.mode === "reclaim" ? "The table is tilted." : "Clean rules, clean stake."}`;
+      }
+
+      const onlineBlocksSub = Boolean(localOnlineRole() && localOnlineRole() !== SUB);
+      const localRole = localOnlineRole();
+      const onlineBlocksDom = !domAdvantageControlsAllowed(localRole);
+      els.reclaimBtn.disabled = state.active || state.domVault <= 0 || onlineBlocksSub;
+      els.normalBtn.disabled = state.active || onlineBlocksSub;
+      els.betInput.disabled = state.active || onlineBlocksSub;
+      els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne");
+      els.queenRepositionBtn.classList.add("hidden");
+      els.queenShieldBtn.classList.add("hidden");
+      els.chessSkipBtn.classList.add("hidden");
+      els.passBtn.classList.remove("hidden");
+      els.queenStanceSelect.classList.add("hidden");
+      els.queenChargeText.classList.add("hidden");
+      if (state.currentGame === "tributeChess") {
+        const game = chessEngine();
+        const domToMove = Boolean(game && roleForChessColor(game.turn()) === DOM);
+        const domControls = queenPowerControlsAllowed(localRole);
+        const queenActive = chessQueenStancesActive();
+        els.queenStanceSelect.classList.toggle("hidden", !queenActive);
+        els.queenChargeText.classList.toggle("hidden", !queenActive);
+        els.queenStanceSelect.value = state.chess.queenStance || "none";
+        els.queenStanceSelect.disabled = !domControls || !state.active || !domToMove || state.chess.freezeMode || state.chess.commandMode;
+        els.queenChargeText.innerHTML = queenActive ? renderQueenCharges() : "No charges";
+        els.hitBtn.classList.add("hidden");
+        els.chessSkipBtn.classList.add("hidden");
+        els.queenRepositionBtn.classList.add("hidden");
+        els.queenShieldBtn.classList.add("hidden");
+        els.passBtn.classList.add("hidden");
+      } else if (state.currentGame === "tributeTwentyOne") {
+        const domCanForce = domAdvantageControlsAllowed(localRole) && canForceTwentyOneHit();
+        const blocksSubAction = Boolean(localRole && localRole !== SUB);
+        els.hitBtn.disabled = !state.active || state.turn !== SUB || blocksSubAction;
+        els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne" || localRole === DOM);
+        els.passBtn.disabled = domCanForce
+          ? false
+          : (!state.active || state.turn !== SUB || blocksSubAction);
+        els.hitBtn.textContent = "Hit";
+        els.passBtn.textContent = domCanForce ? "Force Hit" : "Stand";
+      } else if (state.currentGame === "tributeFleet") {
+        els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.fleet.scanAvailable || onlineBlocksDom;
+        els.passBtn.textContent = "Scan";
+      } else {
+        els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.skipAvailable || state.skipArmed || onlineBlocksDom;
+        els.passBtn.textContent = state.skipArmed ? "Armed" : (state.mode === "reclaim" && state.tiltLevel >= 3 ? "Skip" : "Pass");
+      }
+    }
+
+    function renderGameChrome() {
+      if (state.currentGame === "tributeChess") {
+        els.gameTitle.textContent = "Tribute Chess";
+        els.gameSubtitle.textContent = "Classic chess with cash stakes. Reclaim turns the dom queen into the source of Freeze, Skip, and Command charges.";
+        return;
+      }
+      if (state.currentGame === "tributeTwentyOne") {
+        els.gameTitle.textContent = "Tribute 21";
+        els.gameSubtitle.textContent = "Blackjack-inspired hands with cash stakes. The sub buys in, plays toward 21, and the dom takes the table edge in reclaim.";
+        return;
+      }
+      if (state.currentGame === "tributeFleet") {
+        els.gameTitle.textContent = "Tribute Fleet";
+        els.gameSubtitle.textContent = "Battleship with cash stakes. Fleets are hidden and auto-placed; normal bets are fair, while reclaim matches tilt the water toward the dom.";
+        return;
+      }
+      els.gameTitle.textContent = "Tribute Four";
+      els.gameSubtitle.textContent = "Connect Four with cash stakes. The sub chooses a normal bet to start. If the dom wins, that cash enters her bank; later the sub can risk a tilted reclaim match to win the banked cash back.";
+    }
+
+    function render() {
+      renderBoard();
+      renderControls();
+      renderRules();
+      renderText();
+      renderMenu();
+      renderLobby();
+    }
+
+    els.normalBtn.addEventListener("click", startNormalMatch);
+    els.reclaimBtn.addEventListener("click", startReclaimMatch);
+    els.resetBtn.addEventListener("click", resetPrototype);
+    els.hitBtn.addEventListener("click", () => {
+      if (state.currentGame === "tributeChess") {
+        chessFreezeAction();
+      } else {
+        hitTwentyOne();
+      }
+    });
+    els.passBtn.addEventListener("click", domPass);
+    els.queenRepositionBtn.addEventListener("click", chessRepositionAction);
+    els.queenShieldBtn.addEventListener("click", chessShieldAction);
+    els.chessSkipBtn.addEventListener("click", chessSkipAction);
+    els.queenChargeText.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-queen-power]");
+      if (!button || button.disabled) return;
+      activateQueenPower(button.dataset.queenPower);
+    });
+    els.queenStanceSelect.addEventListener("change", () => setQueenStance(els.queenStanceSelect.value));
+    els.settingsTabs.forEach((button) => {
+      button.addEventListener("click", () => updateSettings({ activeTab: button.dataset.settingsTab }));
+    });
+    els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
+    els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
+    els.subDefaultBetInput.addEventListener("input", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
+    els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
+    els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
+    els.backToMenuBtn.addEventListener("click", backToMenu);
+    if (els.continueSetupBtn) els.continueSetupBtn.addEventListener("click", continueToSetup);
+    els.confirmLobbyNameBtn.addEventListener("click", confirmLobbyName);
+    els.playLocalBtn.addEventListener("click", playLocally);
+    els.chooseDomBtn.addEventListener("click", () => chooseOnlineRole(DOM));
+    els.chooseSubBtn.addEventListener("click", () => chooseOnlineRole(SUB));
+    els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
+    els.tributeFourCard.addEventListener("click", openTributeFour);
+    els.tributeFleetCard.addEventListener("click", openTributeFleet);
+    els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
+    els.tributeChessCard.addEventListener("click", openTributeChess);
+    els.createRoomBtn.addEventListener("click", createOnlineRoom);
+    els.copyInviteBtn.addEventListener("click", copyInviteLink);
+    document.querySelectorAll(".role-btn[data-player]").forEach((button) => {
+      button.addEventListener("click", () => setRole(button.dataset.player, button.dataset.role));
+    });
+
+    addLog(`<strong>Ready.</strong> Pay to start a normal match.`);
+    renderRoles();
+    setScreen("lobby");
+    render();
+    joinOnlineRoomFromUrl();
+  </script>
+</body>
+</html>

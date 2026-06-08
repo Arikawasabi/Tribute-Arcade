@@ -1,0 +1,11 @@
+{
+  "name": "tribute-arcade",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node multiplayer_server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
