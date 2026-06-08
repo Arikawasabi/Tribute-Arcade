@@ -4,6 +4,8 @@ const path = require("path");
 
 const PORT = Number(process.env.PORT || 8765);
 const ROOT = __dirname;
+const ROOM_TTL_MS = Number(process.env.ROOM_TTL_MS || 1000 * 60 * 60 * 6);
+const ROOM_EMPTY_TTL_MS = Number(process.env.ROOM_EMPTY_TTL_MS || 1000 * 60 * 5);
 const rooms = new Map();
 
 function send(res, status, data, type = "application/json") {
@@ -43,6 +45,30 @@ function roomId() {
   return rooms.has(id) ? roomId() : id;
 }
 
+function roomHasPlayers(snapshot) {
+  const seats = snapshot && snapshot.onlineLobby && snapshot.onlineLobby.seats;
+  return Boolean(seats && (seats.one || seats.two));
+}
+
+function markRoomActivity(room) {
+  const now = Date.now();
+  room.updatedAt = now;
+  room.emptySince = roomHasPlayers(room.snapshot) ? null : (room.emptySince || now);
+}
+
+function isRoomExpired(room, now = Date.now()) {
+  if (!room) return true;
+  if (room.emptySince && now - Number(room.emptySince || 0) >= ROOM_EMPTY_TTL_MS) return true;
+  return now - Number(room.updatedAt || 0) >= ROOM_TTL_MS;
+}
+
+function cleanupRooms() {
+  const now = Date.now();
+  for (const [id, room] of rooms) {
+    if (isRoomExpired(room, now)) rooms.delete(id);
+  }
+}
+
 function staticFile(req, res) {
   const urlPath = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
   const fileName = urlPath === "/" ? "tribute_four.html" : urlPath.slice(1);
@@ -68,12 +94,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/create") {
       const body = await readBody(req);
       const id = roomId();
-      rooms.set(id, {
+      const room = {
         id,
         rev: 1,
         snapshot: body.snapshot,
-        updatedAt: Date.now()
-      });
+        updatedAt: Date.now(),
+        emptySince: null
+      };
+      markRoomActivity(room);
+      rooms.set(id, room);
       return send(res, 200, { id, rev: 1 });
     }
 
@@ -81,6 +110,10 @@ const server = http.createServer(async (req, res) => {
       const id = (url.searchParams.get("room") || "").toUpperCase();
       const room = rooms.get(id);
       if (!room) return send(res, 404, { error: "Room not found" });
+      if (isRoomExpired(room)) {
+        rooms.delete(id);
+        return send(res, 404, { error: "Room expired" });
+      }
       return send(res, 200, room);
     }
 
@@ -89,12 +122,16 @@ const server = http.createServer(async (req, res) => {
       const id = String(body.room || "").toUpperCase();
       const room = rooms.get(id);
       if (!room) return send(res, 404, { error: "Room not found" });
+      if (isRoomExpired(room)) {
+        rooms.delete(id);
+        return send(res, 404, { error: "Room expired" });
+      }
       if (!body.snapshot || Number(body.baseRev) < room.rev) {
         return send(res, 409, room);
       }
       room.rev += 1;
       room.snapshot = body.snapshot;
-      room.updatedAt = Date.now();
+      markRoomActivity(room);
       return send(res, 200, room);
     }
   } catch (error) {
@@ -103,6 +140,8 @@ const server = http.createServer(async (req, res) => {
 
   staticFile(req, res);
 });
+
+setInterval(cleanupRooms, Math.min(ROOM_EMPTY_TTL_MS, 1000 * 60)).unref();
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Tribute Arcade multiplayer server: http://127.0.0.1:${PORT}/`);
