@@ -69,6 +69,54 @@ function cleanupRooms() {
   }
 }
 
+function newSeatSecret() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function ensureLobby(snapshot) {
+  snapshot.onlineLobby = snapshot.onlineLobby || {};
+  snapshot.onlineLobby.seats = snapshot.onlineLobby.seats || { one: false, two: false };
+  snapshot.onlineLobby.seatSecrets = snapshot.onlineLobby.seatSecrets || { one: "", two: "" };
+  snapshot.onlineLobby.playerNames = snapshot.onlineLobby.playerNames || { one: "", two: "" };
+  snapshot.onlineLobby.roleChoices = snapshot.onlineLobby.roleChoices || { one: null, two: null };
+  snapshot.onlineLobby.spectators = snapshot.onlineLobby.spectators || {};
+  return snapshot.onlineLobby;
+}
+
+function claimSeat(room, body) {
+  const snapshot = room.snapshot || {};
+  const lobby = ensureLobby(snapshot);
+  const savedSeat = body.savedSeat === "one" || body.savedSeat === "two" || body.savedSeat === "spectator" ? body.savedSeat : null;
+  const preferredSeat = body.preferredSeat === "one" || body.preferredSeat === "two" || body.preferredSeat === "spectator" ? body.preferredSeat : null;
+  let seat = null;
+  let secret = String(body.secret || "");
+
+  if (savedSeat === "one" || savedSeat === "two") {
+    if (secret && lobby.seatSecrets[savedSeat] === secret) seat = savedSeat;
+  } else if (savedSeat === "spectator" && secret) {
+    seat = "spectator";
+  }
+
+  if (!seat && preferredSeat === "spectator") seat = "spectator";
+  if (!seat && preferredSeat && preferredSeat !== "spectator" && !lobby.seatSecrets[preferredSeat]) seat = preferredSeat;
+  if (!seat && !lobby.seatSecrets.two) seat = "two";
+  if (!seat && !lobby.seatSecrets.one) seat = "one";
+  if (!seat) seat = "spectator";
+  if (!secret) secret = newSeatSecret();
+
+  if (seat !== "spectator") {
+    lobby.seats[seat] = true;
+    lobby.seatSecrets[seat] = secret;
+    lobby.playerNames[seat] = lobby.playerNames[seat] || "";
+    lobby.roleChoices[seat] = lobby.roleChoices[seat] || null;
+  }
+
+  room.rev += 1;
+  room.snapshot = snapshot;
+  markRoomActivity(room);
+  return { seat, secret };
+}
+
 function staticFile(req, res) {
   const urlPath = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
   const fileName = urlPath === "/" ? "tribute_four.html" : urlPath.slice(1);
@@ -133,6 +181,19 @@ const server = http.createServer(async (req, res) => {
       room.snapshot = body.snapshot;
       markRoomActivity(room);
       return send(res, 200, room);
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/claim") {
+      const body = await readBody(req);
+      const id = String(body.room || "").toUpperCase();
+      const room = rooms.get(id);
+      if (!room) return send(res, 404, { error: "Room not found" });
+      if (isRoomExpired(room)) {
+        rooms.delete(id);
+        return send(res, 404, { error: "Room expired" });
+      }
+      const claim = claimSeat(room, body);
+      return send(res, 200, { ...room, claim });
     }
   } catch (error) {
     return send(res, 500, { error: error.message });

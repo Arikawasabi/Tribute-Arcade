@@ -231,6 +231,23 @@
       min-height: 1.4em;
     }
 
+    .menu-rules {
+      display: grid;
+      gap: 10px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .menu-rules h3 {
+      color: var(--gold);
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    .menu-rules p {
+      margin: 0;
+    }
+
     .settings-panel {
       display: grid;
       gap: 12px;
@@ -1217,16 +1234,23 @@
       min-height: 0;
       padding: 12px;
       display: grid;
+      overflow: hidden;
     }
 
     .side-pane {
       min-height: 0;
       display: grid;
       gap: 10px;
+      align-content: start;
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding-right: 4px;
     }
 
     .chat-pane {
       grid-template-rows: 1fr auto;
+      overflow: hidden;
+      padding-right: 0;
     }
 
     .chat-messages {
@@ -1302,7 +1326,8 @@
         right: 12px;
         bottom: 12px;
         width: auto;
-        max-height: 58vh;
+        height: min(78dvh, calc(100vh - 24px));
+        max-height: calc(100vh - 24px);
       }
 
       .side-popout.closed {
@@ -1478,79 +1503,26 @@
         </div>
         <div class="panel-body">
           <div class="metric"><span id="menuBankLabel">Dom's bank</span><strong id="menuDomBank">$0</strong></div>
-        </div>
-      </div>
-
-      <div class="panel settings-panel">
-        <div class="panel-header">
-          <h2 class="panel-title">Settings</h2>
-        </div>
-        <div class="panel-body">
-          <div class="settings-tabs">
-            <button class="settings-tab active" data-settings-tab="dom">Dom</button>
-            <button class="settings-tab" data-settings-tab="sub">Sub</button>
-            <button class="settings-tab" data-settings-tab="links">Links</button>
-            <button class="settings-tab" data-settings-tab="chess">Chess</button>
-          </div>
-
-          <div class="settings-pane" id="domSettingsPane">
-            <label class="settings-row">
-              Dom advantages
-              <select id="domAdvantageMode">
-                <option value="dom">Enabled for dom</option>
-                <option value="off">Disabled globally</option>
-                <option value="both">Enabled for both players</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="settings-pane hidden" id="subSettingsPane">
-            <label class="settings-row">
-              Default bet
-              <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
-            </label>
-            <label class="settings-row">
-              Link warning
-              <select id="subLinkWarningMode">
-                <option value="warn">Ask before opening links</option>
-                <option value="auto">Open links without asking</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="settings-pane hidden" id="linkSettingsPane">
-            <label class="settings-row">
-              Link for sub
-              <input id="domLinkUrlInput" type="url" placeholder="https://example.com">
-            </label>
-            <div class="mode-grid">
-              <button id="saveDomLinkBtn">Save Link</button>
-              <button id="sendDomLinkBtn" class="primary">Open Saved Link</button>
-            </div>
-            <p class="chooser-line" id="domLinkStatus">Save a link, then open it for the sub whenever you want.</p>
-          </div>
-
-          <div class="settings-pane hidden" id="chessSettingsPane">
-            <label class="settings-row">
-              Queen powers
-              <select id="queenPowerMode">
-                <option value="tiered">Unlock by tilt</option>
-                <option value="always">Always enabled</option>
-                <option value="off">Disabled</option>
-              </select>
-            </label>
-            <label class="settings-row">
-              Queen power users
-              <select id="queenPowerUsers">
-                <option value="dom">Dom only</option>
-                <option value="both">Both players</option>
-              </select>
-            </label>
-          </div>
           <p class="chooser-line" id="chooserStatus">Dom picks the next game.</p>
         </div>
       </div>
-
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Bet Rules</h2>
+        </div>
+        <div class="panel-body menu-rules">
+          <section>
+            <h3>Standard Bets</h3>
+            <p>The submissive player must place a bet to start a game. If the submissive player wins, the dominant player's bank remains unchanged. If the submissive player loses, the bet amount is added to the total debt owed to the dominant player once all games are complete.</p>
+          </section>
+          <section>
+            <h3>Reclaims</h3>
+            <p>Reclaims are high-risk bets that allow the submissive player to recover outstanding debt owed to the dominant player. However, reclaim rounds heavily favor the dominant player and are significantly harder to win.</p>
+            <p>Each failed reclaim further increases the dominant player's advantage in future reclaim rounds, causing the odds to become progressively more difficult for the submissive player.</p>
+            <p>If the submissive player loses a reclaim round, the total amount owed to the dominant player is doubled.</p>
+          </section>
+        </div>
+      </div>
     </section>
 
     <div class="game-select-tabs">
@@ -1766,36 +1738,76 @@
         </div>
       </section>
       <section class="side-pane hidden" id="sideSettingsPane">
-        <label class="field-label">
-          Link for sub
-          <input id="sideDomLinkInput" type="url" placeholder="https://example.com">
-        </label>
-        <div class="mode-grid">
-          <button id="sideSaveDomLinkBtn">Save Link</button>
-          <button id="sideSendDomLinkBtn" class="primary">Open Link</button>
+        <div class="settings-pane" id="domSettingsPane">
+          <h3 class="panel-title">Dom Settings</h3>
+          <label class="settings-row">
+            Dom advantages
+            <select id="domAdvantageMode">
+              <option value="dom">Enabled for dom</option>
+              <option value="off">Disabled globally</option>
+              <option value="both">Enabled for both players</option>
+            </select>
+          </label>
+          <label class="settings-row">
+            Queen powers
+            <select id="queenPowerMode">
+              <option value="tiered">Unlock by tier</option>
+              <option value="always">Always enabled</option>
+              <option value="off">Disabled</option>
+            </select>
+          </label>
+          <label class="settings-row">
+            Queen power users
+            <select id="queenPowerUsers">
+              <option value="dom">Dom only</option>
+              <option value="both">Both players</option>
+            </select>
+          </label>
+          <label class="field-label">
+            Link for sub
+            <input id="sideDomLinkInput" type="url" placeholder="https://example.com">
+          </label>
+          <div class="mode-grid">
+            <button id="sideSaveDomLinkBtn">Save Link</button>
+            <button id="sideSendDomLinkBtn" class="primary">Open Link</button>
+          </div>
+          <p class="chooser-line" id="sideDomLinkStatus">Save a link, then open it for the sub whenever you want.</p>
+          <label class="field-label">
+            Distraction image or GIF
+            <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
+          </label>
+          <label class="field-label">
+            Display mode
+            <select id="sideDistractionMode">
+              <option value="background-both">Background for both players</option>
+              <option value="background-sub">Background for sub only</option>
+              <option value="overlay-sub">Timed overlay for sub only</option>
+            </select>
+          </label>
+          <label class="field-label" id="sideDistractionDurationRow">
+            Overlay seconds
+            <input id="sideDistractionDuration" type="number" min="1" max="60" step="1" value="15">
+          </label>
+          <div class="mode-grid">
+            <button id="postDistractionBtn" class="primary">Post</button>
+            <button id="clearDistractionBtn">Clear</button>
+          </div>
+          <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
         </div>
-        <p class="chooser-line" id="sideDomLinkStatus">Save a link, then open it for the sub whenever you want.</p>
-        <label class="field-label">
-          Distraction image or GIF
-          <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
-        </label>
-        <label class="field-label">
-          Display mode
-          <select id="sideDistractionMode">
-            <option value="background-both">Background for both players</option>
-            <option value="background-sub">Background for sub only</option>
-            <option value="overlay-sub">Timed overlay for sub only</option>
-          </select>
-        </label>
-        <label class="field-label" id="sideDistractionDurationRow">
-          Overlay seconds
-          <input id="sideDistractionDuration" type="number" min="1" max="60" step="1" value="15">
-        </label>
-        <div class="mode-grid">
-          <button id="postDistractionBtn" class="primary">Post</button>
-          <button id="clearDistractionBtn">Clear</button>
+        <div class="settings-pane hidden" id="subSettingsPane">
+          <h3 class="panel-title">Sub Settings</h3>
+          <label class="settings-row">
+            Default bet
+            <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
+          </label>
+          <label class="settings-row">
+            Link warning
+            <select id="subLinkWarningMode">
+              <option value="warn">Ask before opening</option>
+              <option value="auto">Open without asking</option>
+            </select>
+          </label>
         </div>
-        <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
       </section>
     </div>
   </aside>
@@ -2150,16 +2162,14 @@
       miniGamesGrid: document.getElementById("miniGamesGrid"),
       domSettingsPane: document.getElementById("domSettingsPane"),
       subSettingsPane: document.getElementById("subSettingsPane"),
-      linkSettingsPane: document.getElementById("linkSettingsPane"),
-      chessSettingsPane: document.getElementById("chessSettingsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
       subDefaultBetInput: document.getElementById("subDefaultBetInput"),
       subLinkWarningMode: document.getElementById("subLinkWarningMode"),
-      domLinkUrlInput: document.getElementById("domLinkUrlInput"),
+      domLinkUrlInput: document.getElementById("domLinkUrlInput") || document.getElementById("sideDomLinkInput"),
       saveDomLinkBtn: document.getElementById("saveDomLinkBtn"),
       sendDomLinkBtn: document.getElementById("sendDomLinkBtn"),
       openSavedLinkBtn: document.getElementById("openSavedLinkBtn"),
-      domLinkStatus: document.getElementById("domLinkStatus"),
+      domLinkStatus: document.getElementById("domLinkStatus") || document.getElementById("sideDomLinkStatus"),
       sidePopout: document.getElementById("sidePopout"),
       sideToggleBtn: document.getElementById("sideToggleBtn"),
       sideRestoreTab: document.getElementById("sideRestoreTab"),
@@ -2744,23 +2754,19 @@
       els.leaveNoticeModal.classList.add("hidden");
     }
 
-    function takeAvailableSeat(seat) {
+    async function takeAvailableSeat(seat) {
       if (localSeat() !== SPECTATOR || (seat !== "one" && seat !== "two") || state.online.seats[seat]) return;
       const spectatorClaim = readSeatClaim();
       if (spectatorClaim && spectatorClaim.secret && state.online.spectators) {
         delete state.online.spectators[spectatorClaim.secret];
       }
-      const claim = rememberSeat(seat, state.online.room);
-      state.online.seats[seat] = true;
-      state.online.seatSecrets[seat] = claim ? claim.secret : "";
-      state.online.playerNames[seat] = "";
-      state.online.roleChoices[seat] = null;
-      setLocalRoomUrl(seat);
-      els.lobbyNameInput.value = "";
-      els.leaveNoticeModal.classList.add("hidden");
-      setScreen("lobby");
-      updateOnlineUi();
-      publishState();
+      await claimOnlineSeat(seat);
+      if (localSeat() !== SPECTATOR) {
+        els.lobbyNameInput.value = "";
+        els.leaveNoticeModal.classList.add("hidden");
+        setScreen("lobby");
+        updateOnlineUi();
+      }
     }
 
     function returnToLobbyFromLeaveNotice() {
@@ -2996,42 +3002,29 @@
       document.body.classList.toggle("control-sub", controller === SUB);
     }
 
-    function visibleSettingsTabs() {
+    function sideSettingsAllowed() {
       const role = localOnlineRole();
-      if (!state.online.room || !role) return ["dom", "sub", "links", "chess"];
-      if (role === SPECTATOR) return [];
-      return role === DOM ? ["dom", "links", "chess"] : ["sub"];
+      return !state.online.room || !role || role === DOM || role === SUB;
+    }
+
+    function subSettingsControlsAllowed() {
+      const role = localOnlineRole();
+      return !state.online.room || !role || role === SUB;
     }
 
     function renderSettings() {
-      const visibleTabs = visibleSettingsTabs();
-      if (!visibleTabs.length) {
-        els.settingsTabs.forEach((button) => button.classList.add("hidden"));
-        els.domSettingsPane.classList.add("hidden");
-        els.subSettingsPane.classList.add("hidden");
-        els.linkSettingsPane.classList.add("hidden");
-        els.chessSettingsPane.classList.add("hidden");
-        return;
-      }
-      if (!visibleTabs.includes(state.settings.activeTab)) {
-        state.settings.activeTab = visibleTabs[0];
-      }
-      els.settingsTabs.forEach((button) => {
-        const visible = visibleTabs.includes(button.dataset.settingsTab);
-        button.classList.toggle("hidden", !visible);
-        button.classList.toggle("active", button.dataset.settingsTab === state.settings.activeTab);
-      });
-      els.domSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "dom");
-      els.subSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "sub");
-      els.linkSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "links");
-      els.chessSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "chess");
-      els.domAdvantageMode.value = state.settings.domAdvantageMode;
-      els.subDefaultBetInput.value = state.settings.subDefaultBet;
-      els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "warn";
-      els.domLinkUrlInput.value = state.settings.domLinkUrl || "";
-      els.sendDomLinkBtn.disabled = !state.settings.domLinkUrl;
-      els.queenPowerMode.value = state.settings.queenPowerMode;
-      els.queenPowerUsers.value = state.settings.queenPowerUsers;
+      const role = localOnlineRole();
+      const showDomSettings = !state.online.room || !role || role === DOM;
+      const showSubSettings = !state.online.room || !role || role === SUB;
+      if (els.domSettingsPane) els.domSettingsPane.classList.toggle("hidden", !showDomSettings);
+      if (els.subSettingsPane) els.subSettingsPane.classList.toggle("hidden", !showSubSettings);
+      if (els.domAdvantageMode) els.domAdvantageMode.value = state.settings.domAdvantageMode;
+      if (els.subDefaultBetInput) els.subDefaultBetInput.value = state.settings.subDefaultBet;
+      if (els.subLinkWarningMode) els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "warn";
+      if (els.domLinkUrlInput) els.domLinkUrlInput.value = state.settings.domLinkUrl || "";
+      if (els.sendDomLinkBtn) els.sendDomLinkBtn.disabled = !state.settings.domLinkUrl;
+      if (els.queenPowerMode) els.queenPowerMode.value = state.settings.queenPowerMode;
+      if (els.queenPowerUsers) els.queenPowerUsers.value = state.settings.queenPowerUsers;
     }
 
     function updateSettings(changes) {
@@ -3107,8 +3100,10 @@
     }
 
     function renderSidePanel() {
-      const canUseSettings = domLinkControlsAllowed();
-      if (!canUseSettings && state.settings.activeSideTab === "settings") {
+      const canOpenSettings = sideSettingsAllowed();
+      const canUseDomSettings = domLinkControlsAllowed();
+      const canUseSubSettings = subSettingsControlsAllowed();
+      if (!canOpenSettings && state.settings.activeSideTab === "settings") {
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
@@ -3120,12 +3115,12 @@
       els.sideToggleBtn.textContent = "Hide";
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
-        const visible = button.dataset.sideTab !== "settings" || canUseSettings;
+        const visible = button.dataset.sideTab !== "settings" || canOpenSettings;
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active", button.dataset.sideTab === activeTab);
       });
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
-      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "settings" || !canUseSettings);
+      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "settings" || !canOpenSettings);
       els.chatMessages.innerHTML = (state.chat || []).slice(-80).reverse().map((message) => `
         <div class="chat-message">
           <strong>${escapeHtml(message.sender || "Player")}</strong>
@@ -3133,14 +3128,19 @@
         </div>
       `).join("") || `<div class="chat-message"><strong>Table</strong><span>No messages yet.</span></div>`;
       els.sideDomLinkInput.value = state.settings.domLinkUrl || "";
-      els.sideSendDomLinkBtn.disabled = !canUseSettings || !state.settings.domLinkUrl;
-      els.sideSaveDomLinkBtn.disabled = !canUseSettings;
-      els.sideDomLinkInput.disabled = !canUseSettings;
-      els.sideDistractionInput.disabled = !canUseSettings;
-      els.sideDistractionMode.disabled = !canUseSettings;
-      els.sideDistractionDuration.disabled = !canUseSettings;
-      els.postDistractionBtn.disabled = !canUseSettings;
-      els.clearDistractionBtn.disabled = !canUseSettings || !hasDistraction();
+      els.sideSendDomLinkBtn.disabled = !canUseDomSettings || !state.settings.domLinkUrl;
+      els.sideSaveDomLinkBtn.disabled = !canUseDomSettings;
+      els.sideDomLinkInput.disabled = !canUseDomSettings;
+      els.sideDistractionInput.disabled = !canUseDomSettings;
+      els.sideDistractionMode.disabled = !canUseDomSettings;
+      els.sideDistractionDuration.disabled = !canUseDomSettings;
+      els.postDistractionBtn.disabled = !canUseDomSettings;
+      els.clearDistractionBtn.disabled = !canUseDomSettings || !hasDistraction();
+      if (els.domAdvantageMode) els.domAdvantageMode.disabled = !canUseDomSettings;
+      if (els.queenPowerMode) els.queenPowerMode.disabled = !canUseDomSettings;
+      if (els.queenPowerUsers) els.queenPowerUsers.disabled = !canUseDomSettings;
+      if (els.subDefaultBetInput) els.subDefaultBetInput.disabled = !canUseSubSettings;
+      if (els.subLinkWarningMode) els.subLinkWarningMode.disabled = !canUseSubSettings;
       els.chatInput.disabled = false;
       els.sendChatBtn.disabled = false;
       els.chatInput.placeholder = "Send a message";
@@ -3178,7 +3178,7 @@
     }
 
     function setSideTab(tab) {
-      if (tab === "settings" && !domLinkControlsAllowed()) return;
+      if (tab === "settings" && !sideSettingsAllowed()) return;
       state.settings.activeSideTab = tab;
       renderSidePanel();
     }
@@ -3553,7 +3553,7 @@
         state.online.room = room.id;
         state.online.rev = room.rev;
         rememberSeat("one", room.id, state.online.seatSecrets.one);
-        setLocalRoomUrl("one");
+        setLocalRoomUrl();
         updateOnlineUi();
         startPolling();
         publishState();
@@ -3562,18 +3562,18 @@
       }
     }
 
-    function roomUrl(seat) {
+    function roomUrl() {
       const url = new URL(window.location.href);
       url.searchParams.set("room", state.online.room);
-      url.searchParams.set("seat", seat);
+      url.searchParams.delete("seat");
       return url.toString();
     }
 
-    function setLocalRoomUrl(seat) {
+    function setLocalRoomUrl() {
       if (!state.online.room) return;
       const url = new URL(window.location.href);
       url.searchParams.set("room", state.online.room);
-      url.searchParams.set("seat", seat);
+      url.searchParams.delete("seat");
       window.history.replaceState({}, "", url.toString());
     }
 
@@ -3597,14 +3597,14 @@
       els.roomCodeDisplay.textContent = `Room code: ${state.online.room}`;
       els.roomCodeDisplay.classList.remove("hidden");
       els.shareLinks.classList.remove("hidden");
-      els.domShareLink.textContent = seat === SPECTATOR ? "Watching this room." : `Your link: ${roomUrl(seat)}`;
-      els.subShareLink.textContent = seat === SPECTATOR ? `Room link: ${roomUrl(SPECTATOR)}` : `Invite link: ${roomUrl(seat === "two" ? "one" : "two")}`;
+      state.online.inviteUrl = roomUrl();
+      els.domShareLink.textContent = `Room link: ${state.online.inviteUrl}`;
+      els.subShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
       els.setupRoomPanel.classList.remove("hidden");
       els.setupRoomStatus.textContent = state.online.seats.one && state.online.seats.two
         ? (seat === SPECTATOR && !spectatorName ? "Choose a spectator name to join the room chat." : "Both players are in the lobby.")
         : "Waiting for the other player.";
-      state.online.inviteUrl = seat === SPECTATOR ? roomUrl(SPECTATOR) : roomUrl(seat === "two" ? "one" : "two");
-      els.setupShareLink.textContent = seat === SPECTATOR ? `Spectator link: ${state.online.inviteUrl}` : `Invite link: ${state.online.inviteUrl}`;
+      els.setupShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
       renderRoles();
       renderLobby();
     }
@@ -3709,10 +3709,34 @@
       window.setInterval(pollState, 900);
     }
 
-    async function joinOnlineRoom(room, requestedSeat = null) {
+    async function claimOnlineSeat(preferredSeat = null) {
+      if (!state.online.room) return null;
+      const savedClaim = readSeatClaim(state.online.room);
+      const response = await fetch("/api/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          room: state.online.room,
+          preferredSeat,
+          savedSeat: savedClaim ? savedClaim.seat : null,
+          secret: savedClaim ? savedClaim.secret : null
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not claim a seat");
+      state.online.rev = data.rev;
+      applySnapshot(data.snapshot);
+      state.online.room = data.id || state.online.room;
+      const claim = data.claim || {};
+      rememberSeat(claim.seat || SPECTATOR, state.online.room, claim.secret);
+      setLocalRoomUrl();
+      updateOnlineUi();
+      return claim;
+    }
+
+    async function joinOnlineRoom(room) {
       if (!room) return;
       const roomCode = room.toUpperCase();
-      const savedClaim = readSeatClaim(roomCode);
       state.online.room = roomCode;
       const response = await fetch(`/api/state?room=${encodeURIComponent(state.online.room)}`);
       const data = await response.json();
@@ -3725,28 +3749,7 @@
       applySnapshot(data.snapshot);
       state.online.room = roomCode;
       state.online.seatSecrets = state.online.seatSecrets || { one: "", two: "" };
-      const preferredSeat = requestedSeat === "one" || requestedSeat === "two" || requestedSeat === SPECTATOR ? requestedSeat : null;
-      let seat = null;
-      let secret = null;
-      if (savedClaim && savedClaim.seat === SPECTATOR) {
-        seat = SPECTATOR;
-        secret = savedClaim.secret;
-      } else if (savedClaim && (savedClaim.seat === "one" || savedClaim.seat === "two") && seatClaimMatches(savedClaim, savedClaim.seat)) {
-        seat = savedClaim.seat;
-        secret = savedClaim.secret;
-      }
-      if (!seat && preferredSeat === SPECTATOR) seat = SPECTATOR;
-      if (!seat && preferredSeat && preferredSeat !== SPECTATOR && !seatIsOwned(preferredSeat)) seat = preferredSeat;
-      if (!seat && !seatIsOwned("two")) seat = "two";
-      if (!seat && !seatIsOwned("one")) seat = "one";
-      if (!seat) seat = SPECTATOR;
-      const claim = rememberSeat(seat, roomCode, secret);
-      if (state.online.seat !== SPECTATOR) {
-        state.online.seats[state.online.seat] = true;
-        state.online.seatSecrets[state.online.seat] = claim ? claim.secret : "";
-      }
-      setLocalRoomUrl(state.online.seat);
-      if (state.online.seat !== SPECTATOR) await publishState();
+      await claimOnlineSeat();
       startPolling();
       updateOnlineUi();
     }
@@ -3764,7 +3767,7 @@
       const params = new URLSearchParams(window.location.search);
       const room = params.get("room");
       if (!room) return;
-      await joinOnlineRoom(room, params.get("seat"));
+      await joinOnlineRoom(room);
     }
 
     function startNormalMatch() {
@@ -6666,14 +6669,18 @@
     els.chatInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") sendChatMessage();
     });
-    els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
-    els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
-    els.subDefaultBetInput.addEventListener("input", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
-    els.subLinkWarningMode.addEventListener("change", () => updateSettings({ subLinkWarningMode: els.subLinkWarningMode.value }));
-    els.domLinkUrlInput.addEventListener("input", () => updateSettings({ domLinkUrl: els.domLinkUrlInput.value }));
+    if (els.domAdvantageMode) els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
+    if (els.subDefaultBetInput) {
+      els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
+      els.subDefaultBetInput.addEventListener("input", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
+    }
+    if (els.subLinkWarningMode) els.subLinkWarningMode.addEventListener("change", () => updateSettings({ subLinkWarningMode: els.subLinkWarningMode.value }));
+    if (els.domLinkUrlInput && els.domLinkUrlInput !== els.sideDomLinkInput) {
+      els.domLinkUrlInput.addEventListener("input", () => updateSettings({ domLinkUrl: els.domLinkUrlInput.value }));
+    }
     els.sideDomLinkInput.addEventListener("input", () => updateSettings({ domLinkUrl: els.sideDomLinkInput.value }));
-    els.saveDomLinkBtn.addEventListener("click", saveDomLink);
-    els.sendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
+    if (els.saveDomLinkBtn) els.saveDomLinkBtn.addEventListener("click", saveDomLink);
+    if (els.sendDomLinkBtn) els.sendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.sideSaveDomLinkBtn.addEventListener("click", () => saveDomLinkFromInput(els.sideDomLinkInput, els.sideDomLinkStatus));
     els.sideSendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.postDistractionBtn.addEventListener("click", postDistraction);
@@ -6709,8 +6716,8 @@
     els.takePlayerOneBtn.addEventListener("click", () => takeAvailableSeat("one"));
     els.takePlayerTwoBtn.addEventListener("click", () => takeAvailableSeat("two"));
     els.returnLobbyNoticeBtn.addEventListener("click", returnToLobbyFromLeaveNotice);
-    els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
-    els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
+    if (els.queenPowerMode) els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
+    if (els.queenPowerUsers) els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
     els.backToMenuBtn.addEventListener("click", backToMenu);
     if (els.continueSetupBtn) els.continueSetupBtn.addEventListener("click", continueToSetup);
     els.confirmLobbyNameBtn.addEventListener("click", confirmLobbyName);
