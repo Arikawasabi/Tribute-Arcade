@@ -59,6 +59,47 @@
         inset 0 0 120px rgba(86, 181, 255, 0.12);
     }
 
+    .distraction-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      opacity: 0;
+      filter: saturate(0.95) brightness(0.55);
+      transition: opacity 220ms ease, filter 220ms ease;
+    }
+
+    .distraction-backdrop.active {
+      opacity: 0.38;
+    }
+
+    .distraction-overlay {
+      position: fixed;
+      top: 18%;
+      right: 18px;
+      width: min(420px, calc(100vw - 36px));
+      height: min(360px, 46vh);
+      z-index: 21;
+      pointer-events: none;
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      border: 1px solid rgba(239, 199, 94, 0.42);
+      border-radius: 8px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .distraction-overlay.active {
+      opacity: 0.96;
+      transform: translateY(0);
+    }
+
     button, input, select {
       font: inherit;
     }
@@ -507,7 +548,8 @@
     }
 
     input[type="number"],
-    input[type="text"] {
+    input[type="text"],
+    input[type="url"] {
       width: 100%;
       min-height: 2.5rem;
       border: 1px solid rgba(244, 239, 232, 0.16);
@@ -934,6 +976,109 @@
       color: var(--warning);
     }
 
+    .side-popout {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      bottom: 16px;
+      width: min(360px, calc(100vw - 32px));
+      z-index: 22;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      background: rgba(26, 22, 18, 0.96);
+      border: 1px solid rgba(244, 239, 232, 0.16);
+      border-radius: 8px;
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.45);
+      transform: translateX(0);
+      transition: transform 180ms ease;
+    }
+
+    .side-popout.closed {
+      transform: translateX(calc(100% - 44px));
+    }
+
+    .side-header,
+    .side-tabs,
+    .chat-compose {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .side-header {
+      justify-content: space-between;
+      padding: 12px;
+      border-bottom: 1px solid rgba(244, 239, 232, 0.1);
+    }
+
+    .side-tabs {
+      padding: 10px 12px 0;
+    }
+
+    .side-tab {
+      flex: 1;
+    }
+
+    .side-tab.active {
+      border-color: rgba(239, 199, 94, 0.55);
+      background: #3e3229;
+    }
+
+    .side-body {
+      min-height: 0;
+      padding: 12px;
+      display: grid;
+    }
+
+    .side-pane {
+      min-height: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .chat-pane {
+      grid-template-rows: 1fr auto;
+    }
+
+    .chat-messages {
+      min-height: 0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      padding-right: 4px;
+    }
+
+    .chat-message {
+      padding: 9px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.94rem;
+    }
+
+    .chat-message strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--text);
+      font-size: 0.78rem;
+    }
+
+    .chat-compose input,
+    .side-pane input {
+      min-width: 0;
+    }
+
+    .chat-compose input {
+      flex: 1;
+    }
+
+    .side-popout.closed .side-tabs,
+    .side-popout.closed .side-body {
+      visibility: hidden;
+    }
+
     @media (max-width: 820px) {
       .screen {
         width: min(100vw - 20px, 680px);
@@ -957,6 +1102,27 @@
         flex-direction: column;
       }
 
+      .side-popout {
+        top: auto;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        width: auto;
+        max-height: 58vh;
+      }
+
+      .side-popout.closed {
+        transform: translateY(calc(100% - 44px));
+      }
+
+      .distraction-overlay {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+        height: min(280px, 38vh);
+      }
+
       .status-pill {
         width: 100%;
       }
@@ -972,6 +1138,9 @@
   </style>
 </head>
 <body>
+  <div class="distraction-backdrop" id="distractionBackdrop"></div>
+  <div class="distraction-overlay" id="distractionOverlay"></div>
+
   <main class="screen splash" id="lobbyScreen">
     <header class="splash-header">
       <h1>Tribute Arcade</h1>
@@ -991,6 +1160,7 @@
           </label>
           <div class="setup-actions">
             <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
+            <button class="leave-room-btn hidden">Leave Lobby</button>
           </div>
           <p class="chooser-line" id="onlineStatus">Offline local game.</p>
           <p class="chooser-line hidden" id="roomCodeDisplay">Room code: -----</p>
@@ -1098,6 +1268,9 @@
     <header class="splash-header">
       <h1>Game Select</h1>
       <p class="subtitle" id="playerSummary">Choose a game.</p>
+      <div class="setup-actions">
+        <button class="leave-room-btn hidden">Leave Lobby</button>
+      </div>
     </header>
 
     <section class="menu-dashboard">
@@ -1242,6 +1415,7 @@
         <button id="openSavedLinkBtn">Open Saved Link</button>
         <button id="rulesBtn">Rules</button>
         <button id="backToMenuBtn">Games</button>
+        <button class="leave-room-btn hidden">Leave Lobby</button>
         <div class="status-pill" id="modeLabel">Normal Match</div>
       </div>
     </header>
@@ -1344,6 +1518,73 @@
       </div>
     </section>
   </div>
+
+  <div class="modal-backdrop hidden" id="leaveNoticeModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Alone in Room</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="leaveNoticeText">The other player left the room.</p>
+        <div class="role-row">
+          <button id="hideLeaveNoticeBtn">Hide</button>
+          <button id="returnLobbyNoticeBtn" class="primary">Return to Lobby</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="side-popout" id="sidePopout">
+    <div class="side-header">
+      <h2 class="panel-title">Table</h2>
+      <button id="sideToggleBtn" title="Collapse panel">Hide</button>
+    </div>
+    <div class="side-tabs">
+      <button class="side-tab active" data-side-tab="chat">Chat</button>
+      <button class="side-tab" data-side-tab="settings" id="sideSettingsTab">Settings</button>
+    </div>
+    <div class="side-body">
+      <section class="side-pane chat-pane" id="sideChatPane">
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-compose">
+          <input id="chatInput" type="text" maxlength="220" autocomplete="off" placeholder="Send a message">
+          <button id="sendChatBtn" class="primary">Send</button>
+        </div>
+      </section>
+      <section class="side-pane hidden" id="sideSettingsPane">
+        <label class="field-label">
+          Link for sub
+          <input id="sideDomLinkInput" type="url" placeholder="https://example.com">
+        </label>
+        <div class="mode-grid">
+          <button id="sideSaveDomLinkBtn">Save Link</button>
+          <button id="sideSendDomLinkBtn" class="primary">Open Link</button>
+        </div>
+        <p class="chooser-line" id="sideDomLinkStatus">Save a link, then open it for the sub whenever you want.</p>
+        <label class="field-label">
+          Distraction image or GIF
+          <input id="sideDistractionInput" type="url" placeholder="https://example.com/image.gif">
+        </label>
+        <label class="field-label">
+          Display mode
+          <select id="sideDistractionMode">
+            <option value="background-both">Background for both players</option>
+            <option value="background-sub">Background for sub only</option>
+            <option value="overlay-sub">Timed overlay for sub only</option>
+          </select>
+        </label>
+        <label class="field-label" id="sideDistractionDurationRow">
+          Overlay seconds
+          <input id="sideDistractionDuration" type="number" min="1" max="60" step="1" value="15">
+        </label>
+        <div class="mode-grid">
+          <button id="postDistractionBtn" class="primary">Post</button>
+          <button id="clearDistractionBtn">Clear</button>
+        </div>
+        <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
+      </section>
+    </div>
+  </aside>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
   <script>
@@ -1597,10 +1838,17 @@
       settings: {
         activeTab: "dom",
         activeGameTab: "main",
+        activeSideTab: "chat",
+        sideOpen: true,
         domAdvantageMode: "dom",
         subDefaultBet: 10,
         subLinkWarningMode: "warn",
         domLinkUrl: "",
+        distractionUrl: "",
+        distractionMode: "background-both",
+        distractionDuration: 15,
+        distractionUntil: 0,
+        leaveNotice: null,
         linkRequest: null,
         queenPowerMode: "tiered",
         queenPowerUsers: "dom"
@@ -1643,7 +1891,8 @@
       fleet: createFleetState(),
       twentyOne: createTwentyOneState(),
       dice: createDiceState(),
-      chess: createChessState()
+      chess: createChessState(),
+      chat: []
     };
 
     const els = {
@@ -1651,6 +1900,8 @@
       setupScreen: document.getElementById("setupScreen"),
       gameSelectScreen: document.getElementById("gameSelectScreen"),
       gameScreen: document.getElementById("gameScreen"),
+      distractionBackdrop: document.getElementById("distractionBackdrop"),
+      distractionOverlay: document.getElementById("distractionOverlay"),
       playerOneName: document.getElementById("playerOneName"),
       playerTwoName: document.getElementById("playerTwoName"),
       continueSetupBtn: document.getElementById("continueSetupBtn"),
@@ -1680,6 +1931,26 @@
       sendDomLinkBtn: document.getElementById("sendDomLinkBtn"),
       openSavedLinkBtn: document.getElementById("openSavedLinkBtn"),
       domLinkStatus: document.getElementById("domLinkStatus"),
+      sidePopout: document.getElementById("sidePopout"),
+      sideToggleBtn: document.getElementById("sideToggleBtn"),
+      sideTabs: document.querySelectorAll(".side-tab"),
+      sideSettingsTab: document.getElementById("sideSettingsTab"),
+      sideChatPane: document.getElementById("sideChatPane"),
+      sideSettingsPane: document.getElementById("sideSettingsPane"),
+      chatMessages: document.getElementById("chatMessages"),
+      chatInput: document.getElementById("chatInput"),
+      sendChatBtn: document.getElementById("sendChatBtn"),
+      sideDomLinkInput: document.getElementById("sideDomLinkInput"),
+      sideSaveDomLinkBtn: document.getElementById("sideSaveDomLinkBtn"),
+      sideSendDomLinkBtn: document.getElementById("sideSendDomLinkBtn"),
+      sideDomLinkStatus: document.getElementById("sideDomLinkStatus"),
+      sideDistractionInput: document.getElementById("sideDistractionInput"),
+      sideDistractionMode: document.getElementById("sideDistractionMode"),
+      sideDistractionDuration: document.getElementById("sideDistractionDuration"),
+      sideDistractionDurationRow: document.getElementById("sideDistractionDurationRow"),
+      postDistractionBtn: document.getElementById("postDistractionBtn"),
+      clearDistractionBtn: document.getElementById("clearDistractionBtn"),
+      sideDistractionStatus: document.getElementById("sideDistractionStatus"),
       queenPowerMode: document.getElementById("queenPowerMode"),
       queenPowerUsers: document.getElementById("queenPowerUsers"),
       tributeFourCard: document.getElementById("tributeFourCard"),
@@ -1712,6 +1983,11 @@
       rulesModal: document.getElementById("rulesModal"),
       rulesModalTitle: document.getElementById("rulesModalTitle"),
       closeRulesBtn: document.getElementById("closeRulesBtn"),
+      leaveRoomButtons: document.querySelectorAll(".leave-room-btn"),
+      leaveNoticeModal: document.getElementById("leaveNoticeModal"),
+      leaveNoticeText: document.getElementById("leaveNoticeText"),
+      hideLeaveNoticeBtn: document.getElementById("hideLeaveNoticeBtn"),
+      returnLobbyNoticeBtn: document.getElementById("returnLobbyNoticeBtn"),
       gameTitle: document.getElementById("gameTitle"),
       gameSubtitle: document.getElementById("gameSubtitle"),
       board: document.getElementById("board"),
@@ -1852,6 +2128,19 @@
       return player === DOM ? state.names.dom : state.names.sub;
     }
 
+    function randomStarter() {
+      return Math.random() < 0.5 ? SUB : DOM;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     function applyDefaultBet() {
       els.betInput.value = normalizeBuyIn(state.settings.subDefaultBet);
     }
@@ -1952,14 +2241,104 @@
       state.online.playerNames = { one: "", two: "" };
       state.online.roleChoices = { one: null, two: null };
       state.online.seats = { one: false, two: false };
+      state.settings.leaveNotice = null;
       state.roles = { one: null, two: null };
       state.names = { dom: "", sub: "" };
       els.playerOneName.value = "";
       els.playerTwoName.value = "";
       els.setupMessage.textContent = "";
+      clearLocalRoomUrl();
       setScreen("setup");
       renderRoles();
       updateOnlineUi();
+    }
+
+    function clearLocalRoomUrl() {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("room");
+      url.searchParams.delete("seat");
+      window.history.replaceState({}, "", url.toString());
+    }
+
+    function resetLocalOnlineState() {
+      state.online.room = null;
+      state.online.seat = null;
+      state.online.rev = 0;
+      state.online.inviteUrl = "";
+      state.online.playerNames = { one: "", two: "" };
+      state.online.roleChoices = { one: null, two: null };
+      state.online.seats = { one: false, two: false };
+      clearLocalRoomUrl();
+      updateOnlineUi();
+    }
+
+    function leaveNoticeKey(id = state.settings.leaveNotice && state.settings.leaveNotice.id) {
+      return `tribute-leave-notice:${state.online.room || "local"}:${id || "none"}`;
+    }
+
+    async function leaveOnlineRoom() {
+      const room = state.online.room;
+      const seat = localSeat();
+      if (!room || !seat) {
+        setScreen("lobby");
+        render();
+        return;
+      }
+
+      const leavingName = state.online.playerNames[seat]
+        || (state.roles[seat] === DOM ? state.names.dom : state.names.sub)
+        || "The other player";
+      state.settings.leaveNotice = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        seat,
+        name: leavingName,
+        at: Date.now()
+      };
+      state.online.seats[seat] = false;
+      state.online.playerNames[seat] = "";
+      state.online.roleChoices[seat] = null;
+      state.active = false;
+      await publishState();
+
+      resetLocalOnlineState();
+      els.lobbyNameInput.value = "";
+      els.setupMessage.textContent = "";
+      setScreen("lobby");
+      renderRoles();
+      render();
+    }
+
+    function renderLeaveRoomButtons() {
+      const show = Boolean(state.online.room);
+      els.leaveRoomButtons.forEach((button) => button.classList.toggle("hidden", !show));
+    }
+
+    function renderLeaveNotice() {
+      const notice = state.settings.leaveNotice;
+      const seat = localSeat();
+      const shouldShow = Boolean(state.online.room && notice && notice.id && notice.seat !== seat);
+      if (!shouldShow || window.localStorage.getItem(leaveNoticeKey(notice && notice.id)) === "hidden") {
+        els.leaveNoticeModal.classList.add("hidden");
+        return;
+      }
+      els.leaveNoticeText.textContent = `${notice.name || "The other player"} left the room. You are alone.`;
+      els.leaveNoticeModal.classList.remove("hidden");
+    }
+
+    function hideLeaveNotice() {
+      const notice = state.settings.leaveNotice;
+      if (notice && notice.id) {
+        window.localStorage.setItem(leaveNoticeKey(notice.id), "hidden");
+      }
+      els.leaveNoticeModal.classList.add("hidden");
+    }
+
+    function returnToLobbyFromLeaveNotice() {
+      hideLeaveNotice();
+      state.active = false;
+      setScreen("lobby");
+      render();
+      publishState();
     }
 
     function renderLobby() {
@@ -2181,6 +2560,7 @@
       if (!state.active) els.betInput.value = state.settings.subDefaultBet;
       renderSettings();
       renderGameSelectTabs();
+      renderSidePanel();
       publishState();
     }
 
@@ -2198,17 +2578,7 @@
     }
 
     function saveDomLink() {
-      const role = localOnlineRole();
-      if (state.online.room && role !== DOM) return;
-      const url = normalizeDomLink(els.domLinkUrlInput.value);
-      if (!url) {
-        els.domLinkStatus.textContent = "Enter a valid http or https link.";
-        return;
-      }
-      state.settings.domLinkUrl = url;
-      els.domLinkStatus.textContent = "Link saved.";
-      renderSettings();
-      publishState();
+      saveDomLinkFromInput(els.domLinkUrlInput, els.domLinkStatus);
     }
 
     function sendDomLinkRequest() {
@@ -2217,6 +2587,7 @@
       const url = normalizeDomLink(state.settings.domLinkUrl || els.domLinkUrlInput.value);
       if (!url) {
         els.domLinkStatus.textContent = "Save a valid link first.";
+        els.sideDomLinkStatus.textContent = "Save a valid link first.";
         return;
       }
       state.settings.domLinkUrl = url;
@@ -2225,7 +2596,9 @@
         url
       };
       els.domLinkStatus.textContent = "Link request sent.";
+      els.sideDomLinkStatus.textContent = "Link request sent.";
       renderSettings();
+      renderSidePanel();
       publishState();
     }
 
@@ -2236,6 +2609,166 @@
       els.openSavedLinkBtn.classList.toggle("hidden", !domCanUse);
       els.openSavedLinkBtn.disabled = !domCanUse || !hasLink;
       els.openSavedLinkBtn.title = hasLink ? "Open the saved link in the sub browser" : "Save a link from Settings first";
+    }
+
+    function domLinkControlsAllowed() {
+      const role = localOnlineRole();
+      return !state.online.room || role === DOM;
+    }
+
+    function renderSidePanel() {
+      const canUseSettings = domLinkControlsAllowed();
+      if (!canUseSettings && state.settings.activeSideTab === "settings") {
+        state.settings.activeSideTab = "chat";
+      }
+      const activeTab = state.settings.activeSideTab || "chat";
+      els.sidePopout.classList.toggle("closed", state.settings.sideOpen === false);
+      els.sideToggleBtn.textContent = state.settings.sideOpen === false ? "Show" : "Hide";
+      els.sideToggleBtn.title = state.settings.sideOpen === false ? "Open panel" : "Collapse panel";
+      els.sideTabs.forEach((button) => {
+        const visible = button.dataset.sideTab !== "settings" || canUseSettings;
+        button.classList.toggle("hidden", !visible);
+        button.classList.toggle("active", button.dataset.sideTab === activeTab);
+      });
+      els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
+      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "settings" || !canUseSettings);
+      els.chatMessages.innerHTML = (state.chat || []).slice(-80).reverse().map((message) => `
+        <div class="chat-message">
+          <strong>${escapeHtml(message.sender || "Player")}</strong>
+          <span>${escapeHtml(message.text)}</span>
+        </div>
+      `).join("") || `<div class="chat-message"><strong>Table</strong><span>No messages yet.</span></div>`;
+      els.sideDomLinkInput.value = state.settings.domLinkUrl || "";
+      els.sideSendDomLinkBtn.disabled = !canUseSettings || !state.settings.domLinkUrl;
+      els.sideSaveDomLinkBtn.disabled = !canUseSettings;
+      els.sideDomLinkInput.disabled = !canUseSettings;
+      els.sideDistractionInput.disabled = !canUseSettings;
+      els.sideDistractionMode.disabled = !canUseSettings;
+      els.sideDistractionDuration.disabled = !canUseSettings;
+      els.postDistractionBtn.disabled = !canUseSettings;
+      els.clearDistractionBtn.disabled = !canUseSettings || !state.settings.distractionUrl;
+      if (document.activeElement !== els.sideDistractionInput) {
+        els.sideDistractionInput.value = state.settings.distractionUrl || "";
+      }
+      els.sideDistractionMode.value = state.settings.distractionMode || "background-both";
+      els.sideDistractionDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
+      els.sideDistractionDurationRow.classList.toggle("hidden", els.sideDistractionMode.value !== "overlay-sub");
+      renderDistractionBackground();
+    }
+
+    function setSideTab(tab) {
+      if (tab === "settings" && !domLinkControlsAllowed()) return;
+      updateSettings({ activeSideTab: tab });
+    }
+
+    function toggleSidePanel() {
+      updateSettings({ sideOpen: state.settings.sideOpen === false });
+    }
+
+    function chatSenderLabel() {
+      const role = localOnlineRole();
+      if (role === DOM) return state.names.dom || "Dom";
+      if (role === SUB) return state.names.sub || "Sub";
+      return "Table";
+    }
+
+    function sendChatMessage() {
+      const text = els.chatInput.value.trim();
+      if (!text) return;
+      state.chat = [
+        ...(state.chat || []),
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          sender: chatSenderLabel(),
+          text,
+          at: Date.now()
+        }
+      ].slice(-100);
+      els.chatInput.value = "";
+      renderSidePanel();
+      publishState();
+    }
+
+    function saveDomLinkFromInput(input, statusEl) {
+      const role = localOnlineRole();
+      if (state.online.room && role !== DOM) return;
+      const url = normalizeDomLink(input.value);
+      if (!url) {
+        statusEl.textContent = "Enter a valid http or https link.";
+        return;
+      }
+      state.settings.domLinkUrl = url;
+      els.domLinkStatus.textContent = "Link saved.";
+      els.sideDomLinkStatus.textContent = "Link saved.";
+      renderSettings();
+      renderSidePanel();
+      renderSavedLinkButton();
+      publishState();
+    }
+
+    function postDistraction() {
+      if (!domLinkControlsAllowed()) return;
+      const url = normalizeDomLink(els.sideDistractionInput.value);
+      if (!url) {
+        els.sideDistractionStatus.textContent = "Enter a valid image or GIF link.";
+        return;
+      }
+      state.settings.distractionUrl = url;
+      state.settings.distractionMode = els.sideDistractionMode.value || "background-both";
+      state.settings.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration.value);
+      state.settings.distractionUntil = state.settings.distractionMode === "overlay-sub"
+        ? Date.now() + state.settings.distractionDuration * 1000
+        : 0;
+      els.sideDistractionStatus.textContent = state.settings.distractionMode === "overlay-sub"
+        ? `Overlay posted for ${state.settings.distractionDuration} seconds.`
+        : "Distraction posted.";
+      renderSidePanel();
+      publishState();
+    }
+
+    function clearDistraction() {
+      if (!domLinkControlsAllowed()) return;
+      state.settings.distractionUrl = "";
+      state.settings.distractionUntil = 0;
+      els.sideDistractionInput.value = "";
+      els.sideDistractionStatus.textContent = "Distraction cleared.";
+      renderSidePanel();
+      publishState();
+    }
+
+    function normalizeDistractionDuration(value) {
+      const seconds = Math.round(Number(value));
+      if (!Number.isFinite(seconds)) return 15;
+      return Math.min(60, Math.max(1, seconds));
+    }
+
+    function shouldShowSubOnlyMedia() {
+      if (!state.online.room) return true;
+      return localOnlineRole() === SUB;
+    }
+
+    function safeCssUrl(url) {
+      return `url("${String(url || "").replace(/"/g, "%22")}")`;
+    }
+
+    function renderDistractionBackground() {
+      const url = state.settings.distractionUrl || "";
+      const mode = state.settings.distractionMode || "background-both";
+      const showBackground = Boolean(url)
+        && (mode === "background-both" || (mode === "background-sub" && shouldShowSubOnlyMedia()));
+      const overlayRemaining = Math.max(0, Number(state.settings.distractionUntil || 0) - Date.now());
+      const showOverlay = Boolean(url)
+        && mode === "overlay-sub"
+        && shouldShowSubOnlyMedia()
+        && overlayRemaining > 0;
+      els.distractionBackdrop.classList.toggle("active", showBackground);
+      els.distractionBackdrop.style.backgroundImage = showBackground ? safeCssUrl(url) : "";
+      els.distractionOverlay.classList.toggle("active", showOverlay);
+      els.distractionOverlay.style.backgroundImage = showOverlay ? safeCssUrl(url) : "";
+      if (showOverlay) {
+        window.clearTimeout(renderDistractionBackground.timer);
+        renderDistractionBackground.timer = window.setTimeout(renderDistractionBackground, overlayRemaining + 80);
+      }
     }
 
     function currentLinkRequestKey() {
@@ -2336,6 +2869,7 @@
         twentyOne: state.twentyOne,
         dice: state.dice,
         chess: state.chess,
+        chat: state.chat,
         onlineLobby: {
           seats: state.online.seats,
           playerNames: state.online.playerNames,
@@ -2374,6 +2908,7 @@
       state.twentyOne = snapshot.twentyOne || state.twentyOne;
       state.dice = snapshot.dice || state.dice;
       state.chess = normalizeChessState(snapshot.chess || state.chess);
+      state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
       if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
         state.online.seats = snapshot.onlineLobby.seats;
         state.online.playerNames = snapshot.onlineLobby.playerNames || state.online.playerNames;
@@ -2393,6 +2928,7 @@
         rememberSeat("one");
         state.online.seats.one = true;
         state.online.seats.two = false;
+        state.settings.leaveNotice = null;
         setScreen("lobby");
         renderRoles();
         const response = await fetch("/api/create", {
@@ -2585,8 +3121,9 @@
       state.skipAvailable = false;
       state.skipArmed = false;
       state.reclaimPassAvailable = false;
-      resetMatch(SUB);
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. If ${state.names.dom} wins, it goes into her bank.`);
+      const starter = randomStarter();
+      resetMatch(starter);
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`);
       publishState();
     }
 
@@ -2954,10 +3491,11 @@
       state.pot = bet;
       state.mode = "normal";
       state.board = createTicTacToeBoard();
-      state.turn = SUB;
+      const starter = randomStarter();
+      state.turn = starter;
       state.active = true;
       state.winningCells = [];
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and takes X.`);
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`);
       render();
       publishState();
     }
@@ -3037,9 +3575,10 @@
       state.dice = createDiceState();
       state.dice.dice.sub = rollDiceHand();
       state.dice.dice.dom = rollDiceHand();
-      state.turn = SUB;
+      const starter = randomStarter();
+      state.turn = starter;
       state.active = true;
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${state.names.sub} makes the first claim.`);
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} makes the first claim.`);
       render();
       publishState();
     }
@@ -3113,8 +3652,9 @@
       els.betInput.value = bet;
       state.pot = bet;
       state.mode = "normal";
-      resetChessMatch({ w: SUB, b: DOM });
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and plays white.`);
+      const starter = randomStarter();
+      resetChessMatch(starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB });
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} plays white and starts.`);
       publishState();
     }
 
@@ -3910,8 +4450,9 @@
       els.betInput.value = bet;
       state.pot = bet;
       state.mode = "normal";
-      resetFleetMatch(SUB);
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and opens fire first.`);
+      const starter = randomStarter();
+      resetFleetMatch(starter);
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} opens fire first.`);
       publishState();
     }
 
@@ -4504,67 +5045,64 @@
         renderFleetRules();
         return;
       }
-      const normalRules = [
-        `Normal: ${state.names.sub} chooses any cash bet.`,
-        `${state.names.sub} moves first. Four in a row wins.`,
-        `If ${state.names.sub} wins, nothing changes. If ${state.names.dom} wins, the bet goes to her bank.`
+      const rules = [
+        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player starts, then players try to connect four.`,
+        `<strong>Win result:</strong> if ${state.names.sub} wins, nothing enters the bank. If ${state.names.dom} wins, the bet goes to her bank.`,
+        `<strong>Reclaim:</strong> once ${state.names.dom} has banked cash, ${state.names.sub} can risk a reclaim match to win that bank back.`,
+        `<strong>Reclaim base:</strong> ${state.names.dom} starts and wins full-board ties.`,
+        `<strong>Tilt 0-1:</strong> ${state.names.dom} starts and wins ties.`,
+        `<strong>Tilt 2:</strong> one random column is blocked on each ${state.names.sub} turn.`,
+        `<strong>Tilt 3-4:</strong> one random ${state.names.sub} column is blocked each ${state.names.sub} turn, and ${state.names.dom} gets one Skip.`,
+        `<strong>Tilt 5+:</strong> two random ${state.names.sub} columns are blocked each ${state.names.sub} turn, and ${state.names.dom} gets one Skip.`,
+        `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${tiltDescription()}`
       ];
-      const reclaimRules = [
-        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
-        `${state.names.dom} starts first and wins full-board ties.`,
-        `Tilt level ${state.tiltLevel}: ${tiltDescription()}`
-      ];
-      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
     }
 
     function renderTicTacToeRules() {
-      const normalRules = [
-        `Normal: ${state.names.sub} chooses any cash bet and plays X first.`,
-        `First to make three in a row wins.`,
-        `Draws return the pot. If ${state.names.dom} wins, the bet goes to her bank.`
+      const rules = [
+        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player starts.`,
+        `<strong>Goal:</strong> first to make three in a row wins.`,
+        `<strong>Normal draw:</strong> drawn boards return the pot.`,
+        `<strong>Dom win:</strong> if ${state.names.dom} wins, the bet goes to her bank.`,
+        `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
+        `<strong>Reclaim edge:</strong> ${state.names.dom} plays O first, and drawn reclaim boards go to ${state.names.dom}.`
       ];
-      const reclaimRules = [
-        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
-        `${state.names.dom} plays O first.`,
-        `Drawn reclaim boards go to ${state.names.dom}.`
-      ];
-      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
     }
 
     function renderDiceRules() {
-      const normalRules = [
-        `Normal: ${state.names.sub} chooses any cash bet and makes the first claim.`,
-        `Each player rolls three dice. Raise the claim or call bluff.`,
-        `When called, if the table has enough matching dice, the bidder wins. Otherwise the caller wins.`
+      const rules = [
+        `<strong>Status:</strong> Tribute Dice is currently removed from the game menu while its design is being reworked.`,
+        `<strong>Old prototype:</strong> each player rolled three dice, players raised claims, and the opponent could call bluff.`,
+        `<strong>Old resolution:</strong> if the table contained enough matching dice, the bidder won. Otherwise the caller won.`
       ];
-      const reclaimRules = [
-        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
-        `${state.names.dom} makes the first claim.`,
-        `The same bluff/call rules decide the round.`
-      ];
-      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
     }
 
     function renderChessRules() {
-      const normalRules = [
-        `Normal: ${state.names.sub} chooses any cash bet and plays white.`,
-        `Standard chess rules decide the board.`,
-        `If ${state.names.dom} wins, the bet goes to her bank. Draws return the pot.`
+      const activeAffected = queenAffectedLabel() || "no pieces at this tilt";
+      const rules = [
+        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player gets white and starts.`,
+        `<strong>Normal result:</strong> standard chess decides the game. If ${state.names.dom} wins, the bet goes to her bank. Draws return the pot.`,
+        `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. ${state.names.dom} plays white and wins drawn positions.`,
+        `<strong>Queen power setting:</strong> Off disables queen powers. Always enables queen powers immediately. Tiered unlocks them from Tilt 1 onward.`,
+        `<strong>Who can use queen powers:</strong> the Chess settings can make queen powers dom-only or usable by both players, but reclaim pressure is built around ${state.names.dom}'s queen.`,
+        `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${chessTiltSummary()}`,
+        `<strong>Affected pieces now:</strong> ${activeAffected}. These are the pieces queen stances care about.`,
+        `<strong>Affected piece tiers:</strong> Tilt 1 affects pawns; Tilt 2 adds knights; Tilt 3 adds bishops; Tilt 4 adds rooks; Tilt 5+ adds the queen.`,
+        `<strong>Queen charges:</strong> stances earn a shared pool of charges. The charge buttons light up when ${state.names.dom} has enough charges to use that power.`,
+        `<strong>None stance:</strong> the queen has no stance effect and earns no stance charges.`,
+        `<strong>Gaze stance:</strong> when ${state.names.sub} moves an affected piece through the dom queen's line of sight, ${state.names.dom} gains 1 queen charge.`,
+        `<strong>Tithe stance:</strong> when ${state.names.dom}'s queen captures an affected piece, ${state.names.dom} gains 1 queen charge.`,
+        `<strong>Leash stance:</strong> affected ${state.names.sub} pieces next to the dom queen are leashed. At the end of ${state.names.sub}'s turn, ${state.names.dom} gains 1 queen charge for each leashed unit.`,
+        `<strong>Reposition, cost 1:</strong> after moving, ${state.names.dom} can spend 1 charge to move her queen to one adjacent empty square. Reposition cannot capture.`,
+        `<strong>Freeze, cost 1:</strong> on ${state.names.dom}'s turn, she can spend 1 charge and choose one ${state.names.sub} piece. That piece is frozen for the next two ${state.names.sub} turns.`,
+        `<strong>Shield, cost 2:</strong> ${state.names.dom}'s queen cannot be captured by pawns until ${state.names.dom}'s next turn.`,
+        `<strong>Skip, cost 2:</strong> ${state.names.dom} queues Skip on her turn. The next ${state.names.sub} turn is skipped, letting ${state.names.dom} move again.`,
+        `<strong>Command Move, cost 3:</strong> ${state.names.dom} queues Command Move on her turn. On the next ${state.names.sub} turn, ${state.names.dom} moves one legal ${state.names.sub} piece instead.`,
+        `<strong>Queued powers:</strong> Freeze, Skip, and Command Move are chosen during ${state.names.dom}'s move and take effect on a following ${state.names.sub} turn.`
       ];
-      const reclaimRules = [
-        `Reclaim: ${state.names.dom} plays white and wins drawn positions.`,
-        `Tilt level ${state.tiltLevel}: ${chessTiltSummary()}`
-      ];
-      if (state.tiltLevel >= 1) {
-        reclaimRules.push(
-          queenStanceDescription(),
-        `Queen charges: Reposition costs 1, Freeze costs 1, Shield costs 2, Skip costs 2, and Command Move costs 3.`
-        );
-      }
-      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
     }
 
@@ -4574,20 +5112,19 @@
     }
 
     function renderTwentyOneRules() {
-      const normalRules = [
-        `Normal: ${state.names.sub} chooses any cash bet.`,
-        `${state.names.sub} plays Hit or Stand. ${state.names.dom} auto-plays after the stand.`,
-        `Closest to 21 wins. Busts lose. Normal ties push.`
+      const rules = [
+        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet.`,
+        `<strong>Player hand:</strong> ${state.names.sub} chooses Hit or Stand.`,
+        `<strong>Dealer hand:</strong> after ${state.names.sub} stands, ${state.names.dom} auto-plays the dealer hand.`,
+        `<strong>Win condition:</strong> closest to 21 wins. Busts lose. Normal ties push.`,
+        `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. Reclaim ties go to ${state.names.dom}.`,
+        `<strong>Tilt 1, Peek:</strong> ${state.names.dom} can see her hidden dealer card.`,
+        `<strong>Tilt 2, Soft Save:</strong> once per reclaim, a dom bust from 22 to 24 is treated as 21.`,
+        `<strong>Tilt 3, Forced Hit:</strong> once before ${state.names.sub} stands, ${state.names.dom} can force one extra ${state.names.sub} card.`,
+        `<strong>Tilt 4, Dealer Lock:</strong> the dom dealer stands on 16 or higher.`,
+        `<strong>Tilt 5+, House Sweep:</strong> in reclaim, ${state.names.sub} must beat ${state.names.dom} by at least 2.`,
+        `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${twentyOneTiltSummary()}`
       ];
-      const reclaimRules = [
-        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
-        `${state.names.dom} wins tied reclaim hands.`,
-        `If ${state.names.dom} wins, the reclaim stake is added to her bank.`
-      ];
-      if (state.mode === "reclaim") {
-        reclaimRules.push(...twentyOneTiltRules());
-      }
-      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
     }
 
@@ -4624,20 +5161,24 @@
     }
 
     function renderFleetRules() {
-      const normalRules = [
-        `Normal: ${state.names.sub} chooses any cash bet.`,
-        `${state.names.sub} fires first. Sink every enemy ship segment to win.`,
-        `If ${state.names.sub} wins, nothing changes. If ${state.names.dom} wins, the bet goes to her bank.`
+      const activeModifiers = (state.fleet.modifiers || []).length
+        ? (state.fleet.modifiers || []).map(fleetModifierLabel).join(", ")
+        : "none";
+      const rules = [
+        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player fires first.`,
+        `<strong>Goal:</strong> sink every enemy ship segment to win.`,
+        `<strong>Dom win:</strong> if ${state.names.dom} wins, the bet goes to her bank.`,
+        `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. ${state.names.dom} fires first.`,
+        `<strong>Scan:</strong> from Tilt 1 onward, ${state.names.dom} gets one Scan that marks a hidden ${state.names.sub} ship segment.`,
+        `<strong>Random modifiers:</strong> Tilt 2 adds one random modifier; Tilt 3 adds one random modifier plus Command Fog; Tilt 4 adds two random modifiers; Tilt 5+ adds three random modifiers.`,
+        `<strong>Double Tap:</strong> the first time ${state.names.dom} hits, she immediately fires one extra shot.`,
+        `<strong>Command Fog:</strong> a random row or column is blocked on each ${state.names.sub} turn.`,
+        `<strong>Dom Counterfire:</strong> when ${state.names.sub} misses, there is a 30% chance ${state.names.dom}'s Scan recharges.`,
+        `<strong>Noisy Waters:</strong> half of the target board is blocked on each ${state.names.sub} turn.`,
+        `<strong>Priority Intel:</strong> ${state.names.dom} gets one row or column clue at the start of reclaim.`,
+        `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${fleetTiltDescription()}`,
+        `<strong>Active modifiers:</strong> ${activeModifiers}.`
       ];
-      const reclaimRules = [
-        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
-        `${state.names.dom} fires first.`,
-        `Tilt level ${state.tiltLevel}: ${fleetTiltDescription()}`
-      ];
-      if (state.mode === "reclaim" && state.fleet.modifiers && state.fleet.modifiers.length) {
-        reclaimRules.push(...state.fleet.modifiers.map(fleetModifierDescription));
-      }
-      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
     }
 
@@ -4744,6 +5285,9 @@
       renderSavedLinkButton();
       renderMenu();
       renderLobby();
+      renderSidePanel();
+      renderLeaveRoomButtons();
+      renderLeaveNotice();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
@@ -4772,19 +5316,46 @@
     els.gameSelectTabs.forEach((button) => {
       button.addEventListener("click", () => updateSettings({ activeGameTab: button.dataset.gameTab }));
     });
+    els.sideTabs.forEach((button) => {
+      button.addEventListener("click", () => setSideTab(button.dataset.sideTab));
+    });
+    els.sideToggleBtn.addEventListener("click", toggleSidePanel);
+    els.sendChatBtn.addEventListener("click", sendChatMessage);
+    els.chatInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") sendChatMessage();
+    });
     els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
     els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
     els.subDefaultBetInput.addEventListener("input", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
     els.subLinkWarningMode.addEventListener("change", () => updateSettings({ subLinkWarningMode: els.subLinkWarningMode.value }));
     els.domLinkUrlInput.addEventListener("input", () => updateSettings({ domLinkUrl: els.domLinkUrlInput.value }));
+    els.sideDomLinkInput.addEventListener("input", () => updateSettings({ domLinkUrl: els.sideDomLinkInput.value }));
     els.saveDomLinkBtn.addEventListener("click", saveDomLink);
     els.sendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
+    els.sideSaveDomLinkBtn.addEventListener("click", () => saveDomLinkFromInput(els.sideDomLinkInput, els.sideDomLinkStatus));
+    els.sideSendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
+    els.postDistractionBtn.addEventListener("click", postDistraction);
+    els.clearDistractionBtn.addEventListener("click", clearDistraction);
+    els.sideDistractionMode.addEventListener("change", () => {
+      updateSettings({ distractionMode: els.sideDistractionMode.value });
+    });
+    els.sideDistractionDuration.addEventListener("input", () => {
+      updateSettings({ distractionDuration: normalizeDistractionDuration(els.sideDistractionDuration.value) });
+    });
+    els.sideDistractionInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") postDistraction();
+    });
     els.openSavedLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.rulesBtn.addEventListener("click", openRulesModal);
     els.closeRulesBtn.addEventListener("click", closeRulesModal);
     els.rulesModal.addEventListener("click", (event) => {
       if (event.target === els.rulesModal) closeRulesModal();
     });
+    els.leaveRoomButtons.forEach((button) => {
+      button.addEventListener("click", leaveOnlineRoom);
+    });
+    els.hideLeaveNoticeBtn.addEventListener("click", hideLeaveNotice);
+    els.returnLobbyNoticeBtn.addEventListener("click", returnToLobbyFromLeaveNotice);
     els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
     els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
     els.backToMenuBtn.addEventListener("click", backToMenu);
