@@ -1184,6 +1184,21 @@
     </section>
   </div>
 
+  <div class="modal-backdrop hidden" id="subLinkModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Open Link</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="subLinkModalText">The dom wants to open a link.</p>
+        <div class="role-row">
+          <button id="openSubLinkBtn" class="primary">Open Link</button>
+          <button id="declineSubLinkBtn">Not Now</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
   <script>
     if (typeof window.Chess !== "function") {
@@ -1534,6 +1549,10 @@
       roleModalText: document.getElementById("roleModalText"),
       chooseDomBtn: document.getElementById("chooseDomBtn"),
       chooseSubBtn: document.getElementById("chooseSubBtn"),
+      subLinkModal: document.getElementById("subLinkModal"),
+      subLinkModalText: document.getElementById("subLinkModalText"),
+      openSubLinkBtn: document.getElementById("openSubLinkBtn"),
+      declineSubLinkBtn: document.getElementById("declineSubLinkBtn"),
       gameTitle: document.getElementById("gameTitle"),
       gameSubtitle: document.getElementById("gameSubtitle"),
       board: document.getElementById("board"),
@@ -2008,20 +2027,61 @@
       els.openSavedLinkBtn.title = hasLink ? "Open the saved link in the sub browser" : "Save a link from Settings first";
     }
 
+    function currentLinkRequestKey() {
+      return `tribute-link-request:${state.online.room || "local"}`;
+    }
+
+    function markSubLinkRequestHandled(request) {
+      if (!request || !request.id) return;
+      window.localStorage.setItem(currentLinkRequestKey(), request.id);
+      els.subLinkModal.classList.add("hidden");
+    }
+
+    function showSubLinkModal(request, note = "") {
+      els.subLinkModal.dataset.requestId = request.id;
+      els.subLinkModal.dataset.url = request.url;
+      els.subLinkModalText.textContent = `${state.names.dom || "Dom"} wants to open this link: ${request.url}${note ? ` ${note}` : ""}`;
+      els.subLinkModal.classList.remove("hidden");
+    }
+
+    function openSubLinkRequest() {
+      const request = {
+        id: els.subLinkModal.dataset.requestId,
+        url: els.subLinkModal.dataset.url
+      };
+      if (!request.id || !request.url) return;
+      const opened = window.open(request.url, "_blank", "noopener");
+      if (!opened) {
+        els.subLinkModalText.textContent = `Your browser blocked the new window. Allow popups for this site, then press Open Link again: ${request.url}`;
+        return;
+      }
+      markSubLinkRequestHandled(request);
+    }
+
+    function declineSubLinkRequest() {
+      const request = {
+        id: els.subLinkModal.dataset.requestId,
+        url: els.subLinkModal.dataset.url
+      };
+      markSubLinkRequestHandled(request);
+    }
+
     function processSubLinkRequest() {
       const request = state.settings.linkRequest;
       if (!request || !request.id || !request.url) return;
       if (localOnlineRole() !== SUB) return;
-      const key = `tribute-link-request:${state.online.room || "local"}`;
+      const key = currentLinkRequestKey();
       if (window.localStorage.getItem(key) === request.id) return;
-      window.localStorage.setItem(key, request.id);
-      const shouldOpen = state.settings.subLinkWarningMode === "auto"
-        || window.confirm(`${state.names.dom || "Dom"} wants to open this link in a new window:\n\n${request.url}\n\nOpen it?`);
-      if (!shouldOpen) return;
-      const opened = window.open(request.url, "_blank", "noopener");
-      if (!opened) {
-        window.alert("The browser blocked the popup. Allow popups for this site, then ask the dom to send the link again.");
+      if (state.settings.subLinkWarningMode === "auto") {
+        const opened = window.open(request.url, "_blank", "noopener");
+        if (opened) {
+          markSubLinkRequestHandled(request);
+          return;
+        }
+        showSubLinkModal(request, "Your browser blocked the automatic window.");
+        return;
       }
+      showSubLinkModal(request);
     }
 
     function addLog(html) {
@@ -4123,6 +4183,8 @@
     els.playLocalBtn.addEventListener("click", playLocally);
     els.chooseDomBtn.addEventListener("click", () => chooseOnlineRole(DOM));
     els.chooseSubBtn.addEventListener("click", () => chooseOnlineRole(SUB));
+    els.openSubLinkBtn.addEventListener("click", openSubLinkRequest);
+    els.declineSubLinkBtn.addEventListener("click", declineSubLinkRequest);
     els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
     els.tributeFourCard.addEventListener("click", openTributeFour);
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
