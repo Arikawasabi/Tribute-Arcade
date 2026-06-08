@@ -1000,6 +1000,7 @@
           <div class="settings-tabs">
             <button class="settings-tab active" data-settings-tab="dom">Dom</button>
             <button class="settings-tab" data-settings-tab="sub">Sub</button>
+            <button class="settings-tab" data-settings-tab="links">Links</button>
             <button class="settings-tab" data-settings-tab="chess">Chess</button>
           </div>
 
@@ -1019,6 +1020,25 @@
               Default bet
               <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
             </label>
+            <label class="settings-row">
+              Link warning
+              <select id="subLinkWarningMode">
+                <option value="warn">Ask before opening links</option>
+                <option value="auto">Open links without asking</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-pane hidden" id="linkSettingsPane">
+            <label class="settings-row">
+              Link for sub
+              <input id="domLinkUrlInput" type="url" placeholder="https://example.com">
+            </label>
+            <div class="mode-grid">
+              <button id="saveDomLinkBtn">Save Link</button>
+              <button id="sendDomLinkBtn" class="primary">Open Saved Link</button>
+            </div>
+            <p class="chooser-line" id="domLinkStatus">Save a link, then open it for the sub whenever you want.</p>
           </div>
 
           <div class="settings-pane hidden" id="chessSettingsPane">
@@ -1086,6 +1106,7 @@
         <p class="subtitle" id="gameSubtitle">Connect Four with cash stakes. The sub chooses a normal bet to start. If the dom wins, that cash enters her bank; later the sub can risk a tilted reclaim match to win the banked cash back.</p>
       </div>
       <div class="setup-actions">
+        <button id="openSavedLinkBtn">Open Saved Link</button>
         <button id="backToMenuBtn">Games</button>
         <div class="status-pill" id="modeLabel">Normal Match</div>
       </div>
@@ -1416,6 +1437,9 @@
         activeTab: "dom",
         domAdvantageMode: "dom",
         subDefaultBet: 10,
+        subLinkWarningMode: "warn",
+        domLinkUrl: "",
+        linkRequest: null,
         queenPowerMode: "tiered",
         queenPowerUsers: "dom"
       },
@@ -1480,9 +1504,16 @@
       settingsTabs: document.querySelectorAll(".settings-tab"),
       domSettingsPane: document.getElementById("domSettingsPane"),
       subSettingsPane: document.getElementById("subSettingsPane"),
+      linkSettingsPane: document.getElementById("linkSettingsPane"),
       chessSettingsPane: document.getElementById("chessSettingsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
       subDefaultBetInput: document.getElementById("subDefaultBetInput"),
+      subLinkWarningMode: document.getElementById("subLinkWarningMode"),
+      domLinkUrlInput: document.getElementById("domLinkUrlInput"),
+      saveDomLinkBtn: document.getElementById("saveDomLinkBtn"),
+      sendDomLinkBtn: document.getElementById("sendDomLinkBtn"),
+      openSavedLinkBtn: document.getElementById("openSavedLinkBtn"),
+      domLinkStatus: document.getElementById("domLinkStatus"),
       queenPowerMode: document.getElementById("queenPowerMode"),
       queenPowerUsers: document.getElementById("queenPowerUsers"),
       tributeFourCard: document.getElementById("tributeFourCard"),
@@ -1885,8 +1916,8 @@
 
     function visibleSettingsTabs() {
       const role = localOnlineRole();
-      if (!state.online.room || !role) return ["dom", "sub", "chess"];
-      return role === DOM ? ["dom", "chess"] : ["sub"];
+      if (!state.online.room || !role) return ["dom", "sub", "links", "chess"];
+      return role === DOM ? ["dom", "links", "chess"] : ["sub"];
     }
 
     function renderSettings() {
@@ -1901,9 +1932,13 @@
       });
       els.domSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "dom");
       els.subSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "sub");
+      els.linkSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "links");
       els.chessSettingsPane.classList.toggle("hidden", state.settings.activeTab !== "chess");
       els.domAdvantageMode.value = state.settings.domAdvantageMode;
       els.subDefaultBetInput.value = state.settings.subDefaultBet;
+      els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "warn";
+      els.domLinkUrlInput.value = state.settings.domLinkUrl || "";
+      els.sendDomLinkBtn.disabled = !state.settings.domLinkUrl;
       els.queenPowerMode.value = state.settings.queenPowerMode;
       els.queenPowerUsers.value = state.settings.queenPowerUsers;
     }
@@ -1917,6 +1952,76 @@
       if (!state.active) els.betInput.value = state.settings.subDefaultBet;
       renderSettings();
       publishState();
+    }
+
+    function normalizeDomLink(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+      try {
+        const url = new URL(withProtocol);
+        if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+        return url.toString();
+      } catch (error) {
+        return "";
+      }
+    }
+
+    function saveDomLink() {
+      const role = localOnlineRole();
+      if (state.online.room && role !== DOM) return;
+      const url = normalizeDomLink(els.domLinkUrlInput.value);
+      if (!url) {
+        els.domLinkStatus.textContent = "Enter a valid http or https link.";
+        return;
+      }
+      state.settings.domLinkUrl = url;
+      els.domLinkStatus.textContent = "Link saved.";
+      renderSettings();
+      publishState();
+    }
+
+    function sendDomLinkRequest() {
+      const role = localOnlineRole();
+      if (state.online.room && role !== DOM) return;
+      const url = normalizeDomLink(state.settings.domLinkUrl || els.domLinkUrlInput.value);
+      if (!url) {
+        els.domLinkStatus.textContent = "Save a valid link first.";
+        return;
+      }
+      state.settings.domLinkUrl = url;
+      state.settings.linkRequest = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url
+      };
+      els.domLinkStatus.textContent = "Link request sent.";
+      renderSettings();
+      publishState();
+    }
+
+    function renderSavedLinkButton() {
+      const role = localOnlineRole();
+      const domCanUse = !state.online.room || role === DOM;
+      const hasLink = Boolean(state.settings.domLinkUrl);
+      els.openSavedLinkBtn.classList.toggle("hidden", !domCanUse);
+      els.openSavedLinkBtn.disabled = !domCanUse || !hasLink;
+      els.openSavedLinkBtn.title = hasLink ? "Open the saved link in the sub browser" : "Save a link from Settings first";
+    }
+
+    function processSubLinkRequest() {
+      const request = state.settings.linkRequest;
+      if (!request || !request.id || !request.url) return;
+      if (localOnlineRole() !== SUB) return;
+      const key = `tribute-link-request:${state.online.room || "local"}`;
+      if (window.localStorage.getItem(key) === request.id) return;
+      window.localStorage.setItem(key, request.id);
+      const shouldOpen = state.settings.subLinkWarningMode === "auto"
+        || window.confirm(`${state.names.dom || "Dom"} wants to open this link in a new window:\n\n${request.url}\n\nOpen it?`);
+      if (!shouldOpen) return;
+      const opened = window.open(request.url, "_blank", "noopener");
+      if (!opened) {
+        window.alert("The browser blocked the popup. Allow popups for this site, then ask the dom to send the link again.");
+      }
     }
 
     function addLog(html) {
@@ -1998,6 +2103,7 @@
       renderRoles();
       render();
       state.online.applying = false;
+      processSubLinkRequest();
     }
 
     async function createOnlineRoom() {
@@ -3973,6 +4079,7 @@
       renderControls();
       renderRules();
       renderText();
+      renderSavedLinkButton();
       renderMenu();
       renderLobby();
     }
@@ -4003,6 +4110,11 @@
     els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
     els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
     els.subDefaultBetInput.addEventListener("input", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
+    els.subLinkWarningMode.addEventListener("change", () => updateSettings({ subLinkWarningMode: els.subLinkWarningMode.value }));
+    els.domLinkUrlInput.addEventListener("input", () => updateSettings({ domLinkUrl: els.domLinkUrlInput.value }));
+    els.saveDomLinkBtn.addEventListener("click", saveDomLink);
+    els.sendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
+    els.openSavedLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
     els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
     els.backToMenuBtn.addEventListener("click", backToMenu);
