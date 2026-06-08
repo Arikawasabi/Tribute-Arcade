@@ -867,6 +867,55 @@
       gap: 16px;
     }
 
+    .wheel-table {
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+      padding: 10px 0;
+    }
+
+    .wheel-stage {
+      position: relative;
+      width: min(86vw, 520px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    .wheel-stage::before {
+      content: "";
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-top: 34px solid var(--accent);
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+      z-index: 2;
+    }
+
+    .wheel-canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 8px solid rgba(239, 199, 94, 0.36);
+      box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.55), 0 18px 50px rgba(0, 0, 0, 0.3);
+      background: #211a18;
+    }
+
+    .wheel-spin-btn {
+      min-width: 180px;
+    }
+
+    .wheel-result {
+      min-height: 1.4rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
     .hand-panel {
       display: grid;
       gap: 10px;
@@ -1481,6 +1530,14 @@
         </span>
         <strong class="status-pill">Play</strong>
       </button>
+
+      <button class="panel game-card" id="tributeWheelCard">
+        <span>
+          <h2>Wheel Spin</h2>
+          <p>A 36-space cash wheel with equal slices, two blanks, and the $25 prize boxed in by danger.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
     </section>
   </main>
 
@@ -1612,6 +1669,8 @@
         <p class="chooser-line" id="leaveNoticeText">The other player left the room.</p>
         <div class="role-row">
           <button id="hideLeaveNoticeBtn">Hide</button>
+          <button id="takePlayerOneBtn" class="hidden">Take Player One</button>
+          <button id="takePlayerTwoBtn" class="hidden">Take Player Two</button>
           <button id="returnLobbyNoticeBtn" class="primary">Return to Lobby</button>
         </div>
       </div>
@@ -1909,6 +1968,7 @@
     const EMPTY = "";
     const SUB = "sub";
     const DOM = "dom";
+    const SPECTATOR = "spectator";
 
     const state = {
       screen: "lobby",
@@ -1933,6 +1993,10 @@
         distractionMode: "background-both",
         distractionDuration: 15,
         distractionUntil: 0,
+        distractionBackgroundUrl: "",
+        distractionBackgroundMode: "background-both",
+        distractionOverlayUrl: "",
+        distractionOverlayUntil: 0,
         leaveNotice: null,
         linkRequest: null,
         queenPowerMode: "tiered",
@@ -1956,7 +2020,12 @@
         seats: {
           one: false,
           two: false
-        }
+        },
+        seatSecrets: {
+          one: "",
+          two: ""
+        },
+        spectators: {}
       },
       currentGame: "tributeFour",
       board: createBoard(),
@@ -1976,6 +2045,7 @@
       fleet: createFleetState(),
       twentyOne: createTwentyOneState(),
       dice: createDiceState(),
+      wheel: createWheelState(),
       chess: createChessState(),
       chat: []
     };
@@ -2043,6 +2113,7 @@
       tributeFleetCard: document.getElementById("tributeFleetCard"),
       tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
+      tributeWheelCard: document.getElementById("tributeWheelCard"),
       tributeChessCard: document.getElementById("tributeChessCard"),
       createRoomBtn: document.getElementById("createRoomBtn"),
       onlineStatus: document.getElementById("onlineStatus"),
@@ -2073,6 +2144,8 @@
       leaveNoticeModal: document.getElementById("leaveNoticeModal"),
       leaveNoticeText: document.getElementById("leaveNoticeText"),
       hideLeaveNoticeBtn: document.getElementById("hideLeaveNoticeBtn"),
+      takePlayerOneBtn: document.getElementById("takePlayerOneBtn"),
+      takePlayerTwoBtn: document.getElementById("takePlayerTwoBtn"),
       returnLobbyNoticeBtn: document.getElementById("returnLobbyNoticeBtn"),
       gameTitle: document.getElementById("gameTitle"),
       gameSubtitle: document.getElementById("gameSubtitle"),
@@ -2165,6 +2238,46 @@
       };
     }
 
+    function createWheelState() {
+      return {
+        slices: createWheelSlices(),
+        angle: 0,
+        spinning: false,
+        spinStartedAt: 0,
+        spinDuration: 0,
+        startAngle: 0,
+        targetAngle: 0,
+        resultIndex: null,
+        result: null
+      };
+    }
+
+    function createWheelSlices() {
+      const values = [
+        ...Array(15).fill(1),
+        ...Array(10).fill(2),
+        ...Array(5).fill(5),
+        ...Array(3).fill(10)
+      ];
+      for (let i = values.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [values[i], values[j]] = [values[j], values[i]];
+      }
+      const prizeIndex = Math.floor(Math.random() * 36);
+      const slices = Array(36).fill(null);
+      slices[prizeIndex] = 25;
+      slices[(prizeIndex + 35) % 36] = 0;
+      slices[(prizeIndex + 1) % 36] = 0;
+      let valueIndex = 0;
+      for (let i = 0; i < slices.length; i += 1) {
+        if (slices[i] === null) {
+          slices[i] = values[valueIndex];
+          valueIndex += 1;
+        }
+      }
+      return slices;
+    }
+
     function createChessState() {
       return {
         fen: "start",
@@ -2235,18 +2348,106 @@
       els.betInput.value = normalizeBuyIn(state.settings.subDefaultBet);
     }
 
+    function currentRoomId() {
+      const roomParam = new URLSearchParams(window.location.search).get("room");
+      return String(state.online.room || roomParam || "").toUpperCase();
+    }
+
+    function seatClaimKey(room = currentRoomId()) {
+      return `tribute-seat-claim:${String(room || "").toUpperCase()}`;
+    }
+
+    function seatClaimCookieName(room = currentRoomId()) {
+      return `tributeSeat_${String(room || "").toUpperCase().replace(/[^A-Z0-9]/g, "")}`;
+    }
+
+    function newSeatSecret() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    }
+
+    function readSeatClaim(room = currentRoomId()) {
+      const code = String(room || "").toUpperCase();
+      if (!code) return null;
+      try {
+        const stored = window.localStorage.getItem(seatClaimKey(code));
+        if (stored) {
+          const claim = JSON.parse(stored);
+          if ((claim.seat === "one" || claim.seat === "two" || claim.seat === SPECTATOR) && claim.secret) return claim;
+        }
+      } catch (error) {
+        // Ignore malformed local claims and fall back to the cookie copy.
+      }
+      const cookieName = `${seatClaimCookieName(code)}=`;
+      const cookie = document.cookie.split("; ").find((part) => part.startsWith(cookieName));
+      if (!cookie) return null;
+      try {
+        const claim = JSON.parse(decodeURIComponent(cookie.slice(cookieName.length)));
+        if ((claim.seat === "one" || claim.seat === "two" || claim.seat === SPECTATOR) && claim.secret) return claim;
+      } catch (error) {
+        return null;
+      }
+      return null;
+    }
+
+    function writeSeatClaim(seat, room = currentRoomId(), secret = null) {
+      const code = String(room || "").toUpperCase();
+      if (!code || (seat !== "one" && seat !== "two" && seat !== SPECTATOR)) return null;
+      const claim = { room: code, seat, secret: secret || newSeatSecret(), at: Date.now() };
+      const encoded = encodeURIComponent(JSON.stringify(claim));
+      try {
+        window.localStorage.setItem(seatClaimKey(code), JSON.stringify(claim));
+      } catch (error) {
+        // Cookie fallback below still gives the browser a reconnect token.
+      }
+      document.cookie = `${seatClaimCookieName(code)}=${encoded}; max-age=2592000; path=/; samesite=lax`;
+      return claim;
+    }
+
+    function clearSeatClaim(room = currentRoomId()) {
+      const code = String(room || "").toUpperCase();
+      if (!code) return;
+      try {
+        window.localStorage.removeItem(seatClaimKey(code));
+      } catch (error) {
+        // Cookie cleanup below is enough if localStorage is unavailable.
+      }
+      document.cookie = `${seatClaimCookieName(code)}=; max-age=0; path=/; samesite=lax`;
+    }
+
     function localSeat() {
-      const seatParam = new URLSearchParams(window.location.search).get("seat");
-      if (seatParam === "one" || seatParam === "two") return seatParam;
+      const claim = readSeatClaim();
+      if (claim && claim.seat === SPECTATOR) return claim.seat;
+      if (claim && (claim.seat === "one" || claim.seat === "two")) {
+        if (!state.online.room || !seatIsOwned(claim.seat) || seatClaimMatches(claim, claim.seat)) return claim.seat;
+      }
       return state.online.seat;
     }
 
-    function rememberSeat(seat) {
+    function rememberSeat(seat, room = currentRoomId(), secret = null) {
       state.online.seat = seat;
+      return writeSeatClaim(seat, room, secret);
+    }
+
+    function seatIsOwned(seat) {
+      return Boolean(state.online.seatSecrets && state.online.seatSecrets[seat]);
+    }
+
+    function seatClaimMatches(claim, seat) {
+      return Boolean(
+        claim
+        && claim.seat === seat
+        && state.online.seatSecrets
+        && state.online.seatSecrets[seat]
+        && state.online.seatSecrets[seat] === claim.secret
+      );
     }
 
     function localOnlineRole() {
       const seat = localSeat();
+      if (seat === SPECTATOR) return SPECTATOR;
       return seat ? state.roles[seat] : null;
     }
 
@@ -2256,11 +2457,13 @@
 
     function domAdvantageControlsAllowed(role) {
       if (!domAdvantagesEnabled()) return false;
+      if (role === SPECTATOR) return false;
       if (!role) return true;
       return state.settings.domAdvantageMode === "both" || role === DOM;
     }
 
     function queenPowerControlsAllowed(role) {
+      if (role === SPECTATOR) return false;
       if (!role) return true;
       return state.settings.queenPowerUsers === "both" || role === DOM;
     }
@@ -2276,6 +2479,7 @@
     }
 
     function setRole(player, role) {
+      if (localSeat() === SPECTATOR) return;
       if (localSeat() && localSeat() !== player) return;
       const other = player === "one" ? "two" : "one";
       state.roles[player] = role;
@@ -2331,6 +2535,8 @@
       state.online.playerNames = { one: "", two: "" };
       state.online.roleChoices = { one: null, two: null };
       state.online.seats = { one: false, two: false };
+      state.online.seatSecrets = { one: "", two: "" };
+      state.online.spectators = {};
       state.settings.leaveNotice = null;
       state.roles = { one: null, two: null };
       state.names = { dom: "", sub: "" };
@@ -2351,6 +2557,8 @@
     }
 
     function resetLocalOnlineState() {
+      const room = currentRoomId();
+      clearSeatClaim(room);
       state.online.room = null;
       state.online.seat = null;
       state.online.rev = 0;
@@ -2358,6 +2566,8 @@
       state.online.playerNames = { one: "", two: "" };
       state.online.roleChoices = { one: null, two: null };
       state.online.seats = { one: false, two: false };
+      state.online.seatSecrets = { one: "", two: "" };
+      state.online.spectators = {};
       clearLocalRoomUrl();
       updateOnlineUi();
     }
@@ -2374,6 +2584,12 @@
         render();
         return;
       }
+      if (seat === SPECTATOR) {
+        resetLocalOnlineState();
+        setScreen("lobby");
+        render();
+        return;
+      }
 
       const leavingName = state.online.playerNames[seat]
         || (state.roles[seat] === DOM ? state.names.dom : state.names.sub)
@@ -2385,6 +2601,7 @@
         at: Date.now()
       };
       state.online.seats[seat] = false;
+      state.online.seatSecrets[seat] = "";
       state.online.playerNames[seat] = "";
       state.online.roleChoices[seat] = null;
       state.active = false;
@@ -2406,12 +2623,22 @@
     function renderLeaveNotice() {
       const notice = state.settings.leaveNotice;
       const seat = localSeat();
-      const shouldShow = Boolean(state.online.room && notice && notice.id && notice.seat !== seat);
-      if (!shouldShow || window.localStorage.getItem(leaveNoticeKey(notice && notice.id)) === "hidden") {
+      const availableSeats = ["one", "two"].filter((playerSeat) => state.online.seats[playerSeat] === false);
+      const canTakeSeat = Boolean(state.online.room && seat === SPECTATOR && availableSeats.length);
+      const shouldShow = Boolean((state.online.room && notice && notice.id && notice.seat !== seat) || canTakeSeat);
+      if (!shouldShow || (!canTakeSeat && window.localStorage.getItem(leaveNoticeKey(notice && notice.id)) === "hidden")) {
+        els.takePlayerOneBtn.classList.add("hidden");
+        els.takePlayerTwoBtn.classList.add("hidden");
+        els.returnLobbyNoticeBtn.classList.remove("hidden");
         els.leaveNoticeModal.classList.add("hidden");
         return;
       }
-      els.leaveNoticeText.textContent = `${notice.name || "The other player"} left the room. You are alone.`;
+      els.takePlayerOneBtn.classList.toggle("hidden", !(seat === SPECTATOR && availableSeats.includes("one")));
+      els.takePlayerTwoBtn.classList.toggle("hidden", !(seat === SPECTATOR && availableSeats.includes("two")));
+      els.returnLobbyNoticeBtn.classList.toggle("hidden", seat === SPECTATOR && canTakeSeat);
+      els.leaveNoticeText.textContent = canTakeSeat
+        ? `${notice && notice.name ? `${notice.name} left the room. ` : ""}A player seat is open.`
+        : `${notice.name || "The other player"} left the room. You are alone.`;
       els.leaveNoticeModal.classList.remove("hidden");
     }
 
@@ -2421,6 +2648,25 @@
         window.localStorage.setItem(leaveNoticeKey(notice.id), "hidden");
       }
       els.leaveNoticeModal.classList.add("hidden");
+    }
+
+    function takeAvailableSeat(seat) {
+      if (localSeat() !== SPECTATOR || (seat !== "one" && seat !== "two") || state.online.seats[seat]) return;
+      const spectatorClaim = readSeatClaim();
+      if (spectatorClaim && spectatorClaim.secret && state.online.spectators) {
+        delete state.online.spectators[spectatorClaim.secret];
+      }
+      const claim = rememberSeat(seat, state.online.room);
+      state.online.seats[seat] = true;
+      state.online.seatSecrets[seat] = claim ? claim.secret : "";
+      state.online.playerNames[seat] = "";
+      state.online.roleChoices[seat] = null;
+      setLocalRoomUrl(seat);
+      els.lobbyNameInput.value = "";
+      els.leaveNoticeModal.classList.add("hidden");
+      setScreen("lobby");
+      updateOnlineUi();
+      publishState();
     }
 
     function returnToLobbyFromLeaveNotice() {
@@ -2438,15 +2684,20 @@
         const role = state.online.roleChoices[seat] ? state.online.roleChoices[seat].toUpperCase() : "No role";
         return `<div class="player-row"><span>${label}: ${name}</span><strong>${role}</strong></div>`;
       });
+      const spectatorNames = Object.values(state.online.spectators || {}).filter(Boolean);
+      if (spectatorNames.length) {
+        rows.push(`<div class="player-row"><span>Spectators: ${spectatorNames.map(escapeHtml).join(", ")}</span><strong>Watching</strong></div>`);
+      }
       els.lobbyPlayerList.innerHTML = rows.join("");
 
       const seat = localSeat();
       const bothNamed = Boolean(state.online.playerNames.one && state.online.playerNames.two);
-      const ownRole = seat ? state.online.roleChoices[seat] : null;
+      const isPlayerSeat = seat === "one" || seat === "two";
+      const ownRole = isPlayerSeat ? state.online.roleChoices[seat] : null;
       const bothRoles = Boolean(state.online.roleChoices.one && state.online.roleChoices.two);
       const roleConflict = bothRoles && state.online.roleChoices.one === state.online.roleChoices.two;
-      els.roleModal.classList.toggle("hidden", !(state.online.room && bothNamed && seat && (!ownRole || roleConflict)));
-      if (seat && bothNamed && (!ownRole || roleConflict)) {
+      els.roleModal.classList.toggle("hidden", !(state.online.room && bothNamed && isPlayerSeat && (!ownRole || roleConflict)));
+      if (isPlayerSeat && bothNamed && (!ownRole || roleConflict)) {
         els.roleModalText.textContent = roleConflict
           ? "Both players chose the same role. Choose again."
           : `${state.online.playerNames[seat]}, choose your role.`;
@@ -2474,6 +2725,29 @@
     function confirmLobbyName() {
       const seat = localSeat();
       const name = els.lobbyNameInput.value.trim();
+      if (!seat) {
+        els.onlineStatus.textContent = "Join or host a room first.";
+        return;
+      }
+      if (seat === SPECTATOR) {
+        if (!name) {
+          els.onlineStatus.textContent = "Choose a name first.";
+          return;
+        }
+        const claim = readSeatClaim();
+        if (!claim || !claim.secret) {
+          els.onlineStatus.textContent = "Rejoin the room to claim a spectator name.";
+          return;
+        }
+        state.online.spectators = {
+          ...(state.online.spectators || {}),
+          [claim.secret]: name
+        };
+        els.onlineStatus.textContent = `Room ${state.online.room}. You are Spectator.`;
+        renderLobby();
+        publishState();
+        return;
+      }
       if (!name) {
         els.onlineStatus.textContent = "Pick a name first.";
         return;
@@ -2484,13 +2758,17 @@
       }
       state.online.playerNames[seat] = name;
       state.online.seats[seat] = true;
+      const claim = readSeatClaim();
+      if (claim && state.online.seatSecrets && !state.online.seatSecrets[seat]) {
+        state.online.seatSecrets[seat] = claim.secret;
+      }
       updateOnlineUi();
       publishState();
     }
 
     function chooseOnlineRole(role) {
       const seat = localSeat();
-      if (!seat) return;
+      if (!seat || seat === SPECTATOR) return;
       state.online.roleChoices[seat] = role;
       renderLobby();
       publishState();
@@ -2556,6 +2834,18 @@
       publishState();
     }
 
+    function openWheelSpin() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.currentGame = "wheelSpin";
+      setScreen("game");
+      resetWheelSpinBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>Wheel Spin opened.</strong> ${state.names.sub} buys the spin. Cash spaces pay ${state.names.dom}'s bank; blanks spare the spin.`);
+      render();
+      publishState();
+    }
+
     function openTributeChess() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.currentGame = "tributeChess";
@@ -2586,6 +2876,7 @@
       els.tributeFleetCard.disabled = domPickBlocked;
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
+      els.tributeWheelCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
@@ -2615,11 +2906,20 @@
     function visibleSettingsTabs() {
       const role = localOnlineRole();
       if (!state.online.room || !role) return ["dom", "sub", "links", "chess"];
+      if (role === SPECTATOR) return [];
       return role === DOM ? ["dom", "links", "chess"] : ["sub"];
     }
 
     function renderSettings() {
       const visibleTabs = visibleSettingsTabs();
+      if (!visibleTabs.length) {
+        els.settingsTabs.forEach((button) => button.classList.add("hidden"));
+        els.domSettingsPane.classList.add("hidden");
+        els.subSettingsPane.classList.add("hidden");
+        els.linkSettingsPane.classList.add("hidden");
+        els.chessSettingsPane.classList.add("hidden");
+        return;
+      }
       if (!visibleTabs.includes(state.settings.activeTab)) {
         state.settings.activeTab = visibleTabs[0];
       }
@@ -2747,9 +3047,15 @@
       els.sideDistractionMode.disabled = !canUseSettings;
       els.sideDistractionDuration.disabled = !canUseSettings;
       els.postDistractionBtn.disabled = !canUseSettings;
-      els.clearDistractionBtn.disabled = !canUseSettings || !state.settings.distractionUrl;
+      els.clearDistractionBtn.disabled = !canUseSettings || !hasDistraction();
+      els.chatInput.disabled = false;
+      els.sendChatBtn.disabled = false;
+      els.chatInput.placeholder = "Send a message";
       if (document.activeElement !== els.sideDistractionInput) {
-        els.sideDistractionInput.value = state.settings.distractionUrl || "";
+        const selectedMode = state.settings.distractionMode || "background-both";
+        els.sideDistractionInput.value = selectedMode === "overlay-sub"
+          ? (state.settings.distractionOverlayUrl || "")
+          : (state.settings.distractionBackgroundUrl || state.settings.distractionUrl || "");
       }
       els.sideDistractionMode.value = state.settings.distractionMode || "background-both";
       els.sideDistractionDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
@@ -2758,7 +3064,8 @@
     }
 
     function chatSeenKey() {
-      const seat = localSeat() || "local";
+      const claim = readSeatClaim();
+      const seat = claim && claim.seat === SPECTATOR ? claim.secret : (localSeat() || "local");
       return `tribute-chat-seen:${state.online.room || "local"}:${seat}`;
     }
 
@@ -2793,12 +3100,25 @@
       const role = localOnlineRole();
       if (role === DOM) return state.names.dom || "Dom";
       if (role === SUB) return state.names.sub || "Sub";
+      if (role === SPECTATOR) {
+        const claim = readSeatClaim();
+        return (claim && state.online.spectators && state.online.spectators[claim.secret]) || "Spectator";
+      }
       return "Table";
     }
 
     function sendChatMessage() {
       const text = els.chatInput.value.trim();
       if (!text) return;
+      if (localOnlineRole() === SPECTATOR) {
+        const claim = readSeatClaim();
+        if (!claim || !state.online.spectators || !state.online.spectators[claim.secret]) {
+          els.onlineStatus.textContent = "Choose a spectator name before chatting.";
+          setScreen("lobby");
+          renderLobby();
+          return;
+        }
+      }
       state.chat = [
         ...(state.chat || []),
         {
@@ -2837,15 +3157,20 @@
         els.sideDistractionStatus.textContent = "Enter a valid image/GIF link, or drop/paste a PNG, JPG, GIF, WebP, or BMP.";
         return;
       }
-      state.settings.distractionUrl = url;
       state.settings.distractionMode = els.sideDistractionMode.value || "background-both";
       state.settings.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration.value);
-      state.settings.distractionUntil = state.settings.distractionMode === "overlay-sub"
-        ? Date.now() + state.settings.distractionDuration * 1000
-        : 0;
-      els.sideDistractionStatus.textContent = state.settings.distractionMode === "overlay-sub"
-        ? `Overlay posted for ${state.settings.distractionDuration} seconds.`
-        : "Distraction posted.";
+      if (state.settings.distractionMode === "overlay-sub") {
+        state.settings.distractionOverlayUrl = url;
+        state.settings.distractionOverlayUntil = Date.now() + state.settings.distractionDuration * 1000;
+        state.settings.distractionUntil = state.settings.distractionOverlayUntil;
+        els.sideDistractionStatus.textContent = `Overlay posted for ${state.settings.distractionDuration} seconds.`;
+      } else {
+        state.settings.distractionUrl = url;
+        state.settings.distractionBackgroundUrl = url;
+        state.settings.distractionBackgroundMode = state.settings.distractionMode;
+        state.settings.distractionUntil = 0;
+        els.sideDistractionStatus.textContent = "Background posted.";
+      }
       renderSidePanel();
       publishSettingsState();
     }
@@ -2896,10 +3221,21 @@
       if (!domLinkControlsAllowed()) return;
       state.settings.distractionUrl = "";
       state.settings.distractionUntil = 0;
+      state.settings.distractionBackgroundUrl = "";
+      state.settings.distractionOverlayUrl = "";
+      state.settings.distractionOverlayUntil = 0;
       els.sideDistractionInput.value = "";
       els.sideDistractionStatus.textContent = "Distraction cleared.";
       renderSidePanel();
       publishSettingsState();
+    }
+
+    function hasDistraction() {
+      return Boolean(
+        state.settings.distractionUrl
+        || state.settings.distractionBackgroundUrl
+        || state.settings.distractionOverlayUrl
+      );
     }
 
     function normalizeDistractionDuration(value) {
@@ -2910,7 +3246,8 @@
 
     function shouldShowSubOnlyMedia() {
       if (!state.online.room) return true;
-      return localOnlineRole() === SUB;
+      const role = localOnlineRole();
+      return role === SUB || role === SPECTATOR;
     }
 
     function safeCssUrl(url) {
@@ -2918,19 +3255,22 @@
     }
 
     function renderDistractionBackground() {
-      const url = state.settings.distractionUrl || "";
-      const mode = state.settings.distractionMode || "background-both";
-      const showBackground = Boolean(url)
-        && (mode === "background-both" || (mode === "background-sub" && shouldShowSubOnlyMedia()));
-      const overlayRemaining = Math.max(0, Number(state.settings.distractionUntil || 0) - Date.now());
-      const showOverlay = Boolean(url)
-        && mode === "overlay-sub"
+      const oldUrl = state.settings.distractionUrl || "";
+      const oldMode = state.settings.distractionMode || "background-both";
+      const backgroundUrl = state.settings.distractionBackgroundUrl || (oldMode === "overlay-sub" ? "" : oldUrl);
+      const backgroundMode = state.settings.distractionBackgroundMode || (oldMode === "background-sub" ? "background-sub" : "background-both");
+      const overlayUrl = state.settings.distractionOverlayUrl || (oldMode === "overlay-sub" ? oldUrl : "");
+      const overlayUntil = Number(state.settings.distractionOverlayUntil || state.settings.distractionUntil || 0);
+      const showBackground = Boolean(backgroundUrl)
+        && (backgroundMode === "background-both" || (backgroundMode === "background-sub" && shouldShowSubOnlyMedia()));
+      const overlayRemaining = Math.max(0, overlayUntil - Date.now());
+      const showOverlay = Boolean(overlayUrl)
         && shouldShowSubOnlyMedia()
         && overlayRemaining > 0;
       els.distractionBackdrop.classList.toggle("active", showBackground);
-      els.distractionBackdrop.style.backgroundImage = showBackground ? safeCssUrl(url) : "";
+      els.distractionBackdrop.style.backgroundImage = showBackground ? safeCssUrl(backgroundUrl) : "";
       els.distractionOverlay.classList.toggle("active", showOverlay);
-      els.distractionOverlay.style.backgroundImage = showOverlay ? safeCssUrl(url) : "";
+      els.distractionOverlay.style.backgroundImage = showOverlay ? safeCssUrl(overlayUrl) : "";
       if (showOverlay) {
         window.clearTimeout(renderDistractionBackground.timer);
         renderDistractionBackground.timer = window.setTimeout(renderDistractionBackground, overlayRemaining + 80);
@@ -2979,7 +3319,8 @@
     function processSubLinkRequest() {
       const request = state.settings.linkRequest;
       if (!request || !request.id || !request.url) return;
-      if (localOnlineRole() !== SUB) return;
+      const role = localOnlineRole();
+      if (role !== SUB && role !== SPECTATOR) return;
       const key = currentLinkRequestKey();
       if (window.localStorage.getItem(key) === request.id) return;
       if (state.settings.subLinkWarningMode === "auto") {
@@ -3034,12 +3375,15 @@
         fleet: state.fleet,
         twentyOne: state.twentyOne,
         dice: state.dice,
+        wheel: state.wheel,
         chess: state.chess,
         chat: state.chat,
         onlineLobby: {
           seats: state.online.seats,
+          seatSecrets: state.online.seatSecrets,
           playerNames: state.online.playerNames,
-          roleChoices: state.online.roleChoices
+          roleChoices: state.online.roleChoices,
+          spectators: state.online.spectators
         },
         logHtml: els.log.innerHTML
       };
@@ -3077,12 +3421,15 @@
       state.fleet = snapshot.fleet || state.fleet;
       state.twentyOne = snapshot.twentyOne || state.twentyOne;
       state.dice = snapshot.dice || state.dice;
+      state.wheel = snapshot.wheel || state.wheel;
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
       if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
         state.online.seats = snapshot.onlineLobby.seats;
+        state.online.seatSecrets = snapshot.onlineLobby.seatSecrets || { one: "", two: "" };
         state.online.playerNames = snapshot.onlineLobby.playerNames || state.online.playerNames;
         state.online.roleChoices = snapshot.onlineLobby.roleChoices || state.online.roleChoices;
+        state.online.spectators = snapshot.onlineLobby.spectators || state.online.spectators || {};
       }
       els.log.innerHTML = snapshot.logHtml || "";
       els.playerSummary.textContent = `${state.names.dom} is the dom. ${state.names.sub} is the sub.`;
@@ -3095,9 +3442,11 @@
 
     async function createOnlineRoom() {
       try {
-        rememberSeat("one");
+        state.online.seat = "one";
         state.online.seats.one = true;
         state.online.seats.two = false;
+        state.online.seatSecrets = { one: newSeatSecret(), two: "" };
+        state.online.spectators = {};
         state.settings.leaveNotice = null;
         setScreen("lobby");
         renderRoles();
@@ -3110,6 +3459,7 @@
         if (!response.ok) throw new Error(room.error || "Could not create room");
         state.online.room = room.id;
         state.online.rev = room.rev;
+        rememberSeat("one", room.id, state.online.seatSecrets.one);
         setLocalRoomUrl("one");
         updateOnlineUi();
         startPolling();
@@ -3145,19 +3495,23 @@
       }
       els.localTestingPanel.classList.add("hidden");
       const seat = localSeat() || state.online.seat || "one";
-      const seatName = seat === "two" ? "Player Two" : "Player One";
+      const seatName = seat === SPECTATOR ? "Spectator" : (seat === "two" ? "Player Two" : "Player One");
+      const claim = readSeatClaim();
+      const spectatorName = seat === SPECTATOR && claim && state.online.spectators
+        ? state.online.spectators[claim.secret]
+        : "";
       els.onlineStatus.textContent = `Room ${state.online.room}. You are ${seatName}.`;
       els.roomCodeDisplay.textContent = `Room code: ${state.online.room}`;
       els.roomCodeDisplay.classList.remove("hidden");
       els.shareLinks.classList.remove("hidden");
-      els.domShareLink.textContent = `Your link: ${roomUrl(seat)}`;
-      els.subShareLink.textContent = `Invite link: ${roomUrl(seat === "two" ? "one" : "two")}`;
+      els.domShareLink.textContent = seat === SPECTATOR ? "Watching this room." : `Your link: ${roomUrl(seat)}`;
+      els.subShareLink.textContent = seat === SPECTATOR ? `Room link: ${roomUrl(SPECTATOR)}` : `Invite link: ${roomUrl(seat === "two" ? "one" : "two")}`;
       els.setupRoomPanel.classList.remove("hidden");
       els.setupRoomStatus.textContent = state.online.seats.one && state.online.seats.two
-        ? "Both players are in the lobby."
+        ? (seat === SPECTATOR && !spectatorName ? "Choose a spectator name to join the room chat." : "Both players are in the lobby.")
         : "Waiting for the other player.";
-      state.online.inviteUrl = roomUrl(seat === "two" ? "one" : "two");
-      els.setupShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
+      state.online.inviteUrl = seat === SPECTATOR ? roomUrl(SPECTATOR) : roomUrl(seat === "two" ? "one" : "two");
+      els.setupShareLink.textContent = seat === SPECTATOR ? `Spectator link: ${state.online.inviteUrl}` : `Invite link: ${state.online.inviteUrl}`;
       renderRoles();
       renderLobby();
     }
@@ -3264,7 +3618,9 @@
 
     async function joinOnlineRoom(room, requestedSeat = null) {
       if (!room) return;
-      state.online.room = room.toUpperCase();
+      const roomCode = room.toUpperCase();
+      const savedClaim = readSeatClaim(roomCode);
+      state.online.room = roomCode;
       const response = await fetch(`/api/state?room=${encodeURIComponent(state.online.room)}`);
       const data = await response.json();
       if (!response.ok) {
@@ -3274,16 +3630,30 @@
       }
       state.online.rev = data.rev;
       applySnapshot(data.snapshot);
-      state.online.room = room.toUpperCase();
-      const seats = state.online.seats || { one: false, two: false };
-      const preferredSeat = requestedSeat === "one" || requestedSeat === "two" ? requestedSeat : null;
-      const seat = preferredSeat && !seats[preferredSeat]
-        ? preferredSeat
-        : (!seats.two ? "two" : (!seats.one ? "one" : preferredSeat || "two"));
-      rememberSeat(seat);
-      state.online.seats[state.online.seat] = true;
+      state.online.room = roomCode;
+      state.online.seatSecrets = state.online.seatSecrets || { one: "", two: "" };
+      const preferredSeat = requestedSeat === "one" || requestedSeat === "two" || requestedSeat === SPECTATOR ? requestedSeat : null;
+      let seat = null;
+      let secret = null;
+      if (savedClaim && savedClaim.seat === SPECTATOR) {
+        seat = SPECTATOR;
+        secret = savedClaim.secret;
+      } else if (savedClaim && (savedClaim.seat === "one" || savedClaim.seat === "two") && seatClaimMatches(savedClaim, savedClaim.seat)) {
+        seat = savedClaim.seat;
+        secret = savedClaim.secret;
+      }
+      if (!seat && preferredSeat === SPECTATOR) seat = SPECTATOR;
+      if (!seat && preferredSeat && preferredSeat !== SPECTATOR && !seatIsOwned(preferredSeat)) seat = preferredSeat;
+      if (!seat && !seatIsOwned("two")) seat = "two";
+      if (!seat && !seatIsOwned("one")) seat = "one";
+      if (!seat) seat = SPECTATOR;
+      const claim = rememberSeat(seat, roomCode, secret);
+      if (state.online.seat !== SPECTATOR) {
+        state.online.seats[state.online.seat] = true;
+        state.online.seatSecrets[state.online.seat] = claim ? claim.secret : "";
+      }
       setLocalRoomUrl(state.online.seat);
-      await publishState();
+      if (state.online.seat !== SPECTATOR) await publishState();
       startPolling();
       updateOnlineUi();
     }
@@ -3315,6 +3685,10 @@
       }
       if (state.currentGame === "tributeTicTacToe") {
         startTicTacToeNormalMatch();
+        return;
+      }
+      if (state.currentGame === "wheelSpin") {
+        startWheelSpinNormalMatch();
         return;
       }
       if (state.currentGame === "tributeFleet") {
@@ -3351,6 +3725,10 @@
       }
       if (state.currentGame === "tributeTicTacToe") {
         startTicTacToeReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "wheelSpin") {
+        startWheelSpinReclaimMatch();
         return;
       }
       if (state.currentGame === "tributeFleet") {
@@ -3605,6 +3983,14 @@
         publishState();
         return;
       }
+      if (state.currentGame === "wheelSpin") {
+        resetWheelSpinBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Wheel Spin reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
       if (state.currentGame === "tributeFleet") {
         resetTributeFleetBoard();
         els.log.innerHTML = "";
@@ -3666,6 +4052,111 @@
       state.lockedTribute = state.domVault;
       state.winningCells = [];
       state.twentyOne = createTwentyOneState();
+    }
+
+    function resetWheelSpinBoard() {
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+      state.wheel = createWheelState();
+    }
+
+    function startWheelSpinNormalMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const bet = normalizeBuyIn(Number(els.betInput.value));
+      els.betInput.value = bet;
+      state.pot = bet;
+      state.mode = "normal";
+      state.turn = SUB;
+      state.active = true;
+      state.wheel.spinning = false;
+      state.wheel.result = null;
+      state.wheel.resultIndex = null;
+      addLog(`<strong>Wheel bet:</strong> ${state.names.sub} puts up ${money(bet)} and takes the spin.`);
+      render();
+      publishState();
+    }
+
+    function startWheelSpinReclaimMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (state.domVault <= 0) {
+        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal spin first to unlock reclaim.`);
+        return;
+      }
+      state.pot = state.domVault;
+      state.lockedTribute = state.domVault;
+      state.mode = "reclaim";
+      state.turn = SUB;
+      state.active = true;
+      state.wheel.spinning = false;
+      state.wheel.result = null;
+      state.wheel.resultIndex = null;
+      addLog(`<strong>Reclaim spin:</strong> ${state.names.sub} spins to reclaim ${money(state.pot)} from ${state.names.dom}'s bank.`);
+      render();
+      publishState();
+    }
+
+    function spinWheel() {
+      if (!state.active || state.wheel.spinning) return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const resultIndex = Math.floor(Math.random() * 36);
+      const sliceAngle = Math.PI * 2 / 36;
+      const rotations = 6 + Math.floor(Math.random() * 3);
+      const startAngle = Number(state.wheel.angle || 0);
+      const targetAngle = startAngle
+        + rotations * Math.PI * 2
+        + normalizeWheelDelta(startAngle, -Math.PI / 2 - (resultIndex + 0.5) * sliceAngle);
+      state.wheel.spinning = true;
+      state.wheel.spinStartedAt = Date.now();
+      state.wheel.spinDuration = 4800;
+      state.wheel.startAngle = startAngle;
+      state.wheel.targetAngle = targetAngle;
+      state.wheel.resultIndex = resultIndex;
+      state.wheel.result = null;
+      addLog(`<strong>${state.names.sub} spins the wheel.</strong>`);
+      render();
+      publishState();
+    }
+
+    function normalizeWheelDelta(fromAngle, targetAngle) {
+      const full = Math.PI * 2;
+      let delta = (targetAngle - fromAngle) % full;
+      if (delta < 0) delta += full;
+      return delta;
+    }
+
+    function finishWheelSpin() {
+      if (!state.wheel.spinning) return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      state.wheel.spinning = false;
+      state.wheel.angle = state.wheel.targetAngle;
+      const value = state.wheel.slices[state.wheel.resultIndex];
+      state.wheel.result = value;
+      state.active = false;
+      if (value > 0) {
+        state.domVault += value;
+        state.lockedTribute = state.domVault;
+        if (state.mode === "reclaim") {
+          state.tiltLevel += 1;
+          addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${money(value)}. Her bank rises to ${money(state.domVault)}.`);
+        } else {
+          addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${money(value)} and it enters her bank.`);
+        }
+      } else if (state.mode === "reclaim") {
+        const reclaimed = state.pot;
+        state.domVault = Math.max(0, state.domVault - reclaimed);
+        state.lockedTribute = 0;
+        state.tiltLevel = Math.max(0, state.tiltLevel - 1);
+        addLog(`<strong>${state.names.sub} hits blank.</strong> ${money(reclaimed)} is reclaimed from ${state.names.dom}'s bank.`);
+      } else {
+        addLog(`<strong>${state.names.sub} hits blank.</strong> Nothing enters ${state.names.dom}'s bank.`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
     }
 
     function resetTributeDiceBoard() {
@@ -4977,6 +5468,10 @@
         renderTicTacToeBoard();
         return;
       }
+      if (state.currentGame === "wheelSpin") {
+        renderWheelSpinBoard();
+        return;
+      }
       if (state.currentGame === "tributeFleet") {
         renderFleetBoard();
         return;
@@ -5020,6 +5515,107 @@
           els.board.appendChild(cell);
         }
       }
+    }
+
+    function renderWheelSpinBoard() {
+      els.board.className = "wheel-table";
+      els.board.innerHTML = "";
+      const stage = document.createElement("div");
+      stage.className = "wheel-stage";
+      const canvas = document.createElement("canvas");
+      canvas.className = "wheel-canvas";
+      canvas.width = 720;
+      canvas.height = 720;
+      stage.appendChild(canvas);
+      const button = document.createElement("button");
+      button.className = "primary wheel-spin-btn";
+      button.textContent = state.wheel.spinning ? "Spinning" : "Spin";
+      button.disabled = !state.active || state.wheel.spinning || (localOnlineRole() && localOnlineRole() !== SUB);
+      button.addEventListener("click", spinWheel);
+      const result = document.createElement("div");
+      result.className = "wheel-result";
+      result.textContent = wheelResultText();
+      els.board.appendChild(stage);
+      els.board.appendChild(button);
+      els.board.appendChild(result);
+      animateWheelCanvas(canvas, result, button);
+    }
+
+    function wheelResultText() {
+      if (state.wheel.spinning) return "The wheel is slowing down...";
+      if (state.wheel.result === 0) return "Result: blank";
+      if (Number(state.wheel.result) > 0) return `Result: ${money(state.wheel.result)}`;
+      return state.active ? `${state.names.sub} must spin.` : "Make a bet to unlock the spin.";
+    }
+
+    function animateWheelCanvas(canvas, resultEl, buttonEl) {
+      const draw = () => {
+        const now = Date.now();
+        if (state.wheel.spinning) {
+          const elapsed = now - Number(state.wheel.spinStartedAt || now);
+          const duration = Math.max(1, Number(state.wheel.spinDuration || 1));
+          const progress = Math.min(1, elapsed / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          state.wheel.angle = Number(state.wheel.startAngle || 0)
+            + (Number(state.wheel.targetAngle || 0) - Number(state.wheel.startAngle || 0)) * eased;
+          if (progress >= 1) {
+            finishWheelSpin();
+          }
+        }
+        drawWheel(canvas, state.wheel);
+        resultEl.textContent = wheelResultText();
+        buttonEl.textContent = state.wheel.spinning ? "Spinning" : "Spin";
+        buttonEl.disabled = !state.active || state.wheel.spinning || (localOnlineRole() && localOnlineRole() !== SUB);
+        if (state.currentGame === "wheelSpin" && state.screen === "game" && state.wheel.spinning) {
+          window.requestAnimationFrame(draw);
+        }
+      };
+      draw();
+    }
+
+    function drawWheel(canvas, wheel) {
+      const ctx = canvas.getContext("2d");
+      const size = canvas.width;
+      const center = size / 2;
+      const radius = center - 18;
+      const sliceAngle = Math.PI * 2 / 36;
+      const colors = ["#47332f", "#6d3e35", "#8a5a35", "#39515a", "#5f4f2f", "#51384f"];
+      ctx.clearRect(0, 0, size, size);
+      (wheel.slices || []).forEach((value, index) => {
+        const start = Number(wheel.angle || 0) + index * sliceAngle;
+        const end = start + sliceAngle;
+        ctx.beginPath();
+        ctx.moveTo(center, center);
+        ctx.arc(center, center, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = value === 25 ? "#b88732" : (value === 0 ? "#181615" : colors[index % colors.length]);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 244, 214, 0.22)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(center, center);
+        ctx.rotate(start + sliceAngle / 2);
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = value === 0 ? "#f6efe3" : "#fff6de";
+        ctx.font = value === 25 ? "700 31px Georgia, serif" : "700 24px Georgia, serif";
+        ctx.fillText(value === 0 ? "BLANK" : `$${value}`, radius - 22, 0);
+        ctx.restore();
+      });
+      ctx.beginPath();
+      ctx.arc(center, center, 64, 0, Math.PI * 2);
+      ctx.fillStyle = "#211a18";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(239, 199, 94, 0.7)";
+      ctx.lineWidth = 6;
+      ctx.stroke();
+      ctx.fillStyle = "#efc75e";
+      ctx.font = "700 30px Georgia, serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("SPIN", center, center);
     }
 
     function renderDiceBoard() {
@@ -5085,7 +5681,7 @@
       const legalTargets = new Set((state.chess.legalMoves || []).map((move) => move.to));
       const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
       const localRole = localOnlineRole();
-      const localColor = localRole ? colorForChessRole(localRole) : "w";
+      const localColor = localRole && localRole !== SPECTATOR ? colorForChessRole(localRole) : "w";
       const ranks = localColor === "b" ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
       const fileIndexes = localColor === "b" ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
       const shieldedQueenSquare = state.chess.queenShield ? findDomQueenSquare(game) : null;
@@ -5105,7 +5701,7 @@
           if (piece) cell.classList.add(roleForChessColor(piece.color) === DOM ? "dom-piece" : "sub-piece");
           cell.textContent = piece ? chessPieceGlyph(piece) : "";
           cell.setAttribute("aria-label", piece ? `${piece.color} ${piece.type} on ${square}` : `empty ${square}`);
-          cell.disabled = !state.active;
+          cell.disabled = !state.active || localOnlineRole() === SPECTATOR;
           cell.addEventListener("click", () => chessSquareClick(square));
           els.board.appendChild(cell);
         }
@@ -5180,6 +5776,10 @@
     }
 
     function renderFleetBoard() {
+      if (localOnlineRole() === SPECTATOR) {
+        renderFleetSpectatorBoard();
+        return;
+      }
       const viewer = localOnlineRole() || state.turn || SUB;
       const target = otherRole(viewer);
       els.board.className = "fleet-layout";
@@ -5231,6 +5831,33 @@
       els.board.appendChild(ownPanel);
     }
 
+    function renderFleetSpectatorBoard() {
+      els.board.className = "fleet-layout";
+      els.board.innerHTML = "";
+      [
+        { attacker: DOM, target: SUB },
+        { attacker: SUB, target: DOM }
+      ].forEach(({ attacker, target }) => {
+        const panel = document.createElement("div");
+        panel.className = "fleet-panel";
+        panel.innerHTML = `<h3>${labelFor(attacker)} attacking ${labelFor(target)}</h3>`;
+        const grid = document.createElement("div");
+        grid.className = "fleet-grid";
+        for (let row = 0; row < FLEET_SIZE; row += 1) {
+          for (let col = 0; col < FLEET_SIZE; col += 1) {
+            const cell = document.createElement("button");
+            const shot = state.fleet.shots[attacker][row][col];
+            cell.className = `fleet-cell ${shot || ""}`;
+            cell.setAttribute("aria-label", `${labelFor(attacker)} attack row ${row + 1}, column ${col + 1}`);
+            cell.disabled = true;
+            grid.appendChild(cell);
+          }
+        }
+        panel.appendChild(grid);
+        els.board.appendChild(panel);
+      });
+    }
+
     function renderControls() {
       const items = currentTiltStatusItems();
       els.tiltStatus.classList.toggle("hidden", !items.length);
@@ -5239,7 +5866,7 @@
 
     function currentTiltStatusItems() {
       if (state.screen !== "game") return [];
-      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice") return [];
+      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice" || state.currentGame === "wheelSpin") return [];
       if (state.currentGame === "tributeFleet") {
         const modifiers = state.fleet.modifiers || [];
         const modifierText = modifiers.length
@@ -5267,6 +5894,7 @@
       if (state.currentGame === "tributeChess") return "Tribute Chess";
       if (state.currentGame === "tributeTwentyOne") return "Tribute 21";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
+      if (state.currentGame === "wheelSpin") return "Wheel Spin";
       if (state.currentGame === "tributeFleet") return "Tribute Fleet";
       return "Tribute Four";
     }
@@ -5284,6 +5912,10 @@
       }
       if (state.currentGame === "tributeTicTacToe") {
         renderTicTacToeRules();
+        return;
+      }
+      if (state.currentGame === "wheelSpin") {
+        renderWheelSpinRules();
         return;
       }
       if (state.currentGame === "tributeDice") {
@@ -5327,6 +5959,19 @@
         `<strong>Dom win:</strong> if ${state.names.dom} wins, the bet goes to her bank.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
         `<strong>Reclaim edge:</strong> ${state.names.dom} plays O first, and drawn reclaim boards go to ${state.names.dom}.`
+      ];
+      setRuleList(rules);
+    }
+
+    function renderWheelSpinRules() {
+      const rules = [
+        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet to unlock one spin.`,
+        `<strong>The wheel:</strong> 36 equal-size spaces. Every space has the same chance to land.`,
+        `<strong>Cash layout:</strong> 15 spaces show $1, 10 show $2, 5 show $5, 3 show $10, 1 shows $25, and 2 are blank.`,
+        `<strong>Blank placement:</strong> the two blank spaces are placed directly on either side of the $25 space. All other cash spaces are shuffled around the wheel.`,
+        `<strong>Cash result:</strong> landing on a cash space adds that amount to ${state.names.dom}'s bank.`,
+        `<strong>Blank result:</strong> landing on blank means nothing enters ${state.names.dom}'s bank.`,
+        `<strong>Reclaim:</strong> a blank wins back the reclaim cash for ${state.names.sub}; a cash space lets ${state.names.dom} keep the bank and add the wheel result.`
       ];
       setRuleList(rules);
     }
@@ -5444,7 +6089,9 @@
           : `<strong>${state.names.sub}</strong> must make a normal bet to begin.`;
       } else {
         const actor = labelFor(state.turn);
-        els.turnText.innerHTML = `<strong>${actor}</strong> to move. ${state.mode === "reclaim" ? "The table is tilted." : "Clean rules, clean stake."}`;
+        els.turnText.innerHTML = state.currentGame === "wheelSpin"
+          ? (state.wheel.spinning ? `<strong>The wheel is spinning.</strong>` : `<strong>${state.names.sub}</strong> must spin the wheel.`)
+          : `<strong>${actor}</strong> to move. ${state.mode === "reclaim" ? "The table is tilted." : "Clean rules, clean stake."}`;
       }
 
       const onlineBlocksSub = Boolean(localOnlineRole() && localOnlineRole() !== SUB);
@@ -5488,7 +6135,7 @@
       } else if (state.currentGame === "tributeFleet") {
         els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.fleet.scanAvailable || onlineBlocksDom;
         els.passBtn.textContent = "Scan";
-      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice") {
+      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice" || state.currentGame === "wheelSpin") {
         els.passBtn.classList.add("hidden");
       } else {
         els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.skipAvailable || state.skipArmed || onlineBlocksDom;
@@ -5510,6 +6157,11 @@
       if (state.currentGame === "tributeTicTacToe") {
         els.gameTitle.textContent = "Tribute Tic Tac Toe";
         els.gameSubtitle.textContent = "Fast three-in-a-row mini bets. The sub opens normal games as X; reclaim lets the dom start and take drawn boards.";
+        return;
+      }
+      if (state.currentGame === "wheelSpin") {
+        els.gameTitle.textContent = "Wheel Spin";
+        els.gameSubtitle.textContent = "A 36-space wheel with equal odds per slice. Cash spaces feed the dom's bank; blanks are the sub's escape.";
         return;
       }
       if (state.currentGame === "tributeDice") {
@@ -5620,6 +6272,8 @@
       button.addEventListener("click", leaveOnlineRoom);
     });
     els.hideLeaveNoticeBtn.addEventListener("click", hideLeaveNotice);
+    els.takePlayerOneBtn.addEventListener("click", () => takeAvailableSeat("one"));
+    els.takePlayerTwoBtn.addEventListener("click", () => takeAvailableSeat("two"));
     els.returnLobbyNoticeBtn.addEventListener("click", returnToLobbyFromLeaveNotice);
     els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
     els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
@@ -5643,6 +6297,7 @@
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
+    els.tributeWheelCard.addEventListener("click", openWheelSpin);
     els.tributeChessCard.addEventListener("click", openTributeChess);
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
     els.copyInviteBtn.addEventListener("click", copyInviteLink);
