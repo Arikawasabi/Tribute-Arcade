@@ -283,6 +283,12 @@
       width: min(460px, 100%);
     }
 
+    .rules-modal {
+      width: min(620px, 100%);
+      max-height: min(720px, calc(100vh - 40px));
+      overflow: auto;
+    }
+
     .game-card {
       min-height: 180px;
       padding: 16px;
@@ -1234,6 +1240,7 @@
       </div>
       <div class="setup-actions">
         <button id="openSavedLinkBtn">Open Saved Link</button>
+        <button id="rulesBtn">Rules</button>
         <button id="backToMenuBtn">Games</button>
         <div class="status-pill" id="modeLabel">Normal Match</div>
       </div>
@@ -1259,8 +1266,6 @@
           <button id="reclaimBtn" class="secondary">Reclaim</button>
           <button id="resetBtn">Reset</button>
         </div>
-
-        <ul class="rules" id="ruleList"></ul>
       </div>
     </section>
 
@@ -1321,6 +1326,20 @@
         <div class="role-row">
           <button id="openSubLinkBtn" class="primary">Open Link</button>
           <button id="declineSubLinkBtn">Not Now</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="rulesModal">
+    <section class="panel rules-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="rulesModalTitle">Rules</h2>
+      </div>
+      <div class="panel-body">
+        <ul class="rules" id="ruleList"></ul>
+        <div class="setup-actions">
+          <button id="closeRulesBtn" class="primary">Close</button>
         </div>
       </div>
     </section>
@@ -1689,6 +1708,10 @@
       subLinkModalText: document.getElementById("subLinkModalText"),
       openSubLinkBtn: document.getElementById("openSubLinkBtn"),
       declineSubLinkBtn: document.getElementById("declineSubLinkBtn"),
+      rulesBtn: document.getElementById("rulesBtn"),
+      rulesModal: document.getElementById("rulesModal"),
+      rulesModalTitle: document.getElementById("rulesModalTitle"),
+      closeRulesBtn: document.getElementById("closeRulesBtn"),
       gameTitle: document.getElementById("gameTitle"),
       gameSubtitle: document.getElementById("gameSubtitle"),
       board: document.getElementById("board"),
@@ -2270,6 +2293,15 @@
         return;
       }
       showSubLinkModal(request);
+    }
+
+    function openRulesModal() {
+      renderRules();
+      els.rulesModal.classList.remove("hidden");
+    }
+
+    function closeRulesModal() {
+      els.rulesModal.classList.add("hidden");
     }
 
     function addLog(html) {
@@ -4442,7 +4474,16 @@
     function renderControls() {
     }
 
+    function currentGameLabel() {
+      if (state.currentGame === "tributeChess") return "Tribute Chess";
+      if (state.currentGame === "tributeTwentyOne") return "Tribute 21";
+      if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
+      if (state.currentGame === "tributeFleet") return "Tribute Fleet";
+      return "Tribute Four";
+    }
+
     function renderRules() {
+      els.rulesModalTitle.textContent = `${currentGameLabel()} Rules`;
       if (state.currentGame === "tributeChess") {
         renderChessRules();
         return;
@@ -4739,6 +4780,11 @@
     els.saveDomLinkBtn.addEventListener("click", saveDomLink);
     els.sendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.openSavedLinkBtn.addEventListener("click", sendDomLinkRequest);
+    els.rulesBtn.addEventListener("click", openRulesModal);
+    els.closeRulesBtn.addEventListener("click", closeRulesModal);
+    els.rulesModal.addEventListener("click", (event) => {
+      if (event.target === els.rulesModal) closeRulesModal();
+    });
     els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
     els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
     els.backToMenuBtn.addEventListener("click", backToMenu);
@@ -4747,6 +4793,9 @@
     els.joinRoomBtn.addEventListener("click", joinRoomFromInput);
     els.joinRoomCodeInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") joinRoomFromInput();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeRulesModal();
     });
     els.playLocalBtn.addEventListener("click", playLocally);
     els.chooseDomBtn.addEventListener("click", () => chooseOnlineRole(DOM));
