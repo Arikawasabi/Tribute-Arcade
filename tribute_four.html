@@ -885,30 +885,34 @@
     .wheel-stage::before {
       content: "";
       position: absolute;
-      top: -18px;
+      top: -28px;
       left: 50%;
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 20px solid transparent;
-      border-right: 20px solid transparent;
-      border-top: 42px solid var(--accent);
-      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
-      z-index: 2;
+      border-left: 34px solid transparent;
+      border-right: 34px solid transparent;
+      border-top: 64px solid #ffd46b;
+      filter:
+        drop-shadow(0 0 0 #2b1710)
+        drop-shadow(0 7px 16px rgba(0, 0, 0, 0.65))
+        drop-shadow(0 0 18px rgba(239, 199, 94, 0.75));
+      z-index: 4;
     }
 
     .wheel-stage::after {
       content: "";
       position: absolute;
-      top: -38px;
+      top: -58px;
       left: 50%;
       transform: translateX(-50%);
-      width: 7px;
-      height: 36px;
+      width: 14px;
+      height: 56px;
       border-radius: 999px;
-      background: var(--accent);
-      box-shadow: 0 0 18px rgba(239, 199, 94, 0.45);
-      z-index: 2;
+      background: linear-gradient(#fff0b7, #d89a26);
+      border: 2px solid #2b1710;
+      box-shadow: 0 0 22px rgba(239, 199, 94, 0.72);
+      z-index: 4;
     }
 
     .wheel-canvas {
@@ -934,6 +938,15 @@
       place-items: center;
       font-size: 1rem;
       text-transform: uppercase;
+    }
+
+    .wheel-center-button:hover:not(:disabled) {
+      transform: translate(-50%, -50%);
+    }
+
+    .wheel-center-button:disabled {
+      cursor: pointer;
+      opacity: 1;
     }
 
     .wheel-result {
@@ -2280,6 +2293,11 @@
     }
 
     function createWheelSlices() {
+      const prizeIndex = Math.floor(Math.random() * 36);
+      return createWheelSlicesWithPrizeIndex(prizeIndex);
+    }
+
+    function createWheelSlicesWithPrizeIndex(prizeIndex) {
       const values = [
         ...Array(13).fill(1),
         ...Array(9).fill(2),
@@ -2290,7 +2308,6 @@
         const j = Math.floor(Math.random() * (i + 1));
         [values[i], values[j]] = [values[j], values[i]];
       }
-      const prizeIndex = Math.floor(Math.random() * 36);
       const oppositePrizeIndex = (prizeIndex + 18) % 36;
       const slices = Array(36).fill(null);
       slices[prizeIndex] = 25;
@@ -4106,6 +4123,7 @@
       if (!state.active || state.wheel.spinning) return;
       if (localOnlineRole() && localOnlineRole() !== SUB) return;
       const resultIndex = Math.floor(Math.random() * 36);
+      state.wheel.slices = createWheelSlicesWithPrizeIndex(Math.floor(Math.random() * 36));
       const sliceAngle = Math.PI * 2 / 36;
       const rotations = 8 + Math.floor(Math.random() * 4);
       const startAngle = Number(state.wheel.angle || 0);
@@ -5546,13 +5564,21 @@
       canvas.className = "wheel-canvas";
       canvas.width = 720;
       canvas.height = 720;
-      canvas.addEventListener("click", domSlowWheel);
+      canvas.addEventListener("click", () => {
+        if (state.wheel.spinning) domSlowWheel();
+      });
       stage.appendChild(canvas);
       const button = document.createElement("button");
       button.className = "primary wheel-center-button";
-      button.textContent = state.wheel.spinning ? "Spinning" : "Spin";
-      button.disabled = !state.active || state.wheel.spinning || (localOnlineRole() && localOnlineRole() !== SUB);
-      button.addEventListener("click", spinWheel);
+      button.textContent = wheelCenterButtonText();
+      button.disabled = wheelCenterButtonDisabled();
+      button.addEventListener("click", () => {
+        if (state.wheel.spinning) {
+          domSlowWheel();
+        } else {
+          spinWheel();
+        }
+      });
       button.title = state.wheel.spinning && (!state.online.room || localOnlineRole() === DOM) && !state.wheel.domSlowUsed
         ? "Click the wheel surface to hasten the slowdown"
         : "Spin";
@@ -5572,6 +5598,18 @@
       return `${state.names.sub} can press the center to spin.`;
     }
 
+    function wheelCenterButtonText() {
+      if (!state.wheel.spinning) return "Spin";
+      if ((!state.online.room || localOnlineRole() === DOM) && !state.wheel.domSlowUsed) return "Press";
+      return "Spinning";
+    }
+
+    function wheelCenterButtonDisabled() {
+      if (!state.active) return true;
+      if (!state.wheel.spinning) return Boolean(localOnlineRole() && localOnlineRole() !== SUB);
+      return Boolean(state.wheel.domSlowUsed || (state.online.room && localOnlineRole() !== DOM));
+    }
+
     function animateWheelCanvas(canvas, resultEl, buttonEl) {
       const draw = () => {
         const now = Date.now();
@@ -5586,8 +5624,8 @@
         }
         drawWheel(canvas, state.wheel);
         resultEl.textContent = wheelResultText();
-        buttonEl.textContent = state.wheel.spinning ? "Spinning" : "Spin";
-        buttonEl.disabled = !state.active || state.wheel.spinning || (localOnlineRole() && localOnlineRole() !== SUB);
+        buttonEl.textContent = wheelCenterButtonText();
+        buttonEl.disabled = wheelCenterButtonDisabled();
         if (state.currentGame === "wheelSpin" && state.screen === "game" && state.wheel.spinning) {
           window.requestAnimationFrame(draw);
         }
