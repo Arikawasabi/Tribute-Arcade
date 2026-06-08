@@ -2042,7 +2042,7 @@
     const SPECTATOR = "spectator";
     const WHEEL_LIMIT_WINDOW_MS = 15 * 60 * 1000;
     const WHEEL_SPIN_LIMIT = 8;
-    const WHEEL_POWER_LIMIT = 3;
+    const WHEEL_POWER_LIMIT = 2;
 
     const state = {
       screen: "lobby",
@@ -2325,7 +2325,7 @@
         targetAngle: 0,
         resultIndex: null,
         result: null,
-        blessedValue: null,
+        blessActive: false,
         greedyDom: false,
         nudgeUsed: false,
         finalPayout: null,
@@ -4207,8 +4207,25 @@
     function unlockWheelSpin() {
       refreshWheelLimitWindow();
       if (!canUseWheelDomTools() || wheelSpinsRemaining() <= 0) return;
+      const spendBless = Boolean(state.wheel.blessActive);
+      const spendGreedy = Boolean(state.wheel.greedyDom);
+      if (spendBless && wheelPowerRemaining("bless") <= 0) {
+        addLog(`<strong class="danger">Bless spent.</strong> Bless refreshes in ${formatWheelTime(wheelLimitRemainingMs())}.`);
+        render();
+        return;
+      }
+      if (spendGreedy && wheelPowerRemaining("greedy") <= 0) {
+        addLog(`<strong class="danger">Greedy spent.</strong> Greedy Dom refreshes in ${formatWheelTime(wheelLimitRemainingMs())}.`);
+        render();
+        return;
+      }
+      if (spendBless) state.wheel.blessUses += 1;
+      if (spendGreedy) state.wheel.greedyUses += 1;
       state.wheel.unlocked = true;
-      addLog(`<strong>${state.names.dom} unlocks the wheel.</strong> ${state.names.sub} can spin now.`);
+      const powers = [];
+      if (spendBless) powers.push("Bless");
+      if (spendGreedy) powers.push("Greedy Dom");
+      addLog(`<strong>${state.names.dom} unlocks the wheel.</strong> ${powers.length ? `${powers.join(" and ")} locked in. ` : ""}${state.names.sub} can spin now.`);
       render();
       publishState();
     }
@@ -4297,12 +4314,12 @@
         } else if (value === 0) {
           payout = 30;
           notes.push("greedy blank becomes $30");
-        } else if (value === 2 || value === 5 || value === 10) {
+        } else if (value === 1 || value === 2 || value === 5 || value === 10) {
           payout = 0;
           notes.push(`greedy ${money(value)} becomes blank`);
         }
       }
-      if (payout > 0 && state.wheel.blessedValue === value) {
+      if (payout > 0 && state.wheel.blessActive) {
         const upgraded = wheelUpgradeValue(value);
         if (upgraded > payout) {
           notes.push(`blessed to ${money(upgraded)}`);
@@ -4324,23 +4341,22 @@
       return state.currentGame === "wheelSpin"
         && state.active
         && !state.wheel.spinning
+        && !state.wheel.unlocked
         && (!state.online.room || localOnlineRole() === DOM);
     }
 
-    function blessWheelValue(value) {
+    function toggleWheelBless() {
       refreshWheelLimitWindow();
       if (!canUseWheelDomTools()) return;
-      const activating = state.wheel.blessedValue !== value;
-      if (activating && wheelPowerRemaining("bless") <= 0) {
+      if (!state.wheel.blessActive && wheelPowerRemaining("bless") <= 0) {
         addLog(`<strong class="danger">Bless spent.</strong> Bless refreshes in ${formatWheelTime(wheelLimitRemainingMs())}.`);
         render();
         return;
       }
-      state.wheel.blessedValue = state.wheel.blessedValue === value ? null : value;
-      if (activating) state.wheel.blessUses += 1;
-      addLog(state.wheel.blessedValue
-        ? `<strong>${state.names.dom} blesses ${money(value)}.</strong> If it lands, it upgrades to ${money(wheelUpgradeValue(value))}.`
-        : `<strong>${state.names.dom} clears the blessing.</strong>`);
+      state.wheel.blessActive = !state.wheel.blessActive;
+      addLog(state.wheel.blessActive
+        ? `<strong>${state.names.dom} arms Bless.</strong> All cash slices upgrade when the wheel is unlocked.`
+        : `<strong>${state.names.dom} clears Bless.</strong>`);
       render();
       publishState();
     }
@@ -4354,10 +4370,9 @@
         return;
       }
       state.wheel.greedyDom = !state.wheel.greedyDom;
-      if (state.wheel.greedyDom) state.wheel.greedyUses += 1;
       addLog(state.wheel.greedyDom
-        ? `<strong>${state.names.dom} turns Greedy.</strong> $25 pays $60, blanks pay $30, and $2/$5/$10 become blanks.`
-        : `<strong>${state.names.dom} turns off Greedy Dom.</strong>`);
+        ? `<strong>${state.names.dom} arms Greedy.</strong> $25 pays $60, blanks pay $30, and $1/$2/$5/$10 become blanks when the wheel is unlocked.`
+        : `<strong>${state.names.dom} clears Greedy Dom.</strong>`);
       render();
       publishState();
     }
@@ -5840,12 +5855,12 @@
         } else if (value === 0) {
           displayValue = 30;
           affected = true;
-        } else if (value === 2 || value === 5 || value === 10) {
+        } else if (value === 1 || value === 2 || value === 5 || value === 10) {
           displayValue = 0;
           affected = true;
         }
       }
-      if (displayValue > 0 && state.wheel.blessedValue === value) {
+      if (displayValue > 0 && state.wheel.blessActive) {
         const upgraded = wheelUpgradeValue(value);
         if (upgraded > displayValue) {
           displayValue = upgraded;
@@ -5886,18 +5901,18 @@
       unlockNote.textContent = state.wheel.unlocked ? `${state.names.sub} can spin now.` : `${state.names.sub} cannot spin until this is unlocked.`;
       unlockRow.appendChild(unlockNote);
 
-      const canBless = canUse && wheelPowerRemaining("bless") > 0;
       const blessRow = document.createElement("div");
       blessRow.className = "wheel-tool-row";
       blessRow.innerHTML = `<strong>Bless</strong>`;
-      [1, 2, 5, 10].forEach((value) => {
-        const button = document.createElement("button");
-        button.textContent = `${money(value)} > ${money(wheelUpgradeValue(value))}`;
-        button.classList.toggle("active", state.wheel.blessedValue === value);
-        button.disabled = !canUse || (state.wheel.blessedValue !== value && !canBless);
-        button.addEventListener("click", () => blessWheelValue(value));
-        blessRow.appendChild(button);
-      });
+      const blessButton = document.createElement("button");
+      blessButton.textContent = "Bless All";
+      blessButton.classList.toggle("active", state.wheel.blessActive);
+      blessButton.disabled = !canUse || (!state.wheel.blessActive && wheelPowerRemaining("bless") <= 0);
+      blessButton.addEventListener("click", toggleWheelBless);
+      blessRow.appendChild(blessButton);
+      const blessNote = document.createElement("span");
+      blessNote.textContent = "$1->$2, $2->$5, $5->$10, $10->$25.";
+      blessRow.appendChild(blessNote);
 
       const greedyRow = document.createElement("div");
       greedyRow.className = "wheel-tool-row";
@@ -5926,10 +5941,10 @@
       const status = document.createElement("div");
       status.className = "wheel-result";
       const bits = [];
-      if (state.wheel.blessedValue) bits.push(`Blessed: ${money(state.wheel.blessedValue)} upgrades to ${money(wheelUpgradeValue(state.wheel.blessedValue))}`);
-      if (state.wheel.greedyDom) bits.push("Greedy Dom: $25->$60, blank->$30, $2/$5/$10->blank");
+      if (state.wheel.blessActive) bits.push("Bless armed: all cash slices upgrade");
+      if (state.wheel.greedyDom) bits.push("Greedy Dom: $25->$60, blank->$30, $1/$2/$5/$10->blank");
       if (state.wheel.nudgeUsed) bits.push("Nudge used");
-      status.textContent = bits.join(" | ") || `${state.names.dom} can bless a value, turn Greedy, or nudge once after the result.`;
+      status.textContent = bits.join(" | ") || `${state.names.dom} can arm Bless, arm Greedy, or nudge once after the result.`;
 
       tools.appendChild(limitRow);
       tools.appendChild(unlockRow);
@@ -5982,8 +5997,8 @@
         ctx.strokeStyle = "rgba(255, 230, 176, 0.28)";
         ctx.lineWidth = 2;
         ctx.stroke();
-        const blessed = wheel.blessedValue === value && value > 0;
-        const greedyAffected = wheel.greedyDom && (value === 0 || value === 2 || value === 5 || value === 10 || value === 25);
+        const blessed = wheel.blessActive && value > 0 && wheelUpgradeValue(value) > value;
+        const greedyAffected = wheel.greedyDom && (value === 0 || value === 1 || value === 2 || value === 5 || value === 10 || value === 25);
         if (blessed || greedyAffected) {
           ctx.save();
           ctx.beginPath();
@@ -6372,9 +6387,9 @@
         `<strong>Cash layout:</strong> 13 spaces show $1, 9 show $2, 5 show $5, 3 show $10, 2 show $25, and 4 are blank.`,
         `<strong>Blank placement:</strong> each $25 has a blank directly on either side, with the second blank-$25-blank cluster placed straight across from the first. The remaining spaces are shuffled around the wheel.`,
         `<strong>Pointer:</strong> the fixed arrow at the top points to the winning space when the wheel stops.`,
-        `<strong>Limits:</strong> the wheel can be spun 8 times every 15 minutes. Bless, Greedy Dom, and Nudge each have 3 uses in that same 15-minute window.`,
-        `<strong>Bless:</strong> before the spin, ${state.names.dom} can bless $1, $2, $5, or $10. If that value lands, it upgrades one step: $1 to $2, $2 to $5, $5 to $10, or $10 to $25.`,
-        `<strong>Greedy Dom:</strong> before the spin, ${state.names.dom} can make every $25 pay $60 and every blank pay $30, but every $2, $5, and $10 becomes a blank. Bless can still be active at the same time, but only remaining $1 spaces can benefit.`,
+        `<strong>Limits:</strong> the wheel can be spun 8 times every 15 minutes. Bless, Greedy Dom, and Nudge each have 2 uses in that same 15-minute window.`,
+        `<strong>Bless:</strong> before the spin, ${state.names.dom} can bless all cash spaces. $1 upgrades to $2, $2 to $5, $5 to $10, and $10 to $25.`,
+        `<strong>Greedy Dom:</strong> before the spin, ${state.names.dom} can make every $25 pay $60 and every blank pay $30, but every $1, $2, $5, and $10 becomes a blank. Bless can still be armed at the same time, but Greedy blanks those lower cash spaces first.`,
         `<strong>Nudge:</strong> after the wheel stops, ${state.names.dom} can move the result one space forward or back once. The bank adjusts to the new result.`,
         `<strong>Cash result:</strong> landing on a cash space adds that amount to ${state.names.dom}'s bank.`,
         `<strong>Blank result:</strong> landing on blank means nothing enters ${state.names.dom}'s bank.`
