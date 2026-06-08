@@ -1198,14 +1198,6 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeDiceCard">
-        <span>
-          <h2>Tribute Dice</h2>
-          <p>Bluffing dice with direct calls, raises, and reclaim pressure.</p>
-        </span>
-        <strong class="status-pill">Play</strong>
-      </button>
-
       <button class="panel game-card" id="tributeChessCard">
         <span>
           <h2>Tribute Chess</h2>
@@ -1673,7 +1665,6 @@
       queenPowerUsers: document.getElementById("queenPowerUsers"),
       tributeFourCard: document.getElementById("tributeFourCard"),
       tributeFleetCard: document.getElementById("tributeFleetCard"),
-      tributeDiceCard: document.getElementById("tributeDiceCard"),
       tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       tributeChessCard: document.getElementById("tributeChessCard"),
@@ -2101,7 +2092,6 @@
       const domPickBlocked = Boolean(state.online.room && localRole && localRole !== DOM);
       els.tributeFourCard.disabled = domPickBlocked;
       els.tributeFleetCard.disabled = domPickBlocked;
-      els.tributeDiceCard.disabled = domPickBlocked;
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
@@ -4766,7 +4756,6 @@
     els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
     els.tributeFourCard.addEventListener("click", openTributeFour);
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
-    els.tributeDiceCard.addEventListener("click", openTributeDice);
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
     els.tributeChessCard.addEventListener("click", openTributeChess);
