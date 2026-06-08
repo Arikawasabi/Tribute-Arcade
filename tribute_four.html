@@ -4401,17 +4401,17 @@
       const nextValue = state.wheel.slices[nextIndex];
       state.wheel.resultIndex = nextIndex;
       state.wheel.result = nextValue;
-      state.wheel.angle += direction * sliceAngle;
+      state.wheel.angle -= direction * sliceAngle;
       const result = resolveWheelPayout(nextValue);
       state.wheel.finalPayout = result.payout;
       state.wheel.resultNotes = [...result.notes, `nudged ${direction > 0 ? "forward" : "back"}`];
       state.wheel.nudgeUsed = true;
       state.wheel.nudgeUses += 1;
       const delta = result.payout - oldPayout;
-      state.domVault = Math.max(0, state.domVault + delta);
+      state.domVault = Math.max(0, state.domVault - oldPayout + result.payout);
       state.lockedTribute = state.domVault;
       const deltaText = `${delta >= 0 ? "+" : "-"}${money(Math.abs(delta))}`;
-      addLog(`<strong>${state.names.dom} nudges the wheel ${direction > 0 ? "forward" : "back"}.</strong> ${wheelValueText(oldValue)} becomes ${wheelValueText(nextValue)}; bank adjusts by ${deltaText}.`);
+      addLog(`<strong>${state.names.dom} nudges the wheel ${direction > 0 ? "forward" : "back"}.</strong> ${wheelValueText(oldValue)} becomes ${wheelValueText(nextValue)}; payout is now ${money(result.payout)} and the bank adjusts by ${deltaText}.`);
       render();
       publishState();
     }
