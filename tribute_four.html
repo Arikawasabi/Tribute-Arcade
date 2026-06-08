@@ -956,13 +956,16 @@
     }
 
     .wheel-dom-tools {
-      width: min(92vw, 680px);
       display: grid;
       gap: 10px;
       padding: 12px;
       border-radius: 8px;
       border: 1px solid rgba(239, 199, 94, 0.22);
       background: rgba(24, 18, 15, 0.72);
+    }
+
+    .wheel-dom-tools.hidden {
+      display: none;
     }
 
     .wheel-tool-row {
@@ -1644,6 +1647,7 @@
           <button id="resetBtn">Reset</button>
         </div>
         <div class="tilt-status hidden" id="tiltStatus"></div>
+        <section class="wheel-dom-tools hidden" id="wheelPowerPanel"></section>
       </div>
     </section>
 
@@ -2226,6 +2230,7 @@
       domVault: document.getElementById("domVault"),
       lockedTribute: document.getElementById("lockedTribute"),
       tiltStatus: document.getElementById("tiltStatus"),
+      wheelPowerPanel: document.getElementById("wheelPowerPanel"),
       betInput: document.getElementById("betInput"),
       normalBtn: document.getElementById("normalBtn"),
       reclaimBtn: document.getElementById("reclaimBtn"),
@@ -2313,6 +2318,7 @@
         slices: createWheelSlices(),
         angle: 0,
         spinning: false,
+        unlocked: false,
         spinStartedAt: 0,
         spinDuration: 0,
         startAngle: 0,
@@ -4163,6 +4169,11 @@
       refreshWheelLimitWindow();
       if (!state.active || state.wheel.spinning) return;
       if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (!state.wheel.unlocked) {
+        addLog(`<strong class="danger">Wheel locked.</strong> ${state.names.dom} must unlock it before ${state.names.sub} can spin.`);
+        render();
+        return;
+      }
       if (wheelSpinsRemaining() <= 0) {
         addLog(`<strong class="danger">Wheel locked.</strong> Spins refresh in ${formatWheelTime(wheelLimitRemainingMs())}.`);
         render();
@@ -4183,11 +4194,21 @@
       state.wheel.targetAngle = targetAngle;
       state.wheel.resultIndex = resultIndex;
       state.wheel.result = null;
+      state.wheel.unlocked = false;
       state.wheel.finalPayout = null;
       state.wheel.resultNotes = [];
       state.wheel.nudgeUsed = false;
       state.wheel.spinsUsed += 1;
       addLog(`<strong>${state.names.sub} spins the wheel.</strong>`);
+      render();
+      publishState();
+    }
+
+    function unlockWheelSpin() {
+      refreshWheelLimitWindow();
+      if (!canUseWheelDomTools() || wheelSpinsRemaining() <= 0) return;
+      state.wheel.unlocked = true;
+      addLog(`<strong>${state.names.dom} unlocks the wheel.</strong> ${state.names.sub} can spin now.`);
       render();
       publishState();
     }
@@ -5767,10 +5788,8 @@
       const result = document.createElement("div");
       result.className = "wheel-result";
       result.textContent = wheelResultText();
-      const tools = renderWheelDomTools();
       els.board.appendChild(stage);
       els.board.appendChild(result);
-      els.board.appendChild(tools);
       animateWheelCanvas(canvas, result, button);
       if (renderWheelSpinBoard.timer) window.clearTimeout(renderWheelSpinBoard.timer);
       if (state.currentGame === "wheelSpin" && state.screen === "game" && !state.wheel.spinning) {
@@ -5785,27 +5804,87 @@
         const resultText = state.wheel.result === 0 ? "blank" : money(state.wheel.result);
         return `Result: ${resultText}${notes} -> ${money(Number(state.wheel.finalPayout || 0))}`;
       }
+      if (!state.wheel.unlocked) return `${state.names.dom} must unlock the wheel.`;
       return `${state.names.sub} can press the center to spin.`;
     }
 
     function wheelCenterButtonText() {
+      if (!state.wheel.spinning && !state.wheel.unlocked) return "Locked";
       if (!state.wheel.spinning) return "Spin";
       return "Spinning";
     }
 
     function wheelCenterButtonDisabled() {
       if (!state.active) return true;
-      if (!state.wheel.spinning) return Boolean((localOnlineRole() && localOnlineRole() !== SUB) || wheelSpinsRemaining() <= 0);
+      if (!state.wheel.spinning) return Boolean(!state.wheel.unlocked || (localOnlineRole() && localOnlineRole() !== SUB) || wheelSpinsRemaining() <= 0);
       return true;
     }
 
+    function wheelSliceDisplay(value) {
+      const colors = {
+        0: "#15110f",
+        1: "#214a37",
+        2: "#6f1f34",
+        5: "#3a213f",
+        10: "#7a5520",
+        25: "#d4a13a",
+        30: "#b88936",
+        60: "#f0c766"
+      };
+      let displayValue = Number(value || 0);
+      let affected = false;
+      if (state.wheel.greedyDom) {
+        if (value === 25) {
+          displayValue = 60;
+          affected = true;
+        } else if (value === 0) {
+          displayValue = 30;
+          affected = true;
+        } else if (value === 2 || value === 5 || value === 10) {
+          displayValue = 0;
+          affected = true;
+        }
+      }
+      if (displayValue > 0 && state.wheel.blessedValue === value) {
+        const upgraded = wheelUpgradeValue(value);
+        if (upgraded > displayValue) {
+          displayValue = upgraded;
+          affected = true;
+        }
+      }
+      return {
+        label: displayValue === 0 ? "BLANK" : money(displayValue),
+        color: colors[displayValue] || colors[value] || "#47332f",
+        textColor: displayValue === 0 ? "#f6efe3" : "#fff2c9",
+        large: displayValue >= 25,
+        affected
+      };
+    }
+
     function renderWheelDomTools() {
-      const tools = document.createElement("section");
-      tools.className = "wheel-dom-tools";
+      const tools = els.wheelPowerPanel;
+      if (!tools) return;
+      const visible = state.screen === "game" && state.currentGame === "wheelSpin";
+      tools.classList.toggle("hidden", !visible);
+      tools.innerHTML = "";
+      if (!visible) return;
       const canUse = canUseWheelDomTools();
       const limitRow = document.createElement("div");
       limitRow.className = "wheel-tool-row";
       limitRow.innerHTML = `<strong>Refresh</strong><span>${wheelSpinsRemaining()} spins left. Powers: Bless ${wheelPowerRemaining("bless")}, Greedy ${wheelPowerRemaining("greedy")}, Nudge ${wheelPowerRemaining("nudge")}. Resets in ${formatWheelTime(wheelLimitRemainingMs())}.</span>`;
+
+      const unlockRow = document.createElement("div");
+      unlockRow.className = "wheel-tool-row";
+      unlockRow.innerHTML = `<strong>Lock</strong>`;
+      const unlockButton = document.createElement("button");
+      unlockButton.className = "primary";
+      unlockButton.textContent = state.wheel.unlocked ? "Unlocked" : "Unlock Wheel";
+      unlockButton.disabled = !canUse || state.wheel.unlocked || wheelSpinsRemaining() <= 0;
+      unlockButton.addEventListener("click", unlockWheelSpin);
+      unlockRow.appendChild(unlockButton);
+      const unlockNote = document.createElement("span");
+      unlockNote.textContent = state.wheel.unlocked ? `${state.names.sub} can spin now.` : `${state.names.sub} cannot spin until this is unlocked.`;
+      unlockRow.appendChild(unlockNote);
 
       const canBless = canUse && wheelPowerRemaining("bless") > 0;
       const blessRow = document.createElement("div");
@@ -5853,11 +5932,11 @@
       status.textContent = bits.join(" | ") || `${state.names.dom} can bless a value, turn Greedy, or nudge once after the result.`;
 
       tools.appendChild(limitRow);
+      tools.appendChild(unlockRow);
       tools.appendChild(blessRow);
       tools.appendChild(greedyRow);
       tools.appendChild(nudgeRow);
       tools.appendChild(status);
-      return tools;
     }
 
     function animateWheelCanvas(canvas, resultEl, buttonEl) {
@@ -5889,28 +5968,21 @@
       const center = size / 2;
       const radius = center - 18;
       const sliceAngle = Math.PI * 2 / 36;
-      const valueColors = {
-        0: "#15110f",
-        1: "#214a37",
-        2: "#6f1f34",
-        5: "#3a213f",
-        10: "#7a5520",
-        25: "#d4a13a"
-      };
       ctx.clearRect(0, 0, size, size);
       (wheel.slices || []).forEach((value, index) => {
+        const display = wheelSliceDisplay(value);
         const start = Number(wheel.angle || 0) + index * sliceAngle;
         const end = start + sliceAngle;
         ctx.beginPath();
         ctx.moveTo(center, center);
         ctx.arc(center, center, radius, start, end);
         ctx.closePath();
-        ctx.fillStyle = valueColors[value] || "#47332f";
+        ctx.fillStyle = display.color;
         ctx.fill();
         ctx.strokeStyle = "rgba(255, 230, 176, 0.28)";
         ctx.lineWidth = 2;
         ctx.stroke();
-        const blessed = wheel.blessedValue === value && value > 0 && !wheel.greedyDom;
+        const blessed = wheel.blessedValue === value && value > 0;
         const greedyAffected = wheel.greedyDom && (value === 0 || value === 2 || value === 5 || value === 10 || value === 25);
         if (blessed || greedyAffected) {
           ctx.save();
@@ -5929,9 +6001,9 @@
         ctx.rotate(start + sliceAngle / 2);
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = value === 0 ? "#f6efe3" : "#fff2c9";
-        ctx.font = value === 25 ? "700 31px Georgia, serif" : "700 24px Georgia, serif";
-        ctx.fillText(value === 0 ? "BLANK" : `$${value}`, radius - 22, 0);
+        ctx.fillStyle = display.textColor;
+        ctx.font = display.large ? "700 31px Georgia, serif" : "700 24px Georgia, serif";
+        ctx.fillText(display.label, radius - 22, 0);
         ctx.restore();
       });
       ctx.beginPath();
@@ -6422,7 +6494,9 @@
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
           ? `<strong>The wheel is spinning.</strong>`
-          : `<strong>${state.names.sub}</strong> can press the center to spin.`;
+          : (state.wheel.unlocked
+            ? `<strong>${state.names.sub}</strong> can press the center to spin.`
+            : `<strong>${state.names.dom}</strong> must unlock the wheel for ${state.names.sub}.`);
       } else if (!state.active) {
         els.turnText.innerHTML = state.domVault > 0
           ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
@@ -6438,6 +6512,7 @@
       const localRole = localOnlineRole();
       const onlineBlocksDom = !domAdvantageControlsAllowed(localRole);
       const isWheelSpin = state.currentGame === "wheelSpin";
+      renderWheelDomTools();
       els.betInput.classList.toggle("hidden", isWheelSpin);
       els.normalBtn.classList.toggle("hidden", isWheelSpin);
       els.reclaimBtn.classList.toggle("hidden", isWheelSpin);
