@@ -1388,9 +1388,8 @@
           <p class="chooser-line" id="onlineStatus">Offline local game.</p>
           <p class="chooser-line hidden" id="roomCodeDisplay">Room code: -----</p>
           <div class="share-links hidden" id="shareLinks">
-            <div class="share-link" id="domShareLink"></div>
             <div class="copy-row">
-              <div class="share-link" id="subShareLink"></div>
+              <div class="share-link" id="inviteShareLink"></div>
               <button id="copyInviteBtn">Copy</button>
             </div>
           </div>
@@ -2203,8 +2202,7 @@
       onlineStatus: document.getElementById("onlineStatus"),
       roomCodeDisplay: document.getElementById("roomCodeDisplay"),
       shareLinks: document.getElementById("shareLinks"),
-      domShareLink: document.getElementById("domShareLink"),
-      subShareLink: document.getElementById("subShareLink"),
+      inviteShareLink: document.getElementById("inviteShareLink"),
       lobbyNameInput: document.getElementById("lobbyNameInput"),
       confirmLobbyNameBtn: document.getElementById("confirmLobbyNameBtn"),
       joinRoomCodeInput: document.getElementById("joinRoomCodeInput"),
@@ -3598,8 +3596,7 @@
       els.roomCodeDisplay.classList.remove("hidden");
       els.shareLinks.classList.remove("hidden");
       state.online.inviteUrl = roomUrl();
-      els.domShareLink.textContent = `Room link: ${state.online.inviteUrl}`;
-      els.subShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
+      els.inviteShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
       els.setupRoomPanel.classList.remove("hidden");
       els.setupRoomStatus.textContent = state.online.seats.one && state.online.seats.two
         ? (seat === SPECTATOR && !spectatorName ? "Choose a spectator name to join the room chat." : "Both players are in the lobby.")
