@@ -885,15 +885,29 @@
     .wheel-stage::before {
       content: "";
       position: absolute;
-      top: -8px;
+      top: -18px;
       left: 50%;
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 18px solid transparent;
-      border-right: 18px solid transparent;
-      border-top: 34px solid var(--accent);
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-top: 42px solid var(--accent);
       filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+      z-index: 2;
+    }
+
+    .wheel-stage::after {
+      content: "";
+      position: absolute;
+      top: -38px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 7px;
+      height: 36px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(239, 199, 94, 0.45);
       z-index: 2;
     }
 
@@ -906,8 +920,20 @@
       background: #211a18;
     }
 
-    .wheel-spin-btn {
-      min-width: 180px;
+    .wheel-center-button {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: clamp(96px, 20%, 126px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      padding: 0;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      text-transform: uppercase;
     }
 
     .wheel-result {
@@ -2248,14 +2274,15 @@
         startAngle: 0,
         targetAngle: 0,
         resultIndex: null,
-        result: null
+        result: null,
+        domSlowUsed: false
       };
     }
 
     function createWheelSlices() {
       const values = [
-        ...Array(15).fill(1),
-        ...Array(10).fill(2),
+        ...Array(13).fill(1),
+        ...Array(9).fill(2),
         ...Array(5).fill(5),
         ...Array(3).fill(10)
       ];
@@ -2264,10 +2291,14 @@
         [values[i], values[j]] = [values[j], values[i]];
       }
       const prizeIndex = Math.floor(Math.random() * 36);
+      const oppositePrizeIndex = (prizeIndex + 18) % 36;
       const slices = Array(36).fill(null);
       slices[prizeIndex] = 25;
       slices[(prizeIndex + 35) % 36] = 0;
       slices[(prizeIndex + 1) % 36] = 0;
+      slices[oppositePrizeIndex] = 25;
+      slices[(oppositePrizeIndex + 35) % 36] = 0;
+      slices[(oppositePrizeIndex + 1) % 36] = 0;
       let valueIndex = 0;
       for (let i = 0; i < slices.length; i += 1) {
         if (slices[i] === null) {
@@ -2839,9 +2870,8 @@
       state.currentGame = "wheelSpin";
       setScreen("game");
       resetWheelSpinBoard();
-      applyDefaultBet();
       els.log.innerHTML = "";
-      addLog(`<strong>Wheel Spin opened.</strong> ${state.names.sub} buys the spin. Cash spaces pay ${state.names.dom}'s bank; blanks spare the spin.`);
+      addLog(`<strong>Wheel Spin opened.</strong> ${state.names.sub} can spin whenever ready. Cash spaces pay ${state.names.dom}'s bank; blanks spare the spin.`);
       render();
       publishState();
     }
@@ -4056,7 +4086,7 @@
 
     function resetWheelSpinBoard() {
       state.turn = SUB;
-      state.active = false;
+      state.active = true;
       state.mode = "normal";
       state.pot = 0;
       state.lockedTribute = state.domVault;
@@ -4065,38 +4095,11 @@
     }
 
     function startWheelSpinNormalMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      const bet = normalizeBuyIn(Number(els.betInput.value));
-      els.betInput.value = bet;
-      state.pot = bet;
-      state.mode = "normal";
-      state.turn = SUB;
-      state.active = true;
-      state.wheel.spinning = false;
-      state.wheel.result = null;
-      state.wheel.resultIndex = null;
-      addLog(`<strong>Wheel bet:</strong> ${state.names.sub} puts up ${money(bet)} and takes the spin.`);
-      render();
-      publishState();
+      spinWheel();
     }
 
     function startWheelSpinReclaimMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (state.domVault <= 0) {
-        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal spin first to unlock reclaim.`);
-        return;
-      }
-      state.pot = state.domVault;
-      state.lockedTribute = state.domVault;
-      state.mode = "reclaim";
-      state.turn = SUB;
-      state.active = true;
-      state.wheel.spinning = false;
-      state.wheel.result = null;
-      state.wheel.resultIndex = null;
-      addLog(`<strong>Reclaim spin:</strong> ${state.names.sub} spins to reclaim ${money(state.pot)} from ${state.names.dom}'s bank.`);
-      render();
-      publishState();
+      spinWheel();
     }
 
     function spinWheel() {
@@ -4104,19 +4107,47 @@
       if (localOnlineRole() && localOnlineRole() !== SUB) return;
       const resultIndex = Math.floor(Math.random() * 36);
       const sliceAngle = Math.PI * 2 / 36;
-      const rotations = 6 + Math.floor(Math.random() * 3);
+      const rotations = 8 + Math.floor(Math.random() * 4);
       const startAngle = Number(state.wheel.angle || 0);
       const targetAngle = startAngle
         + rotations * Math.PI * 2
         + normalizeWheelDelta(startAngle, -Math.PI / 2 - (resultIndex + 0.5) * sliceAngle);
       state.wheel.spinning = true;
       state.wheel.spinStartedAt = Date.now();
-      state.wheel.spinDuration = 4800;
+      state.wheel.spinDuration = 7600;
       state.wheel.startAngle = startAngle;
       state.wheel.targetAngle = targetAngle;
       state.wheel.resultIndex = resultIndex;
       state.wheel.result = null;
+      state.wheel.domSlowUsed = false;
       addLog(`<strong>${state.names.sub} spins the wheel.</strong>`);
+      render();
+      publishState();
+    }
+
+    function currentWheelAngle(now = Date.now()) {
+      if (!state.wheel.spinning) return Number(state.wheel.angle || 0);
+      const elapsed = now - Number(state.wheel.spinStartedAt || now);
+      const duration = Math.max(1, Number(state.wheel.spinDuration || 1));
+      const progress = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      return Number(state.wheel.startAngle || 0)
+        + (Number(state.wheel.targetAngle || 0) - Number(state.wheel.startAngle || 0)) * eased;
+    }
+
+    function domSlowWheel() {
+      if (!state.wheel.spinning || state.wheel.domSlowUsed) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      const now = Date.now();
+      const elapsed = now - Number(state.wheel.spinStartedAt || now);
+      const remaining = Math.max(0, Number(state.wheel.spinDuration || 0) - elapsed);
+      if (remaining < 900) return;
+      state.wheel.angle = currentWheelAngle(now);
+      state.wheel.startAngle = state.wheel.angle;
+      state.wheel.spinStartedAt = now;
+      state.wheel.spinDuration = Math.max(1300, Math.round(remaining * 0.48));
+      state.wheel.domSlowUsed = true;
+      addLog(`<strong>${state.names.dom} presses the wheel.</strong> The spin tightens, but the wheel keeps its course.`);
       render();
       publishState();
     }
@@ -4135,22 +4166,11 @@
       state.wheel.angle = state.wheel.targetAngle;
       const value = state.wheel.slices[state.wheel.resultIndex];
       state.wheel.result = value;
-      state.active = false;
+      state.active = true;
       if (value > 0) {
         state.domVault += value;
         state.lockedTribute = state.domVault;
-        if (state.mode === "reclaim") {
-          state.tiltLevel += 1;
-          addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${money(value)}. Her bank rises to ${money(state.domVault)}.`);
-        } else {
-          addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${money(value)} and it enters her bank.`);
-        }
-      } else if (state.mode === "reclaim") {
-        const reclaimed = state.pot;
-        state.domVault = Math.max(0, state.domVault - reclaimed);
-        state.lockedTribute = 0;
-        state.tiltLevel = Math.max(0, state.tiltLevel - 1);
-        addLog(`<strong>${state.names.sub} hits blank.</strong> ${money(reclaimed)} is reclaimed from ${state.names.dom}'s bank.`);
+        addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${money(value)} and it enters her bank.`);
       } else {
         addLog(`<strong>${state.names.sub} hits blank.</strong> Nothing enters ${state.names.dom}'s bank.`);
       }
@@ -5526,17 +5546,21 @@
       canvas.className = "wheel-canvas";
       canvas.width = 720;
       canvas.height = 720;
+      canvas.addEventListener("click", domSlowWheel);
       stage.appendChild(canvas);
       const button = document.createElement("button");
-      button.className = "primary wheel-spin-btn";
+      button.className = "primary wheel-center-button";
       button.textContent = state.wheel.spinning ? "Spinning" : "Spin";
       button.disabled = !state.active || state.wheel.spinning || (localOnlineRole() && localOnlineRole() !== SUB);
       button.addEventListener("click", spinWheel);
+      button.title = state.wheel.spinning && (!state.online.room || localOnlineRole() === DOM) && !state.wheel.domSlowUsed
+        ? "Click the wheel surface to hasten the slowdown"
+        : "Spin";
+      stage.appendChild(button);
       const result = document.createElement("div");
       result.className = "wheel-result";
       result.textContent = wheelResultText();
       els.board.appendChild(stage);
-      els.board.appendChild(button);
       els.board.appendChild(result);
       animateWheelCanvas(canvas, result, button);
     }
@@ -5545,7 +5569,7 @@
       if (state.wheel.spinning) return "The wheel is slowing down...";
       if (state.wheel.result === 0) return "Result: blank";
       if (Number(state.wheel.result) > 0) return `Result: ${money(state.wheel.result)}`;
-      return state.active ? `${state.names.sub} must spin.` : "Make a bet to unlock the spin.";
+      return `${state.names.sub} can press the center to spin.`;
     }
 
     function animateWheelCanvas(canvas, resultEl, buttonEl) {
@@ -5555,9 +5579,7 @@
           const elapsed = now - Number(state.wheel.spinStartedAt || now);
           const duration = Math.max(1, Number(state.wheel.spinDuration || 1));
           const progress = Math.min(1, elapsed / duration);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          state.wheel.angle = Number(state.wheel.startAngle || 0)
-            + (Number(state.wheel.targetAngle || 0) - Number(state.wheel.startAngle || 0)) * eased;
+          state.wheel.angle = currentWheelAngle(now);
           if (progress >= 1) {
             finishWheelSpin();
           }
@@ -5579,7 +5601,14 @@
       const center = size / 2;
       const radius = center - 18;
       const sliceAngle = Math.PI * 2 / 36;
-      const colors = ["#47332f", "#6d3e35", "#8a5a35", "#39515a", "#5f4f2f", "#51384f"];
+      const valueColors = {
+        0: "#15110f",
+        1: "#214a37",
+        2: "#6f1f34",
+        5: "#3a213f",
+        10: "#7a5520",
+        25: "#d4a13a"
+      };
       ctx.clearRect(0, 0, size, size);
       (wheel.slices || []).forEach((value, index) => {
         const start = Number(wheel.angle || 0) + index * sliceAngle;
@@ -5588,9 +5617,9 @@
         ctx.moveTo(center, center);
         ctx.arc(center, center, radius, start, end);
         ctx.closePath();
-        ctx.fillStyle = value === 25 ? "#b88732" : (value === 0 ? "#181615" : colors[index % colors.length]);
+        ctx.fillStyle = valueColors[value] || "#47332f";
         ctx.fill();
-        ctx.strokeStyle = "rgba(255, 244, 214, 0.22)";
+        ctx.strokeStyle = "rgba(255, 230, 176, 0.28)";
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -5599,16 +5628,16 @@
         ctx.rotate(start + sliceAngle / 2);
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = value === 0 ? "#f6efe3" : "#fff6de";
+        ctx.fillStyle = value === 0 ? "#f6efe3" : "#fff2c9";
         ctx.font = value === 25 ? "700 31px Georgia, serif" : "700 24px Georgia, serif";
         ctx.fillText(value === 0 ? "BLANK" : `$${value}`, radius - 22, 0);
         ctx.restore();
       });
       ctx.beginPath();
       ctx.arc(center, center, 64, 0, Math.PI * 2);
-      ctx.fillStyle = "#211a18";
+      ctx.fillStyle = "#1c1412";
       ctx.fill();
-      ctx.strokeStyle = "rgba(239, 199, 94, 0.7)";
+      ctx.strokeStyle = "rgba(239, 199, 94, 0.82)";
       ctx.lineWidth = 6;
       ctx.stroke();
       ctx.fillStyle = "#efc75e";
@@ -5965,13 +5994,14 @@
 
     function renderWheelSpinRules() {
       const rules = [
-        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet to unlock one spin.`,
+        `<strong>Spin:</strong> ${state.names.sub} presses the center of the wheel to spin. No bet is required in this mode.`,
         `<strong>The wheel:</strong> 36 equal-size spaces. Every space has the same chance to land.`,
-        `<strong>Cash layout:</strong> 15 spaces show $1, 10 show $2, 5 show $5, 3 show $10, 1 shows $25, and 2 are blank.`,
-        `<strong>Blank placement:</strong> the two blank spaces are placed directly on either side of the $25 space. All other cash spaces are shuffled around the wheel.`,
+        `<strong>Cash layout:</strong> 13 spaces show $1, 9 show $2, 5 show $5, 3 show $10, 2 show $25, and 4 are blank.`,
+        `<strong>Blank placement:</strong> each $25 has a blank directly on either side, with the second blank-$25-blank cluster placed straight across from the first. The remaining spaces are shuffled around the wheel.`,
+        `<strong>Pointer:</strong> the fixed arrow at the top points to the winning space when the wheel stops.`,
+        `<strong>Dom press:</strong> while the wheel is spinning, ${state.names.dom} can click the wheel once to make it slow down quicker. The winning space is already set, so this cannot aim the stop.`,
         `<strong>Cash result:</strong> landing on a cash space adds that amount to ${state.names.dom}'s bank.`,
-        `<strong>Blank result:</strong> landing on blank means nothing enters ${state.names.dom}'s bank.`,
-        `<strong>Reclaim:</strong> a blank wins back the reclaim cash for ${state.names.sub}; a cash space lets ${state.names.dom} keep the bank and add the wheel result.`
+        `<strong>Blank result:</strong> landing on blank means nothing enters ${state.names.dom}'s bank.`
       ];
       setRuleList(rules);
     }
@@ -6081,9 +6111,15 @@
       els.pot.textContent = money(state.pot);
       els.domVault.textContent = money(state.domVault);
       els.lockedTribute.textContent = money(state.domVault);
-      els.modeLabel.textContent = state.mode === "reclaim" ? "Reclaim Match" : "Normal Match";
+      els.modeLabel.textContent = state.currentGame === "wheelSpin"
+        ? "Free Spin"
+        : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match");
 
-      if (!state.active) {
+      if (state.currentGame === "wheelSpin") {
+        els.turnText.innerHTML = state.wheel.spinning
+          ? `<strong>The wheel is spinning.</strong>`
+          : `<strong>${state.names.sub}</strong> can press the center to spin.`;
+      } else if (!state.active) {
         els.turnText.innerHTML = state.domVault > 0
           ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
           : `<strong>${state.names.sub}</strong> must make a normal bet to begin.`;
@@ -6097,6 +6133,10 @@
       const onlineBlocksSub = Boolean(localOnlineRole() && localOnlineRole() !== SUB);
       const localRole = localOnlineRole();
       const onlineBlocksDom = !domAdvantageControlsAllowed(localRole);
+      const isWheelSpin = state.currentGame === "wheelSpin";
+      els.betInput.classList.toggle("hidden", isWheelSpin);
+      els.normalBtn.classList.toggle("hidden", isWheelSpin);
+      els.reclaimBtn.classList.toggle("hidden", isWheelSpin);
       els.reclaimBtn.disabled = state.active || state.domVault <= 0 || onlineBlocksSub;
       els.normalBtn.disabled = state.active || onlineBlocksSub;
       els.betInput.disabled = state.active || onlineBlocksSub;
@@ -6161,7 +6201,7 @@
       }
       if (state.currentGame === "wheelSpin") {
         els.gameTitle.textContent = "Wheel Spin";
-        els.gameSubtitle.textContent = "A 36-space wheel with equal odds per slice. Cash spaces feed the dom's bank; blanks are the sub's escape.";
+        els.gameSubtitle.textContent = "A 36-space wheel with equal odds per slice. Press the center to spin; the fixed arrow marks the winning space.";
         return;
       }
       if (state.currentGame === "tributeDice") {
