@@ -330,6 +330,21 @@
       overflow: auto;
     }
 
+    .rules-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .rules-tab {
+      flex: 1;
+    }
+
+    .rules-tab.active {
+      border-color: rgba(239, 199, 94, 0.55);
+      background: #3e3229;
+    }
+
     .game-card {
       min-height: 180px;
       padding: 16px;
@@ -566,6 +581,30 @@
       margin-top: 12px;
     }
 
+    .tilt-status {
+      margin-top: 12px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .tilt-status.hidden {
+      display: none;
+    }
+
+    .tilt-status-item {
+      padding: 9px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(239, 199, 94, 0.2);
+      background: rgba(239, 199, 94, 0.07);
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.9rem;
+    }
+
+    .tilt-status-item strong {
+      color: var(--text);
+    }
+
     .primary {
       background: linear-gradient(135deg, #a73955, #d54b74);
       border-color: rgba(255, 255, 255, 0.18);
@@ -590,6 +629,9 @@
       color: var(--muted);
       line-height: 1.35;
       font-size: 0.94rem;
+      max-height: min(510px, calc(100vh - 250px));
+      overflow: auto;
+      padding-right: 4px;
     }
 
     .rules li {
@@ -996,6 +1038,7 @@
 
     .side-popout.closed {
       transform: translateX(calc(100% + 16px));
+      pointer-events: none;
     }
 
     .side-header,
@@ -1012,32 +1055,24 @@
       border-bottom: 1px solid rgba(244, 239, 232, 0.1);
     }
 
-    .side-popout.closed .side-header {
-      min-height: 0;
-      padding: 0;
-      border: 0;
-    }
-
-    .side-popout.closed .side-header .panel-title {
-      visibility: hidden;
-    }
-
-    .side-popout.closed #sideToggleBtn {
-      position: absolute;
-      left: -48px;
+    .side-restore-tab {
+      position: fixed;
+      right: 0;
       top: 50%;
+      z-index: 24;
       width: 44px;
       min-height: 92px;
       padding: 8px 6px;
       transform: translateY(-50%);
       writing-mode: vertical-rl;
       text-orientation: mixed;
+      border-radius: 8px 0 0 8px;
       border-color: rgba(239, 199, 94, 0.48);
       background: rgba(26, 22, 18, 0.96);
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
     }
 
-    .side-popout.closed.unread #sideToggleBtn {
+    .side-restore-tab.unread {
       border-color: rgba(86, 181, 255, 0.85);
       background: linear-gradient(180deg, rgba(86, 181, 255, 0.34), rgba(26, 22, 18, 0.96));
       box-shadow:
@@ -1109,6 +1144,11 @@
       flex: 1;
     }
 
+    #sideDistractionInput.drop-ready {
+      border-color: rgba(86, 181, 255, 0.75);
+      box-shadow: 0 0 0 3px rgba(86, 181, 255, 0.16);
+    }
+
     .side-popout.closed .side-tabs,
     .side-popout.closed .side-body {
       visibility: hidden;
@@ -1150,8 +1190,7 @@
         transform: translateX(calc(100% + 12px));
       }
 
-      .side-popout.closed #sideToggleBtn {
-        left: -48px;
+      .side-restore-tab {
         top: 50%;
       }
 
@@ -1480,6 +1519,7 @@
           <button id="reclaimBtn" class="secondary">Reclaim</button>
           <button id="resetBtn">Reset</button>
         </div>
+        <div class="tilt-status hidden" id="tiltStatus"></div>
       </div>
     </section>
 
@@ -1551,6 +1591,10 @@
         <h2 class="panel-title" id="rulesModalTitle">Rules</h2>
       </div>
       <div class="panel-body">
+        <div class="rules-tabs hidden" id="rulesTabs">
+          <button class="rules-tab active" data-rules-tab="normal">Normal Rules</button>
+          <button class="rules-tab" data-rules-tab="queen">Queen Powers</button>
+        </div>
         <ul class="rules" id="ruleList"></ul>
         <div class="setup-actions">
           <button id="closeRulesBtn" class="primary">Close</button>
@@ -1603,7 +1647,7 @@
         <p class="chooser-line" id="sideDomLinkStatus">Save a link, then open it for the sub whenever you want.</p>
         <label class="field-label">
           Distraction image or GIF
-          <input id="sideDistractionInput" type="url" placeholder="https://example.com/image.gif">
+          <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
         </label>
         <label class="field-label">
           Display mode
@@ -1625,6 +1669,7 @@
       </section>
     </div>
   </aside>
+  <button class="side-restore-tab hidden" id="sideRestoreTab" title="Open chat panel">Chat</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
   <script>
@@ -1973,6 +2018,7 @@
       domLinkStatus: document.getElementById("domLinkStatus"),
       sidePopout: document.getElementById("sidePopout"),
       sideToggleBtn: document.getElementById("sideToggleBtn"),
+      sideRestoreTab: document.getElementById("sideRestoreTab"),
       sideTabs: document.querySelectorAll(".side-tab"),
       sideSettingsTab: document.getElementById("sideSettingsTab"),
       sideChatPane: document.getElementById("sideChatPane"),
@@ -2036,6 +2082,7 @@
       pot: document.getElementById("pot"),
       domVault: document.getElementById("domVault"),
       lockedTribute: document.getElementById("lockedTribute"),
+      tiltStatus: document.getElementById("tiltStatus"),
       betInput: document.getElementById("betInput"),
       normalBtn: document.getElementById("normalBtn"),
       reclaimBtn: document.getElementById("reclaimBtn"),
@@ -2048,9 +2095,12 @@
       queenStanceSelect: document.getElementById("queenStanceSelect"),
       queenChargeText: document.getElementById("queenChargeText"),
       backToMenuBtn: document.getElementById("backToMenuBtn"),
+      rulesTabs: document.getElementById("rulesTabs"),
+      rulesTabButtons: document.querySelectorAll(".rules-tab"),
       ruleList: document.getElementById("ruleList"),
       log: document.getElementById("log")
     };
+    let activeRulesTab = "normal";
 
     function createBoard() {
       return Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
@@ -2601,7 +2651,7 @@
       renderSettings();
       renderGameSelectTabs();
       renderSidePanel();
-      publishState();
+      publishSettingsState();
     }
 
     function normalizeDomLink(value) {
@@ -2615,6 +2665,13 @@
       } catch (error) {
         return "";
       }
+    }
+
+    function normalizeDistractionSource(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      if (/^data:image\/(?:png|jpe?g|gif|webp|bmp);base64,/i.test(raw)) return raw;
+      return normalizeDomLink(raw);
     }
 
     function saveDomLink() {
@@ -2639,7 +2696,7 @@
       els.sideDomLinkStatus.textContent = "Link request sent.";
       renderSettings();
       renderSidePanel();
-      publishState();
+      publishSettingsState();
     }
 
     function renderSavedLinkButton() {
@@ -2665,9 +2722,10 @@
       const panelOpen = state.settings.sideOpen !== false;
       if (panelOpen) markChatSeen();
       els.sidePopout.classList.toggle("closed", !panelOpen);
-      els.sidePopout.classList.toggle("unread", !panelOpen && hasUnreadChat());
-      els.sideToggleBtn.textContent = panelOpen ? "Hide" : "Chat";
-      els.sideToggleBtn.title = panelOpen ? "Collapse panel" : "Open chat panel";
+      els.sideRestoreTab.classList.toggle("hidden", panelOpen);
+      els.sideRestoreTab.classList.toggle("unread", !panelOpen && hasUnreadChat());
+      els.sideToggleBtn.textContent = "Hide";
+      els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
         const visible = button.dataset.sideTab !== "settings" || canUseSettings;
         button.classList.toggle("hidden", !visible);
@@ -2769,14 +2827,14 @@
       renderSettings();
       renderSidePanel();
       renderSavedLinkButton();
-      publishState();
+      publishSettingsState();
     }
 
     function postDistraction() {
       if (!domLinkControlsAllowed()) return;
-      const url = normalizeDomLink(els.sideDistractionInput.value);
+      const url = normalizeDistractionSource(els.sideDistractionInput.value);
       if (!url) {
-        els.sideDistractionStatus.textContent = "Enter a valid image or GIF link.";
+        els.sideDistractionStatus.textContent = "Enter a valid image/GIF link, or drop/paste a PNG, JPG, GIF, WebP, or BMP.";
         return;
       }
       state.settings.distractionUrl = url;
@@ -2789,7 +2847,49 @@
         ? `Overlay posted for ${state.settings.distractionDuration} seconds.`
         : "Distraction posted.";
       renderSidePanel();
-      publishState();
+      publishSettingsState();
+    }
+
+    function imageFileFromItems(items) {
+      return Array.from(items || [])
+        .map((item) => item.kind === "file" ? item.getAsFile() : item)
+        .find((file) => file && /^image\/(?:png|jpe?g|gif|webp|bmp)$/i.test(file.type));
+    }
+
+    function useLocalDistractionFile(file) {
+      if (!domLinkControlsAllowed() || !file) return;
+      const maxBytes = 2_000_000;
+      if (file.size > maxBytes) {
+        els.sideDistractionStatus.textContent = "That image is too large to sync. Try one under 2 MB.";
+        return;
+      }
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        els.sideDistractionInput.value = reader.result;
+        els.sideDistractionStatus.textContent = "Local image loaded. Press Post to show it.";
+      });
+      reader.addEventListener("error", () => {
+        els.sideDistractionStatus.textContent = "Could not read that image.";
+      });
+      reader.readAsDataURL(file);
+    }
+
+    function handleDistractionPaste(event) {
+      const file = imageFileFromItems(event.clipboardData && event.clipboardData.items);
+      if (!file) return;
+      event.preventDefault();
+      useLocalDistractionFile(file);
+    }
+
+    function handleDistractionDrop(event) {
+      event.preventDefault();
+      els.sideDistractionInput.classList.remove("drop-ready");
+      const file = imageFileFromItems(event.dataTransfer && event.dataTransfer.files);
+      if (!file) {
+        els.sideDistractionStatus.textContent = "Drop a PNG, JPG, GIF, WebP, or BMP image.";
+        return;
+      }
+      useLocalDistractionFile(file);
     }
 
     function clearDistraction() {
@@ -2799,7 +2899,7 @@
       els.sideDistractionInput.value = "";
       els.sideDistractionStatus.textContent = "Distraction cleared.";
       renderSidePanel();
-      publishState();
+      publishSettingsState();
     }
 
     function normalizeDistractionDuration(value) {
@@ -3097,6 +3197,49 @@
       }
     }
 
+    async function publishSettingsState(retry = true) {
+      if (!state.online.room || state.online.applying) return;
+      const localSettings = { ...state.settings };
+      try {
+        const currentResponse = await fetch(`/api/state?room=${encodeURIComponent(state.online.room)}`);
+        const current = await currentResponse.json();
+        if (!currentResponse.ok) throw new Error(current.error || "Room unavailable");
+        const mergedSnapshot = {
+          ...(current.snapshot || snapshotState()),
+          settings: {
+            ...((current.snapshot && current.snapshot.settings) || {}),
+            ...localSettings
+          }
+        };
+        const syncResponse = await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room: state.online.room,
+            baseRev: current.rev,
+            snapshot: mergedSnapshot
+          })
+        });
+        const synced = await syncResponse.json();
+        if (syncResponse.status === 409) {
+          state.online.rev = synced.rev;
+          applySnapshot(synced.snapshot);
+          state.settings = {
+            ...state.settings,
+            ...localSettings
+          };
+          renderSettings();
+          renderSidePanel();
+          if (retry) await publishSettingsState(false);
+          return;
+        }
+        if (!syncResponse.ok) throw new Error(synced.error || "Sync failed");
+        state.online.rev = synced.rev;
+      } catch (error) {
+        els.onlineStatus.textContent = `Sync paused: ${error.message}`;
+      }
+    }
+
     async function pollState() {
       if (!state.online.room) return;
       try {
@@ -3192,7 +3335,7 @@
       state.skipArmed = false;
       state.reclaimPassAvailable = false;
       const starter = randomStarter();
-      resetMatch(starter);
+      preserveTiltLevel(() => resetMatch(starter));
       addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`);
       publishState();
     }
@@ -3250,6 +3393,12 @@
     function normalizeBuyIn(value) {
       if (!Number.isFinite(value)) return Math.max(1, Math.round(state.settings.subDefaultBet || 10));
       return Math.max(1, Math.round(value));
+    }
+
+    function preserveTiltLevel(action) {
+      const tilt = state.tiltLevel;
+      action();
+      state.tiltLevel = tilt;
     }
 
     function blockedColumnCount() {
@@ -3723,7 +3872,7 @@
       state.pot = bet;
       state.mode = "normal";
       const starter = randomStarter();
-      resetChessMatch(starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB });
+      preserveTiltLevel(() => resetChessMatch(starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB }));
       addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} plays white and starts.`);
       publishState();
     }
@@ -4325,7 +4474,7 @@
       els.betInput.value = bet;
       state.pot = bet;
       state.mode = "normal";
-      resetTwentyOneHand();
+      preserveTiltLevel(resetTwentyOneHand);
       addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and takes the first decision.`);
       publishState();
     }
@@ -4521,7 +4670,7 @@
       state.pot = bet;
       state.mode = "normal";
       const starter = randomStarter();
-      resetFleetMatch(starter);
+      preserveTiltLevel(() => resetFleetMatch(starter));
       addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} opens fire first.`);
       publishState();
     }
@@ -5083,6 +5232,35 @@
     }
 
     function renderControls() {
+      const items = currentTiltStatusItems();
+      els.tiltStatus.classList.toggle("hidden", !items.length);
+      els.tiltStatus.innerHTML = items.map((item) => `<div class="tilt-status-item">${item}</div>`).join("");
+    }
+
+    function currentTiltStatusItems() {
+      if (state.screen !== "game") return [];
+      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice") return [];
+      if (state.currentGame === "tributeFleet") {
+        const modifiers = state.fleet.modifiers || [];
+        const modifierText = modifiers.length
+          ? modifiers.map(fleetModifierDescription).join(" ")
+          : "none active.";
+        return [
+          `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${fleetTiltDescription()}`,
+          `<strong>Active modifiers:</strong> ${modifierText}`
+        ];
+      }
+      if (state.currentGame === "tributeChess") {
+        const affected = queenAffectedLabel() || "no pieces at this tilt";
+        return [
+          `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${chessTiltSummary()}`,
+          `<strong>Affected pieces:</strong> ${affected}.`
+        ];
+      }
+      if (state.currentGame === "tributeTwentyOne") {
+        return [`<strong>Current tilt:</strong> level ${state.tiltLevel}: ${twentyOneTiltSummary()}`];
+      }
+      return [`<strong>Current tilt:</strong> level ${state.tiltLevel}: ${tiltDescription()}`];
     }
 
     function currentGameLabel() {
@@ -5095,6 +5273,7 @@
 
     function renderRules() {
       els.rulesModalTitle.textContent = `${currentGameLabel()} Rules`;
+      renderRulesTabs(state.currentGame === "tributeChess");
       if (state.currentGame === "tributeChess") {
         renderChessRules();
         return;
@@ -5123,9 +5302,20 @@
         `<strong>Tilt 0-1:</strong> ${state.names.dom} starts and wins ties.`,
         `<strong>Tilt 2:</strong> one random column is blocked on each ${state.names.sub} turn.`,
         `<strong>Tilt 3-4:</strong> one random ${state.names.sub} column is blocked each ${state.names.sub} turn, and ${state.names.dom} gets one Skip.`,
-        `<strong>Tilt 5+:</strong> two random ${state.names.sub} columns are blocked each ${state.names.sub} turn, and ${state.names.dom} gets one Skip.`,
-        `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${tiltDescription()}`
+        `<strong>Tilt 5+:</strong> two random ${state.names.sub} columns are blocked each ${state.names.sub} turn, and ${state.names.dom} gets one Skip.`
       ];
+      setRuleList(rules);
+    }
+
+    function renderRulesTabs(showTabs) {
+      els.rulesTabs.classList.toggle("hidden", !showTabs);
+      if (!showTabs) activeRulesTab = "normal";
+      els.rulesTabButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.rulesTab === activeRulesTab);
+      });
+    }
+
+    function setRuleList(rules) {
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
     }
 
@@ -5138,7 +5328,7 @@
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
         `<strong>Reclaim edge:</strong> ${state.names.dom} plays O first, and drawn reclaim boards go to ${state.names.dom}.`
       ];
-      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+      setRuleList(rules);
     }
 
     function renderDiceRules() {
@@ -5147,20 +5337,19 @@
         `<strong>Old prototype:</strong> each player rolled three dice, players raised claims, and the opponent could call bluff.`,
         `<strong>Old resolution:</strong> if the table contained enough matching dice, the bidder won. Otherwise the caller won.`
       ];
-      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+      setRuleList(rules);
     }
 
     function renderChessRules() {
-      const activeAffected = queenAffectedLabel() || "no pieces at this tilt";
-      const rules = [
+      const normalRules = [
         `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player gets white and starts.`,
         `<strong>Normal result:</strong> standard chess decides the game. If ${state.names.dom} wins, the bet goes to her bank. Draws return the pot.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. ${state.names.dom} plays white and wins drawn positions.`,
         `<strong>Queen power setting:</strong> Off disables queen powers. Always enables queen powers immediately. Tiered unlocks them from Tilt 1 onward.`,
         `<strong>Who can use queen powers:</strong> the Chess settings can make queen powers dom-only or usable by both players, but reclaim pressure is built around ${state.names.dom}'s queen.`,
-        `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${chessTiltSummary()}`,
-        `<strong>Affected pieces now:</strong> ${activeAffected}. These are the pieces queen stances care about.`,
-        `<strong>Affected piece tiers:</strong> Tilt 1 affects pawns; Tilt 2 adds knights; Tilt 3 adds bishops; Tilt 4 adds rooks; Tilt 5+ adds the queen.`,
+        `<strong>Affected piece tiers:</strong> Tilt 1 affects pawns; Tilt 2 adds knights; Tilt 3 adds bishops; Tilt 4 adds rooks; Tilt 5+ adds the queen.`
+      ];
+      const queenRules = [
         `<strong>Queen charges:</strong> stances earn a shared pool of charges. The charge buttons light up when ${state.names.dom} has enough charges to use that power.`,
         `<strong>None stance:</strong> the queen has no stance effect and earns no stance charges.`,
         `<strong>Gaze stance:</strong> when ${state.names.sub} moves an affected piece through the dom queen's line of sight, ${state.names.dom} gains 1 queen charge.`,
@@ -5173,7 +5362,7 @@
         `<strong>Command Move, cost 3:</strong> ${state.names.dom} queues Command Move on her turn. On the next ${state.names.sub} turn, ${state.names.dom} moves one legal ${state.names.sub} piece instead.`,
         `<strong>Queued powers:</strong> Freeze, Skip, and Command Move are chosen during ${state.names.dom}'s move and take effect on a following ${state.names.sub} turn.`
       ];
-      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+      setRuleList(activeRulesTab === "queen" ? queenRules : normalRules);
     }
 
     function chessTiltSummary() {
@@ -5192,10 +5381,9 @@
         `<strong>Tilt 2, Soft Save:</strong> once per reclaim, a dom bust from 22 to 24 is treated as 21.`,
         `<strong>Tilt 3, Forced Hit:</strong> once before ${state.names.sub} stands, ${state.names.dom} can force one extra ${state.names.sub} card.`,
         `<strong>Tilt 4, Dealer Lock:</strong> the dom dealer stands on 16 or higher.`,
-        `<strong>Tilt 5+, House Sweep:</strong> in reclaim, ${state.names.sub} must beat ${state.names.dom} by at least 2.`,
-        `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${twentyOneTiltSummary()}`
+        `<strong>Tilt 5+, House Sweep:</strong> in reclaim, ${state.names.sub} must beat ${state.names.dom} by at least 2.`
       ];
-      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+      setRuleList(rules);
     }
 
     function twentyOneTiltRules() {
@@ -5221,19 +5409,12 @@
 
     function fleetTiltDescription() {
       if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
-      const modifiers = state.fleet.modifiers || [];
-      const extras = modifiers.length
-        ? ` Active modifiers: ${modifiers.map(fleetModifierLabel).join(", ")}.`
-        : "";
-      if (state.tiltLevel >= 2) return `the dom gets one scan.${extras}`;
+      if (state.tiltLevel >= 2) return "the dom gets one scan.";
       if (state.tiltLevel >= 1) return "the dom gets one scan.";
       return "the dom starts the reclaim hunt.";
     }
 
     function renderFleetRules() {
-      const activeModifiers = (state.fleet.modifiers || []).length
-        ? (state.fleet.modifiers || []).map(fleetModifierLabel).join(", ")
-        : "none";
       const rules = [
         `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player fires first.`,
         `<strong>Goal:</strong> sink every enemy ship segment to win.`,
@@ -5245,11 +5426,9 @@
         `<strong>Command Fog:</strong> a random row or column is blocked on each ${state.names.sub} turn.`,
         `<strong>Dom Counterfire:</strong> when ${state.names.sub} misses, there is a 30% chance ${state.names.dom}'s Scan recharges.`,
         `<strong>Noisy Waters:</strong> half of the target board is blocked on each ${state.names.sub} turn.`,
-        `<strong>Priority Intel:</strong> ${state.names.dom} gets one row or column clue at the start of reclaim.`,
-        `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${fleetTiltDescription()}`,
-        `<strong>Active modifiers:</strong> ${activeModifiers}.`
+        `<strong>Priority Intel:</strong> ${state.names.dom} gets one row or column clue at the start of reclaim.`
       ];
-      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+      setRuleList(rules);
     }
 
     function renderText() {
@@ -5383,6 +5562,12 @@
     els.settingsTabs.forEach((button) => {
       button.addEventListener("click", () => updateSettings({ activeTab: button.dataset.settingsTab }));
     });
+    els.rulesTabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeRulesTab = button.dataset.rulesTab || "normal";
+        renderRules();
+      });
+    });
     els.gameSelectTabs.forEach((button) => {
       button.addEventListener("click", () => updateSettings({ activeGameTab: button.dataset.gameTab }));
     });
@@ -5390,6 +5575,7 @@
       button.addEventListener("click", () => setSideTab(button.dataset.sideTab));
     });
     els.sideToggleBtn.addEventListener("click", toggleSidePanel);
+    els.sideRestoreTab.addEventListener("click", toggleSidePanel);
     els.sendChatBtn.addEventListener("click", sendChatMessage);
     els.chatInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") sendChatMessage();
@@ -5415,6 +5601,15 @@
     els.sideDistractionInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") postDistraction();
     });
+    els.sideDistractionInput.addEventListener("paste", handleDistractionPaste);
+    els.sideDistractionInput.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      if (domLinkControlsAllowed()) els.sideDistractionInput.classList.add("drop-ready");
+    });
+    els.sideDistractionInput.addEventListener("dragleave", () => {
+      els.sideDistractionInput.classList.remove("drop-ready");
+    });
+    els.sideDistractionInput.addEventListener("drop", handleDistractionDrop);
     els.openSavedLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.rulesBtn.addEventListener("click", openRulesModal);
     els.closeRulesBtn.addEventListener("click", closeRulesModal);
