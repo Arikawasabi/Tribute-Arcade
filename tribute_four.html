@@ -955,6 +955,34 @@
       text-align: center;
     }
 
+    .wheel-dom-tools {
+      width: min(92vw, 680px);
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 199, 94, 0.22);
+      background: rgba(24, 18, 15, 0.72);
+    }
+
+    .wheel-tool-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .wheel-tool-row strong {
+      min-width: 74px;
+      color: var(--gold);
+    }
+
+    .wheel-tool-row button.active {
+      border-color: rgba(239, 199, 94, 0.72);
+      background: #4b3920;
+      color: var(--text);
+    }
+
     .hand-panel {
       display: grid;
       gap: 10px;
@@ -1573,7 +1601,7 @@
       <button class="panel game-card" id="tributeWheelCard">
         <span>
           <h2>Wheel Spin</h2>
-          <p>A 36-space cash wheel with equal slices, two blanks, and the $25 prize boxed in by danger.</p>
+          <p>A 36-space cash wheel with timed spins, dom powers, and the $25 prizes boxed in by danger.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
@@ -2008,6 +2036,9 @@
     const SUB = "sub";
     const DOM = "dom";
     const SPECTATOR = "spectator";
+    const WHEEL_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+    const WHEEL_SPIN_LIMIT = 8;
+    const WHEEL_POWER_LIMIT = 3;
 
     const state = {
       screen: "lobby",
@@ -2288,7 +2319,16 @@
         targetAngle: 0,
         resultIndex: null,
         result: null,
-        domSlowUsed: false
+        blessedValue: null,
+        greedyDom: false,
+        nudgeUsed: false,
+        finalPayout: null,
+        resultNotes: [],
+        limitWindowStartedAt: Date.now(),
+        spinsUsed: 0,
+        blessUses: 0,
+        greedyUses: 0,
+        nudgeUses: 0
       };
     }
 
@@ -4120,8 +4160,14 @@
     }
 
     function spinWheel() {
+      refreshWheelLimitWindow();
       if (!state.active || state.wheel.spinning) return;
       if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (wheelSpinsRemaining() <= 0) {
+        addLog(`<strong class="danger">Wheel locked.</strong> Spins refresh in ${formatWheelTime(wheelLimitRemainingMs())}.`);
+        render();
+        return;
+      }
       const resultIndex = Math.floor(Math.random() * 36);
       state.wheel.slices = createWheelSlicesWithPrizeIndex(Math.floor(Math.random() * 36));
       const sliceAngle = Math.PI * 2 / 36;
@@ -4137,10 +4183,47 @@
       state.wheel.targetAngle = targetAngle;
       state.wheel.resultIndex = resultIndex;
       state.wheel.result = null;
-      state.wheel.domSlowUsed = false;
+      state.wheel.finalPayout = null;
+      state.wheel.resultNotes = [];
+      state.wheel.nudgeUsed = false;
+      state.wheel.spinsUsed += 1;
       addLog(`<strong>${state.names.sub} spins the wheel.</strong>`);
       render();
       publishState();
+    }
+
+    function refreshWheelLimitWindow(now = Date.now()) {
+      const started = Number(state.wheel.limitWindowStartedAt || 0);
+      if (!started || now - started >= WHEEL_LIMIT_WINDOW_MS) {
+        state.wheel.limitWindowStartedAt = now;
+        state.wheel.spinsUsed = 0;
+        state.wheel.blessUses = 0;
+        state.wheel.greedyUses = 0;
+        state.wheel.nudgeUses = 0;
+      }
+    }
+
+    function wheelLimitRemainingMs(now = Date.now()) {
+      refreshWheelLimitWindow(now);
+      return Math.max(0, WHEEL_LIMIT_WINDOW_MS - (now - Number(state.wheel.limitWindowStartedAt || now)));
+    }
+
+    function wheelSpinsRemaining() {
+      refreshWheelLimitWindow();
+      return Math.max(0, WHEEL_SPIN_LIMIT - Number(state.wheel.spinsUsed || 0));
+    }
+
+    function wheelPowerRemaining(power) {
+      refreshWheelLimitWindow();
+      const key = `${power}Uses`;
+      return Math.max(0, WHEEL_POWER_LIMIT - Number(state.wheel[key] || 0));
+    }
+
+    function formatWheelTime(ms) {
+      const total = Math.ceil(ms / 1000);
+      const minutes = Math.floor(total / 60);
+      const seconds = total % 60;
+      return `${minutes}:${String(seconds).padStart(2, "0")}`;
     }
 
     function currentWheelAngle(now = Date.now()) {
@@ -4151,23 +4234,6 @@
       const eased = 1 - Math.pow(1 - progress, 3);
       return Number(state.wheel.startAngle || 0)
         + (Number(state.wheel.targetAngle || 0) - Number(state.wheel.startAngle || 0)) * eased;
-    }
-
-    function domSlowWheel() {
-      if (!state.wheel.spinning || state.wheel.domSlowUsed) return;
-      if (state.online.room && localOnlineRole() !== DOM) return;
-      const now = Date.now();
-      const elapsed = now - Number(state.wheel.spinStartedAt || now);
-      const remaining = Math.max(0, Number(state.wheel.spinDuration || 0) - elapsed);
-      if (remaining < 900) return;
-      state.wheel.angle = currentWheelAngle(now);
-      state.wheel.startAngle = state.wheel.angle;
-      state.wheel.spinStartedAt = now;
-      state.wheel.spinDuration = Math.max(1300, Math.round(remaining * 0.48));
-      state.wheel.domSlowUsed = true;
-      addLog(`<strong>${state.names.dom} presses the wheel.</strong> The spin tightens, but the wheel keeps its course.`);
-      render();
-      publishState();
     }
 
     function normalizeWheelDelta(fromAngle, targetAngle) {
@@ -4184,17 +4250,138 @@
       state.wheel.angle = state.wheel.targetAngle;
       const value = state.wheel.slices[state.wheel.resultIndex];
       state.wheel.result = value;
+      const result = resolveWheelPayout(value);
+      state.wheel.finalPayout = result.payout;
+      state.wheel.resultNotes = result.notes;
       state.active = true;
-      if (value > 0) {
-        state.domVault += value;
+      if (result.payout > 0) {
+        state.domVault += result.payout;
         state.lockedTribute = state.domVault;
-        addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${money(value)} and it enters her bank.`);
+        addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${wheelValueText(value)}${result.notes.length ? ` (${result.notes.join(", ")})` : ""}. ${money(result.payout)} enters her bank.`);
       } else {
         addLog(`<strong>${state.names.sub} hits blank.</strong> Nothing enters ${state.names.dom}'s bank.`);
       }
       state.pot = 0;
       render();
       publishState();
+    }
+
+    function resolveWheelPayout(value, index) {
+      const notes = [];
+      let payout = Number(value || 0);
+      if (state.wheel.greedyDom) {
+        if (value === 25) {
+          payout = 60;
+          notes.push("greedy $25 becomes $60");
+        } else if (value === 0) {
+          payout = 30;
+          notes.push("greedy blank becomes $30");
+        } else if (value === 2 || value === 5 || value === 10) {
+          payout = 0;
+          notes.push(`greedy ${money(value)} becomes blank`);
+        }
+      }
+      if (payout > 0 && state.wheel.blessedValue === value) {
+        const upgraded = wheelUpgradeValue(value);
+        if (upgraded > payout) {
+          notes.push(`blessed to ${money(upgraded)}`);
+          payout = upgraded;
+        }
+      }
+      return { payout, notes };
+    }
+
+    function wheelUpgradeValue(value) {
+      if (value === 1) return 2;
+      if (value === 2) return 5;
+      if (value === 5) return 10;
+      if (value === 10) return 25;
+      return value;
+    }
+
+    function canUseWheelDomTools() {
+      return state.currentGame === "wheelSpin"
+        && state.active
+        && !state.wheel.spinning
+        && (!state.online.room || localOnlineRole() === DOM);
+    }
+
+    function blessWheelValue(value) {
+      refreshWheelLimitWindow();
+      if (!canUseWheelDomTools()) return;
+      const activating = state.wheel.blessedValue !== value;
+      if (activating && wheelPowerRemaining("bless") <= 0) {
+        addLog(`<strong class="danger">Bless spent.</strong> Bless refreshes in ${formatWheelTime(wheelLimitRemainingMs())}.`);
+        render();
+        return;
+      }
+      state.wheel.blessedValue = state.wheel.blessedValue === value ? null : value;
+      if (activating) state.wheel.blessUses += 1;
+      addLog(state.wheel.blessedValue
+        ? `<strong>${state.names.dom} blesses ${money(value)}.</strong> If it lands, it upgrades to ${money(wheelUpgradeValue(value))}.`
+        : `<strong>${state.names.dom} clears the blessing.</strong>`);
+      render();
+      publishState();
+    }
+
+    function toggleGreedyDom() {
+      refreshWheelLimitWindow();
+      if (!canUseWheelDomTools()) return;
+      if (!state.wheel.greedyDom && wheelPowerRemaining("greedy") <= 0) {
+        addLog(`<strong class="danger">Greedy spent.</strong> Greedy Dom refreshes in ${formatWheelTime(wheelLimitRemainingMs())}.`);
+        render();
+        return;
+      }
+      state.wheel.greedyDom = !state.wheel.greedyDom;
+      if (state.wheel.greedyDom) state.wheel.greedyUses += 1;
+      addLog(state.wheel.greedyDom
+        ? `<strong>${state.names.dom} turns Greedy.</strong> $25 pays $60, blanks pay $30, and $2/$5/$10 become blanks.`
+        : `<strong>${state.names.dom} turns off Greedy Dom.</strong>`);
+      render();
+      publishState();
+    }
+
+    function canNudgeWheel() {
+      return state.currentGame === "wheelSpin"
+        && !state.wheel.spinning
+        && state.wheel.resultIndex !== null
+        && !state.wheel.nudgeUsed
+        && wheelPowerRemaining("nudge") > 0
+        && (!state.online.room || localOnlineRole() === DOM);
+    }
+
+    function nudgeWheel(direction) {
+      refreshWheelLimitWindow();
+      if (!canNudgeWheel()) return;
+      if (wheelPowerRemaining("nudge") <= 0) {
+        addLog(`<strong class="danger">Nudge spent.</strong> Nudge refreshes in ${formatWheelTime(wheelLimitRemainingMs())}.`);
+        render();
+        return;
+      }
+      const oldPayout = Number(state.wheel.finalPayout || 0);
+      const oldValue = state.wheel.result;
+      const nextIndex = (state.wheel.resultIndex + direction + 36) % 36;
+      const sliceAngle = Math.PI * 2 / 36;
+      const nextValue = state.wheel.slices[nextIndex];
+      state.wheel.resultIndex = nextIndex;
+      state.wheel.result = nextValue;
+      state.wheel.angle += direction * sliceAngle;
+      const result = resolveWheelPayout(nextValue);
+      state.wheel.finalPayout = result.payout;
+      state.wheel.resultNotes = [...result.notes, `nudged ${direction > 0 ? "forward" : "back"}`];
+      state.wheel.nudgeUsed = true;
+      state.wheel.nudgeUses += 1;
+      const delta = result.payout - oldPayout;
+      state.domVault = Math.max(0, state.domVault + delta);
+      state.lockedTribute = state.domVault;
+      const deltaText = `${delta >= 0 ? "+" : "-"}${money(Math.abs(delta))}`;
+      addLog(`<strong>${state.names.dom} nudges the wheel ${direction > 0 ? "forward" : "back"}.</strong> ${wheelValueText(oldValue)} becomes ${wheelValueText(nextValue)}; bank adjusts by ${deltaText}.`);
+      render();
+      publishState();
+    }
+
+    function wheelValueText(value) {
+      return value === 0 ? "blank" : money(value);
     }
 
     function resetTributeDiceBoard() {
@@ -5556,6 +5743,7 @@
     }
 
     function renderWheelSpinBoard() {
+      refreshWheelLimitWindow();
       els.board.className = "wheel-table";
       els.board.innerHTML = "";
       const stage = document.createElement("div");
@@ -5564,50 +5752,112 @@
       canvas.className = "wheel-canvas";
       canvas.width = 720;
       canvas.height = 720;
-      canvas.addEventListener("click", () => {
-        if (state.wheel.spinning) domSlowWheel();
-      });
       stage.appendChild(canvas);
       const button = document.createElement("button");
       button.className = "primary wheel-center-button";
       button.textContent = wheelCenterButtonText();
       button.disabled = wheelCenterButtonDisabled();
       button.addEventListener("click", () => {
-        if (state.wheel.spinning) {
-          domSlowWheel();
-        } else {
+        if (!state.wheel.spinning) {
           spinWheel();
         }
       });
-      button.title = state.wheel.spinning && (!state.online.room || localOnlineRole() === DOM) && !state.wheel.domSlowUsed
-        ? "Click the wheel surface to hasten the slowdown"
-        : "Spin";
+      button.title = "Spin";
       stage.appendChild(button);
       const result = document.createElement("div");
       result.className = "wheel-result";
       result.textContent = wheelResultText();
+      const tools = renderWheelDomTools();
       els.board.appendChild(stage);
       els.board.appendChild(result);
+      els.board.appendChild(tools);
       animateWheelCanvas(canvas, result, button);
+      if (renderWheelSpinBoard.timer) window.clearTimeout(renderWheelSpinBoard.timer);
+      if (state.currentGame === "wheelSpin" && state.screen === "game" && !state.wheel.spinning) {
+        renderWheelSpinBoard.timer = window.setTimeout(render, 1000);
+      }
     }
 
     function wheelResultText() {
       if (state.wheel.spinning) return "The wheel is slowing down...";
-      if (state.wheel.result === 0) return "Result: blank";
-      if (Number(state.wheel.result) > 0) return `Result: ${money(state.wheel.result)}`;
+      if (state.wheel.result !== null) {
+        const notes = (state.wheel.resultNotes || []).length ? ` (${state.wheel.resultNotes.join(", ")})` : "";
+        const resultText = state.wheel.result === 0 ? "blank" : money(state.wheel.result);
+        return `Result: ${resultText}${notes} -> ${money(Number(state.wheel.finalPayout || 0))}`;
+      }
       return `${state.names.sub} can press the center to spin.`;
     }
 
     function wheelCenterButtonText() {
       if (!state.wheel.spinning) return "Spin";
-      if ((!state.online.room || localOnlineRole() === DOM) && !state.wheel.domSlowUsed) return "Press";
       return "Spinning";
     }
 
     function wheelCenterButtonDisabled() {
       if (!state.active) return true;
-      if (!state.wheel.spinning) return Boolean(localOnlineRole() && localOnlineRole() !== SUB);
-      return Boolean(state.wheel.domSlowUsed || (state.online.room && localOnlineRole() !== DOM));
+      if (!state.wheel.spinning) return Boolean((localOnlineRole() && localOnlineRole() !== SUB) || wheelSpinsRemaining() <= 0);
+      return true;
+    }
+
+    function renderWheelDomTools() {
+      const tools = document.createElement("section");
+      tools.className = "wheel-dom-tools";
+      const canUse = canUseWheelDomTools();
+      const limitRow = document.createElement("div");
+      limitRow.className = "wheel-tool-row";
+      limitRow.innerHTML = `<strong>Refresh</strong><span>${wheelSpinsRemaining()} spins left. Powers: Bless ${wheelPowerRemaining("bless")}, Greedy ${wheelPowerRemaining("greedy")}, Nudge ${wheelPowerRemaining("nudge")}. Resets in ${formatWheelTime(wheelLimitRemainingMs())}.</span>`;
+
+      const canBless = canUse && wheelPowerRemaining("bless") > 0;
+      const blessRow = document.createElement("div");
+      blessRow.className = "wheel-tool-row";
+      blessRow.innerHTML = `<strong>Bless</strong>`;
+      [1, 2, 5, 10].forEach((value) => {
+        const button = document.createElement("button");
+        button.textContent = `${money(value)} > ${money(wheelUpgradeValue(value))}`;
+        button.classList.toggle("active", state.wheel.blessedValue === value);
+        button.disabled = !canUse || (state.wheel.blessedValue !== value && !canBless);
+        button.addEventListener("click", () => blessWheelValue(value));
+        blessRow.appendChild(button);
+      });
+
+      const greedyRow = document.createElement("div");
+      greedyRow.className = "wheel-tool-row";
+      greedyRow.innerHTML = `<strong>Greedy</strong>`;
+      const greedyButton = document.createElement("button");
+      greedyButton.textContent = "Greedy Dom";
+      greedyButton.classList.toggle("active", state.wheel.greedyDom);
+      greedyButton.disabled = !canUse || (!state.wheel.greedyDom && wheelPowerRemaining("greedy") <= 0);
+      greedyButton.addEventListener("click", toggleGreedyDom);
+      greedyRow.appendChild(greedyButton);
+
+      const nudgeRow = document.createElement("div");
+      nudgeRow.className = "wheel-tool-row";
+      nudgeRow.innerHTML = `<strong>Nudge</strong>`;
+      [
+        { label: "Back 1", direction: -1 },
+        { label: "Forward 1", direction: 1 }
+      ].forEach(({ label, direction }) => {
+        const button = document.createElement("button");
+        button.textContent = label;
+        button.disabled = !canNudgeWheel();
+        button.addEventListener("click", () => nudgeWheel(direction));
+        nudgeRow.appendChild(button);
+      });
+
+      const status = document.createElement("div");
+      status.className = "wheel-result";
+      const bits = [];
+      if (state.wheel.blessedValue) bits.push(`Blessed: ${money(state.wheel.blessedValue)} upgrades to ${money(wheelUpgradeValue(state.wheel.blessedValue))}`);
+      if (state.wheel.greedyDom) bits.push("Greedy Dom: $25->$60, blank->$30, $2/$5/$10->blank");
+      if (state.wheel.nudgeUsed) bits.push("Nudge used");
+      status.textContent = bits.join(" | ") || `${state.names.dom} can bless a value, turn Greedy, or nudge once after the result.`;
+
+      tools.appendChild(limitRow);
+      tools.appendChild(blessRow);
+      tools.appendChild(greedyRow);
+      tools.appendChild(nudgeRow);
+      tools.appendChild(status);
+      return tools;
     }
 
     function animateWheelCanvas(canvas, resultEl, buttonEl) {
@@ -5660,6 +5910,19 @@
         ctx.strokeStyle = "rgba(255, 230, 176, 0.28)";
         ctx.lineWidth = 2;
         ctx.stroke();
+        const blessed = wheel.blessedValue === value && value > 0 && !wheel.greedyDom;
+        const greedyAffected = wheel.greedyDom && (value === 0 || value === 2 || value === 5 || value === 10 || value === 25);
+        if (blessed || greedyAffected) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(center, center);
+          ctx.arc(center, center, radius - 8, start + 0.008, end - 0.008);
+          ctx.closePath();
+          ctx.strokeStyle = greedyAffected ? "rgba(255, 244, 214, 0.92)" : "rgba(239, 199, 94, 0.88)";
+          ctx.lineWidth = greedyAffected ? 7 : 5;
+          ctx.stroke();
+          ctx.restore();
+        }
 
         ctx.save();
         ctx.translate(center, center);
@@ -6037,7 +6300,10 @@
         `<strong>Cash layout:</strong> 13 spaces show $1, 9 show $2, 5 show $5, 3 show $10, 2 show $25, and 4 are blank.`,
         `<strong>Blank placement:</strong> each $25 has a blank directly on either side, with the second blank-$25-blank cluster placed straight across from the first. The remaining spaces are shuffled around the wheel.`,
         `<strong>Pointer:</strong> the fixed arrow at the top points to the winning space when the wheel stops.`,
-        `<strong>Dom press:</strong> while the wheel is spinning, ${state.names.dom} can click the wheel once to make it slow down quicker. The winning space is already set, so this cannot aim the stop.`,
+        `<strong>Limits:</strong> the wheel can be spun 8 times every 15 minutes. Bless, Greedy Dom, and Nudge each have 3 uses in that same 15-minute window.`,
+        `<strong>Bless:</strong> before the spin, ${state.names.dom} can bless $1, $2, $5, or $10. If that value lands, it upgrades one step: $1 to $2, $2 to $5, $5 to $10, or $10 to $25.`,
+        `<strong>Greedy Dom:</strong> before the spin, ${state.names.dom} can make every $25 pay $60 and every blank pay $30, but every $2, $5, and $10 becomes a blank. Bless can still be active at the same time, but only remaining $1 spaces can benefit.`,
+        `<strong>Nudge:</strong> after the wheel stops, ${state.names.dom} can move the result one space forward or back once. The bank adjusts to the new result.`,
         `<strong>Cash result:</strong> landing on a cash space adds that amount to ${state.names.dom}'s bank.`,
         `<strong>Blank result:</strong> landing on blank means nothing enters ${state.names.dom}'s bank.`
       ];
