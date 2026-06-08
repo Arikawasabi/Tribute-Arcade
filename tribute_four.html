@@ -336,6 +336,51 @@
       box-shadow: 0 0 26px rgba(239, 199, 94, 0.25), inset 0 0 28px rgba(239, 199, 94, 0.16);
     }
 
+    .dice-table {
+      display: grid;
+      gap: 14px;
+      width: min(96vw, 820px);
+      margin: 0 auto;
+    }
+
+    .dice-panels {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .dice-panel {
+      border: 1px solid rgba(244, 239, 232, 0.12);
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(15, 19, 25, 0.68);
+    }
+
+    .dice-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .die {
+      width: 48px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      border: 1px solid rgba(244, 239, 232, 0.14);
+      background: rgba(244, 239, 232, 0.08);
+      font-size: 1.35rem;
+      font-weight: 900;
+    }
+
+    .bid-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+      gap: 8px;
+    }
+
     .empty-card {
       min-height: 180px;
       padding: 16px;
@@ -1156,9 +1201,9 @@
       <button class="panel game-card" id="tributeDiceCard">
         <span>
           <h2>Tribute Dice</h2>
-          <p>Bluffing dice with direct calls, raises, and reclaim pressure. Designed as the next core vs game.</p>
+          <p>Bluffing dice with direct calls, raises, and reclaim pressure.</p>
         </span>
-        <strong class="status-pill">Designing</strong>
+        <strong class="status-pill">Play</strong>
       </button>
 
       <button class="panel game-card" id="tributeChessCard">
@@ -1586,6 +1631,7 @@
       winningCells: [],
       fleet: createFleetState(),
       twentyOne: createTwentyOneState(),
+      dice: createDiceState(),
       chess: createChessState()
     };
 
@@ -1682,6 +1728,18 @@
 
     function createTicTacToeBoard() {
       return Array.from({ length: 3 }, () => Array(3).fill(EMPTY));
+    }
+
+    function createDiceState() {
+      return {
+        dice: {
+          sub: [],
+          dom: []
+        },
+        bid: null,
+        revealed: false,
+        outcome: ""
+      };
     }
 
     function createFleetGrid() {
@@ -1979,6 +2037,18 @@
       publishState();
     }
 
+    function openTributeDice() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.currentGame = "tributeDice";
+      setScreen("game");
+      resetTributeDiceBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>${state.names.sub}</strong> opens the first dice bet. Raise the claim, or call the bluff.`);
+      render();
+      publishState();
+    }
+
     function openTributeTwentyOne() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.currentGame = "tributeTwentyOne";
@@ -2031,7 +2101,7 @@
       const domPickBlocked = Boolean(state.online.room && localRole && localRole !== DOM);
       els.tributeFourCard.disabled = domPickBlocked;
       els.tributeFleetCard.disabled = domPickBlocked;
-      els.tributeDiceCard.disabled = true;
+      els.tributeDiceCard.disabled = domPickBlocked;
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
@@ -2097,6 +2167,7 @@
       state.settings.subDefaultBet = normalizeBuyIn(Number(state.settings.subDefaultBet));
       if (!state.active) els.betInput.value = state.settings.subDefaultBet;
       renderSettings();
+      renderGameSelectTabs();
       publishState();
     }
 
@@ -2241,6 +2312,7 @@
         winningCells: state.winningCells,
         fleet: state.fleet,
         twentyOne: state.twentyOne,
+        dice: state.dice,
         chess: state.chess,
         onlineLobby: {
           seats: state.online.seats,
@@ -2278,6 +2350,7 @@
       state.winningCells = snapshot.winningCells || [];
       state.fleet = snapshot.fleet || state.fleet;
       state.twentyOne = snapshot.twentyOne || state.twentyOne;
+      state.dice = snapshot.dice || state.dice;
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
         state.online.seats = snapshot.onlineLobby.seats;
@@ -2477,6 +2550,10 @@
         startFleetNormalMatch();
         return;
       }
+      if (state.currentGame === "tributeDice") {
+        startDiceNormalMatch();
+        return;
+      }
       if (localOnlineRole() && localOnlineRole() !== SUB) return;
       const bet = normalizeBuyIn(Number(els.betInput.value));
       els.betInput.value = bet;
@@ -2506,6 +2583,10 @@
       }
       if (state.currentGame === "tributeFleet") {
         startFleetReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "tributeDice") {
+        startDiceReclaimMatch();
         return;
       }
       if (localOnlineRole() && localOnlineRole() !== SUB) return;
@@ -2754,6 +2835,14 @@
         publishState();
         return;
       }
+      if (state.currentGame === "tributeDice") {
+        resetTributeDiceBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Tribute Dice reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
       resetTributeFourBoard();
       els.log.innerHTML = "";
       addLog(`<strong>Tribute Four reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
@@ -2799,6 +2888,16 @@
       state.lockedTribute = state.domVault;
       state.winningCells = [];
       state.twentyOne = createTwentyOneState();
+    }
+
+    function resetTributeDiceBoard() {
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+      state.dice = createDiceState();
     }
 
     function resetTributeTicTacToeBoard() {
@@ -2901,6 +3000,83 @@
 
     function isTicTacToeFull() {
       return state.board.every((row) => row.every(Boolean));
+    }
+
+    function rollDiceHand() {
+      return Array.from({ length: 3 }, () => 1 + Math.floor(Math.random() * 6));
+    }
+
+    function startDiceNormalMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const bet = normalizeBuyIn(Number(els.betInput.value));
+      els.betInput.value = bet;
+      state.pot = bet;
+      state.mode = "normal";
+      state.dice = createDiceState();
+      state.dice.dice.sub = rollDiceHand();
+      state.dice.dice.dom = rollDiceHand();
+      state.turn = SUB;
+      state.active = true;
+      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${state.names.sub} makes the first claim.`);
+      render();
+      publishState();
+    }
+
+    function startDiceReclaimMatch() {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (state.domVault <= 0) {
+        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal match first to unlock reclaim.`);
+        return;
+      }
+      state.pot = state.domVault;
+      state.mode = "reclaim";
+      state.dice = createDiceState();
+      state.dice.dice.sub = rollDiceHand();
+      state.dice.dice.dom = rollDiceHand();
+      state.turn = DOM;
+      state.active = true;
+      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} tries to win back ${money(state.pot)}. ${state.names.dom} makes the first claim.`);
+      render();
+      publishState();
+    }
+
+    function diceBidValue(bid) {
+      return bid ? (bid.count * 10 + bid.face) : 0;
+    }
+
+    function diceBidOptions() {
+      const options = [];
+      const current = diceBidValue(state.dice.bid);
+      for (let count = 1; count <= 6; count += 1) {
+        for (let face = 1; face <= 6; face += 1) {
+          const bid = { count, face };
+          if (diceBidValue(bid) > current) options.push(bid);
+        }
+      }
+      return options;
+    }
+
+    function makeDiceBid(count, face) {
+      if (!state.active || state.currentGame !== "tributeDice") return;
+      if (localOnlineRole() && localOnlineRole() !== state.turn) return;
+      state.dice.bid = { count, face, by: state.turn };
+      addLog(`<strong>${labelFor(state.turn)} claims</strong> at least ${count} ${face}${count === 1 ? "" : "s"}.`);
+      state.turn = state.turn === SUB ? DOM : SUB;
+      render();
+      publishState();
+    }
+
+    function callDiceBluff() {
+      if (!state.active || state.currentGame !== "tributeDice" || !state.dice.bid) return;
+      if (localOnlineRole() && localOnlineRole() !== state.turn) return;
+      const bid = state.dice.bid;
+      const allDice = [...state.dice.dice.sub, ...state.dice.dice.dom];
+      const actual = allDice.filter((value) => value === bid.face).length;
+      const bidderWins = actual >= bid.count;
+      state.dice.revealed = true;
+      state.dice.outcome = `${actual} ${bid.face}${actual === 1 ? "" : "s"} on the table.`;
+      addLog(`<strong>${labelFor(state.turn)} calls.</strong> ${state.dice.outcome} ${labelFor(bidderWins ? bid.by : state.turn)} wins the dice round.`);
+      endMatch(bidderWins ? bid.by : state.turn, []);
     }
 
     function chessEngine() {
@@ -4023,6 +4199,10 @@
         renderFleetBoard();
         return;
       }
+      if (state.currentGame === "tributeDice") {
+        renderDiceBoard();
+        return;
+      }
       els.board.innerHTML = "";
       els.board.className = "board";
       const winSet = new Set(state.winningCells.map(([r, c]) => `${r},${c}`));
@@ -4058,6 +4238,58 @@
           els.board.appendChild(cell);
         }
       }
+    }
+
+    function renderDiceBoard() {
+      const viewer = localOnlineRole();
+      const canAct = state.active && (!viewer || viewer === state.turn);
+      const showAll = !viewer || !state.active || state.dice.revealed;
+      els.board.innerHTML = "";
+      els.board.className = "dice-table";
+      const panels = document.createElement("div");
+      panels.className = "dice-panels";
+      [DOM, SUB].forEach((role) => {
+        const panel = document.createElement("section");
+        panel.className = "dice-panel";
+        const visible = showAll || viewer === role;
+        const dice = state.dice.dice[role] || [];
+        panel.innerHTML = `<strong>${labelFor(role)}</strong><div class="dice-row">${dice.map((value) => `<span class="die">${visible ? value : "?"}</span>`).join("") || `<span class="die">-</span>`}</div>`;
+        panels.appendChild(panel);
+      });
+      els.board.appendChild(panels);
+
+      const status = document.createElement("section");
+      status.className = "dice-panel";
+      const bid = state.dice.bid;
+      const bidText = bid
+        ? `Current claim: at least ${bid.count} ${bid.face}${bid.count === 1 ? "" : "s"} by ${labelFor(bid.by)}.`
+        : "No claim yet.";
+      status.innerHTML = `<p>${bidText}</p>${state.dice.outcome ? `<p>${state.dice.outcome}</p>` : ""}`;
+      els.board.appendChild(status);
+
+      if (!state.active) return;
+      const actions = document.createElement("section");
+      actions.className = "dice-panel";
+      actions.innerHTML = `<strong>${labelFor(state.turn)} to act</strong>`;
+      if (bid) {
+        const call = document.createElement("button");
+        call.className = "secondary";
+        call.textContent = "Call Bluff";
+        call.disabled = !canAct;
+        call.addEventListener("click", callDiceBluff);
+        actions.appendChild(call);
+      }
+      const grid = document.createElement("div");
+      grid.className = "bid-grid";
+      diceBidOptions().forEach((option) => {
+        const button = document.createElement("button");
+        button.textContent = `${option.count} x ${option.face}`;
+        button.disabled = !canAct;
+        button.addEventListener("click", () => makeDiceBid(option.count, option.face));
+        grid.appendChild(button);
+      });
+      actions.appendChild(grid);
+      els.board.appendChild(actions);
     }
 
     function renderChessBoard() {
@@ -4233,6 +4465,10 @@
         renderTicTacToeRules();
         return;
       }
+      if (state.currentGame === "tributeDice") {
+        renderDiceRules();
+        return;
+      }
       if (state.currentGame === "tributeFleet") {
         renderFleetRules();
         return;
@@ -4261,6 +4497,21 @@
         `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
         `${state.names.dom} plays O first.`,
         `Drawn reclaim boards go to ${state.names.dom}.`
+      ];
+      const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
+      els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+    }
+
+    function renderDiceRules() {
+      const normalRules = [
+        `Normal: ${state.names.sub} chooses any cash bet and makes the first claim.`,
+        `Each player rolls three dice. Raise the claim or call bluff.`,
+        `When called, if the table has enough matching dice, the bidder wins. Otherwise the caller wins.`
+      ];
+      const reclaimRules = [
+        `Reclaim: ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
+        `${state.names.dom} makes the first claim.`,
+        `The same bluff/call rules decide the round.`
       ];
       const rules = state.mode === "reclaim" ? reclaimRules : normalRules;
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
@@ -4416,7 +4667,7 @@
       } else if (state.currentGame === "tributeFleet") {
         els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.fleet.scanAvailable || onlineBlocksDom;
         els.passBtn.textContent = "Scan";
-      } else if (state.currentGame === "tributeTicTacToe") {
+      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice") {
         els.passBtn.classList.add("hidden");
       } else {
         els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.skipAvailable || state.skipArmed || onlineBlocksDom;
@@ -4438,6 +4689,11 @@
       if (state.currentGame === "tributeTicTacToe") {
         els.gameTitle.textContent = "Tribute Tic Tac Toe";
         els.gameSubtitle.textContent = "Fast three-in-a-row mini bets. The sub opens normal games as X; reclaim lets the dom start and take drawn boards.";
+        return;
+      }
+      if (state.currentGame === "tributeDice") {
+        els.gameTitle.textContent = "Tribute Dice";
+        els.gameSubtitle.textContent = "Bluffing dice with cash stakes. Raise the claim, call the bluff, and make the other player prove it.";
         return;
       }
       if (state.currentGame === "tributeFleet") {
@@ -4510,6 +4766,7 @@
     els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
     els.tributeFourCard.addEventListener("click", openTributeFour);
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
+    els.tributeDiceCard.addEventListener("click", openTributeDice);
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
     els.tributeChessCard.addEventListener("click", openTributeChess);
