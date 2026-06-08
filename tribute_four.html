@@ -991,10 +991,11 @@
       box-shadow: 0 20px 55px rgba(0, 0, 0, 0.45);
       transform: translateX(0);
       transition: transform 180ms ease;
+      overflow: visible;
     }
 
     .side-popout.closed {
-      transform: translateX(calc(100% - 44px));
+      transform: translateX(calc(100% + 16px));
     }
 
     .side-header,
@@ -1009,6 +1010,40 @@
       justify-content: space-between;
       padding: 12px;
       border-bottom: 1px solid rgba(244, 239, 232, 0.1);
+    }
+
+    .side-popout.closed .side-header {
+      min-height: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .side-popout.closed .side-header .panel-title {
+      visibility: hidden;
+    }
+
+    .side-popout.closed #sideToggleBtn {
+      position: absolute;
+      left: -48px;
+      top: 50%;
+      width: 44px;
+      min-height: 92px;
+      padding: 8px 6px;
+      transform: translateY(-50%);
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      border-color: rgba(239, 199, 94, 0.48);
+      background: rgba(26, 22, 18, 0.96);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .side-popout.closed.unread #sideToggleBtn {
+      border-color: rgba(86, 181, 255, 0.85);
+      background: linear-gradient(180deg, rgba(86, 181, 255, 0.34), rgba(26, 22, 18, 0.96));
+      box-shadow:
+        0 0 18px rgba(86, 181, 255, 0.42),
+        0 12px 28px rgba(0, 0, 0, 0.35);
+      color: #ffffff;
     }
 
     .side-tabs {
@@ -1112,7 +1147,12 @@
       }
 
       .side-popout.closed {
-        transform: translateY(calc(100% - 44px));
+        transform: translateX(calc(100% + 12px));
+      }
+
+      .side-popout.closed #sideToggleBtn {
+        left: -48px;
+        top: 50%;
       }
 
       .distraction-overlay {
@@ -2622,9 +2662,12 @@
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
-      els.sidePopout.classList.toggle("closed", state.settings.sideOpen === false);
-      els.sideToggleBtn.textContent = state.settings.sideOpen === false ? "Show" : "Hide";
-      els.sideToggleBtn.title = state.settings.sideOpen === false ? "Open panel" : "Collapse panel";
+      const panelOpen = state.settings.sideOpen !== false;
+      if (panelOpen) markChatSeen();
+      els.sidePopout.classList.toggle("closed", !panelOpen);
+      els.sidePopout.classList.toggle("unread", !panelOpen && hasUnreadChat());
+      els.sideToggleBtn.textContent = panelOpen ? "Hide" : "Chat";
+      els.sideToggleBtn.title = panelOpen ? "Collapse panel" : "Open chat panel";
       els.sideTabs.forEach((button) => {
         const visible = button.dataset.sideTab !== "settings" || canUseSettings;
         button.classList.toggle("hidden", !visible);
@@ -2656,13 +2699,36 @@
       renderDistractionBackground();
     }
 
+    function chatSeenKey() {
+      const seat = localSeat() || "local";
+      return `tribute-chat-seen:${state.online.room || "local"}:${seat}`;
+    }
+
+    function latestChatId() {
+      const messages = state.chat || [];
+      return messages.length ? messages[messages.length - 1].id : "";
+    }
+
+    function markChatSeen() {
+      const id = latestChatId();
+      if (id) window.localStorage.setItem(chatSeenKey(), id);
+    }
+
+    function hasUnreadChat() {
+      const id = latestChatId();
+      return Boolean(id && window.localStorage.getItem(chatSeenKey()) !== id);
+    }
+
     function setSideTab(tab) {
       if (tab === "settings" && !domLinkControlsAllowed()) return;
-      updateSettings({ activeSideTab: tab });
+      state.settings.activeSideTab = tab;
+      renderSidePanel();
     }
 
     function toggleSidePanel() {
-      updateSettings({ sideOpen: state.settings.sideOpen === false });
+      state.settings.sideOpen = state.settings.sideOpen === false;
+      if (state.settings.sideOpen !== false) markChatSeen();
+      renderSidePanel();
     }
 
     function chatSenderLabel() {
@@ -2882,6 +2948,8 @@
     function applySnapshot(snapshot) {
       if (!snapshot) return;
       state.online.applying = true;
+      const localSideOpen = state.settings.sideOpen;
+      const localActiveSideTab = state.settings.activeSideTab;
       state.screen = snapshot.screen || state.screen;
       state.roles = snapshot.roles || state.roles;
       state.names = snapshot.names || state.names;
@@ -2889,6 +2957,8 @@
         ...state.settings,
         ...(snapshot.settings || {})
       };
+      state.settings.sideOpen = localSideOpen;
+      state.settings.activeSideTab = localActiveSideTab;
       state.currentGame = snapshot.currentGame || state.currentGame;
       state.board = snapshot.board || state.board;
       state.turn = snapshot.turn || state.turn;
