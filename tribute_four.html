@@ -2258,6 +2258,12 @@
       skipAvailable: false,
       skipArmed: false,
       reclaimPassAvailable: false,
+      lockColumnAvailable: false,
+      lockColumnMode: false,
+      lockedColumn: null,
+      pressureDropAvailable: false,
+      pressureDropArmed: false,
+      pressureDropColumn: null,
       domOpened: false,
       winningCells: [],
       fleet: createFleetState(),
@@ -2664,6 +2670,9 @@
       if (claim && (claim.seat === "one" || claim.seat === "two")) {
         if (!state.online.room || !seatIsOwned(claim.seat) || seatClaimMatches(claim, claim.seat)) return claim.seat;
       }
+      if (state.online.room && (state.online.seat === "one" || state.online.seat === "two")) {
+        if (!claim || !seatClaimMatches(claim, state.online.seat)) return null;
+      }
       return state.online.seat;
     }
 
@@ -2826,6 +2835,13 @@
         return;
       }
       if (seat === SPECTATOR) {
+        const claim = readSeatClaim();
+        if (claim && claim.secret && state.online.spectators && state.online.spectators[claim.secret]) {
+          delete state.online.spectators[claim.secret];
+          await publishOnlineLobbyChange((lobby) => {
+            delete lobby.spectators[claim.secret];
+          });
+        }
         resetLocalOnlineState();
         setScreen("lobby");
         render();
@@ -2846,7 +2862,24 @@
       state.online.playerNames[seat] = "";
       state.online.roleChoices[seat] = null;
       state.active = false;
-      await publishState();
+      const claim = readSeatClaim(room);
+      try {
+        const response = await fetch("/api/leave", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room,
+            seat,
+            secret: claim ? claim.secret : "",
+            leaveNotice: state.settings.leaveNotice
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Leave failed");
+        state.online.rev = data.rev;
+      } catch (error) {
+        els.onlineStatus.textContent = `Leave sync paused: ${error.message}`;
+      }
 
       resetLocalOnlineState();
       els.lobbyNameInput.value = "";
@@ -2982,7 +3015,9 @@
         };
         els.onlineStatus.textContent = `Room ${state.online.room}. You are Spectator.`;
         renderLobby();
-        publishState();
+        publishOnlineLobbyChange((lobby) => {
+          lobby.spectators[claim.secret] = name;
+        });
         return;
       }
       if (!name) {
@@ -3000,7 +3035,11 @@
         state.online.seatSecrets[seat] = claim.secret;
       }
       updateOnlineUi();
-      publishState();
+      publishOnlineLobbyChange((lobby) => {
+        lobby.playerNames[seat] = name;
+        lobby.seats[seat] = true;
+        if (claim && claim.secret && !lobby.seatSecrets[seat]) lobby.seatSecrets[seat] = claim.secret;
+      });
     }
 
     function chooseOnlineRole(role) {
@@ -3008,7 +3047,9 @@
       if (!seat || seat === SPECTATOR) return;
       state.online.roleChoices[seat] = role;
       renderLobby();
-      publishState();
+      publishOnlineLobbyChange((lobby) => {
+        lobby.roleChoices[seat] = role;
+      });
     }
 
     function openTributeFour() {
@@ -3358,18 +3399,19 @@
           return;
         }
       }
+      const message = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        sender: chatSenderLabel(),
+        text,
+        at: Date.now()
+      };
       state.chat = [
         ...(state.chat || []),
-        {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          sender: chatSenderLabel(),
-          text,
-          at: Date.now()
-        }
+        message
       ].slice(-100);
       els.chatInput.value = "";
       renderSidePanel();
-      publishState();
+      publishChatMessage(message);
     }
 
     function saveDomLinkFromInput(input, statusEl) {
@@ -3610,6 +3652,12 @@
         skipAvailable: state.skipAvailable,
         skipArmed: state.skipArmed,
         reclaimPassAvailable: state.reclaimPassAvailable,
+        lockColumnAvailable: state.lockColumnAvailable,
+        lockColumnMode: state.lockColumnMode,
+        lockedColumn: state.lockedColumn,
+        pressureDropAvailable: state.pressureDropAvailable,
+        pressureDropArmed: state.pressureDropArmed,
+        pressureDropColumn: state.pressureDropColumn,
         domOpened: state.domOpened,
         winningCells: state.winningCells,
         fleet: state.fleet,
@@ -3657,6 +3705,12 @@
       state.skipAvailable = Boolean(snapshot.skipAvailable);
       state.skipArmed = Boolean(snapshot.skipArmed);
       state.reclaimPassAvailable = Boolean(snapshot.reclaimPassAvailable);
+      state.lockColumnAvailable = Boolean(snapshot.lockColumnAvailable);
+      state.lockColumnMode = Boolean(snapshot.lockColumnMode);
+      state.lockedColumn = Number.isInteger(snapshot.lockedColumn) ? snapshot.lockedColumn : null;
+      state.pressureDropAvailable = Boolean(snapshot.pressureDropAvailable);
+      state.pressureDropArmed = Boolean(snapshot.pressureDropArmed);
+      state.pressureDropColumn = Number.isInteger(snapshot.pressureDropColumn) ? snapshot.pressureDropColumn : null;
       state.domOpened = Boolean(snapshot.domOpened);
       state.winningCells = snapshot.winningCells || [];
       state.fleet = snapshot.fleet || state.fleet;
@@ -3790,6 +3844,69 @@
       } catch (error) {
         els.onlineStatus.textContent = `Sync paused: ${error.message}`;
       }
+    }
+
+    function snapshotLobby(snapshot) {
+      const lobby = snapshot.onlineLobby || {};
+      return {
+        seats: { one: false, two: false, ...(lobby.seats || {}) },
+        seatSecrets: { one: "", two: "", ...(lobby.seatSecrets || {}) },
+        playerNames: { one: "", two: "", ...(lobby.playerNames || {}) },
+        roleChoices: { one: null, two: null, ...(lobby.roleChoices || {}) },
+        spectators: { ...(lobby.spectators || {}) }
+      };
+    }
+
+    async function publishMergedSnapshot(mergeSnapshot, retry = true) {
+      if (!state.online.room || state.online.applying) return;
+      try {
+        const currentResponse = await fetch(`/api/state?room=${encodeURIComponent(state.online.room)}`);
+        const current = await currentResponse.json();
+        if (!currentResponse.ok) throw new Error(current.error || "Room unavailable");
+        const mergedSnapshot = mergeSnapshot(current.snapshot || snapshotState());
+        const syncResponse = await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room: state.online.room,
+            baseRev: current.rev,
+            snapshot: mergedSnapshot
+          })
+        });
+        const synced = await syncResponse.json();
+        if (syncResponse.status === 409) {
+          state.online.rev = synced.rev;
+          applySnapshot(synced.snapshot);
+          if (retry) await publishMergedSnapshot(mergeSnapshot, false);
+          return;
+        }
+        if (!syncResponse.ok) throw new Error(synced.error || "Sync failed");
+        state.online.rev = synced.rev;
+        applySnapshot(synced.snapshot);
+      } catch (error) {
+        els.onlineStatus.textContent = `Sync paused: ${error.message}`;
+      }
+    }
+
+    async function publishOnlineLobbyChange(changeLobby) {
+      await publishMergedSnapshot((snapshot) => {
+        const next = { ...snapshot };
+        const lobby = snapshotLobby(next);
+        changeLobby(lobby);
+        next.onlineLobby = lobby;
+        return next;
+      });
+    }
+
+    async function publishChatMessage(message) {
+      await publishMergedSnapshot((snapshot) => {
+        const messages = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-99) : [];
+        if (!messages.some((existing) => existing.id === message.id)) messages.push(message);
+        return {
+          ...snapshot,
+          chat: messages.slice(-100)
+        };
+      });
     }
 
     async function publishSettingsState(retry = true) {
@@ -3948,6 +4065,7 @@
 
     function requestWagerApproval(type) {
       if (wagerStartBypass) return true;
+      if (!usesRoundFlow()) return true;
       if (localOnlineRole() && localOnlineRole() !== SUB) return false;
       if (state.active || state.pendingWager) return false;
       if (type === "reclaim" && state.domVault <= 0) {
@@ -3972,6 +4090,64 @@
       renderWagerApproval();
       publishState();
       return false;
+    }
+
+    const ROUND_FLOW_GAMES = new Set([
+      "tributeFour",
+      "tributeFleet",
+      "tributeChess",
+      "tributeTwentyOne",
+      "tributeTicTacToe",
+      "tributeDice"
+    ]);
+
+    function usesRoundFlow(game = state.currentGame) {
+      return ROUND_FLOW_GAMES.has(game);
+    }
+
+    function prepareRound(type, emptyLabel = "game") {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return null;
+      if (type === "reclaim" && state.domVault <= 0) {
+        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal ${emptyLabel} first to unlock reclaim.`);
+        return null;
+      }
+      const amount = type === "reclaim"
+        ? normalizeBuyIn(state.domVault)
+        : normalizeBuyIn(Number(els.betInput.value));
+      els.betInput.value = amount;
+      state.pot = amount;
+      state.mode = type;
+      state.winningCells = [];
+      return amount;
+    }
+
+    function finishRoundStart(logHtml, shouldRender = true) {
+      if (logHtml) addLog(logHtml);
+      if (shouldRender) render();
+      publishState();
+    }
+
+    function settleRoundBank(winner) {
+      const amount = state.pot;
+      if (winner === SUB) {
+        if (state.mode === "reclaim") {
+          state.domVault = Math.max(0, state.domVault - amount);
+          state.lockedTribute = 0;
+          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
+          return { outcome: "subReclaim", amount };
+        }
+        return { outcome: "subNormal", amount: 0 };
+      }
+      if (winner === DOM) {
+        state.domVault += amount;
+        state.lockedTribute = state.domVault;
+        if (state.mode === "reclaim") {
+          state.tiltLevel += 1;
+          return { outcome: "domReclaim", amount };
+        }
+        return { outcome: "domNormal", amount };
+      }
+      return { outcome: "draw", amount: 0 };
     }
 
     function updatePendingWager(changes, publish = true) {
@@ -4017,11 +4193,18 @@
       if (!state.pendingWager || state.pendingWager.type !== "normal") return;
       if (state.online.room && localOnlineRole() !== DOM) return;
       const lines = [
-        "That little offer barely deserves the word bet.",
-        "Try again. The bank is not impressed.",
-        "Too timid. Make it worth the table's time.",
         "That number looks a little poor. Raise it.",
-        "The tribute is still beneath her attention."
+        "That little offer barely deserves my attention.",
+        "Too small. Try again properly.",
+        "Cute. Now make it worth approving.",
+        "Come back with something less embarrassing.",
+        "You call that a bet?",
+        "Raise it before I get bored.",
+        "I said impress me, not embarrass yourself.",
+        "Raise it until it stops looking desperate.",
+        "Still too light. Add more.",
+        "Your goddess is waiting. Do better.",
+        "Small and pathetic, just like that thing between your legs."
       ];
       updatePendingWager({
         status: "adjust",
@@ -4105,7 +4288,7 @@
           <p class="chooser-line">${isDomView
             ? (waitingApproval ? `${escapeHtml(state.names.sub || "Sub")} wants approval.` : "Watch the new bet live.")
             : (waitingApproval ? "Waiting for approval." : `${escapeHtml(state.names.dom || "Dom")} wants the bet changed.`)}</p>
-          ${pending.denialMessage ? `<p class="chooser-line danger">${escapeHtml(pending.denialMessage)}</p>` : ""}
+          ${(!isDomView && pending.denialMessage) ? `<p class="chooser-line danger">${escapeHtml(pending.denialMessage)}</p>` : ""}
           <div class="wager-adjust-row">
             <button data-wager-action="adjust" data-delta="-10"${arrowDisabled}>&lt;-10</button>
             <button data-wager-action="adjust" data-delta="-5"${arrowDisabled}>&lt;-5</button>
@@ -4210,19 +4393,21 @@
         startDiceNormalMatch();
         return;
       }
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      const bet = normalizeBuyIn(Number(els.betInput.value));
-      els.betInput.value = bet;
-      state.pot = bet;
-      state.mode = "normal";
+      const bet = prepareRound("normal");
+      if (bet === null) return;
       state.blockedColumns = [];
       state.skipAvailable = false;
       state.skipArmed = false;
       state.reclaimPassAvailable = false;
+      state.lockColumnAvailable = false;
+      state.lockColumnMode = false;
+      state.lockedColumn = null;
+      state.pressureDropAvailable = false;
+      state.pressureDropArmed = false;
+      state.pressureDropColumn = null;
       const starter = randomStarter();
       preserveTiltLevel(() => resetMatch(starter));
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`);
-      publishState();
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`, false);
     }
 
     function startReclaimMatch() {
@@ -4251,20 +4436,20 @@
         startDiceReclaimMatch();
         return;
       }
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (state.domVault <= 0) {
-        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal match first to unlock reclaim.`);
-        return;
-      }
-      state.pot = state.domVault;
-      state.mode = "reclaim";
+      const pot = prepareRound("reclaim", "match");
+      if (pot === null) return;
       resetMatch(DOM);
-      state.reclaimPassAvailable = domAdvantagesEnabled() && state.tiltLevel >= 3;
-      state.skipAvailable = domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.reclaimPassAvailable = false;
+      state.skipAvailable = false;
       state.skipArmed = false;
+      state.lockColumnAvailable = tributeFourLockAvailable();
+      state.lockColumnMode = false;
+      state.lockedColumn = null;
+      state.pressureDropAvailable = tributeFourPressureAvailable();
+      state.pressureDropArmed = false;
+      state.pressureDropColumn = null;
       state.domOpened = true;
-      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to win back ${money(state.pot)} from ${state.names.dom}'s bank. Tilt level ${state.tiltLevel}.`);
-      publishState();
+      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to win back ${money(pot)} from ${state.names.dom}'s bank. Tilt level ${state.tiltLevel}.`, false);
     }
 
     function resetMatch(firstTurn) {
@@ -4272,9 +4457,15 @@
       state.turn = firstTurn;
       state.active = true;
       state.winningCells = [];
-      state.reclaimPassAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
-      state.skipAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.reclaimPassAvailable = false;
+      state.skipAvailable = false;
       state.skipArmed = false;
+      state.lockColumnAvailable = state.mode === "reclaim" && tributeFourLockAvailable();
+      state.lockColumnMode = false;
+      state.lockedColumn = null;
+      state.pressureDropAvailable = state.mode === "reclaim" && tributeFourPressureAvailable();
+      state.pressureDropArmed = false;
+      state.pressureDropColumn = null;
       state.domOpened = state.mode === "reclaim";
       state.blockedColumns = [];
       render();
@@ -4294,8 +4485,19 @@
     function blockedColumnCount() {
       if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return 0;
       if (state.tiltLevel >= 5) return 2;
-      if (state.tiltLevel >= 2) return 1;
+      if (state.tiltLevel >= 4) return 1;
+      if (state.tiltLevel === 1) return 1;
       return 0;
+    }
+
+    function tributeFourLockAvailable() {
+      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return false;
+      return state.tiltLevel === 2 || state.tiltLevel >= 4;
+    }
+
+    function tributeFourPressureAvailable() {
+      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return false;
+      return state.tiltLevel === 3;
     }
 
     function chooseBlockedColumns() {
@@ -4313,15 +4515,20 @@
     }
 
     function isColumnBlockedForSub(col) {
-      return state.mode === "reclaim" && state.turn === SUB && state.blockedColumns.includes(col);
+      return state.mode === "reclaim" && state.turn === SUB && (
+        state.blockedColumns.includes(col)
+        || state.lockedColumn === col
+        || state.pressureDropColumn === col
+      );
     }
 
     function tiltDescription() {
       if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
-      if (state.tiltLevel >= 5) return "two sub columns are blocked each sub turn, and the dom gets one skip.";
-      if (state.tiltLevel >= 3) return "one sub column is blocked each sub turn, and the dom gets one skip.";
-      if (state.tiltLevel >= 2) return "one sub column is blocked each sub turn.";
-      if (state.tiltLevel >= 1) return "the dom starts and wins ties.";
+      if (state.tiltLevel >= 5) return "two random sub columns are blocked each sub turn, and the dom gets one Lock Column.";
+      if (state.tiltLevel >= 4) return "one random sub column is blocked each sub turn, and the dom gets one Lock Column.";
+      if (state.tiltLevel === 3) return "the dom gets one Pressure Drop.";
+      if (state.tiltLevel === 2) return "the dom gets one Lock Column.";
+      if (state.tiltLevel === 1) return "one random sub column is blocked each sub turn.";
       return "the dom starts and wins ties.";
     }
 
@@ -4337,6 +4544,16 @@
     function dropToken(col) {
       if (!state.active) return;
       if (localOnlineRole() && localOnlineRole() !== state.turn) return;
+      if (state.currentGame === "tributeFour" && state.turn === DOM && state.lockColumnMode) {
+        if (lowestOpenRow(col) < 0) return;
+        state.lockedColumn = col;
+        state.lockColumnAvailable = false;
+        state.lockColumnMode = false;
+        addLog(`<strong>Lock Column.</strong> ${state.names.dom} locks column ${col + 1}; ${state.names.sub} cannot use it on the next turn.`);
+        render();
+        publishState();
+        return;
+      }
       if (isColumnBlockedForSub(col)) return;
       const row = lowestOpenRow(col);
       if (row < 0) return;
@@ -4355,15 +4572,22 @@
         return;
       }
 
-      if (state.mode === "reclaim" && movingPlayer === DOM && state.skipArmed) {
-        state.skipArmed = false;
-        state.skipAvailable = false;
-        state.reclaimPassAvailable = false;
-        setTurn(DOM);
-        addLog(`<strong>${state.names.sub}'s turn is skipped.</strong> ${state.names.dom} moves again.`);
-      } else {
-        setTurn(state.turn === SUB ? DOM : SUB);
+      if (state.mode === "reclaim" && movingPlayer === SUB) {
+        const hadLock = state.lockedColumn !== null;
+        const hadPressureColumn = state.pressureDropColumn !== null;
+        const pressureColumn = state.pressureDropArmed ? col : null;
+        state.lockedColumn = null;
+        if (hadPressureColumn) state.pressureDropColumn = null;
+        if (pressureColumn !== null) {
+          state.pressureDropColumn = pressureColumn;
+          state.pressureDropArmed = false;
+          state.pressureDropAvailable = false;
+          addLog(`<strong>Pressure Drop.</strong> ${state.names.sub} used column ${col + 1}; that column is forbidden on their next turn.`);
+        } else if (hadLock) {
+          addLog(`<strong>Lock released.</strong> ${state.names.sub}'s next turn is no longer locked.`);
+        }
       }
+      setTurn(state.turn === SUB ? DOM : SUB);
       render();
       publishState();
     }
@@ -4416,26 +4640,15 @@
       state.active = false;
       state.winningCells = cells;
 
-      if (winner === SUB) {
-        if (state.mode === "reclaim") {
-          const reclaimed = state.pot;
-          state.domVault = Math.max(0, state.domVault - reclaimed);
-          state.lockedTribute = 0;
-          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
-          addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${money(reclaimed)} is taken back from ${state.names.dom}'s bank.`);
-        } else {
-          addLog(`<strong>${state.names.sub} wins.</strong> Nothing enters ${state.names.dom}'s bank.`);
-        }
-      } else if (winner === DOM) {
-        const won = state.pot;
-        state.domVault += won;
-        state.lockedTribute = state.domVault;
-        if (state.mode === "reclaim") {
-          state.tiltLevel += 1;
-          addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(won)} is added to her bank. She now has ${money(state.domVault)}.`);
-        } else {
-          addLog(`<strong>${state.names.dom} wins.</strong> ${money(won)} moves into her bank and becomes reclaimable cash.`);
-        }
+      const result = settleRoundBank(winner);
+      if (result.outcome === "subReclaim") {
+        addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "subNormal") {
+        addLog(`<strong>${state.names.sub} wins.</strong> Nothing enters ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "domReclaim") {
+        addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(result.amount)} is added to her bank. She now has ${money(state.domVault)}.`);
+      } else if (result.outcome === "domNormal") {
+        addLog(`<strong>${state.names.dom} wins.</strong> ${money(result.amount)} moves into her bank and becomes reclaimable cash.`);
       } else {
         addLog(`<strong>Draw.</strong> The pot is returned.`);
       }
@@ -4462,10 +4675,20 @@
         fleetScan();
         return;
       }
-      if (!state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.skipAvailable || state.skipArmed) return;
+      if (!state.active || state.mode !== "reclaim" || state.turn !== DOM) return;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return;
-      state.skipArmed = true;
-      addLog(`<strong>${state.names.dom} arms Skip.</strong> After this move, ${state.names.sub}'s turn will be skipped.`);
+      if (state.lockColumnAvailable) {
+        state.lockColumnMode = !state.lockColumnMode;
+        const message = state.lockColumnMode
+          ? `<strong>Lock Column ready.</strong> ${state.names.dom} may click a column to block it for ${state.names.sub}'s next turn.`
+          : `<strong>Lock Column cancelled.</strong>`;
+        addLog(message);
+      } else if (state.pressureDropAvailable && !state.pressureDropArmed) {
+        state.pressureDropArmed = true;
+        addLog(`<strong>Pressure Drop armed.</strong> After ${state.names.sub} moves, that column will be forbidden on their following turn.`);
+      } else {
+        return;
+      }
       render();
       publishState();
     }
@@ -4538,6 +4761,12 @@
       state.skipAvailable = false;
       state.skipArmed = false;
       state.blockedColumns = [];
+      state.lockColumnAvailable = false;
+      state.lockColumnMode = false;
+      state.lockedColumn = null;
+      state.pressureDropAvailable = false;
+      state.pressureDropArmed = false;
+      state.pressureDropColumn = null;
       state.domOpened = false;
       state.winningCells = [];
     }
@@ -4876,36 +5105,22 @@
     }
 
     function startTicTacToeNormalMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      const bet = normalizeBuyIn(Number(els.betInput.value));
-      els.betInput.value = bet;
-      state.pot = bet;
-      state.mode = "normal";
+      const bet = prepareRound("normal");
+      if (bet === null) return;
       state.board = createTicTacToeBoard();
       const starter = randomStarter();
       state.turn = starter;
       state.active = true;
-      state.winningCells = [];
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`);
-      render();
-      publishState();
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`);
     }
 
     function startTicTacToeReclaimMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (state.domVault <= 0) {
-        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal match first to unlock reclaim.`);
-        return;
-      }
-      state.pot = state.domVault;
-      state.mode = "reclaim";
+      const pot = prepareRound("reclaim", "match");
+      if (pot === null) return;
       state.board = createTicTacToeBoard();
       state.turn = DOM;
       state.active = true;
-      state.winningCells = [];
-      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} tries to take back ${money(state.pot)}. ${state.names.dom} starts and wins draws.`);
-      render();
-      publishState();
+      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} tries to take back ${money(pot)}. ${state.names.dom} starts and wins draws.`);
     }
 
     function playTicTacToe(row, col) {
@@ -4958,38 +5173,26 @@
     }
 
     function startDiceNormalMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      const bet = normalizeBuyIn(Number(els.betInput.value));
-      els.betInput.value = bet;
-      state.pot = bet;
-      state.mode = "normal";
+      const bet = prepareRound("normal");
+      if (bet === null) return;
       state.dice = createDiceState();
       state.dice.dice.sub = rollDiceHand();
       state.dice.dice.dom = rollDiceHand();
       const starter = randomStarter();
       state.turn = starter;
       state.active = true;
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} makes the first claim.`);
-      render();
-      publishState();
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} makes the first claim.`);
     }
 
     function startDiceReclaimMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (state.domVault <= 0) {
-        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal match first to unlock reclaim.`);
-        return;
-      }
-      state.pot = state.domVault;
-      state.mode = "reclaim";
+      const pot = prepareRound("reclaim", "match");
+      if (pot === null) return;
       state.dice = createDiceState();
       state.dice.dice.sub = rollDiceHand();
       state.dice.dice.dom = rollDiceHand();
       state.turn = DOM;
       state.active = true;
-      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} tries to win back ${money(state.pot)}. ${state.names.dom} makes the first claim.`);
-      render();
-      publishState();
+      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} tries to win back ${money(pot)}. ${state.names.dom} makes the first claim.`);
     }
 
     function diceBidValue(bid) {
@@ -5038,28 +5241,18 @@
     }
 
     function startChessNormalMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      const bet = normalizeBuyIn(Number(els.betInput.value));
-      els.betInput.value = bet;
-      state.pot = bet;
-      state.mode = "normal";
+      const bet = prepareRound("normal");
+      if (bet === null) return;
       const starter = randomStarter();
       preserveTiltLevel(() => resetChessMatch(starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB }));
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} plays white and starts.`);
-      publishState();
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} plays white and starts.`, false);
     }
 
     function startChessReclaimMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (state.domVault <= 0) {
-        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal game first to unlock reclaim.`);
-        return;
-      }
-      state.pot = state.domVault;
-      state.mode = "reclaim";
+      const pot = prepareRound("reclaim");
+      if (pot === null) return;
       resetChessMatch({ w: DOM, b: SUB });
-      addLog(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(state.pot)}. ${state.names.dom} plays white.`);
-      publishState();
+      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} plays white.`, false);
     }
 
     function resetChessMatch(colors) {
@@ -5612,26 +5805,15 @@
 
     function endChessMatch(winner, reason) {
       state.active = false;
-      if (winner === SUB) {
-        if (state.mode === "reclaim") {
-          const reclaimed = state.pot;
-          state.domVault = Math.max(0, state.domVault - reclaimed);
-          state.lockedTribute = 0;
-          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
-          addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${reason} ${money(reclaimed)} is taken back from ${state.names.dom}'s bank.`);
-        } else {
-          addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
-        }
-      } else if (winner === DOM) {
-        const won = state.pot;
-        state.domVault += won;
-        state.lockedTribute = state.domVault;
-        if (state.mode === "reclaim") {
-          state.tiltLevel += 1;
-          addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(won)} is added to her bank.`);
-        } else {
-          addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(won)} moves into her bank.`);
-        }
+      const result = settleRoundBank(winner);
+      if (result.outcome === "subReclaim") {
+        addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${reason} ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "subNormal") {
+        addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "domReclaim") {
+        addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
+      } else if (result.outcome === "domNormal") {
+        addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
       } else {
         addLog(`<strong>Draw.</strong> ${reason}`);
       }
@@ -5641,27 +5823,17 @@
     }
 
     function startTwentyOneNormalMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      const bet = normalizeBuyIn(Number(els.betInput.value));
-      els.betInput.value = bet;
-      state.pot = bet;
-      state.mode = "normal";
+      const bet = prepareRound("normal");
+      if (bet === null) return;
       preserveTiltLevel(resetTwentyOneHand);
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and takes the first decision.`);
-      publishState();
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and takes the first decision.`, false);
     }
 
     function startTwentyOneReclaimMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (state.domVault <= 0) {
-        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal hand first to unlock reclaim.`);
-        return;
-      }
-      state.pot = state.domVault;
-      state.mode = "reclaim";
+      const pot = prepareRound("reclaim", "hand");
+      if (pot === null) return;
       resetTwentyOneHand();
-      addLog(`<strong>Reclaim hand:</strong> ${state.names.sub} is trying to win back ${money(state.pot)} from ${state.names.dom}'s bank.`);
-      publishState();
+      finishRoundStart(`<strong>Reclaim hand:</strong> ${state.names.sub} is trying to win back ${money(pot)} from ${state.names.dom}'s bank.`, false);
     }
 
     function resetTwentyOneHand() {
@@ -5807,26 +5979,15 @@
       state.twentyOne.revealDom = true;
       state.twentyOne.outcome = reason;
 
-      if (winner === SUB) {
-        if (state.mode === "reclaim") {
-          const reclaimed = state.pot;
-          state.domVault = Math.max(0, state.domVault - reclaimed);
-          state.lockedTribute = 0;
-          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
-          addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${reason} ${money(reclaimed)} is taken back from ${state.names.dom}'s bank.`);
-        } else {
-          addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
-        }
-      } else if (winner === DOM) {
-        const won = state.pot;
-        state.domVault += won;
-        state.lockedTribute = state.domVault;
-        if (state.mode === "reclaim") {
-          state.tiltLevel += 1;
-          addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(won)} is added to her bank.`);
-        } else {
-          addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(won)} moves into her bank.`);
-        }
+      const result = settleRoundBank(winner);
+      if (result.outcome === "subReclaim") {
+        addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${reason} ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "subNormal") {
+        addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "domReclaim") {
+        addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
+      } else if (result.outcome === "domNormal") {
+        addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
       } else {
         addLog(`<strong>Push.</strong> ${reason}`);
       }
@@ -5836,31 +5997,22 @@
     }
 
     function startFleetNormalMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      const bet = normalizeBuyIn(Number(els.betInput.value));
-      els.betInput.value = bet;
-      state.pot = bet;
-      state.mode = "normal";
+      const bet = prepareRound("normal");
+      if (bet === null) return;
       const starter = randomStarter();
       preserveTiltLevel(() => resetFleetMatch(starter));
-      addLog(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} opens fire first.`);
-      publishState();
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} opens fire first.`, false);
     }
 
     function startFleetReclaimMatch() {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (state.domVault <= 0) {
-        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal match first to unlock reclaim.`);
-        return;
-      }
-      state.pot = state.domVault;
-      state.mode = "reclaim";
+      const pot = prepareRound("reclaim", "match");
+      if (pot === null) return;
       resetFleetMatch(DOM);
       state.fleet.scanAvailable = domAdvantagesEnabled() && state.tiltLevel >= 1;
       const modifierText = state.fleet.modifiers.length
         ? ` Extra modifiers: ${state.fleet.modifiers.map(fleetModifierLabel).join(", ")}.`
         : "";
-      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to sink the fleet and reclaim ${money(state.pot)}. Tilt level ${state.tiltLevel}.${modifierText}`);
+      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to sink the fleet and reclaim ${money(pot)}. Tilt level ${state.tiltLevel}.${modifierText}`);
       if (state.fleet.priorityIntel) {
         addLog(`<strong>Priority Intel.</strong> ${state.fleet.priorityIntel.label} contains ${state.fleet.priorityIntel.count} ${state.fleet.priorityIntel.count === 1 ? "ship segment" : "ship segments"}.`);
       }
@@ -6110,26 +6262,15 @@
 
     function endFleetMatch(winner) {
       state.active = false;
-      if (winner === SUB) {
-        if (state.mode === "reclaim") {
-          const reclaimed = state.pot;
-          state.domVault = Math.max(0, state.domVault - reclaimed);
-          state.lockedTribute = 0;
-          state.tiltLevel = Math.max(0, state.tiltLevel - 1);
-          addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${money(reclaimed)} is taken back from ${state.names.dom}'s bank.`);
-        } else {
-          addLog(`<strong>${state.names.sub} wins.</strong> Nothing enters ${state.names.dom}'s bank.`);
-        }
-      } else {
-        const won = state.pot;
-        state.domVault += won;
-        state.lockedTribute = state.domVault;
-        if (state.mode === "reclaim") {
-          state.tiltLevel += 1;
-          addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(won)} is added to her bank. She now has ${money(state.domVault)}.`);
-        } else {
-          addLog(`<strong>${state.names.dom} wins.</strong> ${money(won)} moves into her bank and becomes reclaimable cash.`);
-        }
+      const result = settleRoundBank(winner);
+      if (result.outcome === "subReclaim") {
+        addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "subNormal") {
+        addLog(`<strong>${state.names.sub} wins.</strong> Nothing enters ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "domReclaim") {
+        addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(result.amount)} is added to her bank. She now has ${money(state.domVault)}.`);
+      } else if (result.outcome === "domNormal") {
+        addLog(`<strong>${state.names.dom} wins.</strong> ${money(result.amount)} moves into her bank and becomes reclaimable cash.`);
       }
       state.pot = 0;
       render();
@@ -6724,7 +6865,14 @@
       if (state.currentGame === "tributeTwentyOne") {
         return [`<strong>Current tilt:</strong> level ${state.tiltLevel}: ${twentyOneTiltSummary()}`];
       }
-      return [`<strong>Current tilt:</strong> level ${state.tiltLevel}: ${tiltDescription()}`];
+      const items = [`<strong>Current tilt:</strong> level ${state.tiltLevel}: ${tiltDescription()}`];
+      if (state.currentGame === "tributeFour") {
+        if (state.lockColumnMode) items.push(`<strong>Lock Column:</strong> ${state.names.dom} is choosing a column to lock.`);
+        else if (state.lockedColumn !== null) items.push(`<strong>Lock Column:</strong> column ${state.lockedColumn + 1} is locked for ${state.names.sub}'s next turn.`);
+        if (state.pressureDropArmed) items.push(`<strong>Pressure Drop:</strong> armed. ${state.names.sub}'s next chosen column will be forbidden on their following turn.`);
+        else if (state.pressureDropColumn !== null) items.push(`<strong>Pressure Drop:</strong> column ${state.pressureDropColumn + 1} is forbidden for ${state.names.sub}'s next turn.`);
+      }
+      return items;
     }
 
     function currentGameLabel() {
@@ -6768,10 +6916,12 @@
         `<strong>Win result:</strong> if ${state.names.sub} wins, nothing enters the bank. If ${state.names.dom} wins, the bet goes to her bank.`,
         `<strong>Reclaim:</strong> once ${state.names.dom} has banked cash, ${state.names.sub} can risk a reclaim match to win that bank back.`,
         `<strong>Reclaim base:</strong> ${state.names.dom} starts and wins full-board ties.`,
-        `<strong>Tilt 0-1:</strong> ${state.names.dom} starts and wins ties.`,
-        `<strong>Tilt 2:</strong> one random column is blocked on each ${state.names.sub} turn.`,
-        `<strong>Tilt 3-4:</strong> one random ${state.names.sub} column is blocked each ${state.names.sub} turn, and ${state.names.dom} gets one Skip.`,
-        `<strong>Tilt 5+:</strong> two random ${state.names.sub} columns are blocked each ${state.names.sub} turn, and ${state.names.dom} gets one Skip.`
+        `<strong>Tilt 0:</strong> ${state.names.dom} starts reclaim and wins ties.`,
+        `<strong>Tilt 1:</strong> one random ${state.names.sub} column is blocked each ${state.names.sub} turn.`,
+        `<strong>Tilt 2:</strong> ${state.names.dom} gets Lock Column once, choosing one column ${state.names.sub} cannot use on their next turn.`,
+        `<strong>Tilt 3:</strong> ${state.names.dom} gets Pressure Drop once. After ${state.names.sub} moves, that column is forbidden on ${state.names.sub}'s following turn.`,
+        `<strong>Tilt 4:</strong> one random ${state.names.sub} column is blocked each ${state.names.sub} turn, plus Lock Column.`,
+        `<strong>Tilt 5+:</strong> two random ${state.names.sub} columns are blocked each ${state.names.sub} turn, plus Lock Column.`
       ];
       setRuleList(rules);
     }
@@ -6993,8 +7143,19 @@
       } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice" || state.currentGame === "wheelSpin") {
         els.passBtn.classList.add("hidden");
       } else {
-        els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.skipAvailable || state.skipArmed || onlineBlocksDom;
-        els.passBtn.textContent = state.skipArmed ? "Armed" : (state.mode === "reclaim" && state.tiltLevel >= 3 ? "Skip" : "Pass");
+        const tributeFourPowerReady = state.lockColumnAvailable || (state.pressureDropAvailable && !state.pressureDropArmed);
+        els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !tributeFourPowerReady || onlineBlocksDom;
+        if (state.lockColumnMode) {
+          els.passBtn.textContent = "Pick Column";
+        } else if (state.lockColumnAvailable) {
+          els.passBtn.textContent = "Lock Column";
+        } else if (state.pressureDropArmed) {
+          els.passBtn.textContent = "Armed";
+        } else if (state.pressureDropAvailable) {
+          els.passBtn.textContent = "Pressure Drop";
+        } else {
+          els.passBtn.textContent = "Power";
+        }
       }
     }
 

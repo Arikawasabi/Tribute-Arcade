@@ -117,6 +117,45 @@ function claimSeat(room, body) {
   return { seat, secret };
 }
 
+function preserveSeatClaims(previousSnapshot, nextSnapshot) {
+  const previous = ensureLobby(previousSnapshot || {});
+  const next = ensureLobby(nextSnapshot || {});
+  for (const seat of ["one", "two"]) {
+    if (previous.seatSecrets[seat] && next.seatSecrets[seat] !== previous.seatSecrets[seat]) {
+      next.seats[seat] = previous.seats[seat];
+      next.seatSecrets[seat] = previous.seatSecrets[seat];
+      next.playerNames[seat] = previous.playerNames[seat];
+      next.roleChoices[seat] = previous.roleChoices[seat];
+    }
+  }
+  return nextSnapshot;
+}
+
+function releaseSeat(room, body) {
+  const snapshot = room.snapshot || {};
+  const lobby = ensureLobby(snapshot);
+  const seat = body.seat === "one" || body.seat === "two" ? body.seat : null;
+  const secret = String(body.secret || "");
+  if (!seat || !secret || lobby.seatSecrets[seat] !== secret) {
+    return false;
+  }
+  lobby.seats[seat] = false;
+  lobby.seatSecrets[seat] = "";
+  lobby.playerNames[seat] = "";
+  lobby.roleChoices[seat] = null;
+  snapshot.active = false;
+  if (body.leaveNotice) {
+    snapshot.settings = {
+      ...(snapshot.settings || {}),
+      leaveNotice: body.leaveNotice
+    };
+  }
+  room.rev += 1;
+  room.snapshot = snapshot;
+  markRoomActivity(room);
+  return true;
+}
+
 function staticFile(req, res) {
   const urlPath = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
   const fileName = urlPath === "/" ? "tribute_four.html" : urlPath.slice(1);
@@ -178,7 +217,7 @@ const server = http.createServer(async (req, res) => {
         return send(res, 409, room);
       }
       room.rev += 1;
-      room.snapshot = body.snapshot;
+      room.snapshot = preserveSeatClaims(room.snapshot, body.snapshot);
       markRoomActivity(room);
       return send(res, 200, room);
     }
@@ -194,6 +233,19 @@ const server = http.createServer(async (req, res) => {
       }
       const claim = claimSeat(room, body);
       return send(res, 200, { ...room, claim });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/leave") {
+      const body = await readBody(req);
+      const id = String(body.room || "").toUpperCase();
+      const room = rooms.get(id);
+      if (!room) return send(res, 404, { error: "Room not found" });
+      if (isRoomExpired(room)) {
+        rooms.delete(id);
+        return send(res, 404, { error: "Room expired" });
+      }
+      if (!releaseSeat(room, body)) return send(res, 403, { error: "Seat claim does not match" });
+      return send(res, 200, room);
     }
   } catch (error) {
     return send(res, 500, { error: error.message });
