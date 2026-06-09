@@ -1337,59 +1337,149 @@
     }
 
     .trail-board {
+      position: relative;
       display: grid;
       grid-template-columns: repeat(10, minmax(44px, 1fr));
-      gap: 8px;
+      gap: 12px;
+      padding: 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(244, 239, 232, 0.12);
+      background:
+        linear-gradient(90deg, rgba(239, 199, 94, 0.08) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(244, 239, 232, 0.045) 1px, transparent 1px),
+        radial-gradient(circle at 18% 22%, rgba(86, 181, 255, 0.10), transparent 28%),
+        radial-gradient(circle at 82% 70%, rgba(240, 78, 120, 0.12), transparent 30%),
+        rgba(14, 17, 18, 0.86);
+      background-size: 56px 56px, 56px 56px, auto, auto, auto;
+      overflow: hidden;
     }
 
     .trail-space {
+      position: relative;
       min-height: 76px;
       display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 4px;
-      padding: 8px;
+      grid-template-rows: auto auto 1fr;
+      gap: 6px;
+      padding: 9px;
       border-radius: 8px;
       border: 1px solid rgba(244, 239, 232, 0.13);
-      background: rgba(255, 255, 255, 0.045);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.028)),
+        rgba(28, 25, 23, 0.92);
       color: var(--muted);
       font-size: 0.75rem;
       text-align: left;
+      isolation: isolate;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
     }
 
-    .trail-space strong {
+    .trail-space::before,
+    .trail-space::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      background: rgba(239, 199, 94, 0.36);
+      pointer-events: none;
+    }
+
+    .trail-space::before {
+      width: 18px;
+      height: 3px;
+      top: 50%;
+      right: -18px;
+      transform: translateY(-50%);
+    }
+
+    .trail-space.reverse::before {
+      right: auto;
+      left: -18px;
+    }
+
+    .trail-space.row-end::before {
+      display: none;
+    }
+
+    .trail-space.row-turn::after {
+      width: 3px;
+      height: 18px;
+      left: 50%;
+      bottom: -18px;
+      transform: translateX(-50%);
+    }
+
+    .trail-space-number {
       color: var(--text);
       font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .trail-space-type {
+      width: max-content;
+      max-width: 100%;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(244, 239, 232, 0.12);
+      background: rgba(0, 0, 0, 0.22);
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .trail-space-doubled {
+      color: var(--gold);
     }
 
     .trail-space.start,
     .trail-space.finish {
       border-color: rgba(239, 199, 94, 0.52);
-      background: rgba(239, 199, 94, 0.12);
+      background:
+        linear-gradient(145deg, rgba(239, 199, 94, 0.22), rgba(64, 41, 18, 0.58)),
+        rgba(28, 25, 23, 0.92);
+      box-shadow:
+        0 0 24px rgba(239, 199, 94, 0.18),
+        0 12px 24px rgba(0, 0, 0, 0.24);
     }
 
     .trail-space.cash {
       border-color: rgba(101, 210, 143, 0.45);
-      background: rgba(101, 210, 143, 0.10);
+      background:
+        linear-gradient(145deg, rgba(101, 210, 143, 0.18), rgba(24, 66, 49, 0.42)),
+        rgba(28, 25, 23, 0.92);
     }
 
     .trail-space.player-card {
       border-color: rgba(240, 78, 120, 0.42);
-      background: rgba(240, 78, 120, 0.10);
+      background:
+        linear-gradient(145deg, rgba(240, 78, 120, 0.18), rgba(75, 24, 42, 0.42)),
+        rgba(28, 25, 23, 0.92);
     }
 
     .trail-space.fate-card {
       border-color: rgba(86, 181, 255, 0.42);
-      background: rgba(86, 181, 255, 0.10);
+      background:
+        linear-gradient(145deg, rgba(86, 181, 255, 0.17), rgba(23, 52, 70, 0.42)),
+        rgba(28, 25, 23, 0.92);
     }
 
     .trail-space.trap {
       border-color: rgba(255, 91, 91, 0.42);
-      background: rgba(255, 91, 91, 0.10);
+      background:
+        linear-gradient(145deg, rgba(255, 91, 91, 0.18), rgba(78, 28, 28, 0.44)),
+        rgba(28, 25, 23, 0.92);
     }
 
     .trail-space.shortcut {
       border-color: rgba(239, 199, 94, 0.42);
-      background: rgba(239, 199, 94, 0.09);
+      background:
+        linear-gradient(145deg, rgba(239, 199, 94, 0.17), rgba(78, 63, 28, 0.42)),
+        rgba(28, 25, 23, 0.92);
+    }
+
+    .trail-space.occupied {
+      transform: translateY(-2px);
+      border-color: rgba(244, 239, 232, 0.28);
     }
 
     .trail-token-row {
@@ -1397,12 +1487,12 @@
       align-items: center;
       justify-content: center;
       gap: 5px;
-      min-height: 20px;
+      min-height: 28px;
     }
 
     .trail-token {
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       border: 2px solid rgba(255, 255, 255, 0.72);
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.32);
@@ -1449,6 +1539,44 @@
 
     .trail-card-panel strong {
       color: var(--text);
+    }
+
+    .trail-card-reveal {
+      width: min(440px, calc(100vw - 32px));
+      min-height: 260px;
+      display: grid;
+      align-content: center;
+      gap: 16px;
+      padding: 28px;
+      text-align: center;
+      border-color: rgba(239, 199, 94, 0.62);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(239, 199, 94, 0.18), transparent 48%),
+        rgba(28, 22, 18, 0.98);
+      box-shadow:
+        0 0 34px rgba(239, 199, 94, 0.20),
+        0 24px 80px rgba(0, 0, 0, 0.56);
+      cursor: pointer;
+    }
+
+    .trail-card-reveal h2 {
+      margin: 0;
+      color: var(--gold);
+      font-size: clamp(1.35rem, 4vw, 2rem);
+    }
+
+    .trail-card-reveal p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.48;
+    }
+
+    .trail-card-reveal .trail-card-deck {
+      color: var(--text);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
     }
 
     .log {
@@ -1683,6 +1811,13 @@
 
       .trail-board {
         grid-template-columns: repeat(5, minmax(44px, 1fr));
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .trail-space {
+        min-height: 68px;
+        padding: 7px;
       }
 
       .trail-panels {
@@ -1921,7 +2056,7 @@
       <button class="panel game-card" id="tributeTrailCard">
         <span>
           <h2>Tribute Trail</h2>
-          <p>A 30-space race with dice rolls, cash spaces, traps, shortcuts, and three card decks.</p>
+          <p>A 60-space race with dice rolls, cash spaces, traps, shortcuts, and three card decks.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
@@ -2106,6 +2241,15 @@
           <button id="tributeFourPowerUseBtn" class="primary">Use</button>
         </div>
       </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="trailCardModal">
+    <section class="panel trail-card-reveal" id="trailCardReveal">
+      <p class="trail-card-deck" id="trailCardDeck">Deck</p>
+      <h2 id="trailCardTitle">Card</h2>
+      <p id="trailCardText">Click to close.</p>
+      <p class="chooser-line">Click the card to clear it.</p>
     </section>
   </div>
 
@@ -2461,7 +2605,7 @@
     const WHEEL_LIMIT_WINDOW_MS = 15 * 60 * 1000;
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
-    const TRAIL_LENGTH = 30;
+    const TRAIL_LENGTH = 60;
     const TRAIL_FINISH = TRAIL_LENGTH - 1;
 
     const state = {
@@ -2653,6 +2797,11 @@
       tributeFourPowerDetail: document.getElementById("tributeFourPowerDetail"),
       tributeFourPowerBackBtn: document.getElementById("tributeFourPowerBackBtn"),
       tributeFourPowerUseBtn: document.getElementById("tributeFourPowerUseBtn"),
+      trailCardModal: document.getElementById("trailCardModal"),
+      trailCardReveal: document.getElementById("trailCardReveal"),
+      trailCardDeck: document.getElementById("trailCardDeck"),
+      trailCardTitle: document.getElementById("trailCardTitle"),
+      trailCardText: document.getElementById("trailCardText"),
       leaveRoomButtons: document.querySelectorAll(".leave-room-btn"),
       leaveNoticeModal: document.getElementById("leaveNoticeModal"),
       leaveNoticeText: document.getElementById("leaveNoticeText"),
@@ -2819,11 +2968,11 @@
       const spaces = Array.from({ length: TRAIL_LENGTH }, () => "plain");
       spaces[0] = "start";
       spaces[TRAIL_FINISH] = "finish";
-      [3, 8, 14, 20, 25].forEach((index) => spaces[index] = "player-card");
-      [5, 12, 18, 24].forEach((index) => spaces[index] = "fate-card");
-      [6, 16, 22].forEach((index) => spaces[index] = "cash");
-      [9, 21].forEach((index) => spaces[index] = "trap");
-      [11, 26].forEach((index) => spaces[index] = "shortcut");
+      [3, 8, 14, 20, 25, 31, 38, 44, 52, 56].forEach((index) => spaces[index] = "player-card");
+      [5, 12, 18, 24, 29, 35, 41, 48, 54].forEach((index) => spaces[index] = "fate-card");
+      [6, 16, 22, 33, 46, 58].forEach((index) => spaces[index] = "cash");
+      [9, 21, 37, 50].forEach((index) => spaces[index] = "trap");
+      [11, 26, 43].forEach((index) => spaces[index] = "shortcut");
       return spaces;
     }
 
@@ -2846,6 +2995,7 @@
         lastRoll: null,
         lastPlayerCard: null,
         lastFateCard: null,
+        revealedCard: null,
         winner: null
       };
     }
@@ -5456,9 +5606,11 @@
       const card = player === DOM ? drawTrailDomCard() : drawTrailSubCard();
       state.trail.lastPlayerCard = {
         player,
+        deck: player === DOM ? "Dom Deck" : "Sub Deck",
         title: card.title,
         text: card.text
       };
+      state.trail.revealedCard = state.trail.lastPlayerCard;
       addLog(`<strong>${labelFor(player)} draws ${card.title}.</strong> ${card.text}`);
       if (card.effect) card.effect();
     }
@@ -5560,11 +5712,29 @@
       const card = cards[Math.floor(Math.random() * cards.length)];
       state.trail.lastFateCard = {
         player,
+        deck: "Fate Deck",
         title: card.title,
         text: card.text
       };
+      state.trail.revealedCard = state.trail.lastFateCard;
       addLog(`<strong>${labelFor(player)} draws ${card.title}.</strong> ${card.text}`);
       if (card.effect) card.effect();
+    }
+
+    function clearTrailCardReveal() {
+      if (!state.trail) return;
+      state.trail.revealedCard = null;
+      renderTrailCardReveal();
+      publishState();
+    }
+
+    function renderTrailCardReveal() {
+      const card = state.currentGame === "tributeTrail" && state.trail ? state.trail.revealedCard : null;
+      els.trailCardModal.classList.toggle("hidden", !card);
+      if (!card) return;
+      els.trailCardDeck.textContent = `${card.deck || "Card"} - ${labelFor(card.player)}`;
+      els.trailCardTitle.textContent = card.title || "Card";
+      els.trailCardText.textContent = card.text || "";
     }
 
     function resetPrototype() {
@@ -7179,6 +7349,21 @@
       return labels[type] || "Path";
     }
 
+    function trailVisualOrder(spaces) {
+      const width = 10;
+      const order = [];
+      for (let row = 0; row < Math.ceil(spaces.length / width); row += 1) {
+        const start = row * width;
+        const rowIndexes = [];
+        for (let col = 0; col < width && start + col < spaces.length; col += 1) {
+          rowIndexes.push(start + col);
+        }
+        if (row % 2 === 1) rowIndexes.reverse();
+        order.push(...rowIndexes);
+      }
+      return order;
+    }
+
     function renderTrailCardPanel(card, emptyText) {
       if (!card) {
         return `<p>${emptyText}</p>`;
@@ -7186,7 +7371,7 @@
       return `
         <p><strong>${escapeHtml(card.title)}</strong></p>
         <p>${escapeHtml(card.text)}</p>
-        <p>Drawn by ${escapeHtml(labelFor(card.player))}.</p>
+        <p>${escapeHtml(card.deck || "Card")} drawn by ${escapeHtml(labelFor(card.player))}.</p>
       `;
     }
 
@@ -7196,16 +7381,23 @@
       els.board.className = "trail-layout";
       const board = document.createElement("div");
       board.className = "trail-board";
-      trail.spaces.forEach((type, index) => {
+      trailVisualOrder(trail.spaces).forEach((index) => {
+        const type = trail.spaces[index];
+        const row = Math.floor(index / 10);
+        const col = index % 10;
+        const reverse = row % 2 === 1;
+        const rowEnd = reverse ? col === 0 : col === 9;
+        const rowTurn = rowEnd && index < trail.spaces.length - 1;
         const space = document.createElement("div");
-        space.className = `trail-space ${type}`;
+        space.className = `trail-space ${type}${reverse ? " reverse" : ""}${rowEnd ? " row-end" : ""}${rowTurn ? " row-turn" : ""}`;
         const doubled = (trail.cashDoubled || []).includes(index);
         const tokens = [];
         if (trail.positions.dom === index) tokens.push(`<span class="trail-token dom" title="${escapeHtml(state.names.dom)}"></span>`);
         if (trail.positions.sub === index) tokens.push(`<span class="trail-token sub" title="${escapeHtml(state.names.sub)}"></span>`);
+        if (tokens.length) space.classList.add("occupied");
         space.innerHTML = `
-          <strong>${index + 1}</strong>
-          <span>${trailSpaceLabel(type)}${doubled ? " x2" : ""}</span>
+          <span class="trail-space-number">${index + 1}</span>
+          <span class="trail-space-type">${trailSpaceLabel(type)}${doubled ? `<span class="trail-space-doubled"> x2</span>` : ""}</span>
           <div class="trail-token-row">${tokens.join("")}</div>
         `;
         board.appendChild(space);
@@ -7930,7 +8122,7 @@
 
     function renderTributeTrailRules() {
       const rules = [
-        `<strong>Goal:</strong> race along the 30-space path and be the first player to reach the finish.`,
+        `<strong>Goal:</strong> race along the 60-space path and be the first player to reach the finish.`,
         `<strong>Turns:</strong> the starting player is random. On your turn, press Roll and move that many spaces.`,
         `<strong>Card spaces:</strong> the same Card space draws from the dom deck or sub deck depending on who lands there.`,
         `<strong>Dom cards:</strong> these can upgrade the dom die, double cash spaces, move players, or make the sub miss a turn.`,
@@ -8171,7 +8363,7 @@
       }
       if (state.currentGame === "tributeTrail") {
         els.gameTitle.textContent = "Tribute Trail";
-        els.gameSubtitle.textContent = "A 30-space board race with dice rolls, cash spaces, traps, shortcuts, and dom, sub, and Fate card decks.";
+        els.gameSubtitle.textContent = "A 60-space board race with dice rolls, cash spaces, traps, shortcuts, and dom, sub, and Fate card decks.";
         return;
       }
       if (state.currentGame === "tributeDice") {
@@ -8200,6 +8392,7 @@
       renderLeaveRoomButtons();
       renderLeaveNotice();
       renderWagerApproval();
+      renderTrailCardReveal();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
@@ -8305,6 +8498,7 @@
     els.tributeFourPowerModal.addEventListener("click", (event) => {
       if (event.target === els.tributeFourPowerModal) closeTributeFourPowerModal();
     });
+    els.trailCardModal.addEventListener("click", clearTrailCardReveal);
     els.leaveRoomButtons.forEach((button) => {
       button.addEventListener("click", leaveOnlineRoom);
     });
@@ -8325,6 +8519,7 @@
       if (event.key === "Escape") {
         closeRulesModal();
         closeTributeFourPowerModal();
+        clearTrailCardReveal();
       }
     });
     els.playLocalBtn.addEventListener("click", playLocally);
