@@ -462,6 +462,43 @@
       overflow: auto;
     }
 
+    .power-modal {
+      width: min(560px, 100%);
+    }
+
+    .power-option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .power-option-grid button {
+      min-height: 76px;
+      text-align: left;
+      align-content: start;
+    }
+
+    .power-option-grid button.active {
+      border-color: rgba(239, 199, 94, 0.72);
+      background: rgba(239, 199, 94, 0.14);
+      color: var(--gold);
+    }
+
+    .power-detail {
+      min-height: 112px;
+      padding: 12px;
+      border: 1px solid rgba(244, 239, 232, 0.12);
+      border-radius: 8px;
+      background: rgba(15, 19, 25, 0.48);
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .power-detail strong {
+      color: var(--text);
+    }
+
     .rules-tabs {
       display: flex;
       gap: 8px;
@@ -496,6 +533,15 @@
       margin: 8px 0 0;
       color: var(--muted);
       line-height: 1.4;
+    }
+
+    .game-card.idea-card {
+      cursor: default;
+      opacity: 0.9;
+    }
+
+    .game-card.idea-card:hover {
+      transform: none;
     }
 
     .ttt-board {
@@ -735,6 +781,48 @@
 
     .tilt-status-item strong {
       color: var(--text);
+    }
+
+    .effect-chip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      margin: 3px 4px 3px 0;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(239, 199, 94, 0.26);
+      background: rgba(239, 199, 94, 0.1);
+      color: var(--text);
+      cursor: help;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+
+    .effect-chip::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + 8px);
+      width: min(260px, 72vw);
+      padding: 9px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(244, 239, 232, 0.16);
+      background: #17120f;
+      color: var(--text);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      line-height: 1.35;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 12;
+    }
+
+    .effect-chip:hover::after,
+    .effect-chip:focus-visible::after {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .primary {
@@ -1243,6 +1331,126 @@
       text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
     }
 
+    .trail-layout {
+      display: grid;
+      gap: 14px;
+    }
+
+    .trail-board {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(44px, 1fr));
+      gap: 8px;
+    }
+
+    .trail-space {
+      min-height: 76px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 4px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(244, 239, 232, 0.13);
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-align: left;
+    }
+
+    .trail-space strong {
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+
+    .trail-space.start,
+    .trail-space.finish {
+      border-color: rgba(239, 199, 94, 0.52);
+      background: rgba(239, 199, 94, 0.12);
+    }
+
+    .trail-space.cash {
+      border-color: rgba(101, 210, 143, 0.45);
+      background: rgba(101, 210, 143, 0.10);
+    }
+
+    .trail-space.player-card {
+      border-color: rgba(240, 78, 120, 0.42);
+      background: rgba(240, 78, 120, 0.10);
+    }
+
+    .trail-space.fate-card {
+      border-color: rgba(86, 181, 255, 0.42);
+      background: rgba(86, 181, 255, 0.10);
+    }
+
+    .trail-space.trap {
+      border-color: rgba(255, 91, 91, 0.42);
+      background: rgba(255, 91, 91, 0.10);
+    }
+
+    .trail-space.shortcut {
+      border-color: rgba(239, 199, 94, 0.42);
+      background: rgba(239, 199, 94, 0.09);
+    }
+
+    .trail-token-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 20px;
+    }
+
+    .trail-token {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.72);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.32);
+    }
+
+    .trail-token.dom {
+      background: var(--dom);
+    }
+
+    .trail-token.sub {
+      background: var(--sub);
+    }
+
+    .trail-panels {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .trail-card-panel {
+      min-height: 120px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(244, 239, 232, 0.13);
+      background: rgba(20, 16, 13, 0.82);
+    }
+
+    .trail-card-panel h3 {
+      margin: 0;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+    }
+
+    .trail-card-panel p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .trail-card-panel strong {
+      color: var(--text);
+    }
+
     .log {
       height: 180px;
       overflow: auto;
@@ -1473,6 +1681,14 @@
         grid-template-columns: 1fr;
       }
 
+      .trail-board {
+        grid-template-columns: repeat(5, minmax(44px, 1fr));
+      }
+
+      .trail-panels {
+        grid-template-columns: 1fr;
+      }
+
       .mode-grid {
         grid-template-columns: 1fr;
       }
@@ -1646,6 +1862,7 @@
     <div class="game-select-tabs">
       <button class="game-select-tab active" data-game-tab="main">Main Games</button>
       <button class="game-select-tab" data-game-tab="mini">Mini Games</button>
+      <button class="game-select-tab" data-game-tab="board">Board Games</button>
     </div>
 
     <section class="game-grid" id="mainGamesGrid">
@@ -1698,6 +1915,48 @@
         </span>
         <strong class="status-pill">Play</strong>
       </button>
+    </section>
+
+    <section class="game-grid hidden" id="boardGamesGrid">
+      <button class="panel game-card" id="tributeTrailCard">
+        <span>
+          <h2>Tribute Trail</h2>
+          <p>A 30-space race with dice rolls, cash spaces, traps, shortcuts, and three card decks.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <article class="panel game-card idea-card">
+        <span>
+          <h2>Debt Spiral</h2>
+          <p>A looping board where the sub tries to escape while the dom keeps them circling and growing the bank.</p>
+        </span>
+        <strong class="status-pill">Idea</strong>
+      </article>
+
+      <article class="panel game-card idea-card">
+        <span>
+          <h2>Tribute Manor</h2>
+          <p>A room-based board with cards, keys, favors, and a race to reach the exit before the dom closes in.</p>
+        </span>
+        <strong class="status-pill">Idea</strong>
+      </article>
+
+      <article class="panel game-card idea-card">
+        <span>
+          <h2>Obedience Path</h2>
+          <p>A branching board where the sub pushes toward the end while the dom redirects, delays, and marks spaces.</p>
+        </span>
+        <strong class="status-pill">Idea</strong>
+      </article>
+
+      <article class="panel game-card idea-card">
+        <span>
+          <h2>Card + Dice Duel</h2>
+          <p>A versus track game where movement comes from rolls and cards add powers, taxes, and traps.</p>
+        </span>
+        <strong class="status-pill">Idea</strong>
+      </article>
     </section>
   </main>
 
@@ -1755,7 +2014,7 @@
         <button id="queenRepositionBtn" class="hidden">Reposition</button>
         <button id="queenShieldBtn" class="hidden">Shield</button>
         <button id="chessSkipBtn" class="hidden">Queue Skip</button>
-        <button id="passBtn" title="Use the dom's reclaim privilege to pass once">Pass</button>
+        <button id="passBtn" title="Open the dom power selector">Power</button>
       </div>
 
       <div class="board-wrap">
@@ -1829,6 +2088,22 @@
         <ul class="rules" id="ruleList"></ul>
         <div class="setup-actions">
           <button id="closeRulesBtn" class="primary">Close</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="tributeFourPowerModal">
+    <section class="panel power-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="powerModalTitle">Power</h2>
+      </div>
+      <div class="panel-body">
+        <div class="power-option-grid" id="tributeFourPowerOptions"></div>
+        <div class="power-detail" id="tributeFourPowerDetail"></div>
+        <div class="setup-actions">
+          <button id="tributeFourPowerBackBtn">Back</button>
+          <button id="tributeFourPowerUseBtn" class="primary">Use</button>
         </div>
       </div>
     </section>
@@ -2186,6 +2461,8 @@
     const WHEEL_LIMIT_WINDOW_MS = 15 * 60 * 1000;
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
+    const TRAIL_LENGTH = 30;
+    const TRAIL_FINISH = TRAIL_LENGTH - 1;
 
     const state = {
       screen: "lobby",
@@ -2270,6 +2547,7 @@
       twentyOne: createTwentyOneState(),
       dice: createDiceState(),
       wheel: createWheelState(),
+      trail: createTrailState(),
       chess: createChessState(),
       chat: []
     };
@@ -2298,6 +2576,7 @@
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
       mainGamesGrid: document.getElementById("mainGamesGrid"),
       miniGamesGrid: document.getElementById("miniGamesGrid"),
+      boardGamesGrid: document.getElementById("boardGamesGrid"),
       domSettingsPane: document.getElementById("domSettingsPane"),
       subSettingsPane: document.getElementById("subSettingsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
@@ -2337,6 +2616,7 @@
       tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
+      tributeTrailCard: document.getElementById("tributeTrailCard"),
       tributeChessCard: document.getElementById("tributeChessCard"),
       createRoomBtn: document.getElementById("createRoomBtn"),
       onlineStatus: document.getElementById("onlineStatus"),
@@ -2367,6 +2647,12 @@
       rulesModal: document.getElementById("rulesModal"),
       rulesModalTitle: document.getElementById("rulesModalTitle"),
       closeRulesBtn: document.getElementById("closeRulesBtn"),
+      tributeFourPowerModal: document.getElementById("tributeFourPowerModal"),
+      powerModalTitle: document.getElementById("powerModalTitle"),
+      tributeFourPowerOptions: document.getElementById("tributeFourPowerOptions"),
+      tributeFourPowerDetail: document.getElementById("tributeFourPowerDetail"),
+      tributeFourPowerBackBtn: document.getElementById("tributeFourPowerBackBtn"),
+      tributeFourPowerUseBtn: document.getElementById("tributeFourPowerUseBtn"),
       leaveRoomButtons: document.querySelectorAll(".leave-room-btn"),
       leaveNoticeModal: document.getElementById("leaveNoticeModal"),
       leaveNoticeText: document.getElementById("leaveNoticeText"),
@@ -2402,6 +2688,10 @@
       log: document.getElementById("log")
     };
     let activeRulesTab = "normal";
+    let selectedTributeFourPower = "lock";
+    let selectedFleetPower = "scan";
+    let selectedChessPower = "stance:none";
+    let selectedTwentyOnePower = "forcedHit";
 
     function createBoard() {
       return Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
@@ -2523,6 +2813,41 @@
         }
       }
       return slices;
+    }
+
+    function createTrailSpaces() {
+      const spaces = Array.from({ length: TRAIL_LENGTH }, () => "plain");
+      spaces[0] = "start";
+      spaces[TRAIL_FINISH] = "finish";
+      [3, 8, 14, 20, 25].forEach((index) => spaces[index] = "player-card");
+      [5, 12, 18, 24].forEach((index) => spaces[index] = "fate-card");
+      [6, 16, 22].forEach((index) => spaces[index] = "cash");
+      [9, 21].forEach((index) => spaces[index] = "trap");
+      [11, 26].forEach((index) => spaces[index] = "shortcut");
+      return spaces;
+    }
+
+    function createTrailState() {
+      return {
+        spaces: createTrailSpaces(),
+        positions: {
+          sub: 0,
+          dom: 0
+        },
+        dieSides: {
+          sub: 6,
+          dom: 6
+        },
+        skip: {
+          sub: false,
+          dom: false
+        },
+        cashDoubled: [],
+        lastRoll: null,
+        lastPlayerCard: null,
+        lastFateCard: null,
+        winner: null
+      };
     }
 
     function createChessState() {
@@ -3129,6 +3454,18 @@
       publishState();
     }
 
+    function openTributeTrail() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "tributeTrail";
+      setScreen("game");
+      resetTributeTrailBoard();
+      els.log.innerHTML = "";
+      addLog(`<strong>Tribute Trail opened.</strong> Roll along the path, draw from the space you land on, and reach the finish first.`);
+      render();
+      publishState();
+    }
+
     function openTributeChess() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.pendingWager = null;
@@ -3162,6 +3499,7 @@
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
       els.tributeWheelCard.disabled = domPickBlocked;
+      els.tributeTrailCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
@@ -3178,6 +3516,7 @@
       });
       els.mainGamesGrid.classList.toggle("hidden", tab !== "main");
       els.miniGamesGrid.classList.toggle("hidden", tab !== "mini");
+      els.boardGamesGrid.classList.toggle("hidden", tab !== "board");
     }
 
     function renderControlGlow() {
@@ -3664,6 +4003,7 @@
         twentyOne: state.twentyOne,
         dice: state.dice,
         wheel: state.wheel,
+        trail: state.trail,
         chess: state.chess,
         chat: state.chat,
         onlineLobby: {
@@ -3717,6 +4057,7 @@
       state.twentyOne = snapshot.twentyOne || state.twentyOne;
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
+      state.trail = snapshot.trail || state.trail;
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
       if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
@@ -4484,8 +4825,7 @@
 
     function blockedColumnCount() {
       if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return 0;
-      if (state.tiltLevel >= 5) return 2;
-      if (state.tiltLevel >= 4) return 1;
+      if (state.tiltLevel >= 5) return 1;
       if (state.tiltLevel === 1) return 1;
       return 0;
     }
@@ -4497,7 +4837,7 @@
 
     function tributeFourPressureAvailable() {
       if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return false;
-      return state.tiltLevel === 3;
+      return state.tiltLevel === 3 || state.tiltLevel >= 4;
     }
 
     function chooseBlockedColumns() {
@@ -4524,8 +4864,8 @@
 
     function tiltDescription() {
       if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
-      if (state.tiltLevel >= 5) return "two random sub columns are blocked each sub turn, and the dom gets one Lock Column.";
-      if (state.tiltLevel >= 4) return "one random sub column is blocked each sub turn, and the dom gets one Lock Column.";
+      if (state.tiltLevel >= 5) return "one random sub column is blocked each sub turn, and the dom gets one Lock Column and one Pressure Drop.";
+      if (state.tiltLevel >= 4) return "the dom gets one Lock Column and one Pressure Drop.";
       if (state.tiltLevel === 3) return "the dom gets one Pressure Drop.";
       if (state.tiltLevel === 2) return "the dom gets one Lock Column.";
       if (state.tiltLevel === 1) return "one random sub column is blocked each sub turn.";
@@ -4659,38 +4999,572 @@
     }
 
     function domPass() {
+      if (state.currentGame === "tributeTrail") {
+        rollTrailDie();
+        return;
+      }
       if (state.currentGame === "tributeChess") {
-        chessDomPrimaryAction();
+        openChessPowerModal();
         return;
       }
       if (state.currentGame === "tributeTwentyOne") {
-        if (domAdvantageControlsAllowed(localOnlineRole()) && canForceTwentyOneHit()) {
-          forceTwentyOneHit();
+        const role = localOnlineRole();
+        if ((role === DOM || (!role && canForceTwentyOneHit())) && canOpenTwentyOnePowerModal()) {
+          openTwentyOnePowerModal();
           return;
         }
         standTwentyOne();
         return;
       }
       if (state.currentGame === "tributeFleet") {
-        fleetScan();
+        openFleetPowerModal();
         return;
       }
+      if (state.currentGame === "tributeFour") {
+        openTributeFourPowerModal();
+        return;
+      }
+    }
+
+    function tributeFourPowerInfo(type) {
+      if (type === "pressure") {
+        const unlocked = tributeFourPressureAvailable();
+        const available = state.pressureDropAvailable && !state.pressureDropArmed;
+        return {
+          label: "Pressure Drop",
+          available,
+          status: available ? "Ready" : (unlocked ? "0 remaining" : "Not unlocked"),
+          detail: `<strong>Pressure Drop.</strong> Arm it before ${state.names.sub} moves. Whatever column ${state.names.sub} chooses becomes forbidden on ${state.names.sub}'s following turn.`,
+          uses: unlocked ? `${available ? 1 : 0} remaining / 1 total this reclaim` : "0 available at this tilt"
+        };
+      }
+      const unlocked = tributeFourLockAvailable();
+      const available = state.lockColumnAvailable && !state.lockColumnMode;
+      return {
+        label: "Lock Column",
+        available,
+        status: available ? "Ready" : (unlocked ? "0 remaining" : "Not unlocked"),
+        detail: `<strong>Lock Column.</strong> Use it, then click one open column on the board. ${state.names.sub} cannot drop into that column on their next turn.`,
+        uses: unlocked ? `${available ? 1 : 0} remaining / 1 total this reclaim` : "0 available at this tilt"
+      };
+    }
+
+    function canOpenTributeFourPowerModal() {
       if (!state.active || state.mode !== "reclaim" || state.turn !== DOM) return;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return;
-      if (state.lockColumnAvailable) {
-        state.lockColumnMode = !state.lockColumnMode;
-        const message = state.lockColumnMode
-          ? `<strong>Lock Column ready.</strong> ${state.names.dom} may click a column to block it for ${state.names.sub}'s next turn.`
-          : `<strong>Lock Column cancelled.</strong>`;
-        addLog(message);
-      } else if (state.pressureDropAvailable && !state.pressureDropArmed) {
+      if (state.lockColumnMode) return false;
+      return state.lockColumnAvailable || (state.pressureDropAvailable && !state.pressureDropArmed);
+    }
+
+    function openTributeFourPowerModal() {
+      if (!canOpenTributeFourPowerModal()) return;
+      if (!tributeFourPowerInfo(selectedTributeFourPower).available) {
+        selectedTributeFourPower = state.lockColumnAvailable ? "lock" : "pressure";
+      }
+      renderTributeFourPowerModal();
+      els.tributeFourPowerModal.classList.remove("hidden");
+    }
+
+    function closeTributeFourPowerModal() {
+      els.tributeFourPowerModal.classList.add("hidden");
+    }
+
+    function renderTributeFourPowerModal() {
+      els.powerModalTitle.textContent = "Tribute Four Powers";
+      const powers = [
+        { type: "lock", ...tributeFourPowerInfo("lock") },
+        { type: "pressure", ...tributeFourPowerInfo("pressure") }
+      ];
+      els.tributeFourPowerOptions.innerHTML = powers.map((power) => `
+        <button data-tribute-four-power="${power.type}" class="${selectedTributeFourPower === power.type ? "active" : ""}">
+          <strong>${power.label}</strong><br>
+          <span>${power.status}</span>
+        </button>
+      `).join("");
+      const selected = powers.find((power) => power.type === selectedTributeFourPower) || powers[0];
+      els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
+      els.tributeFourPowerUseBtn.disabled = !selected.available;
+    }
+
+    function useTributeFourPower() {
+      if (!canOpenTributeFourPowerModal()) return;
+      if (selectedTributeFourPower === "lock" && state.lockColumnAvailable) {
+        state.lockColumnAvailable = false;
+        state.lockColumnMode = true;
+        addLog(`<strong>Lock Column ready.</strong> ${state.names.dom} may click a column to block it for ${state.names.sub}'s next turn.`);
+      } else if (selectedTributeFourPower === "pressure" && state.pressureDropAvailable && !state.pressureDropArmed) {
+        state.pressureDropAvailable = false;
         state.pressureDropArmed = true;
         addLog(`<strong>Pressure Drop armed.</strong> After ${state.names.sub} moves, that column will be forbidden on their following turn.`);
       } else {
+        renderTributeFourPowerModal();
         return;
       }
+      closeTributeFourPowerModal();
       render();
       publishState();
+    }
+
+    function fleetPowerInfo(type) {
+      if (type === "scan") {
+        const unlocked = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 1;
+        const available = state.fleet.scanAvailable && state.active && state.turn === DOM;
+        return {
+          label: "Scan",
+          available,
+          status: available ? "Ready" : (unlocked ? "0 remaining" : "Not unlocked"),
+          detail: `<strong>Scan.</strong> ${state.names.dom} marks one hidden ${state.names.sub} ship segment that has not already been hit.`,
+          uses: unlocked ? `${available ? 1 : 0} remaining / 1 total this reclaim` : "0 available at this tilt"
+        };
+      }
+      return {
+        label: fleetModifierLabel(type),
+        available: false,
+        status: state.fleet.modifiers.includes(type) ? "Active" : "Inactive",
+        detail: `<strong>${fleetModifierLabel(type)}.</strong> ${fleetModifierDescription(type)}`,
+        uses: "passive modifier"
+      };
+    }
+
+    function fleetPowerTypes() {
+      return ["scan", "doubleTap", "commandFog", "counterfire", "noisyWaters", "priorityIntel"];
+    }
+
+    function canOpenFleetPowerModal() {
+      if (state.currentGame !== "tributeFleet" || state.mode !== "reclaim") return false;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
+      return state.active || (state.fleet.modifiers || []).length > 0 || state.tiltLevel >= 1;
+    }
+
+    function openFleetPowerModal() {
+      if (!canOpenFleetPowerModal()) return;
+      if (!fleetPowerInfo(selectedFleetPower).available && selectedFleetPower === "scan" && !state.fleet.scanAvailable) {
+        selectedFleetPower = (state.fleet.modifiers && state.fleet.modifiers[0]) || "scan";
+      }
+      renderFleetPowerModal();
+      els.tributeFourPowerModal.classList.remove("hidden");
+    }
+
+    function renderFleetPowerModal() {
+      els.powerModalTitle.textContent = "Tribute Fleet Powers";
+      const powers = fleetPowerTypes().map((type) => ({ type, ...fleetPowerInfo(type) }));
+      els.tributeFourPowerOptions.innerHTML = powers.map((power) => `
+        <button data-fleet-power="${power.type}" class="${selectedFleetPower === power.type ? "active" : ""}">
+          <strong>${power.label}</strong><br>
+          <span>${power.status}</span>
+        </button>
+      `).join("");
+      const selected = powers.find((power) => power.type === selectedFleetPower) || powers[0];
+      els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
+      els.tributeFourPowerUseBtn.disabled = selectedFleetPower !== "scan" || !selected.available;
+    }
+
+    function useFleetPower() {
+      if (selectedFleetPower !== "scan" || !fleetPowerInfo("scan").available) {
+        renderFleetPowerModal();
+        return;
+      }
+      closeTributeFourPowerModal();
+      fleetScan();
+    }
+
+    function chessPowerInfo(type) {
+      if (type.startsWith("stance:")) {
+        const stance = type.split(":")[1] || "none";
+        const game = chessEngine();
+        const canSet = Boolean(game && state.active && chessQueenStancesActive()
+          && queenPowerControlsAllowed(localOnlineRole())
+          && roleForChessColor(game.turn()) === DOM
+          && !state.chess.freezeMode && !state.chess.commandMode);
+        return {
+          label: `Stance: ${stanceLabel(stance)}`,
+          available: canSet,
+          status: state.chess.queenStance === stance ? "Selected" : (canSet ? "Ready" : "Unavailable"),
+          detail: `<strong>${stanceLabel(stance)} stance.</strong> ${{
+            none: "The queen has no stance effect and earns no stance charges.",
+            gaze: `When ${state.names.sub} moves an affected piece through the dom queen's line of sight, ${state.names.dom} gains 1 charge.`,
+            tithe: `When ${state.names.dom}'s queen captures an affected piece, ${state.names.dom} gains 1 charge.`,
+            leash: `Affected ${state.names.sub} pieces next to the dom queen are leashed. At the end of ${state.names.sub}'s turn, ${state.names.dom} gains 1 charge for each leashed unit.`
+          }[stance]}`,
+          uses: "can be changed on the dom's turn"
+        };
+      }
+      const cost = queenPowerCost(type);
+      const ready = canUseQueenPowerType(type);
+      const descriptions = {
+        reposition: `After moving, ${state.names.dom} can spend 1 charge to move her queen to one adjacent empty square. Reposition cannot capture.`,
+        freeze: `On ${state.names.dom}'s turn, she can spend 1 charge and choose one ${state.names.sub} piece. That piece is frozen for the next two ${state.names.sub} turns.`,
+        shield: `${state.names.dom}'s queen cannot be captured by pawns until ${state.names.dom}'s next turn.`,
+        skip: `${state.names.dom} queues Skip on her turn. The next ${state.names.sub} turn is skipped, letting ${state.names.dom} move again.`,
+        command: `${state.names.dom} queues Command Move on her turn. On the next ${state.names.sub} turn, ${state.names.dom} moves one legal ${state.names.sub} piece instead.`
+      };
+      return {
+        label: chargeLabel(type),
+        available: ready,
+        status: ready ? "Ready" : `${state.chess.charges || 0}/${cost} charges`,
+        detail: `<strong>${chargeLabel(type)}.</strong> ${descriptions[type]}`,
+        uses: `costs ${cost} ${cost === 1 ? "charge" : "charges"}`
+      };
+    }
+
+    function chessPowerTypes() {
+      const stances = ["stance:none", "stance:gaze", "stance:tithe", "stance:leash"];
+      return [...stances, "reposition", "freeze", "shield", "skip", "command"];
+    }
+
+    function canOpenChessPowerModal() {
+      return state.currentGame === "tributeChess" && chessQueenStancesActive() && queenPowerControlsAllowed(localOnlineRole());
+    }
+
+    function openChessPowerModal() {
+      if (!canOpenChessPowerModal()) return;
+      renderChessPowerModal();
+      els.tributeFourPowerModal.classList.remove("hidden");
+    }
+
+    function renderChessPowerModal() {
+      els.powerModalTitle.textContent = "Tribute Chess Powers";
+      const powers = chessPowerTypes().map((type) => ({ type, ...chessPowerInfo(type) }));
+      els.tributeFourPowerOptions.innerHTML = powers.map((power) => `
+        <button data-chess-power="${power.type}" class="${selectedChessPower === power.type ? "active" : ""}">
+          <strong>${power.label}</strong><br>
+          <span>${power.status}</span>
+        </button>
+      `).join("");
+      const selected = powers.find((power) => power.type === selectedChessPower) || powers[0];
+      const affected = queenAffectedLabel() || "no pieces";
+      els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.<br><strong>Charges:</strong> ${state.chess.charges || 0}. <strong>Affected:</strong> ${affected}.`;
+      els.tributeFourPowerUseBtn.disabled = !selected.available;
+    }
+
+    function useChessPower() {
+      if (selectedChessPower.startsWith("stance:")) {
+        const stance = selectedChessPower.split(":")[1] || "none";
+        if (!chessPowerInfo(selectedChessPower).available) {
+          renderChessPowerModal();
+          return;
+        }
+        setQueenStance(stance);
+        closeTributeFourPowerModal();
+        return;
+      }
+      if (!canUseQueenPowerType(selectedChessPower)) {
+        renderChessPowerModal();
+        return;
+      }
+      closeTributeFourPowerModal();
+      activateQueenPower(selectedChessPower);
+    }
+
+    function twentyOnePowerInfo(type) {
+      const reclaim = state.mode === "reclaim" && domAdvantagesEnabled();
+      const info = {
+        peek: {
+          label: "Peek",
+          unlocked: reclaim && state.tiltLevel >= 1,
+          available: reclaim && state.tiltLevel >= 1,
+          detail: `<strong>Peek.</strong> ${state.names.dom} can see her hidden dealer card during reclaim.`,
+          uses: "passive while active"
+        },
+        softSave: {
+          label: "Soft Save",
+          unlocked: reclaim && state.tiltLevel >= 2,
+          available: Boolean(state.twentyOne.softSaveAvailable),
+          detail: `<strong>Soft Save.</strong> Once per reclaim, a ${state.names.dom} bust from 22 to 24 is treated as 21.`,
+          uses: reclaim && state.tiltLevel >= 2 ? `${state.twentyOne.softSaveAvailable ? 1 : 0} remaining / 1 total this reclaim` : "0 available at this tilt"
+        },
+        forcedHit: {
+          label: "Forced Hit",
+          unlocked: reclaim && state.tiltLevel >= 3,
+          available: canForceTwentyOneHit(),
+          detail: `<strong>Forced Hit.</strong> Before ${state.names.sub} stands, ${state.names.dom} can force ${state.names.sub} to take one extra card.`,
+          uses: reclaim && state.tiltLevel >= 3 ? `${state.twentyOne.forceHitAvailable ? 1 : 0} remaining / 1 total this reclaim` : "0 available at this tilt"
+        },
+        dealerLock: {
+          label: "Dealer Lock",
+          unlocked: reclaim && state.tiltLevel >= 4,
+          available: reclaim && state.tiltLevel >= 4,
+          detail: `<strong>Dealer Lock.</strong> ${state.names.dom}'s dealer hand stands on 16 or higher.`,
+          uses: "passive while active"
+        },
+        houseSweep: {
+          label: "House Sweep",
+          unlocked: reclaim && state.tiltLevel >= 5,
+          available: reclaim && state.tiltLevel >= 5,
+          detail: `<strong>House Sweep.</strong> In reclaim, ${state.names.sub} must beat ${state.names.dom} by at least 2. Close wins go to ${state.names.dom}.`,
+          uses: "passive while active"
+        }
+      }[type];
+      return {
+        ...info,
+        status: info.available ? "Ready" : (info.unlocked ? "0 remaining" : "Not unlocked")
+      };
+    }
+
+    function twentyOnePowerTypes() {
+      return ["peek", "softSave", "forcedHit", "dealerLock", "houseSweep"];
+    }
+
+    function canOpenTwentyOnePowerModal() {
+      if (state.currentGame !== "tributeTwentyOne" || state.mode !== "reclaim") return false;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
+      return domAdvantagesEnabled() && state.tiltLevel >= 1;
+    }
+
+    function openTwentyOnePowerModal() {
+      if (!canOpenTwentyOnePowerModal()) return;
+      renderTwentyOnePowerModal();
+      els.tributeFourPowerModal.classList.remove("hidden");
+    }
+
+    function renderTwentyOnePowerModal() {
+      els.powerModalTitle.textContent = "Tribute 21 Powers";
+      const powers = twentyOnePowerTypes().map((type) => ({ type, ...twentyOnePowerInfo(type) }));
+      els.tributeFourPowerOptions.innerHTML = powers.map((power) => `
+        <button data-twenty-one-power="${power.type}" class="${selectedTwentyOnePower === power.type ? "active" : ""}">
+          <strong>${power.label}</strong><br>
+          <span>${power.status}</span>
+        </button>
+      `).join("");
+      const selected = powers.find((power) => power.type === selectedTwentyOnePower) || powers[0];
+      els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
+      els.tributeFourPowerUseBtn.disabled = selectedTwentyOnePower !== "forcedHit" || !selected.available;
+    }
+
+    function useTwentyOnePower() {
+      if (selectedTwentyOnePower !== "forcedHit" || !canForceTwentyOneHit()) {
+        renderTwentyOnePowerModal();
+        return;
+      }
+      closeTributeFourPowerModal();
+      forceTwentyOneHit();
+    }
+
+    function useCurrentPowerModalSelection() {
+      if (state.currentGame === "tributeFleet") {
+        useFleetPower();
+      } else if (state.currentGame === "tributeChess") {
+        useChessPower();
+      } else if (state.currentGame === "tributeTwentyOne") {
+        useTwentyOnePower();
+      } else {
+        useTributeFourPower();
+      }
+    }
+
+    function resetTributeTrailBoard() {
+      state.turn = Math.random() < 0.5 ? SUB : DOM;
+      state.active = true;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+      state.trail = createTrailState();
+    }
+
+    function trailRollAllowed() {
+      const localRole = localOnlineRole();
+      if (!state.active || state.currentGame !== "tributeTrail") return false;
+      if (!localRole) return true;
+      return localRole === state.turn;
+    }
+
+    function rollTrailDie() {
+      if (!trailRollAllowed()) return;
+      const player = state.turn;
+      if (state.trail.skip[player]) {
+        state.trail.skip[player] = false;
+        addLog(`<strong>${labelFor(player)} loses a turn.</strong> Fate keeps them still.`);
+        state.turn = otherRole(player);
+        render();
+        publishState();
+        return;
+      }
+      const sides = Number(state.trail.dieSides[player] || 6);
+      const roll = 1 + Math.floor(Math.random() * sides);
+      state.trail.lastRoll = {
+        player,
+        roll,
+        sides
+      };
+      addLog(`<strong>${labelFor(player)} rolls ${roll}.</strong>`);
+      moveTrailPlayer(player, roll, false);
+      if (state.active) {
+        resolveTrailSpace(player);
+      }
+      if (state.active) state.turn = otherRole(player);
+      render();
+      publishState();
+    }
+
+    function moveTrailPlayer(player, amount, resolveLanding = false) {
+      const current = Number(state.trail.positions[player] || 0);
+      const next = Math.max(0, Math.min(TRAIL_FINISH, current + amount));
+      state.trail.positions[player] = next;
+      if (next >= TRAIL_FINISH) {
+        finishTrailGame(player);
+      } else if (resolveLanding && state.active) {
+        resolveTrailSpace(player);
+      }
+      return next;
+    }
+
+    function finishTrailGame(player) {
+      state.active = false;
+      state.trail.winner = player;
+      addLog(`<strong>${labelFor(player)} reaches the finish.</strong> Tribute Trail belongs to ${labelFor(player)}.`);
+    }
+
+    function resolveTrailSpace(player) {
+      const index = Number(state.trail.positions[player] || 0);
+      const type = state.trail.spaces[index] || "plain";
+      if (type === "player-card") {
+        drawTrailPlayerCard(player);
+      } else if (type === "fate-card") {
+        drawTrailFateCard(player);
+      } else if (type === "cash") {
+        const doubled = (state.trail.cashDoubled || []).includes(index);
+        const amount = doubled ? 10 : 5;
+        state.domVault += amount;
+        state.lockedTribute = state.domVault;
+        addLog(`<strong>Cash space.</strong> ${money(amount)} enters ${state.names.dom}'s bank${doubled ? " from a doubled space" : ""}.`);
+      } else if (type === "trap") {
+        const penalty = player === SUB ? -3 : -1;
+        addLog(`<strong>Trap space.</strong> ${labelFor(player)} is pulled back ${Math.abs(penalty)}.`);
+        moveTrailPlayer(player, penalty, false);
+      } else if (type === "shortcut") {
+        addLog(`<strong>Shortcut.</strong> ${labelFor(player)} moves forward 3.`);
+        moveTrailPlayer(player, 3, false);
+      }
+    }
+
+    function pickTrailCashSpaces(count) {
+      const cashSpaces = state.trail.spaces
+        .map((type, index) => ({ type, index }))
+        .filter((space) => space.type === "cash" && !(state.trail.cashDoubled || []).includes(space.index))
+        .map((space) => space.index);
+      const picked = [];
+      while (cashSpaces.length && picked.length < count) {
+        const index = Math.floor(Math.random() * cashSpaces.length);
+        picked.push(cashSpaces.splice(index, 1)[0]);
+      }
+      state.trail.cashDoubled = [...(state.trail.cashDoubled || []), ...picked];
+      return picked;
+    }
+
+    function drawTrailPlayerCard(player) {
+      const card = player === DOM ? drawTrailDomCard() : drawTrailSubCard();
+      state.trail.lastPlayerCard = {
+        player,
+        title: card.title,
+        text: card.text
+      };
+      addLog(`<strong>${labelFor(player)} draws ${card.title}.</strong> ${card.text}`);
+      if (card.effect) card.effect();
+    }
+
+    function drawTrailDomCard() {
+      const cards = [
+        {
+          title: "Gilded Markers",
+          text: `${state.names.dom} doubles two cash spaces for the rest of the game.`,
+          effect: () => {
+            const picked = pickTrailCashSpaces(2);
+            if (picked.length) addLog(`<strong>Doubled cash:</strong> spaces ${picked.map((space) => space + 1).join(", ")} now pay ${money(10)}.`);
+          }
+        },
+        {
+          title: "Loaded Stride",
+          text: `${state.names.dom}'s die upgrades to d8 for the rest of the game.`,
+          effect: () => {
+            state.trail.dieSides.dom = Math.max(8, Number(state.trail.dieSides.dom || 6));
+          }
+        },
+        {
+          title: "Heel Pull",
+          text: `${state.names.sub} is pulled back 2 spaces.`,
+          effect: () => moveTrailPlayer(SUB, -2, false)
+        },
+        {
+          title: "Banker's Pace",
+          text: `${state.names.dom} moves forward 2 spaces.`,
+          effect: () => moveTrailPlayer(DOM, 2, false)
+        },
+        {
+          title: "Held In Place",
+          text: `${state.names.sub} skips their next turn.`,
+          effect: () => state.trail.skip.sub = true
+        }
+      ];
+      return cards[Math.floor(Math.random() * cards.length)];
+    }
+
+    function drawTrailSubCard() {
+      const count = 5 + Math.floor(Math.random() * 8);
+      const cards = [
+        {
+          title: "Timeline Worship",
+          text: `Like and repost ${count} of ${state.names.dom}'s recent posts. This is a manual prompt, not automated.`
+        },
+        {
+          title: "Public Praise",
+          text: `Leave one worshipping or subby comment on a ${state.names.dom} post.`
+        },
+        {
+          title: "Pinned Devotion",
+          text: `Open ${state.names.dom}'s profile and give the pinned post proper attention.`
+        },
+        {
+          title: "Quote Offering",
+          text: `Quote repost one ${state.names.dom} post with a short worship line.`
+        },
+        {
+          title: "Silent Scroll",
+          text: `Spend a moment reading ${state.names.dom}'s profile before the next roll.`
+        }
+      ];
+      return cards[Math.floor(Math.random() * cards.length)];
+    }
+
+    function drawTrailFateCard(player) {
+      const cards = [
+        {
+          title: "Fate Push",
+          text: player === DOM ? `${state.names.dom} moves forward 2.` : `${state.names.sub} moves back 2.`,
+          effect: () => moveTrailPlayer(player, player === DOM ? 2 : -2, false)
+        },
+        {
+          title: "Stolen Step",
+          text: `${state.names.sub} skips their next turn.`,
+          effect: () => state.trail.skip.sub = true
+        },
+        {
+          title: "Clean Break",
+          text: `${labelFor(player)} moves forward 1.`,
+          effect: () => moveTrailPlayer(player, 1, false)
+        },
+        {
+          title: "Snagged",
+          text: `${labelFor(player)} moves back 1.`,
+          effect: () => moveTrailPlayer(player, -1, false)
+        },
+        {
+          title: "Taxed Path",
+          text: `${money(3)} enters ${state.names.dom}'s bank.`,
+          effect: () => {
+            state.domVault += 3;
+            state.lockedTribute = state.domVault;
+          }
+        }
+      ];
+      const card = cards[Math.floor(Math.random() * cards.length)];
+      state.trail.lastFateCard = {
+        player,
+        title: card.title,
+        text: card.text
+      };
+      addLog(`<strong>${labelFor(player)} draws ${card.title}.</strong> ${card.text}`);
+      if (card.effect) card.effect();
     }
 
     function resetPrototype() {
@@ -4723,6 +5597,14 @@
         resetWheelSpinBoard();
         els.log.innerHTML = "";
         addLog(`<strong>Wheel Spin reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
+      if (state.currentGame === "tributeTrail") {
+        resetTributeTrailBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Tribute Trail reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
         render();
         publishState();
         return;
@@ -6090,6 +6972,12 @@
       return descriptions[modifier] || `${fleetModifierLabel(modifier)}: active this match.`;
     }
 
+    function fleetModifierChip(modifier) {
+      const label = escapeHtml(fleetModifierLabel(modifier));
+      const description = escapeHtml(fleetModifierDescription(modifier));
+      return `<span class="effect-chip" tabindex="0" data-tooltip="${description}">${label}</span>`;
+    }
+
     function choosePriorityIntel() {
       const axis = Math.random() < 0.5 ? "row" : "col";
       const index = Math.floor(Math.random() * FLEET_SIZE);
@@ -6277,6 +7165,68 @@
       publishState();
     }
 
+    function trailSpaceLabel(type) {
+      const labels = {
+        start: "Start",
+        finish: "Finish",
+        plain: "Path",
+        "player-card": "Card",
+        "fate-card": "Fate",
+        cash: "Cash",
+        trap: "Trap",
+        shortcut: "Shortcut"
+      };
+      return labels[type] || "Path";
+    }
+
+    function renderTrailCardPanel(card, emptyText) {
+      if (!card) {
+        return `<p>${emptyText}</p>`;
+      }
+      return `
+        <p><strong>${escapeHtml(card.title)}</strong></p>
+        <p>${escapeHtml(card.text)}</p>
+        <p>Drawn by ${escapeHtml(labelFor(card.player))}.</p>
+      `;
+    }
+
+    function renderTrailBoard() {
+      const trail = state.trail || createTrailState();
+      els.board.innerHTML = "";
+      els.board.className = "trail-layout";
+      const board = document.createElement("div");
+      board.className = "trail-board";
+      trail.spaces.forEach((type, index) => {
+        const space = document.createElement("div");
+        space.className = `trail-space ${type}`;
+        const doubled = (trail.cashDoubled || []).includes(index);
+        const tokens = [];
+        if (trail.positions.dom === index) tokens.push(`<span class="trail-token dom" title="${escapeHtml(state.names.dom)}"></span>`);
+        if (trail.positions.sub === index) tokens.push(`<span class="trail-token sub" title="${escapeHtml(state.names.sub)}"></span>`);
+        space.innerHTML = `
+          <strong>${index + 1}</strong>
+          <span>${trailSpaceLabel(type)}${doubled ? " x2" : ""}</span>
+          <div class="trail-token-row">${tokens.join("")}</div>
+        `;
+        board.appendChild(space);
+      });
+      els.board.appendChild(board);
+
+      const panels = document.createElement("div");
+      panels.className = "trail-panels";
+      panels.innerHTML = `
+        <section class="trail-card-panel">
+          <h3>Player Deck</h3>
+          ${renderTrailCardPanel(trail.lastPlayerCard, "Land on a Card space to draw from the dom or sub deck.")}
+        </section>
+        <section class="trail-card-panel">
+          <h3>Fate Deck</h3>
+          ${renderTrailCardPanel(trail.lastFateCard, "Land on a Fate space to draw from the shared deck.")}
+        </section>
+      `;
+      els.board.appendChild(panels);
+    }
+
     function renderBoard() {
       if (state.currentGame === "tributeChess") {
         renderChessBoard();
@@ -6292,6 +7242,10 @@
       }
       if (state.currentGame === "wheelSpin") {
         renderWheelSpinBoard();
+        return;
+      }
+      if (state.currentGame === "tributeTrail") {
+        renderTrailBoard();
         return;
       }
       if (state.currentGame === "tributeFleet") {
@@ -6844,11 +7798,11 @@
 
     function currentTiltStatusItems() {
       if (state.screen !== "game") return [];
-      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice" || state.currentGame === "wheelSpin") return [];
+      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail") return [];
       if (state.currentGame === "tributeFleet") {
         const modifiers = state.fleet.modifiers || [];
         const modifierText = modifiers.length
-          ? modifiers.map(fleetModifierDescription).join(" ")
+          ? modifiers.map(fleetModifierChip).join("")
           : "none active.";
         return [
           `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${fleetTiltDescription()}`,
@@ -6880,6 +7834,7 @@
       if (state.currentGame === "tributeTwentyOne") return "Tribute 21";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
+      if (state.currentGame === "tributeTrail") return "Tribute Trail";
       if (state.currentGame === "tributeFleet") return "Tribute Fleet";
       return "Tribute Four";
     }
@@ -6903,6 +7858,10 @@
         renderWheelSpinRules();
         return;
       }
+      if (state.currentGame === "tributeTrail") {
+        renderTributeTrailRules();
+        return;
+      }
       if (state.currentGame === "tributeDice") {
         renderDiceRules();
         return;
@@ -6912,16 +7871,18 @@
         return;
       }
       const rules = [
-        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player starts, then players try to connect four.`,
-        `<strong>Win result:</strong> if ${state.names.sub} wins, nothing enters the bank. If ${state.names.dom} wins, the bet goes to her bank.`,
-        `<strong>Reclaim:</strong> once ${state.names.dom} has banked cash, ${state.names.sub} can risk a reclaim match to win that bank back.`,
-        `<strong>Reclaim base:</strong> ${state.names.dom} starts and wins full-board ties.`,
+        `<strong>Goal:</strong> drop tokens into columns and connect four in a row horizontally, vertically, or diagonally.`,
+        `<strong>Normal start:</strong> a random player starts.`,
+        `<strong>Reclaim start:</strong> ${state.names.dom} starts and wins full-board ties.`,
+        `<strong>Power button:</strong> ${state.names.dom} uses the power screen to choose an available reclaim power.`,
+        `<strong>Lock Column:</strong> ${state.names.dom} can choose one column that ${state.names.sub} cannot use on their next turn.`,
+        `<strong>Pressure Drop:</strong> after ${state.names.sub} chooses a column, that same column can be forbidden on ${state.names.sub}'s following turn.`,
         `<strong>Tilt 0:</strong> ${state.names.dom} starts reclaim and wins ties.`,
         `<strong>Tilt 1:</strong> one random ${state.names.sub} column is blocked each ${state.names.sub} turn.`,
-        `<strong>Tilt 2:</strong> ${state.names.dom} gets Lock Column once, choosing one column ${state.names.sub} cannot use on their next turn.`,
-        `<strong>Tilt 3:</strong> ${state.names.dom} gets Pressure Drop once. After ${state.names.sub} moves, that column is forbidden on ${state.names.sub}'s following turn.`,
-        `<strong>Tilt 4:</strong> one random ${state.names.sub} column is blocked each ${state.names.sub} turn, plus Lock Column.`,
-        `<strong>Tilt 5+:</strong> two random ${state.names.sub} columns are blocked each ${state.names.sub} turn, plus Lock Column.`
+        `<strong>Tilt 2:</strong> ${state.names.dom} gets one Lock Column.`,
+        `<strong>Tilt 3:</strong> ${state.names.dom} gets one Pressure Drop.`,
+        `<strong>Tilt 4:</strong> ${state.names.dom} gets one Lock Column and one Pressure Drop.`,
+        `<strong>Tilt 5+:</strong> ${state.names.dom} gets one Lock Column and one Pressure Drop, plus one random ${state.names.sub} column is blocked each ${state.names.sub} turn.`
       ];
       setRuleList(rules);
     }
@@ -6963,6 +7924,21 @@
         `<strong>Nudge:</strong> after the wheel stops, ${state.names.dom} can move the result one space forward or back once. The bank adjusts to the new result.`,
         `<strong>Cash result:</strong> landing on a cash space adds that amount to ${state.names.dom}'s bank.`,
         `<strong>Blank result:</strong> landing on blank means nothing enters ${state.names.dom}'s bank.`
+      ];
+      setRuleList(rules);
+    }
+
+    function renderTributeTrailRules() {
+      const rules = [
+        `<strong>Goal:</strong> race along the 30-space path and be the first player to reach the finish.`,
+        `<strong>Turns:</strong> the starting player is random. On your turn, press Roll and move that many spaces.`,
+        `<strong>Card spaces:</strong> the same Card space draws from the dom deck or sub deck depending on who lands there.`,
+        `<strong>Dom cards:</strong> these can upgrade the dom die, double cash spaces, move players, or make the sub miss a turn.`,
+        `<strong>Sub cards:</strong> these are Twitter worship prompts for ${state.names.dom}'s profile, such as liking and reposting a random number of recent posts. They are manual prompts, not automated.`,
+        `<strong>Fate spaces:</strong> these draw from the shared Fate deck and resolve movement, skip, or cash effects.`,
+        `<strong>Cash spaces:</strong> landing there adds cash to ${state.names.dom}'s bank. Doubled cash spaces pay more.`,
+        `<strong>Trap and shortcut spaces:</strong> traps pull players backward, while shortcuts push them forward.`,
+        `<strong>No bet required:</strong> Tribute Trail does not use normal bets, reclaims, or tilt in this version.`
       ];
       setRuleList(rules);
     }
@@ -7052,17 +8028,17 @@
 
     function renderFleetRules() {
       const rules = [
-        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player fires first.`,
         `<strong>Goal:</strong> sink every enemy ship segment to win.`,
-        `<strong>Dom win:</strong> if ${state.names.dom} wins, the bet goes to her bank.`,
-        `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. ${state.names.dom} fires first.`,
-        `<strong>Scan:</strong> from Tilt 1 onward, ${state.names.dom} gets one Scan that marks a hidden ${state.names.sub} ship segment.`,
-        `<strong>Random modifiers:</strong> Tilt 2 adds one random modifier; Tilt 3 adds one random modifier plus Command Fog; Tilt 4 adds two random modifiers; Tilt 5+ adds three random modifiers.`,
-        `<strong>Double Tap:</strong> the first time ${state.names.dom} hits, she immediately fires one extra shot.`,
-        `<strong>Command Fog:</strong> a random row or column is blocked on each ${state.names.sub} turn.`,
-        `<strong>Dom Counterfire:</strong> when ${state.names.sub} misses, there is a 30% chance ${state.names.dom}'s Scan recharges.`,
-        `<strong>Noisy Waters:</strong> half of the target board is blocked on each ${state.names.sub} turn.`,
-        `<strong>Priority Intel:</strong> ${state.names.dom} gets one row or column clue at the start of reclaim.`
+        `<strong>Normal start:</strong> a random player fires first.`,
+        `<strong>Reclaim start:</strong> ${state.names.dom} fires first.`,
+        `<strong>Power button:</strong> ${state.names.dom} uses the power screen to use Scan and inspect active modifiers.`,
+        `<strong>Scan:</strong> ${state.names.dom} can reveal one hidden ${state.names.sub} ship segment from Tilt 1 onward.`,
+        `<strong>Modifiers:</strong> reclaim rounds can add passive effects such as Double Tap, Command Fog, Dom Counterfire, Noisy Waters, and Priority Intel.`,
+        `<strong>Tilt 1:</strong> ${state.names.dom} gets Scan.`,
+        `<strong>Tilt 2:</strong> Scan plus one random modifier.`,
+        `<strong>Tilt 3:</strong> Scan plus one random modifier and Command Fog.`,
+        `<strong>Tilt 4:</strong> Scan plus two random modifiers.`,
+        `<strong>Tilt 5+:</strong> Scan plus three random modifiers.`
       ];
       setRuleList(rules);
     }
@@ -7074,7 +8050,7 @@
       els.lockedTribute.textContent = money(state.domVault);
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
         ? "Free Spin"
-        : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match");
+        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
@@ -7082,6 +8058,16 @@
           : (state.wheel.unlocked
             ? `<strong>${state.names.sub}</strong> can press the center to spin.`
             : `<strong>${state.names.dom}</strong> must unlock the wheel for ${state.names.sub}.`);
+      } else if (state.currentGame === "tributeTrail") {
+        if (state.active) {
+          const roll = state.trail.lastRoll;
+          const rollText = roll ? ` Last roll: ${labelFor(roll.player)} rolled ${roll.roll} on a d${roll.sides}.` : "";
+          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to roll.${rollText}`;
+        } else if (state.trail.winner) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.trail.winner)}</strong> reached the finish.`;
+        } else {
+          els.turnText.innerHTML = `<strong>Tribute Trail</strong> is ready to reset.`;
+        }
       } else if (!state.active) {
         els.turnText.innerHTML = state.domVault > 0
           ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
@@ -7097,11 +8083,12 @@
       const localRole = localOnlineRole();
       const onlineBlocksDom = !domAdvantageControlsAllowed(localRole);
       const isWheelSpin = state.currentGame === "wheelSpin";
+      const isFreeGame = isWheelSpin || state.currentGame === "tributeTrail";
       const wagerPending = Boolean(state.pendingWager);
       renderWheelDomTools();
-      els.betInput.classList.toggle("hidden", isWheelSpin);
-      els.normalBtn.classList.toggle("hidden", isWheelSpin);
-      els.reclaimBtn.classList.toggle("hidden", isWheelSpin);
+      els.betInput.classList.toggle("hidden", isFreeGame);
+      els.normalBtn.classList.toggle("hidden", isFreeGame);
+      els.reclaimBtn.classList.toggle("hidden", isFreeGame);
       els.reclaimBtn.disabled = state.active || wagerPending || state.domVault <= 0 || onlineBlocksSub;
       els.normalBtn.disabled = state.active || wagerPending || onlineBlocksSub;
       els.betInput.disabled = state.active || wagerPending || onlineBlocksSub;
@@ -7113,37 +8100,39 @@
       els.queenStanceSelect.classList.add("hidden");
       els.queenChargeText.classList.add("hidden");
       if (state.currentGame === "tributeChess") {
-        const game = chessEngine();
-        const domToMove = Boolean(game && roleForChessColor(game.turn()) === DOM);
-        const domControls = queenPowerControlsAllowed(localRole);
         const queenActive = chessQueenStancesActive();
-        els.queenStanceSelect.classList.toggle("hidden", !queenActive);
-        els.queenChargeText.classList.toggle("hidden", !queenActive);
+        els.queenStanceSelect.classList.add("hidden");
+        els.queenChargeText.classList.add("hidden");
         els.queenStanceSelect.value = state.chess.queenStance || "none";
-        els.queenStanceSelect.disabled = !domControls || !state.active || !domToMove || state.chess.freezeMode || state.chess.commandMode;
-        els.queenChargeText.innerHTML = queenActive ? renderQueenCharges() : "No charges";
         els.hitBtn.classList.add("hidden");
         els.chessSkipBtn.classList.add("hidden");
         els.queenRepositionBtn.classList.add("hidden");
         els.queenShieldBtn.classList.add("hidden");
-        els.passBtn.classList.add("hidden");
+        els.passBtn.classList.toggle("hidden", !queenActive);
+        els.passBtn.disabled = !state.active || !queenActive || !queenPowerControlsAllowed(localRole);
+        els.passBtn.textContent = "Power";
       } else if (state.currentGame === "tributeTwentyOne") {
         const domCanForce = domAdvantageControlsAllowed(localRole) && canForceTwentyOneHit();
         const blocksSubAction = Boolean(localRole && localRole !== SUB);
         els.hitBtn.disabled = !state.active || state.turn !== SUB || blocksSubAction;
         els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne" || localRole === DOM);
-        els.passBtn.disabled = domCanForce
+        const domPowerView = Boolean(localRole === DOM && canOpenTwentyOnePowerModal());
+        els.passBtn.disabled = domPowerView
           ? false
-          : (!state.active || state.turn !== SUB || blocksSubAction);
+          : (domCanForce ? false : (!state.active || state.turn !== SUB || blocksSubAction));
         els.hitBtn.textContent = "Hit";
-        els.passBtn.textContent = domCanForce ? "Force Hit" : "Stand";
+        els.passBtn.textContent = domPowerView || domCanForce ? "Power" : "Stand";
       } else if (state.currentGame === "tributeFleet") {
-        els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !state.fleet.scanAvailable || onlineBlocksDom;
-        els.passBtn.textContent = "Scan";
+        const hasFleetPowers = state.mode === "reclaim" && (state.tiltLevel >= 1 || (state.fleet.modifiers || []).length > 0);
+        els.passBtn.disabled = !state.active || !hasFleetPowers || onlineBlocksDom;
+        els.passBtn.textContent = "Power";
+      } else if (state.currentGame === "tributeTrail") {
+        els.passBtn.disabled = !trailRollAllowed();
+        els.passBtn.textContent = "Roll";
       } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice" || state.currentGame === "wheelSpin") {
         els.passBtn.classList.add("hidden");
       } else {
-        const tributeFourPowerReady = state.lockColumnAvailable || (state.pressureDropAvailable && !state.pressureDropArmed);
+        const tributeFourPowerReady = !state.lockColumnMode && ((state.lockColumnAvailable && !state.lockColumnMode) || (state.pressureDropAvailable && !state.pressureDropArmed));
         els.passBtn.disabled = !state.active || state.mode !== "reclaim" || state.turn !== DOM || !tributeFourPowerReady || onlineBlocksDom;
         if (state.lockColumnMode) {
           els.passBtn.textContent = "Pick Column";
@@ -7178,6 +8167,11 @@
       if (state.currentGame === "wheelSpin") {
         els.gameTitle.textContent = "Wheel Spin";
         els.gameSubtitle.textContent = "A 36-space wheel with equal odds per slice. Press the center to spin; the fixed arrow marks the winning space.";
+        return;
+      }
+      if (state.currentGame === "tributeTrail") {
+        els.gameTitle.textContent = "Tribute Trail";
+        els.gameSubtitle.textContent = "A 30-space board race with dice rolls, cash spaces, traps, shortcuts, and dom, sub, and Fate card decks.";
         return;
       }
       if (state.currentGame === "tributeDice") {
@@ -7289,6 +8283,28 @@
     els.rulesModal.addEventListener("click", (event) => {
       if (event.target === els.rulesModal) closeRulesModal();
     });
+    els.tributeFourPowerOptions.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-tribute-four-power], [data-fleet-power], [data-chess-power], [data-twenty-one-power]");
+      if (!button || button.disabled) return;
+      if (button.dataset.tributeFourPower) {
+        selectedTributeFourPower = button.dataset.tributeFourPower;
+        renderTributeFourPowerModal();
+      } else if (button.dataset.fleetPower) {
+        selectedFleetPower = button.dataset.fleetPower;
+        renderFleetPowerModal();
+      } else if (button.dataset.chessPower) {
+        selectedChessPower = button.dataset.chessPower;
+        renderChessPowerModal();
+      } else if (button.dataset.twentyOnePower) {
+        selectedTwentyOnePower = button.dataset.twentyOnePower;
+        renderTwentyOnePowerModal();
+      }
+    });
+    els.tributeFourPowerUseBtn.addEventListener("click", useCurrentPowerModalSelection);
+    els.tributeFourPowerBackBtn.addEventListener("click", closeTributeFourPowerModal);
+    els.tributeFourPowerModal.addEventListener("click", (event) => {
+      if (event.target === els.tributeFourPowerModal) closeTributeFourPowerModal();
+    });
     els.leaveRoomButtons.forEach((button) => {
       button.addEventListener("click", leaveOnlineRoom);
     });
@@ -7306,7 +8322,10 @@
       if (event.key === "Enter") joinRoomFromInput();
     });
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeRulesModal();
+      if (event.key === "Escape") {
+        closeRulesModal();
+        closeTributeFourPowerModal();
+      }
     });
     els.playLocalBtn.addEventListener("click", playLocally);
     els.chooseDomBtn.addEventListener("click", () => chooseOnlineRole(DOM));
@@ -7332,6 +8351,7 @@
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
     els.tributeWheelCard.addEventListener("click", openWheelSpin);
+    els.tributeTrailCard.addEventListener("click", openTributeTrail);
     els.tributeChessCard.addEventListener("click", openTributeChess);
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
     els.copyInviteBtn.addEventListener("click", copyInviteLink);
