@@ -342,12 +342,12 @@
     }
 
     .wager-modal {
-      width: min(540px, 100%);
+      width: min(670px, 100%);
     }
 
     .wager-summary {
       display: grid;
-      gap: 8px;
+      gap: 20px;
     }
 
     .wager-adjust-row {
@@ -368,28 +368,95 @@
       font-weight: 800;
     }
 
-    .wager-emoji-row,
-    .wager-emoji-stream {
+    #wagerModal {
+      align-content: center;
+      gap: 16px;
+    }
+
+    .wager-modal .setup-actions {
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .danger-button {
+      border-color: rgba(255, 45, 45, 0.72);
+      background: #e71616;
+      color: #ffffff;
+    }
+
+    .danger-button:hover:not(:disabled) {
+      background: #ff1717;
+      border-color: rgba(255, 78, 78, 0.9);
+    }
+
+    .wager-emoji-dock {
       display: flex;
-      gap: 8px;
+      gap: clamp(18px, 4vw, 34px);
       flex-wrap: wrap;
+      justify-content: center;
       align-items: center;
     }
 
+    .wager-emoji-dock.hidden {
+      display: none;
+    }
+
     .wager-emoji-btn {
-      min-width: 42px;
-      font-size: 1.2rem;
+      width: clamp(76px, 12vw, 102px);
+      aspect-ratio: 1;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      background: rgba(60, 48, 39, 0.96);
+      border-color: rgba(239, 199, 94, 0.24);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.32);
+    }
+
+    .wager-float-field {
+      position: fixed;
+      inset: auto 0 0;
+      height: 72vh;
+      z-index: 35;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .wager-float-field.hidden {
+      display: none;
     }
 
     .wager-emoji-pop {
-      display: inline-grid;
-      width: 34px;
-      height: 34px;
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      display: grid;
+      width: clamp(64px, 11vw, 92px);
+      height: clamp(64px, 11vw, 92px);
       place-items: center;
-      border-radius: 999px;
-      background: rgba(239, 199, 94, 0.12);
-      border: 1px solid rgba(239, 199, 94, 0.28);
-      font-size: 1.15rem;
+      border-radius: 12px;
+      background: rgba(60, 48, 39, 0.92);
+      border: 1px solid rgba(239, 199, 94, 0.26);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
+      font-size: clamp(2rem, 5.5vw, 3rem);
+      animation: wagerEmojiFloat 2400ms ease-out both;
+      transform: translateX(var(--x, 0));
+    }
+
+    @keyframes wagerEmojiFloat {
+      0% {
+        opacity: 0;
+        transform: translate(var(--x, 0), 30px) scale(0.86);
+      }
+      12% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--x, 0), -52vh) scale(1.08);
+      }
     }
 
     .rules-modal {
@@ -1268,6 +1335,10 @@
       color: #ffffff;
     }
 
+    .side-restore-tab:hover:not(:disabled) {
+      transform: translateY(-50%);
+    }
+
     .side-tabs {
       padding: 10px 12px 0;
     }
@@ -1745,6 +1816,7 @@
         <div class="setup-actions" id="wagerModalActions"></div>
       </div>
     </section>
+    <div class="wager-emoji-dock hidden" id="wagerEmojiDock"></div>
   </div>
 
   <div class="modal-backdrop hidden" id="rulesModal">
@@ -1784,7 +1856,7 @@
 
   <aside class="side-popout" id="sidePopout">
     <div class="side-header">
-      <h2 class="panel-title">Table</h2>
+      <h2 class="panel-title" id="sidePanelTitle">Room</h2>
       <button id="sideToggleBtn" title="Collapse panel">Hide</button>
     </div>
     <div class="side-tabs">
@@ -2234,6 +2306,7 @@
       openSavedLinkBtn: document.getElementById("openSavedLinkBtn"),
       domLinkStatus: document.getElementById("domLinkStatus") || document.getElementById("sideDomLinkStatus"),
       sidePopout: document.getElementById("sidePopout"),
+      sidePanelTitle: document.getElementById("sidePanelTitle"),
       sideToggleBtn: document.getElementById("sideToggleBtn"),
       sideRestoreTab: document.getElementById("sideRestoreTab"),
       sideTabs: document.querySelectorAll(".side-tab"),
@@ -2286,6 +2359,7 @@
       wagerModalTitle: document.getElementById("wagerModalTitle"),
       wagerModalBody: document.getElementById("wagerModalBody"),
       wagerModalActions: document.getElementById("wagerModalActions"),
+      wagerEmojiDock: document.getElementById("wagerEmojiDock"),
       rulesBtn: document.getElementById("rulesBtn"),
       rulesModal: document.getElementById("rulesModal"),
       rulesModalTitle: document.getElementById("rulesModalTitle"),
@@ -3183,6 +3257,7 @@
       const activeTab = state.settings.activeSideTab || "chat";
       const panelOpen = state.settings.sideOpen !== false;
       if (panelOpen) markChatSeen();
+      els.sidePanelTitle.textContent = state.online.room ? `Room ${state.online.room}` : "Room";
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTab.classList.toggle("hidden", panelOpen);
       els.sideRestoreTab.classList.toggle("unread", !panelOpen && hasUnreadChat());
@@ -4000,6 +4075,8 @@
       if (!show) {
         els.wagerModalBody.innerHTML = "";
         els.wagerModalActions.innerHTML = "";
+        els.wagerEmojiDock.innerHTML = "";
+        els.wagerEmojiDock.className = "wager-emoji-dock hidden";
         return;
       }
       const isDomView = !state.online.room || !role || role === DOM;
@@ -4009,14 +4086,6 @@
 
       if (pending.status === "adjust") {
         const arrowDisabled = isDomView ? " disabled" : "";
-        const emojiButtons = isDomView
-          ? `<div class="wager-emoji-row">
-              ${["😤", "🥱", "😘", "🥵"].map((emoji) => `<button class="wager-emoji-btn" data-wager-action="emoji" data-emoji="${emoji}">${emoji}</button>`).join("")}
-            </div>`
-          : "";
-        const emojiStream = !isDomView && pending.emojis && pending.emojis.length
-          ? `<div class="wager-emoji-stream">${pending.emojis.slice(-18).map((item) => `<span class="wager-emoji-pop">${escapeHtml(item.emoji)}</span>`).join("")}</div>`
-          : "";
         els.wagerModalTitle.textContent = isDomView ? "Adjust The Bet" : "Change The Bet";
         els.wagerModalBody.innerHTML = `
           <p class="chooser-line">${isDomView ? "Watch the new bet live." : `${escapeHtml(state.names.dom || "Dom")} wants the bet changed.`}</p>
@@ -4029,14 +4098,28 @@
             <button data-wager-action="adjust" data-delta="5"${arrowDisabled}>+5&gt;</button>
             <button data-wager-action="adjust" data-delta="10"${arrowDisabled}>+10&gt;</button>
           </div>
-          ${emojiButtons}
-          ${emojiStream}
         `;
         els.wagerModalActions.innerHTML = isDomView
-          ? `<button class="primary" data-wager-action="approve">Approve</button><button data-wager-action="back-review">Deny</button>`
+          ? `<button class="primary" data-wager-action="approve">Approve</button><button class="danger-button" data-wager-action="back-review">Deny</button>`
           : `<button class="primary" data-wager-action="confirm-adjust">Confirm New Bet</button>`;
+        if (isDomView) {
+          els.wagerEmojiDock.className = "wager-emoji-dock";
+          els.wagerEmojiDock.innerHTML = ["😤", "🥱", "😘", "🥵"]
+            .map((emoji) => `<button class="wager-emoji-btn" data-wager-action="emoji" data-emoji="${emoji}">${emoji}</button>`)
+            .join("");
+        } else {
+          const floatEmojis = (pending.emojis || []).slice(-10);
+          els.wagerEmojiDock.className = floatEmojis.length ? "wager-float-field" : "wager-float-field hidden";
+          els.wagerEmojiDock.innerHTML = floatEmojis.map((item, index) => {
+            const x = ((index % 5) - 2) * 72 + (Math.floor(index / 5) * 28);
+            return `<span class="wager-emoji-pop" style="--x:${x}px">${escapeHtml(item.emoji)}</span>`;
+          }).join("");
+        }
         return;
       }
+
+      els.wagerEmojiDock.innerHTML = "";
+      els.wagerEmojiDock.className = "wager-emoji-dock hidden";
 
       if (isSubView) {
         els.wagerModalBody.innerHTML = `
@@ -4067,7 +4150,7 @@
           : "";
         els.wagerModalActions.innerHTML = `
           <button class="primary" data-wager-action="approve">Approve</button>
-          <button data-wager-action="deny">Deny</button>
+          <button class="danger-button" data-wager-action="deny">Deny</button>
           ${adjustButtons}
         `;
       }
