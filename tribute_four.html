@@ -1338,20 +1338,137 @@
 
     .trail-board {
       position: relative;
-      display: grid;
-      grid-template-columns: repeat(10, minmax(44px, 1fr));
-      gap: 12px;
-      padding: 18px;
+      min-height: 520px;
+      padding: 0;
       border-radius: 8px;
       border: 1px solid rgba(244, 239, 232, 0.12);
       background:
-        linear-gradient(90deg, rgba(239, 199, 94, 0.08) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(244, 239, 232, 0.045) 1px, transparent 1px),
         radial-gradient(circle at 18% 22%, rgba(86, 181, 255, 0.10), transparent 28%),
         radial-gradient(circle at 82% 70%, rgba(240, 78, 120, 0.12), transparent 30%),
+        radial-gradient(circle at 44% 48%, rgba(239, 199, 94, 0.10), transparent 34%),
         rgba(14, 17, 18, 0.86);
-      background-size: 56px 56px, 56px 56px, auto, auto, auto;
       overflow: hidden;
+    }
+
+    .trail-svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 520px;
+    }
+
+    .trail-route-shadow {
+      fill: none;
+      stroke: rgba(0, 0, 0, 0.42);
+      stroke-width: 22;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .trail-route {
+      fill: none;
+      stroke: rgba(239, 199, 94, 0.46);
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .trail-route-inner {
+      fill: none;
+      stroke: rgba(244, 239, 232, 0.20);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 10 14;
+    }
+
+    .trail-node {
+      filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.40));
+    }
+
+    .trail-node circle {
+      stroke: rgba(244, 239, 232, 0.72);
+      stroke-width: 3;
+    }
+
+    .trail-node.plain circle {
+      fill: #302b26;
+    }
+
+    .trail-node.start circle,
+    .trail-node.finish circle,
+    .trail-node.shortcut circle {
+      fill: #6a5125;
+    }
+
+    .trail-node.cash circle {
+      fill: #266247;
+    }
+
+    .trail-node.player-card circle {
+      fill: #7a2941;
+    }
+
+    .trail-node.fate-card circle {
+      fill: #245a78;
+    }
+
+    .trail-node.trap circle {
+      fill: #7b2c2c;
+    }
+
+    .trail-node.occupied circle {
+      stroke: #ffffff;
+      stroke-width: 5;
+    }
+
+    .trail-node-label,
+    .trail-node-kind,
+    .trail-token-label {
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .trail-node-label {
+      fill: var(--text);
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .trail-node-kind {
+      fill: rgba(244, 239, 232, 0.78);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .trail-token-marker {
+      stroke: rgba(255, 255, 255, 0.86);
+      stroke-width: 3;
+      filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.38));
+    }
+
+    .trail-token-marker.dom {
+      fill: var(--dom);
+    }
+
+    .trail-token-marker.sub {
+      fill: var(--sub);
+    }
+
+    .trail-token-label {
+      fill: #ffffff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .trail-landmark {
+      fill: rgba(244, 239, 232, 0.08);
+      stroke: rgba(244, 239, 232, 0.10);
+      stroke-width: 2;
     }
 
     .trail-space {
@@ -1810,14 +1927,11 @@
       }
 
       .trail-board {
-        grid-template-columns: repeat(5, minmax(44px, 1fr));
-        gap: 10px;
-        padding: 12px;
+        min-height: 360px;
       }
 
-      .trail-space {
-        min-height: 68px;
-        padding: 7px;
+      .trail-svg {
+        min-height: 360px;
       }
 
       .trail-panels {
@@ -7349,21 +7463,6 @@
       return labels[type] || "Path";
     }
 
-    function trailVisualOrder(spaces) {
-      const width = 10;
-      const order = [];
-      for (let row = 0; row < Math.ceil(spaces.length / width); row += 1) {
-        const start = row * width;
-        const rowIndexes = [];
-        for (let col = 0; col < width && start + col < spaces.length; col += 1) {
-          rowIndexes.push(start + col);
-        }
-        if (row % 2 === 1) rowIndexes.reverse();
-        order.push(...rowIndexes);
-      }
-      return order;
-    }
-
     function renderTrailCardPanel(card, emptyText) {
       if (!card) {
         return `<p>${emptyText}</p>`;
@@ -7375,33 +7474,128 @@
       `;
     }
 
+    function trailPoint(index) {
+      const anchors = [
+        [70, 620],
+        [190, 560],
+        [120, 450],
+        [270, 370],
+        [180, 260],
+        [345, 150],
+        [520, 210],
+        [430, 330],
+        [610, 430],
+        [520, 560],
+        [720, 610],
+        [860, 500],
+        [755, 390],
+        [900, 275],
+        [700, 145],
+        [910, 80]
+      ];
+      const segmentCount = anchors.length - 1;
+      const progress = index / Math.max(1, TRAIL_FINISH);
+      const exact = progress * segmentCount;
+      const segment = Math.min(segmentCount - 1, Math.floor(exact));
+      const local = exact - segment;
+      const [x1, y1] = anchors[segment];
+      const [x2, y2] = anchors[segment + 1];
+      const wave = Math.sin(progress * Math.PI * 10) * 18;
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      return {
+        x: x1 + dx * local + (-dy / length) * wave,
+        y: y1 + dy * local + (dx / length) * wave
+      };
+    }
+
+    function trailPathData(points) {
+      if (!points.length) return "";
+      let data = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+      for (let i = 1; i < points.length; i += 1) {
+        const previous = points[i - 1];
+        const current = points[i];
+        const midX = (previous.x + current.x) / 2;
+        const midY = (previous.y + current.y) / 2;
+        data += ` Q ${previous.x.toFixed(1)} ${previous.y.toFixed(1)} ${midX.toFixed(1)} ${midY.toFixed(1)}`;
+      }
+      const last = points[points.length - 1];
+      data += ` T ${last.x.toFixed(1)} ${last.y.toFixed(1)}`;
+      return data;
+    }
+
+    function trailSpaceShortLabel(type) {
+      const labels = {
+        start: "GO",
+        finish: "END",
+        plain: "",
+        "player-card": "CARD",
+        "fate-card": "FATE",
+        cash: "CASH",
+        trap: "TRAP",
+        shortcut: "FAST"
+      };
+      return labels[type] || "";
+    }
+
+    function renderTrailTokenSvg(role, point, stacked) {
+      const offset = stacked ? (role === DOM ? -13 : 13) : 0;
+      const label = role === DOM ? "D" : "S";
+      return `
+        <g>
+          <circle class="trail-token-marker ${role}" cx="${(point.x + offset).toFixed(1)}" cy="${(point.y - 31).toFixed(1)}" r="15"></circle>
+          <text class="trail-token-label" x="${(point.x + offset).toFixed(1)}" y="${(point.y - 31).toFixed(1)}">${label}</text>
+        </g>
+      `;
+    }
+
     function renderTrailBoard() {
       const trail = state.trail || createTrailState();
       els.board.innerHTML = "";
       els.board.className = "trail-layout";
       const board = document.createElement("div");
       board.className = "trail-board";
-      trailVisualOrder(trail.spaces).forEach((index) => {
-        const type = trail.spaces[index];
-        const row = Math.floor(index / 10);
-        const col = index % 10;
-        const reverse = row % 2 === 1;
-        const rowEnd = reverse ? col === 0 : col === 9;
-        const rowTurn = rowEnd && index < trail.spaces.length - 1;
-        const space = document.createElement("div");
-        space.className = `trail-space ${type}${reverse ? " reverse" : ""}${rowEnd ? " row-end" : ""}${rowTurn ? " row-turn" : ""}`;
+      const points = trail.spaces.map((_, index) => trailPoint(index));
+      const route = trailPathData(points);
+      const nodes = trail.spaces.map((type, index) => {
+        const point = points[index];
         const doubled = (trail.cashDoubled || []).includes(index);
-        const tokens = [];
-        if (trail.positions.dom === index) tokens.push(`<span class="trail-token dom" title="${escapeHtml(state.names.dom)}"></span>`);
-        if (trail.positions.sub === index) tokens.push(`<span class="trail-token sub" title="${escapeHtml(state.names.sub)}"></span>`);
-        if (tokens.length) space.classList.add("occupied");
-        space.innerHTML = `
-          <span class="trail-space-number">${index + 1}</span>
-          <span class="trail-space-type">${trailSpaceLabel(type)}${doubled ? `<span class="trail-space-doubled"> x2</span>` : ""}</span>
-          <div class="trail-token-row">${tokens.join("")}</div>
+        const occupied = trail.positions.dom === index || trail.positions.sub === index;
+        const shortLabel = trailSpaceShortLabel(type);
+        return `
+          <g class="trail-node ${type}${occupied ? " occupied" : ""}">
+            <title>${index + 1}. ${trailSpaceLabel(type)}${doubled ? " x2" : ""}</title>
+            <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${type === "start" || type === "finish" ? 30 : 24}"></circle>
+            <text class="trail-node-label" x="${point.x.toFixed(1)}" y="${(point.y - (shortLabel ? 5 : 0)).toFixed(1)}">${index + 1}</text>
+            ${shortLabel ? `<text class="trail-node-kind" x="${point.x.toFixed(1)}" y="${(point.y + 13).toFixed(1)}">${doubled ? `${shortLabel} x2` : shortLabel}</text>` : ""}
+          </g>
         `;
-        board.appendChild(space);
-      });
+      }).join("");
+      const tokenGroups = [DOM, SUB].map((role) => {
+        const point = points[trail.positions[role] || 0];
+        const stacked = trail.positions.dom === trail.positions.sub;
+        return renderTrailTokenSvg(role, point, stacked);
+      }).join("");
+      board.innerHTML = `
+        <svg class="trail-svg" viewBox="0 0 980 700" role="img" aria-label="Tribute Trail winding board">
+          <defs>
+            <linearGradient id="trailRouteGradient" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="rgba(239,199,94,0.55)"></stop>
+              <stop offset="50%" stop-color="rgba(240,78,120,0.50)"></stop>
+              <stop offset="100%" stop-color="rgba(86,181,255,0.48)"></stop>
+            </linearGradient>
+          </defs>
+          <circle class="trail-landmark" cx="250" cy="505" r="72"></circle>
+          <circle class="trail-landmark" cx="565" cy="325" r="95"></circle>
+          <circle class="trail-landmark" cx="805" cy="185" r="80"></circle>
+          <path class="trail-route-shadow" d="${route}"></path>
+          <path class="trail-route" d="${route}" stroke="url(#trailRouteGradient)"></path>
+          <path class="trail-route-inner" d="${route}"></path>
+          ${nodes}
+          ${tokenGroups}
+        </svg>
+      `;
       els.board.appendChild(board);
 
       const panels = document.createElement("div");
