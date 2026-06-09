@@ -341,6 +341,33 @@
       width: min(460px, 100%);
     }
 
+    .wager-modal {
+      width: min(540px, 100%);
+    }
+
+    .wager-summary {
+      display: grid;
+      gap: 8px;
+    }
+
+    .wager-adjust-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(42px, 1fr)) minmax(86px, 1.3fr) repeat(3, minmax(42px, 1fr));
+      gap: 6px;
+      align-items: center;
+    }
+
+    .wager-amount {
+      display: grid;
+      min-height: 38px;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--gold);
+      font-weight: 800;
+    }
+
     .rules-modal {
       width: min(620px, 100%);
       max-height: min(720px, calc(100vh - 40px));
@@ -1684,6 +1711,18 @@
     </section>
   </div>
 
+  <div class="modal-backdrop hidden" id="wagerModal">
+    <section class="panel wager-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="wagerModalTitle">Wager Review</h2>
+      </div>
+      <div class="panel-body">
+        <div class="wager-summary" id="wagerModalBody"></div>
+        <div class="setup-actions" id="wagerModalActions"></div>
+      </div>
+    </section>
+  </div>
+
   <div class="modal-backdrop hidden" id="rulesModal">
     <section class="panel rules-modal">
       <div class="panel-header">
@@ -2087,6 +2126,7 @@
         queenPowerMode: "tiered",
         queenPowerUsers: "dom"
       },
+      pendingWager: null,
       online: {
         room: null,
         seat: null,
@@ -2218,6 +2258,10 @@
       subLinkModalText: document.getElementById("subLinkModalText"),
       openSubLinkBtn: document.getElementById("openSubLinkBtn"),
       declineSubLinkBtn: document.getElementById("declineSubLinkBtn"),
+      wagerModal: document.getElementById("wagerModal"),
+      wagerModalTitle: document.getElementById("wagerModalTitle"),
+      wagerModalBody: document.getElementById("wagerModalBody"),
+      wagerModalActions: document.getElementById("wagerModalActions"),
       rulesBtn: document.getElementById("rulesBtn"),
       rulesModal: document.getElementById("rulesModal"),
       rulesModalTitle: document.getElementById("rulesModalTitle"),
@@ -2874,6 +2918,7 @@
 
     function openTributeFour() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
       state.currentGame = "tributeFour";
       setScreen("game");
       resetTributeFourBoard();
@@ -2886,6 +2931,7 @@
 
     function openTributeFleet() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
       state.currentGame = "tributeFleet";
       setScreen("game");
       resetTributeFleetBoard();
@@ -2934,6 +2980,7 @@
 
     function openWheelSpin() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
       state.currentGame = "wheelSpin";
       setScreen("game");
       resetWheelSpinBoard();
@@ -2945,6 +2992,7 @@
 
     function openTributeChess() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
       state.currentGame = "tributeChess";
       setScreen("game");
       resetTributeChessBoard();
@@ -2957,6 +3005,7 @@
 
     function backToMenu() {
       state.active = false;
+      state.pendingWager = null;
       state.pot = 0;
       setScreen("select");
       render();
@@ -3448,6 +3497,7 @@
         roles: state.roles,
         names: state.names,
         settings: state.settings,
+        pendingWager: state.pendingWager,
         currentGame: state.currentGame,
         board: state.board,
         turn: state.turn,
@@ -3494,6 +3544,7 @@
       };
       state.settings.sideOpen = localSideOpen;
       state.settings.activeSideTab = localActiveSideTab;
+      state.pendingWager = snapshot.pendingWager || null;
       state.currentGame = snapshot.currentGame || state.currentGame;
       state.board = snapshot.board || state.board;
       state.turn = snapshot.turn || state.turn;
@@ -3529,6 +3580,7 @@
       render();
       state.online.applying = false;
       processSubLinkRequest();
+      processApprovedWager();
     }
 
     async function createOnlineRoom() {
@@ -3767,7 +3819,209 @@
       await joinOnlineRoom(room);
     }
 
+    let wagerStartBypass = false;
+    let processedWagerStartId = "";
+
+    function wagerLabel(type) {
+      return type === "reclaim" ? "Reclaim" : "Standard Bet";
+    }
+
+    function pendingWagerAllowedForRole() {
+      const role = localOnlineRole();
+      return !state.online.room || !role || role === DOM || role === SUB;
+    }
+
+    function wagerResultLines(pending = state.pendingWager) {
+      const amount = normalizeBuyIn(Number(pending && pending.amount));
+      if (pending && pending.type === "reclaim") {
+        return [
+          `Current balance: ${money(state.domVault)}`,
+          `Dom win: balance becomes ${money(state.domVault + amount)}`,
+          `Dom loss: balance becomes ${money(0)}`
+        ];
+      }
+      return [
+        `Current balance: ${money(state.domVault)}`,
+        `Dom win: gains ${money(amount)} and balance becomes ${money(state.domVault + amount)}`,
+        `Dom loss: balance remains ${money(state.domVault)}`
+      ];
+    }
+
+    function requestWagerApproval(type) {
+      if (wagerStartBypass) return true;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return false;
+      if (state.active || state.pendingWager) return false;
+      if (type === "reclaim" && state.domVault <= 0) {
+        addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal game first to unlock reclaim.`);
+        return false;
+      }
+      const amount = type === "reclaim"
+        ? normalizeBuyIn(state.domVault)
+        : normalizeBuyIn(Number(els.betInput.value));
+      els.betInput.value = amount;
+      state.pendingWager = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type,
+        game: state.currentGame,
+        amount,
+        originalAmount: amount,
+        status: "review",
+        direction: "",
+        requestedAt: Date.now()
+      };
+      renderWagerApproval();
+      publishState();
+      return false;
+    }
+
+    function updatePendingWager(changes, publish = true) {
+      if (!state.pendingWager) return;
+      state.pendingWager = {
+        ...state.pendingWager,
+        ...changes,
+        updatedAt: Date.now()
+      };
+      renderWagerApproval();
+      renderControls();
+      if (publish) publishState();
+    }
+
+    function denyPendingWager() {
+      if (!state.pendingWager) return;
+      state.pendingWager = null;
+      renderWagerApproval();
+      renderControls();
+      publishState();
+    }
+
+    function requestWagerAdjustment(direction) {
+      if (!state.pendingWager || state.pendingWager.type !== "normal") return;
+      updatePendingWager({ status: "adjust", direction });
+    }
+
+    function adjustPendingWagerAmount(delta) {
+      if (!state.pendingWager || state.pendingWager.type !== "normal") return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const amount = normalizeBuyIn(Number(state.pendingWager.amount || 1) + delta);
+      els.betInput.value = amount;
+      updatePendingWager({ amount, status: "adjust" });
+    }
+
+    function confirmAdjustedWager() {
+      if (!state.pendingWager || state.pendingWager.type !== "normal") return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      updatePendingWager({ status: "review", direction: "" });
+    }
+
+    function approvePendingWager() {
+      const pending = state.pendingWager;
+      if (!pending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      if (!state.online.room) {
+        startApprovedWager(pending);
+        return;
+      }
+      updatePendingWager({
+        status: "approved",
+        approvedStartId: `${pending.id}-start`,
+        approvedAt: Date.now()
+      });
+    }
+
+    function startApprovedWager(pending) {
+      if (!pending || processedWagerStartId === pending.approvedStartId) return;
+      processedWagerStartId = pending.approvedStartId || pending.id;
+      state.pendingWager = null;
+      els.betInput.value = normalizeBuyIn(Number(pending.amount));
+      wagerStartBypass = true;
+      try {
+        if (pending.type === "reclaim") {
+          startReclaimMatch();
+        } else {
+          startNormalMatch();
+        }
+      } finally {
+        wagerStartBypass = false;
+      }
+    }
+
+    function processApprovedWager() {
+      const pending = state.pendingWager;
+      if (!pending || pending.status !== "approved" || !pending.approvedStartId) return;
+      if (state.online.room && localOnlineRole() !== SUB) return;
+      startApprovedWager(pending);
+    }
+
+    function renderWagerApproval() {
+      const pending = state.pendingWager;
+      const role = localOnlineRole();
+      const show = Boolean(pending && pendingWagerAllowedForRole());
+      els.wagerModal.classList.toggle("hidden", !show);
+      if (!show) {
+        els.wagerModalBody.innerHTML = "";
+        els.wagerModalActions.innerHTML = "";
+        return;
+      }
+      const isDomView = !state.online.room || !role || role === DOM;
+      const isSubView = state.online.room && role === SUB;
+      const lines = wagerResultLines(pending);
+      els.wagerModalTitle.textContent = isDomView ? "Decide Their Fate" : "Awaiting Decision";
+
+      if (isSubView && pending.status === "adjust") {
+        const direction = pending.direction === "lower" ? "lower" : "raise";
+        els.wagerModalBody.innerHTML = `
+          <p class="chooser-line">${escapeHtml(state.names.dom || "Dom")} wants you to ${direction} the bet.</p>
+          <div class="wager-adjust-row">
+            <button data-wager-action="adjust" data-delta="-10">&lt;-10</button>
+            <button data-wager-action="adjust" data-delta="-5">&lt;-5</button>
+            <button data-wager-action="adjust" data-delta="-1">&lt;-1</button>
+            <div class="wager-amount">${money(pending.amount)}</div>
+            <button data-wager-action="adjust" data-delta="1">+1&gt;</button>
+            <button data-wager-action="adjust" data-delta="5">+5&gt;</button>
+            <button data-wager-action="adjust" data-delta="10">+10&gt;</button>
+          </div>
+        `;
+        els.wagerModalActions.innerHTML = `<button class="primary" data-wager-action="confirm-adjust">Confirm New Bet</button>`;
+        return;
+      }
+
+      if (isSubView) {
+        els.wagerModalBody.innerHTML = `
+          <p class="chooser-line">${escapeHtml(state.names.dom || "Dom")} is deciding your fate.</p>
+          <p class="chooser-line">${escapeHtml(wagerLabel(pending.type))}: ${money(pending.amount)}</p>
+        `;
+        els.wagerModalActions.innerHTML = "";
+        return;
+      }
+
+      const adjustmentNote = pending.status === "adjust"
+        ? `<p class="chooser-line">${escapeHtml(state.names.sub || "Sub")} is adjusting the bet. Current offer: ${money(pending.amount)}</p>`
+        : "";
+      els.wagerModalBody.innerHTML = `
+        <p class="chooser-line">${escapeHtml(state.names.sub || "Sub")} picked ${escapeHtml(wagerLabel(pending.type))} for ${escapeHtml(currentGameLabel())}.</p>
+        <p class="chooser-line">Amount: ${money(pending.amount)}</p>
+        ${adjustmentNote}
+        ${lines.map((line) => `<p class="chooser-line">${escapeHtml(line)}</p>`).join("")}
+      `;
+      if (pending.status === "adjust") {
+        els.wagerModalActions.innerHTML = `
+          <button class="primary" data-wager-action="approve">Confirm</button>
+          <button data-wager-action="back-review">Back</button>
+        `;
+      } else {
+        const adjustButtons = pending.type === "normal"
+          ? `<button data-wager-action="raise">Raise</button><button data-wager-action="lower">Lower</button>`
+          : "";
+        els.wagerModalActions.innerHTML = `
+          <button class="primary" data-wager-action="approve">Approve</button>
+          <button data-wager-action="deny">Deny</button>
+          ${adjustButtons}
+        `;
+      }
+    }
+
     function startNormalMatch() {
+      if (!wagerStartBypass && !requestWagerApproval("normal")) return;
       if (state.currentGame === "tributeChess") {
         startChessNormalMatch();
         return;
@@ -3808,6 +4062,7 @@
     }
 
     function startReclaimMatch() {
+      if (!wagerStartBypass && !requestWagerApproval("reclaim")) return;
       if (state.currentGame === "tributeChess") {
         startChessReclaimMatch();
         return;
@@ -6527,13 +6782,14 @@
       const localRole = localOnlineRole();
       const onlineBlocksDom = !domAdvantageControlsAllowed(localRole);
       const isWheelSpin = state.currentGame === "wheelSpin";
+      const wagerPending = Boolean(state.pendingWager);
       renderWheelDomTools();
       els.betInput.classList.toggle("hidden", isWheelSpin);
       els.normalBtn.classList.toggle("hidden", isWheelSpin);
       els.reclaimBtn.classList.toggle("hidden", isWheelSpin);
-      els.reclaimBtn.disabled = state.active || state.domVault <= 0 || onlineBlocksSub;
-      els.normalBtn.disabled = state.active || onlineBlocksSub;
-      els.betInput.disabled = state.active || onlineBlocksSub;
+      els.reclaimBtn.disabled = state.active || wagerPending || state.domVault <= 0 || onlineBlocksSub;
+      els.normalBtn.disabled = state.active || wagerPending || onlineBlocksSub;
+      els.betInput.disabled = state.active || wagerPending || onlineBlocksSub;
       els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne");
       els.queenRepositionBtn.classList.add("hidden");
       els.queenShieldBtn.classList.add("hidden");
@@ -6623,6 +6879,7 @@
       renderSidePanel();
       renderLeaveRoomButtons();
       renderLeaveNotice();
+      renderWagerApproval();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
@@ -6730,6 +6987,18 @@
     els.chooseSubBtn.addEventListener("click", () => chooseOnlineRole(SUB));
     els.openSubLinkBtn.addEventListener("click", openSubLinkRequest);
     els.declineSubLinkBtn.addEventListener("click", declineSubLinkRequest);
+    els.wagerModal.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-wager-action]");
+      if (!button) return;
+      const action = button.dataset.wagerAction;
+      if (action === "approve") approvePendingWager();
+      if (action === "deny") denyPendingWager();
+      if (action === "raise") requestWagerAdjustment("raise");
+      if (action === "lower") requestWagerAdjustment("lower");
+      if (action === "back-review") updatePendingWager({ status: "review", direction: "" });
+      if (action === "confirm-adjust") confirmAdjustedWager();
+      if (action === "adjust") adjustPendingWagerAmount(Number(button.dataset.delta || 0));
+    });
     els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
     els.tributeFourCard.addEventListener("click", openTributeFour);
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
