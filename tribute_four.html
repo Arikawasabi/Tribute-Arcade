@@ -4036,7 +4036,7 @@
       if (!allowed.includes(emoji)) return;
       const emojis = [
         ...((state.pendingWager.emojis || []).slice(-17)),
-        { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, emoji }
+        { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, emoji, at: Date.now() }
       ];
       updatePendingWager({ emojis });
     }
@@ -4131,11 +4131,15 @@
             .map((emoji) => `<button class="wager-emoji-btn" data-wager-action="emoji" data-emoji="${emoji}">${emoji}</button>`)
             .join("");
         } else {
-          const floatEmojis = (pending.emojis || []).slice(-18);
+          const now = Date.now();
+          const floatEmojis = (pending.emojis || [])
+            .filter((item) => now - Number(item.at || String(item.id || "").split("-")[0] || 0) < 2400)
+            .slice(-18);
           els.wagerEmojiDock.className = floatEmojis.length ? "wager-float-field" : "wager-float-field hidden";
           els.wagerEmojiDock.innerHTML = floatEmojis.map((item, index) => {
             const x = ((index % 6) - 2.5) * 72 + (Math.floor(index / 6) * 24);
-            const delay = Math.max(-1800, -1 * (floatEmojis.length - index - 1) * 120);
+            const age = now - Number(item.at || String(item.id || "").split("-")[0] || now);
+            const delay = Math.max(-2200, -age);
             return `<span class="wager-emoji-pop" style="--x:${x}px; animation-delay:${delay}ms">${escapeHtml(item.emoji)}</span>`;
           }).join("");
         }
