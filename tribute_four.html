@@ -638,6 +638,14 @@
       align-items: start;
     }
 
+    .app.trail-wide {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .app.trail-wide .game-shell {
+      grid-column: 1 / -1;
+    }
+
     .topbar {
       grid-column: 1 / -1;
       display: flex;
@@ -675,6 +683,17 @@
       background: rgba(239, 199, 94, 0.08);
       text-align: center;
       font-weight: 700;
+    }
+
+    .bank-pill {
+      min-width: 0;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .bank-pill span {
+      color: var(--muted);
+      font-weight: 800;
     }
 
     .panel {
@@ -1338,7 +1357,7 @@
 
     .trail-board {
       position: relative;
-      min-height: 520px;
+      min-height: 640px;
       padding: 0;
       border-radius: 8px;
       border: 1px solid rgba(244, 239, 232, 0.12);
@@ -1354,32 +1373,105 @@
       display: block;
       width: 100%;
       height: auto;
-      min-height: 520px;
+      min-height: 640px;
     }
 
     .trail-route-shadow {
       fill: none;
       stroke: rgba(0, 0, 0, 0.42);
-      stroke-width: 22;
+      stroke-width: 82;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
-    .trail-route {
-      fill: none;
-      stroke: rgba(239, 199, 94, 0.46);
-      stroke-width: 12;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .trail-route-inner {
-      fill: none;
-      stroke: rgba(244, 239, 232, 0.20);
+    .trail-segment {
+      fill: rgba(246, 239, 226, 0.92);
+      stroke: rgba(20, 16, 13, 0.86);
       stroke-width: 3;
+      stroke-linejoin: round;
+    }
+
+    .trail-segment.start,
+    .trail-segment.finish {
+      fill: rgba(106, 81, 37, 0.92);
+    }
+
+    .trail-segment.cash {
+      fill: rgba(38, 98, 71, 0.90);
+    }
+
+    .trail-segment.player-card {
+      fill: rgba(122, 41, 65, 0.90);
+    }
+
+    .trail-segment.fate-card {
+      fill: rgba(36, 90, 120, 0.90);
+    }
+
+    .trail-segment.trap {
+      fill: rgba(123, 44, 44, 0.90);
+    }
+
+    .trail-segment.slide {
+      fill: rgba(93, 67, 132, 0.92);
+    }
+
+    .trail-segment.occupied {
+      stroke: rgba(244, 239, 232, 0.88);
+      stroke-width: 4;
+    }
+
+    .trail-segment.plain {
+      fill: rgba(246, 239, 226, 0.92);
+    }
+
+    .trail-space-badge {
+      display: none;
+      stroke: rgba(20, 16, 13, 0.64);
+      stroke-width: 2;
+      rx: 7;
+      ry: 7;
+    }
+
+    .trail-space-badge.cash {
+      fill: rgba(38, 98, 71, 0.86);
+    }
+
+    .trail-space-badge.player-card {
+      fill: rgba(122, 41, 65, 0.86);
+    }
+
+    .trail-space-badge.fate-card {
+      fill: rgba(36, 90, 120, 0.86);
+    }
+
+    .trail-space-badge.trap {
+      fill: rgba(123, 44, 44, 0.86);
+    }
+
+    .trail-space-badge.slide {
+      fill: rgba(93, 67, 132, 0.88);
+    }
+
+    .trail-space-badge.start,
+    .trail-space-badge.finish {
+      fill: rgba(106, 81, 37, 0.90);
+    }
+
+    .trail-slide-path {
+      fill: none;
+      stroke: rgba(240, 78, 120, 0.64);
+      stroke-width: 6;
       stroke-linecap: round;
       stroke-linejoin: round;
-      stroke-dasharray: 10 14;
+      stroke-dasharray: 10 10;
+      filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.36));
+    }
+
+    .trail-slide-arrow {
+      fill: rgba(240, 78, 120, 0.80);
+      stroke: rgba(20, 16, 13, 0.55);
+      stroke-width: 2;
     }
 
     .trail-node {
@@ -1396,8 +1488,7 @@
     }
 
     .trail-node.start circle,
-    .trail-node.finish circle,
-    .trail-node.shortcut circle {
+    .trail-node.finish circle {
       fill: #6a5125;
     }
 
@@ -1417,6 +1508,10 @@
       fill: #7b2c2c;
     }
 
+    .trail-node.slide circle {
+      fill: #5d4384;
+    }
+
     .trail-node.occupied circle {
       stroke: #ffffff;
       stroke-width: 5;
@@ -1432,17 +1527,25 @@
     }
 
     .trail-node-label {
-      fill: var(--text);
-      font-size: 16px;
+      fill: rgba(255, 255, 255, 0.86);
+      font-size: 10px;
       font-weight: 900;
     }
 
     .trail-node-kind {
-      fill: rgba(244, 239, 232, 0.78);
-      font-size: 10px;
+      fill: rgba(255, 255, 255, 0.94);
+      font-size: 13px;
       font-weight: 900;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    .trail-node.plain .trail-node-label {
+      fill: rgba(20, 16, 13, 0.54);
+    }
+
+    .trail-node.plain .trail-node-kind {
+      fill: rgba(20, 16, 13, 0.82);
     }
 
     .trail-token-marker {
@@ -1470,6 +1573,7 @@
       stroke: rgba(244, 239, 232, 0.10);
       stroke-width: 2;
     }
+
 
     .trail-space {
       position: relative;
@@ -1584,13 +1688,6 @@
       border-color: rgba(255, 91, 91, 0.42);
       background:
         linear-gradient(145deg, rgba(255, 91, 91, 0.18), rgba(78, 28, 28, 0.44)),
-        rgba(28, 25, 23, 0.92);
-    }
-
-    .trail-space.shortcut {
-      border-color: rgba(239, 199, 94, 0.42);
-      background:
-        linear-gradient(145deg, rgba(239, 199, 94, 0.17), rgba(78, 63, 28, 0.42)),
         rgba(28, 25, 23, 0.92);
     }
 
@@ -2075,6 +2172,7 @@
       <h1>Game Select</h1>
       <p class="subtitle" id="playerSummary">Choose a game.</p>
       <div class="setup-actions">
+        <button id="testingBtn">Testing</button>
         <button class="leave-room-btn hidden">Leave Lobby</button>
       </div>
     </header>
@@ -2111,7 +2209,6 @@
     <div class="game-select-tabs">
       <button class="game-select-tab active" data-game-tab="main">Main Games</button>
       <button class="game-select-tab" data-game-tab="mini">Mini Games</button>
-      <button class="game-select-tab" data-game-tab="board">Board Games</button>
     </div>
 
     <section class="game-grid" id="mainGamesGrid">
@@ -2166,11 +2263,22 @@
       </button>
     </section>
 
-    <section class="game-grid hidden" id="boardGamesGrid">
+  </main>
+
+  <main class="screen splash hidden" id="testingScreen">
+    <header class="splash-header">
+      <h1>Testing</h1>
+      <p class="subtitle">Local-only prototypes and board game experiments.</p>
+      <div class="setup-actions">
+        <button id="testingBackBtn">Game Select</button>
+      </div>
+    </header>
+
+    <section class="game-grid" id="boardGamesGrid">
       <button class="panel game-card" id="tributeTrailCard">
         <span>
           <h2>Tribute Trail</h2>
-          <p>A 60-space race with dice rolls, cash spaces, traps, shortcuts, and three card decks.</p>
+          <p>A 60-space race with dice rolls, card draws, fate draws, cash spaces, traps, and slides.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
@@ -2216,6 +2324,7 @@
         <p class="subtitle" id="gameSubtitle">Connect Four with cash stakes. The sub chooses a normal bet to start. If the dom wins, that cash enters her bank; later the sub can risk a tilted reclaim match to win the banked cash back.</p>
       </div>
       <div class="setup-actions">
+        <div class="status-pill bank-pill hidden" id="trailBankPill"><span>Bank</span><strong id="trailBankAmount">$0</strong></div>
         <button id="openSavedLinkBtn">Open Saved Link</button>
         <button id="rulesBtn">Rules</button>
         <button id="backToMenuBtn">Games</button>
@@ -2224,7 +2333,7 @@
       </div>
     </header>
 
-    <section class="panel">
+    <section class="panel" id="cashLedgerPanel">
       <div class="panel-header">
         <h2 class="panel-title">Cash Ledger</h2>
       </div>
@@ -2721,6 +2830,10 @@
     const WHEEL_POWER_LIMIT = 2;
     const TRAIL_LENGTH = 60;
     const TRAIL_FINISH = TRAIL_LENGTH - 1;
+    const TRAIL_SLIDES = [
+      { from: 30, to: 19 },
+      { from: 48, to: 38 }
+    ];
 
     const state = {
       screen: "lobby",
@@ -2814,6 +2927,7 @@
       lobbyScreen: document.getElementById("lobbyScreen"),
       setupScreen: document.getElementById("setupScreen"),
       gameSelectScreen: document.getElementById("gameSelectScreen"),
+      testingScreen: document.getElementById("testingScreen"),
       gameScreen: document.getElementById("gameScreen"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
@@ -2835,6 +2949,8 @@
       mainGamesGrid: document.getElementById("mainGamesGrid"),
       miniGamesGrid: document.getElementById("miniGamesGrid"),
       boardGamesGrid: document.getElementById("boardGamesGrid"),
+      testingBtn: document.getElementById("testingBtn"),
+      testingBackBtn: document.getElementById("testingBackBtn"),
       domSettingsPane: document.getElementById("domSettingsPane"),
       subSettingsPane: document.getElementById("subSettingsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
@@ -2925,6 +3041,9 @@
       returnLobbyNoticeBtn: document.getElementById("returnLobbyNoticeBtn"),
       gameTitle: document.getElementById("gameTitle"),
       gameSubtitle: document.getElementById("gameSubtitle"),
+      cashLedgerPanel: document.getElementById("cashLedgerPanel"),
+      trailBankPill: document.getElementById("trailBankPill"),
+      trailBankAmount: document.getElementById("trailBankAmount"),
       board: document.getElementById("board"),
       turnText: document.getElementById("turnText"),
       modeLabel: document.getElementById("modeLabel"),
@@ -3082,17 +3201,35 @@
       const spaces = Array.from({ length: TRAIL_LENGTH }, () => "plain");
       spaces[0] = "start";
       spaces[TRAIL_FINISH] = "finish";
-      [3, 8, 14, 20, 25, 31, 38, 44, 52, 56].forEach((index) => spaces[index] = "player-card");
-      [5, 12, 18, 24, 29, 35, 41, 48, 54].forEach((index) => spaces[index] = "fate-card");
-      [6, 16, 22, 33, 46, 58].forEach((index) => spaces[index] = "cash");
-      [9, 21, 37, 50].forEach((index) => spaces[index] = "trap");
-      [11, 26, 43].forEach((index) => spaces[index] = "shortcut");
+      TRAIL_SLIDES.forEach((slide) => spaces[slide.from] = "slide");
+      const types = [
+        ...Array(15).fill("player-card"),
+        ...Array(15).fill("fate-card"),
+        ...Array(18).fill("cash"),
+        ...Array(8).fill("trap")
+      ];
+      for (let i = types.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [types[i], types[j]] = [types[j], types[i]];
+      }
+      let typeIndex = 0;
+      for (let index = 1; index < TRAIL_FINISH; index += 1) {
+        if (spaces[index] === "plain") {
+          spaces[index] = types[typeIndex];
+          typeIndex += 1;
+        }
+      }
       return spaces;
     }
 
+    function createTrailCashValues(spaces) {
+      return spaces.map((type) => type === "cash" ? 1 + Math.floor(Math.random() * 10) : null);
+    }
+
     function createTrailState() {
+      const spaces = createTrailSpaces();
       return {
-        spaces: createTrailSpaces(),
+        spaces,
         positions: {
           sub: 0,
           dom: 0
@@ -3106,6 +3243,7 @@
           dom: false
         },
         cashDoubled: [],
+        cashValues: createTrailCashValues(spaces),
         lastRoll: null,
         lastPlayerCard: null,
         lastFateCard: null,
@@ -3312,6 +3450,7 @@
       els.setupScreen.classList.toggle("hidden", screen !== "setup");
       els.lobbyScreen.classList.toggle("hidden", screen !== "lobby");
       els.gameSelectScreen.classList.toggle("hidden", screen !== "select");
+      els.testingScreen.classList.toggle("hidden", screen !== "testing");
       els.gameScreen.classList.toggle("hidden", screen !== "game");
       renderControlGlow();
       renderMenu();
@@ -3752,6 +3891,17 @@
       publishState();
     }
 
+    function openTestingScreen() {
+      if (state.online.room) return;
+      setScreen("testing");
+      render();
+    }
+
+    function closeTestingScreen() {
+      setScreen("select");
+      render();
+    }
+
     function renderMenu() {
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
       els.menuDomBank.textContent = money(state.domVault);
@@ -3765,6 +3915,7 @@
       els.tributeWheelCard.disabled = domPickBlocked;
       els.tributeTrailCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
+      els.testingBtn.classList.toggle("hidden", Boolean(state.online.room));
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
         : `${state.names.dom || "Dom"} picks the next game.`;
@@ -3774,13 +3925,13 @@
     }
 
     function renderGameSelectTabs() {
-      const tab = state.settings.activeGameTab || "main";
+      const tab = ["main", "mini"].includes(state.settings.activeGameTab) ? state.settings.activeGameTab : "main";
+      state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
         button.classList.toggle("active", button.dataset.gameTab === tab);
       });
       els.mainGamesGrid.classList.toggle("hidden", tab !== "main");
       els.miniGamesGrid.classList.toggle("hidden", tab !== "mini");
-      els.boardGamesGrid.classList.toggle("hidden", tab !== "board");
     }
 
     function renderControlGlow() {
@@ -5688,7 +5839,7 @@
         drawTrailFateCard(player);
       } else if (type === "cash") {
         const doubled = (state.trail.cashDoubled || []).includes(index);
-        const amount = doubled ? 10 : 5;
+        const amount = trailCashValue(index) * (doubled ? 2 : 1);
         state.domVault += amount;
         state.lockedTribute = state.domVault;
         addLog(`<strong>Cash space.</strong> ${money(amount)} enters ${state.names.dom}'s bank${doubled ? " from a doubled space" : ""}.`);
@@ -5696,10 +5847,17 @@
         const penalty = player === SUB ? -3 : -1;
         addLog(`<strong>Trap space.</strong> ${labelFor(player)} is pulled back ${Math.abs(penalty)}.`);
         moveTrailPlayer(player, penalty, false);
-      } else if (type === "shortcut") {
-        addLog(`<strong>Shortcut.</strong> ${labelFor(player)} moves forward 3.`);
-        moveTrailPlayer(player, 3, false);
+      } else if (type === "slide") {
+        const slide = TRAIL_SLIDES.find((item) => item.from === index);
+        if (!slide) return;
+        state.trail.positions[player] = slide.to;
+        addLog(`<strong>Slide.</strong> ${labelFor(player)} slides back to space ${slide.to + 1}.`);
       }
+    }
+
+    function trailCashValue(index) {
+      const values = state.trail && Array.isArray(state.trail.cashValues) ? state.trail.cashValues : [];
+      return Number(values[index] || 1);
     }
 
     function pickTrailCashSpaces(count) {
@@ -5736,7 +5894,7 @@
           text: `${state.names.dom} doubles two cash spaces for the rest of the game.`,
           effect: () => {
             const picked = pickTrailCashSpaces(2);
-            if (picked.length) addLog(`<strong>Doubled cash:</strong> spaces ${picked.map((space) => space + 1).join(", ")} now pay ${money(10)}.`);
+            if (picked.length) addLog(`<strong>Doubled cash:</strong> ${picked.map((space) => `space ${space + 1} pays ${money(trailCashValue(space) * 2)}`).join(", ")}.`);
           }
         },
         {
@@ -7458,7 +7616,7 @@
         "fate-card": "Fate",
         cash: "Cash",
         trap: "Trap",
-        shortcut: "Shortcut"
+        slide: "Slide"
       };
       return labels[type] || "Path";
     }
@@ -7474,40 +7632,80 @@
       `;
     }
 
-    function trailPoint(index) {
-      const anchors = [
-        [70, 620],
-        [190, 560],
-        [120, 450],
-        [270, 370],
-        [180, 260],
-        [345, 150],
-        [520, 210],
-        [430, 330],
-        [610, 430],
-        [520, 560],
-        [720, 610],
-        [860, 500],
-        [755, 390],
-        [900, 275],
-        [700, 145],
-        [910, 80]
+    function trailAnchors() {
+      return [
+        [125, 88],
+        [845, 88],
+        [900, 126],
+        [850, 190],
+        [130, 190],
+        [80, 242],
+        [125, 295],
+        [850, 295],
+        [905, 346],
+        [855, 400],
+        [130, 400],
+        [78, 452],
+        [125, 505],
+        [710, 505],
+        [805, 548],
+        [760, 610],
+        [900, 610]
       ];
-      const segmentCount = anchors.length - 1;
-      const progress = index / Math.max(1, TRAIL_FINISH);
-      const exact = progress * segmentCount;
-      const segment = Math.min(segmentCount - 1, Math.floor(exact));
-      const local = exact - segment;
-      const [x1, y1] = anchors[segment];
-      const [x2, y2] = anchors[segment + 1];
-      const wave = Math.sin(progress * Math.PI * 10) * 18;
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const length = Math.max(1, Math.hypot(dx, dy));
+    }
+
+    function catmullRomPoint(p0, p1, p2, p3, t) {
+      const t2 = t * t;
+      const t3 = t2 * t;
       return {
-        x: x1 + dx * local + (-dy / length) * wave,
-        y: y1 + dy * local + (dx / length) * wave
+        x: 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
+        y: 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
       };
+    }
+
+    function trailSmoothSamples() {
+      const anchors = trailAnchors();
+      const samples = [];
+      let total = 0;
+      let previous = null;
+      for (let segment = 0; segment < anchors.length - 1; segment += 1) {
+        const p0 = anchors[Math.max(0, segment - 1)];
+        const p1 = anchors[segment];
+        const p2 = anchors[segment + 1];
+        const p3 = anchors[Math.min(anchors.length - 1, segment + 2)];
+        for (let step = 0; step <= 20; step += 1) {
+          if (segment > 0 && step === 0) continue;
+          const point = catmullRomPoint(p0, p1, p2, p3, step / 20);
+          if (previous) total += Math.hypot(point.x - previous.x, point.y - previous.y);
+          samples.push({ ...point, distance: total });
+          previous = point;
+        }
+      }
+      return { samples, total };
+    }
+
+    function trailPointAtProgress(progress) {
+      const { samples, total } = trailSmoothSamples();
+      if (!samples.length) return { x: 0, y: 0 };
+      const target = Math.max(0, Math.min(1, progress)) * total;
+      let index = 1;
+      while (index < samples.length - 1 && samples[index].distance < target) index += 1;
+      const before = samples[index - 1] || samples[0];
+      const after = samples[index] || samples[samples.length - 1];
+      const span = Math.max(1, after.distance - before.distance);
+      const local = (target - before.distance) / span;
+      return {
+        x: before.x + (after.x - before.x) * local,
+        y: before.y + (after.y - before.y) * local
+      };
+    }
+
+    function trailSpacePoint(index) {
+      return trailPointAtProgress((index + 0.5) / TRAIL_LENGTH);
+    }
+
+    function trailRoutePoints() {
+      return Array.from({ length: 121 }, (_, index) => trailPointAtProgress(index / 120));
     }
 
     function trailPathData(points) {
@@ -7534,9 +7732,100 @@
         "fate-card": "FATE",
         cash: "CASH",
         trap: "TRAP",
-        shortcut: "FAST"
+        slide: "SLIDE"
       };
       return labels[type] || "";
+    }
+
+    function renderTrailSlides(spacePoints) {
+      return TRAIL_SLIDES.map((slide) => {
+        const from = spacePoints[slide.from];
+        const to = spacePoints[slide.to];
+        const controlX = (from.x + to.x) / 2 - 80;
+        const controlY = (from.y + to.y) / 2 + 58;
+        const angle = Math.atan2(to.y - controlY, to.x - controlX);
+        const arrowSize = 13;
+        const left = {
+          x: to.x - Math.cos(angle - 0.55) * arrowSize,
+          y: to.y - Math.sin(angle - 0.55) * arrowSize
+        };
+        const right = {
+          x: to.x - Math.cos(angle + 0.55) * arrowSize,
+          y: to.y - Math.sin(angle + 0.55) * arrowSize
+        };
+        return `
+          <path class="trail-slide-path" d="M ${from.x.toFixed(1)} ${from.y.toFixed(1)} Q ${controlX.toFixed(1)} ${controlY.toFixed(1)} ${to.x.toFixed(1)} ${to.y.toFixed(1)}"></path>
+          <path class="trail-slide-arrow" d="M ${to.x.toFixed(1)} ${to.y.toFixed(1)} L ${left.x.toFixed(1)} ${left.y.toFixed(1)} L ${right.x.toFixed(1)} ${right.y.toFixed(1)} Z"></path>
+        `;
+      }).join("");
+    }
+
+    function trailNormalAtProgress(progress) {
+      const previous = trailPointAtProgress(Math.max(0, progress - 0.012));
+      const next = trailPointAtProgress(Math.min(1, progress + 0.012));
+      const dx = next.x - previous.x;
+      const dy = next.y - previous.y;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      return {
+        x: -dy / length,
+        y: dx / length
+      };
+    }
+
+    function trailCurvatureAtProgress(progress) {
+      const before = trailPointAtProgress(Math.max(0, progress - 0.018));
+      const center = trailPointAtProgress(progress);
+      const after = trailPointAtProgress(Math.min(1, progress + 0.018));
+      const first = Math.atan2(center.y - before.y, center.x - before.x);
+      const second = Math.atan2(after.y - center.y, after.x - center.x);
+      let angle = Math.abs(second - first);
+      if (angle > Math.PI) angle = (Math.PI * 2) - angle;
+      return angle;
+    }
+
+    function trailTrackHalfWidth(progress) {
+      const curve = trailCurvatureAtProgress(progress);
+      if (curve > 0.46) return 26;
+      if (curve > 0.30) return 28;
+      if (curve > 0.18) return 30;
+      return 32;
+    }
+
+    function trailSegmentPolygon(index) {
+      const startProgress = index / TRAIL_LENGTH;
+      const endProgress = (index + 1) / TRAIL_LENGTH;
+      const start = trailPointAtProgress(startProgress);
+      const end = trailPointAtProgress(endProgress);
+      const startNormal = trailNormalAtProgress(startProgress);
+      const endNormal = trailNormalAtProgress(endProgress);
+      const startHalfWidth = trailTrackHalfWidth(startProgress);
+      const endHalfWidth = trailTrackHalfWidth(endProgress);
+      const points = [
+        [start.x + startNormal.x * startHalfWidth, start.y + startNormal.y * startHalfWidth],
+        [end.x + endNormal.x * endHalfWidth, end.y + endNormal.y * endHalfWidth],
+        [end.x - endNormal.x * endHalfWidth, end.y - endNormal.y * endHalfWidth],
+        [start.x - startNormal.x * startHalfWidth, start.y - startNormal.y * startHalfWidth]
+      ];
+      return points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+    }
+
+    function trailSegmentTextPoints(index) {
+      const center = trailSpacePoint(index);
+      const progress = (index + 0.5) / TRAIL_LENGTH;
+      const normal = trailNormalAtProgress(progress);
+      const tangentA = trailPointAtProgress(Math.max(0, progress - 0.006));
+      const tangentB = trailPointAtProgress(Math.min(1, progress + 0.006));
+      const dx = tangentB.x - tangentA.x;
+      const dy = tangentB.y - tangentA.y;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      const tangent = { x: dx / length, y: dy / length };
+      return {
+        center,
+        number: {
+          x: center.x - tangent.x * 19 - normal.x * 19,
+          y: center.y - tangent.y * 19 - normal.y * 19
+        }
+      };
     }
 
     function renderTrailTokenSvg(role, point, stacked) {
@@ -7544,8 +7833,8 @@
       const label = role === DOM ? "D" : "S";
       return `
         <g>
-          <circle class="trail-token-marker ${role}" cx="${(point.x + offset).toFixed(1)}" cy="${(point.y - 31).toFixed(1)}" r="15"></circle>
-          <text class="trail-token-label" x="${(point.x + offset).toFixed(1)}" y="${(point.y - 31).toFixed(1)}">${label}</text>
+          <circle class="trail-token-marker ${role}" cx="${(point.x + offset).toFixed(1)}" cy="${(point.y - 40).toFixed(1)}" r="15"></circle>
+          <text class="trail-token-label" x="${(point.x + offset).toFixed(1)}" y="${(point.y - 40).toFixed(1)}">${label}</text>
         </g>
       `;
     }
@@ -7556,24 +7845,29 @@
       els.board.className = "trail-layout";
       const board = document.createElement("div");
       board.className = "trail-board";
-      const points = trail.spaces.map((_, index) => trailPoint(index));
-      const route = trailPathData(points);
+      const route = trailPathData(trailRoutePoints());
+      const spacePoints = trail.spaces.map((_, index) => trailSpacePoint(index));
+      const slideOverlays = renderTrailSlides(spacePoints);
+      const segments = trail.spaces.map((type, index) => {
+        const occupied = trail.positions.dom === index || trail.positions.sub === index;
+        return `<polygon class="trail-segment ${type}${occupied ? " occupied" : ""}" points="${trailSegmentPolygon(index)}"></polygon>`;
+      }).join("");
       const nodes = trail.spaces.map((type, index) => {
-        const point = points[index];
         const doubled = (trail.cashDoubled || []).includes(index);
         const occupied = trail.positions.dom === index || trail.positions.sub === index;
-        const shortLabel = trailSpaceShortLabel(type);
+        const shortLabel = type === "cash" ? money(trailCashValue(index)) : trailSpaceShortLabel(type);
+        const textPoints = trailSegmentTextPoints(index);
+        const centerLabel = shortLabel || (type === "plain" ? "PATH" : "");
         return `
           <g class="trail-node ${type}${occupied ? " occupied" : ""}">
             <title>${index + 1}. ${trailSpaceLabel(type)}${doubled ? " x2" : ""}</title>
-            <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${type === "start" || type === "finish" ? 30 : 24}"></circle>
-            <text class="trail-node-label" x="${point.x.toFixed(1)}" y="${(point.y - (shortLabel ? 5 : 0)).toFixed(1)}">${index + 1}</text>
-            ${shortLabel ? `<text class="trail-node-kind" x="${point.x.toFixed(1)}" y="${(point.y + 13).toFixed(1)}">${doubled ? `${shortLabel} x2` : shortLabel}</text>` : ""}
+            <text class="trail-node-label" x="${textPoints.number.x.toFixed(1)}" y="${textPoints.number.y.toFixed(1)}">${index + 1}</text>
+            <text class="trail-node-kind" x="${textPoints.center.x.toFixed(1)}" y="${textPoints.center.y.toFixed(1)}">${doubled ? `${centerLabel} x2` : centerLabel}</text>
           </g>
         `;
       }).join("");
       const tokenGroups = [DOM, SUB].map((role) => {
-        const point = points[trail.positions[role] || 0];
+        const point = spacePoints[trail.positions[role] || 0];
         const stacked = trail.positions.dom === trail.positions.sub;
         return renderTrailTokenSvg(role, point, stacked);
       }).join("");
@@ -7586,12 +7880,10 @@
               <stop offset="100%" stop-color="rgba(86,181,255,0.48)"></stop>
             </linearGradient>
           </defs>
-          <circle class="trail-landmark" cx="250" cy="505" r="72"></circle>
-          <circle class="trail-landmark" cx="565" cy="325" r="95"></circle>
-          <circle class="trail-landmark" cx="805" cy="185" r="80"></circle>
+          <circle class="trail-landmark" cx="500" cy="350" r="116"></circle>
           <path class="trail-route-shadow" d="${route}"></path>
-          <path class="trail-route" d="${route}" stroke="url(#trailRouteGradient)"></path>
-          <path class="trail-route-inner" d="${route}"></path>
+          ${segments}
+          ${slideOverlays}
           ${nodes}
           ${tokenGroups}
         </svg>
@@ -8318,12 +8610,14 @@
       const rules = [
         `<strong>Goal:</strong> race along the 60-space path and be the first player to reach the finish.`,
         `<strong>Turns:</strong> the starting player is random. On your turn, press Roll and move that many spaces.`,
+        `<strong>Space mix:</strong> the board has 15 Card spaces, 15 Fate spaces, 18 Cash spaces, 8 Trap spaces, and 2 Slide spaces between Start and Finish.`,
         `<strong>Card spaces:</strong> the same Card space draws from the dom deck or sub deck depending on who lands there.`,
         `<strong>Dom cards:</strong> these can upgrade the dom die, double cash spaces, move players, or make the sub miss a turn.`,
         `<strong>Sub cards:</strong> these are Twitter worship prompts for ${state.names.dom}'s profile, such as liking and reposting a random number of recent posts. They are manual prompts, not automated.`,
         `<strong>Fate spaces:</strong> these draw from the shared Fate deck and resolve movement, skip, or cash effects.`,
-        `<strong>Cash spaces:</strong> landing there adds cash to ${state.names.dom}'s bank. Doubled cash spaces pay more.`,
-        `<strong>Trap and shortcut spaces:</strong> traps pull players backward, while shortcuts push them forward.`,
+        `<strong>Cash spaces:</strong> each cash space shows a random amount from $1 to $10. Landing there adds that amount to ${state.names.dom}'s bank. Doubled cash spaces pay twice the shown amount.`,
+        `<strong>Trap spaces:</strong> traps pull players backward.`,
+        `<strong>Slide spaces:</strong> landing there sends the player down the marked slide to an earlier space without triggering that destination space.`,
         `<strong>No bet required:</strong> Tribute Trail does not use normal bets, reclaims, or tilt in this version.`
       ];
       setRuleList(rules);
@@ -8431,6 +8725,11 @@
 
     function renderText() {
       renderGameChrome();
+      const isTrail = state.currentGame === "tributeTrail";
+      els.gameScreen.classList.toggle("trail-wide", isTrail);
+      els.cashLedgerPanel.classList.toggle("hidden", isTrail);
+      els.trailBankPill.classList.toggle("hidden", !isTrail);
+      els.trailBankAmount.textContent = money(state.domVault);
       els.pot.textContent = money(state.pot);
       els.domVault.textContent = money(state.domVault);
       els.lockedTribute.textContent = money(state.domVault);
@@ -8557,7 +8856,7 @@
       }
       if (state.currentGame === "tributeTrail") {
         els.gameTitle.textContent = "Tribute Trail";
-        els.gameSubtitle.textContent = "A 60-space board race with dice rolls, cash spaces, traps, shortcuts, and dom, sub, and Fate card decks.";
+        els.gameSubtitle.textContent = "A 60-space board race with card, fate, cash, trap, and slide spaces. Cash spaces roll their own $1-$10 values.";
         return;
       }
       if (state.currentGame === "tributeDice") {
@@ -8703,6 +9002,8 @@
     if (els.queenPowerMode) els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
     if (els.queenPowerUsers) els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
     els.backToMenuBtn.addEventListener("click", backToMenu);
+    els.testingBtn.addEventListener("click", openTestingScreen);
+    els.testingBackBtn.addEventListener("click", closeTestingScreen);
     if (els.continueSetupBtn) els.continueSetupBtn.addEventListener("click", continueToSetup);
     els.confirmLobbyNameBtn.addEventListener("click", confirmLobbyName);
     els.joinRoomBtn.addEventListener("click", joinRoomFromInput);
