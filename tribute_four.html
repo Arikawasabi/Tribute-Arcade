@@ -2575,6 +2575,7 @@
     <div class="game-select-tabs">
       <button class="game-select-tab active" data-game-tab="main">Main Games</button>
       <button class="game-select-tab" data-game-tab="mini">Mini Games</button>
+      <button class="game-select-tab" data-game-tab="testing">In Testing</button>
     </div>
 
     <section class="game-grid" id="mainGamesGrid">
@@ -2606,8 +2607,8 @@
     <section class="game-grid hidden" id="miniGamesGrid">
       <button class="panel game-card" id="tributeTwentyOneCard">
         <span>
-          <h2>Tribute 21</h2>
-          <p>Blackjack-inspired casino hands with fast bets, reclaim pressure, and a sharp dealer edge.</p>
+          <h2>Tribute Blackjack</h2>
+          <p>Blackjack hands where the sub plays first, then the dom takes the dealer turn and presses the table edge in reclaim.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
@@ -2629,6 +2630,16 @@
       </button>
     </section>
 
+    <section class="game-grid hidden" id="testingGamesGrid">
+      <button class="panel game-card" id="tributeTrailCard">
+        <span>
+          <h2>Tribute Trail</h2>
+          <p>A 60-space public test race with dice rolls, card draws, chance draws, cash spaces, blank spaces, and slides.</p>
+        </span>
+        <strong class="status-pill">Public Test</strong>
+      </button>
+    </section>
+
   </main>
 
   <main class="screen splash hidden" id="testingScreen">
@@ -2647,14 +2658,6 @@
           <p>A bluffing dice prototype with claims, calls, and cash pressure.</p>
         </span>
         <strong class="status-pill">Testing</strong>
-      </button>
-
-      <button class="panel game-card" id="tributeTrailCard">
-        <span>
-          <h2>Tribute Trail</h2>
-          <p>A 60-space race with dice rolls, card draws, chance draws, cash spaces, blank spaces, and slides.</p>
-        </span>
-        <strong class="status-pill">Play</strong>
       </button>
 
       <article class="panel game-card idea-card">
@@ -2875,9 +2878,9 @@
           <input id="trailTransferSlider" type="range" min="0" max="100" step="10" value="50">
         </div>
         <div class="trail-shop-options" id="trailShopOptions">
-          <button data-trail-shop="dom"><strong>$8</strong><span>Buy Dom Card</span></button>
-          <button data-trail-shop="sub"><strong>$4</strong><span>Buy Sub Card</span></button>
-          <button data-trail-shop="chance"><strong>$6</strong><span>Buy Chance Card</span></button>
+          <button data-trail-shop="dom"><strong>$6</strong><span>Buy Dom Card</span></button>
+          <button data-trail-shop="sub"><strong>$3</strong><span>Buy Sub Card</span></button>
+          <button data-trail-shop="chance"><strong>$4</strong><span>Buy Chance Card</span></button>
         </div>
         <div class="setup-actions" id="trailShopActions">
           <button id="trailShopWaitBtn">Wait</button>
@@ -3363,6 +3366,7 @@
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
       mainGamesGrid: document.getElementById("mainGamesGrid"),
       miniGamesGrid: document.getElementById("miniGamesGrid"),
+      testingGamesGrid: document.getElementById("testingGamesGrid"),
       boardGamesGrid: document.getElementById("boardGamesGrid"),
       testingBtn: document.getElementById("testingBtn"),
       testingBackBtn: document.getElementById("testingBackBtn"),
@@ -3560,6 +3564,7 @@
           sub: []
         },
         stood: false,
+        dealerTurn: false,
         revealDom: false,
         softSaveAvailable: false,
         forceHitAvailable: false,
@@ -3652,7 +3657,19 @@
     }
 
     function createTrailCashValues(spaces) {
-      return spaces.map((type) => type === "cash" ? 1 + Math.floor(Math.random() * 5) : null);
+      const values = spaces.map(() => null);
+      const cashIndexes = spaces
+        .map((type, index) => ({ type, index }))
+        .filter((space) => space.type === "cash")
+        .map((space) => space.index)
+        .sort((a, b) => a - b);
+      cashIndexes.forEach((index, rank) => {
+        const progress = cashIndexes.length <= 1 ? 1 : rank / (cashIndexes.length - 1);
+        const base = 1 + Math.floor(progress * 4.99);
+        const jitter = Math.random() < 0.28 ? (Math.random() < 0.5 ? -1 : 1) : 0;
+        values[index] = Math.max(1, Math.min(5, base + jitter));
+      });
+      return values;
     }
 
     function createTrailState() {
@@ -4408,13 +4425,14 @@
     }
 
     function renderGameSelectTabs() {
-      const tab = ["main", "mini"].includes(state.settings.activeGameTab) ? state.settings.activeGameTab : "main";
+      const tab = ["main", "mini", "testing"].includes(state.settings.activeGameTab) ? state.settings.activeGameTab : "main";
       state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
         button.classList.toggle("active", button.dataset.gameTab === tab);
       });
       els.mainGamesGrid.classList.toggle("hidden", tab !== "main");
       els.miniGamesGrid.classList.toggle("hidden", tab !== "mini");
+      els.testingGamesGrid.classList.toggle("hidden", tab !== "testing");
     }
 
     function renderControlGlow() {
@@ -6295,7 +6313,7 @@
           label: "Dealer Lock",
           unlocked: reclaim && state.tiltLevel >= 4,
           available: reclaim && state.tiltLevel >= 4,
-          detail: `<strong>Dealer Lock.</strong> ${state.names.dom}'s dealer hand stands on 16 or higher.`,
+          detail: `<strong>Dealer Lock.</strong> ${state.names.dom} can stand on 16 or higher during her dealer turn.`,
           uses: "passive while active"
         },
         houseSweep: {
@@ -6318,6 +6336,7 @@
 
     function canOpenTwentyOnePowerModal() {
       if (state.currentGame !== "tributeTwentyOne" || state.mode !== "reclaim") return false;
+      if (!state.active || state.turn !== SUB || state.twentyOne.dealerTurn) return false;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
       return domAdvantagesEnabled() && state.tiltLevel >= 1;
     }
@@ -6329,7 +6348,7 @@
     }
 
     function renderTwentyOnePowerModal() {
-      els.powerModalTitle.textContent = "Tribute 21 Powers";
+      els.powerModalTitle.textContent = "Tribute Blackjack Powers";
       const powers = twentyOnePowerTypes().map((type) => ({ type, ...twentyOnePowerInfo(type) }));
       els.tributeFourPowerOptions.innerHTML = powers.map((power) => `
         <button data-twenty-one-power="${power.type}" class="${selectedTwentyOnePower === power.type ? "active" : ""}">
@@ -6743,10 +6762,10 @@
       state.trail.trapCashGrace = true;
       const values = { ...(state.trail.trapCashValues || {}) };
       (state.trail.spaces || []).forEach((type, index) => {
-        if (type === "plain" && index > 0 && index < TRAIL_FINISH && !values[index]) values[index] = 5 + Math.floor(Math.random() * 6);
+        if (type === "plain" && index > 0 && index < TRAIL_FINISH && !values[index]) values[index] = 7 + Math.floor(Math.random() * 6);
       });
       state.trail.trapCashValues = values;
-      addLog(`<strong>Blank Cash.</strong> Blank panels become ${money(5)}-${money(10)} cash panels for ${state.trail.trapCashTurns} turn${state.trail.trapCashTurns === 1 ? "" : "s"} total.`);
+      addLog(`<strong>Blank Cash.</strong> Blank panels become ${money(7)}-${money(12)} cash panels for ${state.trail.trapCashTurns} turn${state.trail.trapCashTurns === 1 ? "" : "s"} total.`);
     }
 
     function passTrailTurn(nextPlayer) {
@@ -6896,7 +6915,7 @@
 
     function buyTrailShoppingCard(deck) {
       if (!state.trail || !state.trail.shoppingMode || state.turn !== DOM || !trailShoppingControlsAllowed()) return;
-      const costs = { dom: 8, sub: 4, chance: 6 };
+      const costs = { dom: 6, sub: 3, chance: 4 };
       const cost = costs[deck] || 0;
       if (Number(state.trail.spendingMoney || 0) < cost) return;
       state.trail.spendingMoney = Number(state.trail.spendingMoney || 0) - cost;
@@ -7062,9 +7081,9 @@
         },
         {
           title: "Blank Treasury",
-          text: `All blank panels become cash panels worth ${money(5)}-${money(10)} for 8 turns. If this effect is already active, add 8 turns.`,
+          text: `All blank panels become cash panels worth ${money(7)}-${money(12)} for 12 turns. If this effect is already active, add 12 turns.`,
           effectKey: "trap-cash",
-          amount: 8,
+          amount: 12,
           limit: 2
         }
       ];
@@ -7131,9 +7150,9 @@
         },
         {
           title: "Blank Tribute",
-          text: `All blank panels become cash panels worth ${money(5)}-${money(10)} for 5 turns. If this effect is already active, add 5 turns.`,
+          text: `All blank panels become cash panels worth ${money(7)}-${money(12)} for 9 turns. If this effect is already active, add 9 turns.`,
           effectKey: "trap-cash",
-          amount: 5,
+          amount: 9,
           limit: 3
         }
       ];
@@ -7202,9 +7221,9 @@
         },
         {
           title: "Blank Flush",
-          text: `All blank panels become cash panels worth ${money(5)}-${money(10)} for 3 turns. If this effect is already active, add 3 turns.`,
+          text: `All blank panels become cash panels worth ${money(7)}-${money(12)} for 7 turns. If this effect is already active, add 7 turns.`,
           effectKey: "trap-cash",
-          amount: 3,
+          amount: 7,
           limit: 3
         }
       ];
@@ -7644,7 +7663,7 @@
       els.trailShopWaitBtn.classList.remove("hidden");
       els.trailShopEndBtn.classList.remove("hidden");
       els.trailShopOptions.querySelectorAll("[data-trail-shop]").forEach((button) => {
-        const costs = { dom: 8, sub: 4, chance: 6 };
+        const costs = { dom: 6, sub: 3, chance: 4 };
         button.disabled = !canControl || spending < Number(costs[button.dataset.trailShop] || 0);
       });
       els.trailShopWaitBtn.disabled = !canControl;
@@ -7664,7 +7683,7 @@
       if (state.currentGame === "tributeTwentyOne") {
         resetTributeTwentyOneBoard();
         els.log.innerHTML = "";
-        addLog(`<strong>Tribute 21 reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        addLog(`<strong>Tribute Blackjack reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
         render();
         publishState();
         return;
@@ -8811,6 +8830,7 @@
       state.twentyOne.hands.dom.push(drawTwentyOneCard());
       state.twentyOne.revealDom = false;
       state.twentyOne.stood = false;
+      state.twentyOne.dealerTurn = false;
       state.twentyOne.softSaveAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 2;
       state.twentyOne.forceHitAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
       state.twentyOne.outcome = "";
@@ -8842,13 +8862,31 @@
     }
 
     function hitTwentyOne() {
-      if (state.currentGame !== "tributeTwentyOne" || !state.active || state.turn !== SUB) return;
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      state.twentyOne.hands.sub.push(drawTwentyOneCard());
-      addLog(`<strong>${state.names.sub} hits.</strong>`);
-      if (twentyOneScore(state.twentyOne.hands.sub).bust) {
-        state.twentyOne.revealDom = true;
-        endTwentyOneHand(DOM, `${state.names.sub} busts.`);
+      if (state.currentGame !== "tributeTwentyOne" || !state.active) return;
+      if (state.turn === SUB) {
+        if (localOnlineRole() && localOnlineRole() !== SUB) return;
+        state.twentyOne.hands.sub.push(drawTwentyOneCard());
+        addLog(`<strong>${state.names.sub} hits.</strong>`);
+        if (twentyOneScore(state.twentyOne.hands.sub).bust) {
+          state.twentyOne.revealDom = true;
+          endTwentyOneHand(DOM, `${state.names.sub} busts.`);
+          return;
+        }
+      } else if (state.turn === DOM && state.twentyOne.dealerTurn) {
+        if (localOnlineRole() && localOnlineRole() !== DOM) return;
+        state.twentyOne.hands.dom.push(drawTwentyOneCard());
+        addLog(`<strong>${state.names.dom} hits the dealer hand.</strong>`);
+        const domScore = twentyOneScore(state.twentyOne.hands.dom);
+        if (domScore.bust) {
+          if (state.twentyOne.softSaveAvailable && domScore.total <= 24) {
+            state.twentyOne.softSaveAvailable = false;
+            endTwentyOneHand(DOM, `Soft Save catches ${state.names.dom}'s ${domScore.total} and treats it as 21.`);
+            return;
+          }
+          endTwentyOneHand(SUB, `${state.names.dom} busts.`);
+          return;
+        }
+      } else {
         return;
       }
       render();
@@ -8856,12 +8894,31 @@
     }
 
     function standTwentyOne() {
-      if (state.currentGame !== "tributeTwentyOne" || !state.active || state.turn !== SUB) return;
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      state.twentyOne.stood = true;
-      state.twentyOne.revealDom = true;
-      addLog(`<strong>${state.names.sub} stands.</strong> ${state.names.dom} plays the dealer hand.`);
-      playTwentyOneDealer();
+      if (state.currentGame !== "tributeTwentyOne" || !state.active) return;
+      if (state.turn === SUB) {
+        if (localOnlineRole() && localOnlineRole() !== SUB) return;
+        state.twentyOne.stood = true;
+        state.twentyOne.revealDom = true;
+        state.twentyOne.dealerTurn = true;
+        state.turn = DOM;
+        addLog(`<strong>${state.names.sub} stands.</strong> ${state.names.dom} takes the dealer turn.`);
+        render();
+        publishState();
+        return;
+      }
+      if (state.turn === DOM && state.twentyOne.dealerTurn) {
+        if (localOnlineRole() && localOnlineRole() !== DOM) return;
+        const standAt = twentyOneDealerStandMinimum();
+        const domScore = twentyOneScore(state.twentyOne.hands.dom);
+        if (domScore.total < standAt) {
+          addLog(`<strong>${state.names.dom} cannot stand yet.</strong> Dealer hand must reach ${standAt}.`);
+          render();
+          publishState();
+          return;
+        }
+        addLog(`<strong>${state.names.dom} stands.</strong>`);
+        settleTwentyOneDealerHand();
+      }
     }
 
     function canForceTwentyOneHit() {
@@ -8889,12 +8946,12 @@
       publishState();
     }
 
-    function playTwentyOneDealer() {
-      state.turn = DOM;
-      const standAt = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 4 ? 16 : 17;
-      while (twentyOneScore(state.twentyOne.hands.dom).total < standAt) {
-        state.twentyOne.hands.dom.push(drawTwentyOneCard());
-      }
+    function twentyOneDealerStandMinimum() {
+      return state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 4 ? 16 : 17;
+    }
+
+    function settleTwentyOneDealerHand() {
+      state.twentyOne.dealerTurn = false;
       const subScore = twentyOneScore(state.twentyOne.hands.sub);
       const domScore = twentyOneScore(state.twentyOne.hands.dom);
       if (domScore.bust) {
@@ -10167,7 +10224,7 @@
       element.className = "playing-card";
       if (hidden) {
         element.classList.add("hidden-card");
-        element.textContent = "21";
+        element.textContent = "BJ";
         return element;
       }
       const suit = card.slice(-1);
@@ -10308,7 +10365,7 @@
 
     function currentGameLabel() {
       if (state.currentGame === "tributeChess") return "Tribute Chess";
-      if (state.currentGame === "tributeTwentyOne") return "Tribute 21";
+      if (state.currentGame === "tributeTwentyOne") return "Tribute Blackjack";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
       if (state.currentGame === "tributeTrail") return "Tribute Trail";
@@ -10415,11 +10472,11 @@
         `<strong>Dom cards:</strong> these can upgrade the dom die, double cash spaces, move players, or make the sub miss a turn.`,
         `<strong>Sub cards:</strong> these are Twitter worship prompts for ${state.names.dom}'s profile, such as liking and reposting a random number of recent posts. They are manual prompts, not automated.`,
         `<strong>Chance spaces:</strong> these draw from the shared Chance deck and resolve movement, skip, or cash effects.`,
-        `<strong>Cash spaces:</strong> each cash space shows a random amount from $1 to $5. If ${state.names.sub} lands there, it enters Trail Tribute. If ${state.names.dom} lands there, it becomes spending money. Doubled cash spaces pay twice the shown amount.`,
+        `<strong>Cash spaces:</strong> each cash space shows $1 to $5, with higher values tending to appear later on the trail. If ${state.names.sub} lands there, it enters Trail Tribute. If ${state.names.dom} lands there, it becomes spending money. Doubled cash spaces pay twice the shown amount.`,
         `<strong>Blank spaces:</strong> blank spaces do nothing unless a card temporarily turns them into cash spaces.`,
         `<strong>Slide spaces:</strong> landing there sends the player down the marked slide to an earlier space without triggering that destination space.`,
         `<strong>Finish:</strong> if ${state.names.sub} reaches the end first, the game ends immediately. If ${state.names.dom} reaches the end first, she can end the game or go shopping.`,
-        `<strong>Shopping:</strong> while shopping is active, ${state.names.dom} can buy cards on her turn using spending money. Dom cards cost ${money(8)} and activate right away, Sub cards cost ${money(4)} and activate at the end of the next ${state.names.sub} turn, and Chance cards cost ${money(6)} and activate right away. ${state.names.sub} rolls two dice while sprinting for the finish.`,
+        `<strong>Shopping:</strong> while shopping is active, ${state.names.dom} can buy cards on her turn using spending money. Dom cards cost ${money(6)} and activate right away, Sub cards cost ${money(3)} and activate at the end of the next ${state.names.sub} turn, and Chance cards cost ${money(4)} and activate right away. ${state.names.sub} rolls two dice while sprinting for the finish.`,
         `<strong>No bet required:</strong> Tribute Trail does not use normal bets, reclaims, or tilt in this version.`
       ];
       setRuleList(rules);
@@ -10468,13 +10525,14 @@
       const rules = [
         `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet.`,
         `<strong>Player hand:</strong> ${state.names.sub} chooses Hit or Stand.`,
-        `<strong>Dealer hand:</strong> after ${state.names.sub} stands, ${state.names.dom} auto-plays the dealer hand.`,
+        `<strong>Dealer hand:</strong> after ${state.names.sub} stands, ${state.names.dom}'s hidden card is revealed and ${state.names.dom} chooses Hit or Stand for the dealer hand.`,
+        `<strong>Dealer limit:</strong> ${state.names.dom} cannot stand below 17 unless Dealer Lock is active.`,
         `<strong>Win condition:</strong> closest to 21 wins. Busts lose. Normal ties push.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. Reclaim ties go to ${state.names.dom}.`,
         `<strong>Tilt 1, Peek:</strong> ${state.names.dom} can see her hidden dealer card.`,
         `<strong>Tilt 2, Soft Save:</strong> once per reclaim, a dom bust from 22 to 24 is treated as 21.`,
         `<strong>Tilt 3, Forced Hit:</strong> once before ${state.names.sub} stands, ${state.names.dom} can force one extra ${state.names.sub} card.`,
-        `<strong>Tilt 4, Dealer Lock:</strong> the dom dealer stands on 16 or higher.`,
+        `<strong>Tilt 4, Dealer Lock:</strong> ${state.names.dom} can stand on 16 or higher.`,
         `<strong>Tilt 5+, House Sweep:</strong> in reclaim, ${state.names.sub} must beat ${state.names.dom} by at least 2.`
       ];
       setRuleList(rules);
@@ -10486,7 +10544,7 @@
       if (state.tiltLevel >= 1) rules.push("Peek: the dom can see her hidden dealer card.");
       if (state.tiltLevel >= 2) rules.push("Soft Save: once per reclaim, a dom bust from 22 to 24 is treated as 21.");
       if (state.tiltLevel >= 3) rules.push("Forced Hit: once before the sub stands, the dom can force one extra sub card.");
-      if (state.tiltLevel >= 4) rules.push("Dealer Lock: the dom dealer stands on 16 or higher.");
+      if (state.tiltLevel >= 4) rules.push("Dealer Lock: the dom can stand on 16 or higher.");
       if (state.tiltLevel >= 5) rules.push("House Sweep: in reclaim, the sub must beat the dom by at least 2.");
       return rules;
     }
@@ -10570,6 +10628,14 @@
         els.turnText.innerHTML = state.domVault > 0
           ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
           : `<strong>${state.names.sub}</strong> must make a normal bet to begin.`;
+      } else if (state.currentGame === "tributeTwentyOne") {
+        if (state.twentyOne.dealerTurn) {
+          const score = twentyOneScore(state.twentyOne.hands.dom).total;
+          const minimum = twentyOneDealerStandMinimum();
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> controls the dealer hand at ${score}. ${score < minimum ? `Hit until at least ${minimum}.` : "Hit or stand."}`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses Hit or Stand. ${state.mode === "reclaim" ? "The table is tilted." : "Clean rules, clean stake."}`;
+        }
       } else {
         const actor = labelFor(state.turn);
         els.turnText.innerHTML = state.currentGame === "wheelSpin"
@@ -10611,15 +10677,20 @@
         els.passBtn.textContent = "Power";
       } else if (state.currentGame === "tributeTwentyOne") {
         const domCanForce = domAdvantageControlsAllowed(localRole) && canForceTwentyOneHit();
-        const blocksSubAction = Boolean(localRole && localRole !== SUB);
-        els.hitBtn.disabled = !state.active || state.turn !== SUB || blocksSubAction;
-        els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne" || localRole === DOM);
-        const domPowerView = Boolean(localRole === DOM && canOpenTwentyOnePowerModal());
+        const subDecision = state.active && state.turn === SUB;
+        const domDealerTurn = state.active && state.turn === DOM && state.twentyOne.dealerTurn;
+        const canHit = (subDecision && (!localRole || localRole === SUB))
+          || (domDealerTurn && (!localRole || localRole === DOM));
+        els.hitBtn.disabled = !canHit;
+        els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne" || localRole === SPECTATOR);
+        const domPowerView = Boolean((localRole === DOM || (!localRole && canForceTwentyOneHit())) && canOpenTwentyOnePowerModal());
+        const canStand = (subDecision && (!localRole || localRole === SUB))
+          || (domDealerTurn && (!localRole || localRole === DOM));
         els.passBtn.disabled = domPowerView
           ? false
-          : (domCanForce ? false : (!state.active || state.turn !== SUB || blocksSubAction));
+          : (domCanForce ? false : !canStand);
         els.hitBtn.textContent = "Hit";
-        els.passBtn.textContent = domPowerView || domCanForce ? "Power" : "Stand";
+        els.passBtn.textContent = domPowerView || (domCanForce && subDecision) ? "Power" : "Stand";
       } else if (state.currentGame === "tributeFleet") {
         const hasFleetPowers = state.mode === "reclaim" && (state.tiltLevel >= 1 || (state.fleet.modifiers || []).length > 0);
         els.passBtn.disabled = !state.active || !hasFleetPowers || onlineBlocksDom;
@@ -10652,8 +10723,8 @@
         return;
       }
       if (state.currentGame === "tributeTwentyOne") {
-        els.gameTitle.textContent = "Tribute 21";
-        els.gameSubtitle.textContent = "Blackjack-inspired hands with cash stakes. The sub buys in, plays toward 21, and the dom takes the table edge in reclaim.";
+        els.gameTitle.textContent = "Tribute Blackjack";
+        els.gameSubtitle.textContent = "Blackjack hands with cash stakes. The sub plays first, then the dom controls the dealer hand and takes the table edge in reclaim.";
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
