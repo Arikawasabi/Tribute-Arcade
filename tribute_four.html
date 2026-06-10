@@ -5099,8 +5099,26 @@
       }
     }
 
-    async function publishState() {
+    function mergeLatestSnapshotWithLocalAction(latestSnapshot, localSnapshot) {
+      const latest = latestSnapshot || {};
+      const local = localSnapshot || snapshotState();
+      return {
+        ...latest,
+        ...local,
+        settings: {
+          ...(latest.settings || {}),
+          ...(local.settings || {})
+        },
+        chat: Array.isArray(latest.chat) && latest.chat.length > (Array.isArray(local.chat) ? local.chat.length : 0)
+          ? latest.chat
+          : local.chat,
+        onlineLobby: latest.onlineLobby || local.onlineLobby
+      };
+    }
+
+    async function publishState(retry = true, localSnapshot = null) {
       if (!state.online.room || state.online.applying) return;
+      const snapshot = localSnapshot || snapshotState();
       try {
         const response = await fetch("/api/sync", {
           method: "POST",
@@ -5108,12 +5126,33 @@
           body: JSON.stringify({
             room: state.online.room,
             baseRev: state.online.rev,
-            snapshot: snapshotState()
+            snapshot
           })
         });
         const data = await response.json();
         if (response.status === 409) {
           state.online.rev = data.rev;
+          if (retry) {
+            const merged = mergeLatestSnapshotWithLocalAction(data.snapshot, snapshot);
+            const retryResponse = await fetch("/api/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                room: state.online.room,
+                baseRev: data.rev,
+                snapshot: merged
+              })
+            });
+            const retryData = await retryResponse.json();
+            if (retryResponse.status === 409) {
+              state.online.rev = retryData.rev;
+              applySnapshot(retryData.snapshot);
+              return;
+            }
+            if (!retryResponse.ok) throw new Error(retryData.error || "Sync failed");
+            state.online.rev = retryData.rev;
+            return;
+          }
           applySnapshot(data.snapshot);
           return;
         }
