@@ -3341,6 +3341,11 @@
       chat: []
     };
 
+    const localTrailCardUi = {
+      cardId: null,
+      collapsed: false
+    };
+
     const els = {
       lobbyScreen: document.getElementById("lobbyScreen"),
       setupScreen: document.getElementById("setupScreen"),
@@ -5102,6 +5107,11 @@
     function mergeLatestSnapshotWithLocalAction(latestSnapshot, localSnapshot) {
       const latest = latestSnapshot || {};
       const local = localSnapshot || snapshotState();
+      const latestTrail = latest.trail || null;
+      const localTrail = local.trail || null;
+      const trail = latestTrail && latestTrail.pendingCardActivation && !(localTrail && localTrail.pendingCardActivation)
+        ? latestTrail
+        : (localTrail || latestTrail);
       return {
         ...latest,
         ...local,
@@ -5112,6 +5122,7 @@
         chat: Array.isArray(latest.chat) && latest.chat.length > (Array.isArray(local.chat) ? local.chat.length : 0)
           ? latest.chat
           : local.chat,
+        trail,
         onlineLobby: latest.onlineLobby || local.onlineLobby
       };
     }
@@ -6718,6 +6729,7 @@
 
     function makeTrailCardRecord(player, deck, card, activated = false) {
       return {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         player,
         deck,
         source: Number(state.trail.positions[player] || 0),
@@ -6737,7 +6749,6 @@
         state.trail.lastPlayerCard = card;
       }
       state.trail.revealedCard = card;
-      state.trail.cardCollapsed = false;
     }
 
     function activatePurchasedTrailCard(card) {
@@ -6911,6 +6922,7 @@
       const sourceIndex = Number(state.trail.positions[player] || 0);
       const card = player === DOM ? drawTrailDomCard() : drawTrailSubCard();
       state.trail.lastPlayerCard = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         player,
         deck: player === DOM ? "Dom Deck" : "Sub Deck",
         source: sourceIndex,
@@ -6921,7 +6933,6 @@
         activated: false
       };
       state.trail.revealedCard = state.trail.lastPlayerCard;
-      state.trail.cardCollapsed = false;
       state.trail.pendingCardActivation = {
         player,
         deck: state.trail.lastPlayerCard.deck,
@@ -7140,6 +7151,7 @@
       const sourceIndex = Number(state.trail.positions[player] || 0);
       const card = drawTrailChanceCard(player);
       state.trail.lastFateCard = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         player,
         deck: "Chance Deck",
         source: sourceIndex,
@@ -7150,7 +7162,6 @@
         activated: false
       };
       state.trail.revealedCard = state.trail.lastFateCard;
-      state.trail.cardCollapsed = false;
       state.trail.pendingCardActivation = {
         player,
         deck: "Chance Deck",
@@ -7285,7 +7296,8 @@
       addLog(`<strong>${labelFor(card.player)} activates ${card.title}.</strong>`);
       applyTrailCardEffect(card);
       if (state.active && !state.trail.cashSelection && !state.trail.trailSelection) passTrailTurn(otherRole(card.player));
-      state.trail.cardCollapsed = true;
+      localTrailCardUi.cardId = trailCardId(card);
+      localTrailCardUi.collapsed = true;
       render();
       publishState();
       return true;
@@ -7396,27 +7408,42 @@
 
     function clearTrailCardReveal(allowActivation = true) {
       if (!state.trail) return;
-      if (!state.trail.revealedCard) return;
+      const card = state.trail.revealedCard;
+      if (!card) return;
       if (allowActivation && state.trail.pendingCardActivation && trailCardActivationAllowed(state.trail.revealedCard)) {
         activateTrailCard();
         return;
       }
       const touchLike = window.matchMedia && window.matchMedia("(hover: none)").matches;
-      if (!state.trail.cardCollapsed) {
-        state.trail.cardCollapsed = true;
+      const cardId = trailCardId(card);
+      if (localTrailCardUi.cardId !== cardId) {
+        localTrailCardUi.cardId = cardId;
+        localTrailCardUi.collapsed = false;
+      }
+      if (!localTrailCardUi.collapsed) {
+        localTrailCardUi.collapsed = true;
       } else if (touchLike) {
-        state.trail.cardCollapsed = false;
+        localTrailCardUi.collapsed = false;
       }
       renderTrailCardReveal();
-      publishState();
+    }
+
+    function trailCardId(card) {
+      if (!card) return "";
+      return card.id || `${card.deck || ""}:${card.player || ""}:${card.title || ""}:${card.source ?? ""}:${card.effectKey || ""}:${card.amount || 0}`;
     }
 
     function renderTrailCardReveal() {
       const trailVisible = state.screen === "game" && state.currentGame === "tributeTrail";
       const card = trailVisible && state.trail ? state.trail.revealedCard : null;
+      const cardId = trailCardId(card);
+      if (card && localTrailCardUi.cardId !== cardId) {
+        localTrailCardUi.cardId = cardId;
+        localTrailCardUi.collapsed = false;
+      }
       els.trailBankPill.classList.toggle("hidden", !trailVisible);
       els.trailCardModal.classList.toggle("hidden", !card);
-      els.trailCardModal.classList.toggle("compact", Boolean(card && state.trail.cardCollapsed));
+      els.trailCardModal.classList.toggle("compact", Boolean(card && localTrailCardUi.collapsed));
       els.trailCardReveal.classList.remove("dom-deck", "sub-deck", "chance-deck");
       if (!card) return;
       const deckClass = String(card.deck || "").toLowerCase().includes("dom")
