@@ -3634,7 +3634,8 @@
       const types = [
         ...Array(15).fill("player-card"),
         ...Array(15).fill("fate-card"),
-        ...Array(18).fill("cash")
+        ...Array(18).fill("cash"),
+        ...Array(8).fill("plain")
       ];
       for (let i = types.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
