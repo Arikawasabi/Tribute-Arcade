@@ -5099,6 +5099,11 @@
       }
     }
 
+    function trailCardId(card) {
+      if (!card) return "";
+      return card.id || `${card.deck || ""}:${card.player || ""}:${card.title || ""}:${card.source ?? ""}:${card.effectKey || ""}:${card.amount || 0}`;
+    }
+
     function mergeLatestSnapshotWithLocalAction(latestSnapshot, localSnapshot) {
       const latest = latestSnapshot || {};
       const local = localSnapshot || snapshotState();
@@ -7029,36 +7034,43 @@
         {
           title: "Timeline Worship",
           text: `Like and repost ${count} of ${state.names.dom}'s recent posts. This is a manual prompt, not automated.`,
+          effectKey: "instruction-only",
           limit: null
         },
         {
           title: "Public Praise",
           text: `Leave one worshipping or subby comment on a ${state.names.dom} post.`,
+          effectKey: "instruction-only",
           limit: 3
         },
         {
           title: "Quote Offering",
           text: `Quote repost one ${state.names.dom} post with a short worship line.`,
+          effectKey: "instruction-only",
           limit: 2
         },
         {
           title: "Pinned Worship",
           text: `Like, repost, and comment on ${state.names.dom}'s pinned post.`,
+          effectKey: "instruction-only",
           limit: 1
         },
         {
           title: "Tiny Throne Offering",
           text: `Go to ${state.names.dom}'s throne and purchase their lowest priced option.`,
+          effectKey: "instruction-only",
           limit: null
         },
         {
           title: "Small Throne Offering",
           text: `Go to ${state.names.dom}'s throne and purchase their second lowest priced option.`,
+          effectKey: "instruction-only",
           limit: 2
         },
         {
           title: "Average Throne Offering",
           text: `Go to ${state.names.dom}'s throne and purchase their third lowest priced option.`,
+          effectKey: "instruction-only",
           limit: 1
         },
         {
@@ -7192,6 +7204,8 @@
     function applyTrailCardEffect(card) {
       const player = card.player;
       switch (card.effectKey) {
+        case "instruction-only":
+          break;
         case "double-cash": {
           const needed = Math.max(2, Math.min(4, Number(card.amount || 2)));
           state.trail.trailSelection = {
@@ -10439,6 +10453,11 @@
       } else if (state.currentGame === "tributeTrail") {
         if (state.trail && state.trail.setupPending) {
           els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses how much Trail Tribute moves into her bank at the end.`;
+        } else if (state.trail && state.trail.trailSelection) {
+          const selection = state.trail.trailSelection;
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> must choose ${selection.remaining || 1} ${selection.label || "space"}${Number(selection.remaining || 1) === 1 ? "" : "s"} before rolling continues.`;
+        } else if (state.trail && state.trail.pendingCardActivation) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.trail.pendingCardActivation.player)}</strong> must confirm the card before rolling continues.`;
         } else if (state.active) {
           const roll = state.trail.lastRoll;
           const rollText = roll ? ` Last roll: ${labelFor(roll.player)} rolled ${roll.roll}${state.trail.shoppingMode && roll.player === SUB ? " on a sprint roll" : ` on a d${roll.sides}`}.` : "";
