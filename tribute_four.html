@@ -4996,6 +4996,7 @@
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
       state.trail = snapshot.trail || state.trail;
+      normalizeTrailState();
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
       if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
@@ -6392,13 +6393,27 @@
       publishState();
     }
 
+    function normalizeTrailState() {
+      if (!state.trail) return;
+      if (state.trail.trailSelection && Number(state.trail.trailSelection.remaining || 0) <= 0) {
+        state.trail.trailSelection = null;
+      }
+      if (!state.trail.trailSelection) {
+        state.trail.cashSelection = null;
+      }
+      if (!state.trail.moving) {
+        state.trail.movingPlayer = null;
+      }
+    }
+
     function trailRollAllowed() {
       const localRole = localOnlineRole();
+      normalizeTrailState();
       if (!state.active || state.currentGame !== "tributeTrail") return false;
       if (state.trail && state.trail.setupPending) return false;
       if (state.trail && (state.trail.moving || (state.trail.rollAnimationUntil && Date.now() < state.trail.rollAnimationUntil))) return false;
       if (state.trail && state.trail.pendingCardActivation) return false;
-      if (state.trail && (state.trail.cashSelection || state.trail.trailSelection)) return false;
+      if (state.trail && state.trail.trailSelection) return false;
       if (state.trail && state.trail.shoppingMode && state.turn === DOM) return false;
       if (!localRole) return true;
       return localRole === state.turn;
@@ -7336,7 +7351,8 @@
       card.activated = true;
       addLog(`<strong>${labelFor(card.player)} activates ${card.title}.</strong>`);
       applyTrailCardEffect(card);
-      if (state.active && !state.trail.cashSelection && !state.trail.trailSelection) passTrailTurn(otherRole(card.player));
+      normalizeTrailState();
+      if (state.active && !state.trail.trailSelection) passTrailTurn(otherRole(card.player));
       state.trail.cardCollapsed = true;
       render();
       publishState();
@@ -7440,6 +7456,10 @@
       if (Number(selection.remaining || 0) <= 0) {
         state.trail.cashSelection = null;
         state.trail.trailSelection = null;
+        state.trail.pendingCardActivation = null;
+        state.trail.moving = false;
+        state.trail.movingPlayer = null;
+        state.trail.rollAnimationUntil = 0;
         if (state.active) passTrailTurn(SUB);
       }
       render();
