@@ -1965,7 +1965,7 @@
       padding: 0;
       background: transparent;
       pointer-events: none;
-      z-index: 26;
+      z-index: 120;
     }
 
     #trailCardModal.compact {
@@ -6990,6 +6990,7 @@
         amount: card.amount || 0
       };
       addLog(`<strong>${labelFor(player)} draws ${card.title}.</strong> ${card.text}`);
+      renderTrailCardReveal();
     }
 
     function drawTrailDomCard() {
@@ -7230,6 +7231,7 @@
         amount: card.amount || 0
       };
       addLog(`<strong>${labelFor(player)} draws ${card.title}.</strong> ${card.text}`);
+      renderTrailCardReveal();
     }
 
     function trailCardActivationAllowed(card) {
@@ -10659,6 +10661,7 @@
     }
 
     function render() {
+      renderTrailCardReveal();
       renderBoard();
       renderControls();
       renderRules();
