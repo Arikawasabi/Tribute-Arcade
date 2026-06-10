@@ -3712,6 +3712,7 @@
         rollPreviewDice: null,
         rollAnimationUntil: 0,
         moving: false,
+        movingPlayer: null,
         lastPlayerCard: null,
         lastFateCard: null,
         revealedCard: null,
@@ -5298,6 +5299,10 @@
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Room unavailable");
         if (data.rev > state.online.rev) {
+          if (localTrailSyncBusy()) {
+            updateOnlineUi();
+            return;
+          }
           state.online.rev = data.rev;
           applySnapshot(data.snapshot);
         }
@@ -5305,6 +5310,16 @@
       } catch (error) {
         els.onlineStatus.textContent = `Disconnected: ${error.message}`;
       }
+    }
+
+    function localTrailSyncBusy() {
+      if (state.screen !== "game" || state.currentGame !== "tributeTrail" || !state.trail) return false;
+      const localRole = localOnlineRole();
+      if (!localRole) return false;
+      const rolling = Boolean(state.trail.rollAnimationUntil && Date.now() < state.trail.rollAnimationUntil && state.trail.lastRoll && state.trail.lastRoll.player === localRole);
+      const moving = Boolean(state.trail.moving && state.trail.movingPlayer === localRole);
+      const pendingOwnCard = Boolean(state.trail.pendingCardActivation && state.trail.pendingCardActivation.player === localRole);
+      return rolling || moving || pendingOwnCard;
     }
 
     function startPolling() {
@@ -6477,6 +6492,7 @@
         return;
       }
       state.trail.moving = true;
+      state.trail.movingPlayer = player;
       let moved = 0;
       const stepOnce = () => {
         if (!state.trail || state.currentGame !== "tributeTrail") return;
@@ -6489,6 +6505,7 @@
         publishState();
         if (!state.active || next === current || moved >= steps) {
           state.trail.moving = false;
+          state.trail.movingPlayer = null;
           if (done) window.setTimeout(done, 90);
           return;
         }
