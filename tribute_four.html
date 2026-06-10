@@ -985,6 +985,12 @@
       border: 1px solid rgba(244, 239, 232, 0.13);
     }
 
+    .board-wrap.trail-board-wrap {
+      background: rgba(15, 19, 25, 0.18);
+      border-color: rgba(244, 239, 232, 0.10);
+      backdrop-filter: blur(1px);
+    }
+
     .board {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -1361,11 +1367,8 @@
       padding: 0;
       border-radius: 8px;
       border: 1px solid rgba(244, 239, 232, 0.12);
-      background:
-        radial-gradient(circle at 18% 22%, rgba(86, 181, 255, 0.10), transparent 28%),
-        radial-gradient(circle at 82% 70%, rgba(240, 78, 120, 0.12), transparent 30%),
-        radial-gradient(circle at 44% 48%, rgba(239, 199, 94, 0.10), transparent 34%),
-        rgba(14, 17, 18, 0.86);
+      background: rgba(14, 17, 18, 0.34);
+      backdrop-filter: blur(1px);
       overflow: hidden;
     }
 
@@ -1618,12 +1621,6 @@
       fill: #ffffff;
       font-size: 12px;
       font-weight: 900;
-    }
-
-    .trail-landmark {
-      fill: rgba(244, 239, 232, 0.08);
-      stroke: rgba(244, 239, 232, 0.10);
-      stroke-width: 2;
     }
 
     .trail-dice-button {
@@ -2655,7 +2652,7 @@
       <button class="panel game-card" id="tributeTrailCard">
         <span>
           <h2>Tribute Trail</h2>
-          <p>A 60-space race with dice rolls, card draws, chance draws, cash spaces, traps, and slides.</p>
+          <p>A 60-space race with dice rolls, card draws, chance draws, cash spaces, blank spaces, and slides.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
@@ -2857,7 +2854,7 @@
         <p class="trail-card-deck" id="trailCardDeck">Deck</p>
         <h2 id="trailCardTitle">Card</h2>
         <p id="trailCardText">Click to close.</p>
-        <p class="trail-card-action" id="trailCardAction">Click to activate.</p>
+        <div class="trail-card-action" id="trailCardAction">Click to activate.</div>
         <p class="chooser-line">Click to shrink. Hover or tap to expand.</p>
       </section>
     </div>
@@ -3637,8 +3634,7 @@
       const types = [
         ...Array(15).fill("player-card"),
         ...Array(15).fill("fate-card"),
-        ...Array(18).fill("cash"),
-        ...Array(8).fill("trap")
+        ...Array(18).fill("cash")
       ];
       for (let i = types.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -6395,6 +6391,10 @@
 
     function normalizeTrailState() {
       if (!state.trail) return;
+      if (Array.isArray(state.trail.spaces)) {
+        state.trail.spaces = state.trail.spaces.map((type) => type === "trap" ? "plain" : type);
+        state.trail.trapSnare = null;
+      }
       if (state.trail.trailSelection && Number(state.trail.trailSelection.remaining || 0) <= 0) {
         state.trail.trailSelection = null;
       }
@@ -6553,7 +6553,7 @@
 
     function queueForcedTrailPanelActivation(player, index) {
       if (!state.trail || !state.trail.forcedPanelActivation) return;
-      const type = state.trail.spaces[index] || "plain";
+      const type = effectiveTrailSpaceType(index);
       if (index <= 0 || index >= TRAIL_FINISH || type === "plain" || type === "start" || type === "finish") return;
       state.trail.pendingPanelActivation = {
         ...(state.trail.pendingPanelActivation || {}),
@@ -6710,7 +6710,7 @@
     }
 
     function trailCashValue(index) {
-      if (state.trail && state.trail.spaces[index] === "trap" && trailTrapCashActive()) {
+      if (state.trail && state.trail.spaces[index] === "plain" && trailTrapCashActive()) {
         return Number(state.trail.trapCashValues && state.trail.trapCashValues[index] || 5);
       }
       const values = state.trail && Array.isArray(state.trail.cashValues) ? state.trail.cashValues : [];
@@ -6732,7 +6732,7 @@
 
     function effectiveTrailSpaceType(index) {
       const type = state.trail && state.trail.spaces ? state.trail.spaces[index] : "plain";
-      if (type === "trap" && trailTrapCashActive()) return "cash";
+      if (type === "plain" && trailTrapCashActive()) return "cash";
       return type;
     }
 
@@ -6742,10 +6742,10 @@
       state.trail.trapCashGrace = true;
       const values = { ...(state.trail.trapCashValues || {}) };
       (state.trail.spaces || []).forEach((type, index) => {
-        if (type === "trap" && !values[index]) values[index] = 5 + Math.floor(Math.random() * 6);
+        if (type === "plain" && index > 0 && index < TRAIL_FINISH && !values[index]) values[index] = 5 + Math.floor(Math.random() * 6);
       });
       state.trail.trapCashValues = values;
-      addLog(`<strong>Trap Cash.</strong> Trap panels become ${money(5)}-${money(10)} cash panels for ${state.trail.trapCashTurns} turn${state.trail.trapCashTurns === 1 ? "" : "s"} total.`);
+      addLog(`<strong>Blank Cash.</strong> Blank panels become ${money(5)}-${money(10)} cash panels for ${state.trail.trapCashTurns} turn${state.trail.trapCashTurns === 1 ? "" : "s"} total.`);
     }
 
     function passTrailTurn(nextPlayer) {
@@ -6764,7 +6764,7 @@
         state.trail.trapCashTurns = Math.max(0, Number(state.trail.trapCashTurns || 0) - 1);
         if (state.trail.trapCashTurns <= 0) {
           state.trail.trapCashValues = {};
-          addLog("<strong>Trap Cash fades.</strong> Trap panels return to normal.");
+          addLog("<strong>Blank Cash fades.</strong> Blank panels return to normal.");
         }
       }
       if (leavingSubTurn) activatePendingShopSubCard();
@@ -7033,9 +7033,10 @@
           limit: 3
         },
         {
-          title: "Golden Snare",
-          text: `Choose one trap. The next time ${state.names.sub} lands there, they move back 5 instead of 3.`,
-          effectKey: "golden-snare",
+          title: "Blank Check",
+          text: `${state.names.dom} chooses one blank space. It becomes a permanent ${money(trailCardMoney(5))} cash space.`,
+          effectKey: "blank-check",
+          amount: 5,
           limit: null
         },
         {
@@ -7059,8 +7060,8 @@
           limit: null
         },
         {
-          title: "Trap Treasury",
-          text: `All trap panels become cash panels worth ${money(5)}-${money(10)} for 8 turns. If this effect is already active, add 8 turns.`,
+          title: "Blank Treasury",
+          text: `All blank panels become cash panels worth ${money(5)}-${money(10)} for 8 turns. If this effect is already active, add 8 turns.`,
           effectKey: "trap-cash",
           amount: 8,
           limit: 2
@@ -7128,8 +7129,8 @@
           limit: 2
         },
         {
-          title: "Trap Tribute",
-          text: `All trap panels become cash panels worth ${money(5)}-${money(10)} for 5 turns. If this effect is already active, add 5 turns.`,
+          title: "Blank Tribute",
+          text: `All blank panels become cash panels worth ${money(5)}-${money(10)} for 5 turns. If this effect is already active, add 5 turns.`,
           effectKey: "trap-cash",
           amount: 5,
           limit: 3
@@ -7193,14 +7194,14 @@
         },
         {
           title: "Echoed Landing",
-          text: `Forced move effects from traps, slides, and cards make the moved player activate the panel they landed on at the start of their next turn for the rest of the game.`,
+          text: `Forced move effects from slides and cards make the moved player activate the panel they landed on at the start of their next turn for the rest of the game.`,
           effectKey: "forced-panel-activation",
           limit: 1,
           weight: 3
         },
         {
-          title: "Trap Flush",
-          text: `All trap panels become cash panels worth ${money(5)}-${money(10)} for 3 turns. If this effect is already active, add 3 turns.`,
+          title: "Blank Flush",
+          text: `All blank panels become cash panels worth ${money(5)}-${money(10)} for 3 turns. If this effect is already active, add 3 turns.`,
           effectKey: "trap-cash",
           amount: 3,
           limit: 3
@@ -7305,11 +7306,12 @@
             ]
           };
           break;
-        case "golden-snare":
+        case "blank-check":
           state.trail.trailSelection = {
-            type: "golden-snare",
-            label: "trap",
-            remaining: 1
+            type: "blank-check",
+            label: "blank space",
+            remaining: 1,
+            amount: trailCardMoney(card.amount || 5)
           };
           break;
         case "bank-claim":
@@ -7452,18 +7454,22 @@
       return !localRole || localRole === DOM;
     }
 
-    function trailSpaceSelectable(index) {
-      if (!state.trail || !state.trail.trailSelection || !trailSelectionAllowed()) return false;
+    function trailSpaceSelectionCandidate(index) {
+      if (!state.trail || !state.trail.trailSelection) return false;
       const selection = state.trail.trailSelection;
       const type = state.trail.spaces[index];
       if (selection.type === "double-cash" || selection.type === "bank-claim") return type === "cash";
-      if (selection.type === "golden-snare") return type === "trap";
+      if (selection.type === "blank-check") return type === "plain";
       if (selection.type === "add-slide") return (selection.options || []).some((option) => option.from === index);
       return false;
     }
 
+    function trailSpaceSelectable(index) {
+      return trailSelectionAllowed() && trailSpaceSelectionCandidate(index);
+    }
+
     function selectTrailSpace(index) {
-      if (!state.trail || !state.trail.trailSelection || !trailSpaceSelectable(index)) return;
+      if (!state.trail || !state.trail.trailSelection || !trailSelectionAllowed() || !trailSpaceSelectionCandidate(index)) return;
       const selection = state.trail.trailSelection;
       if (selection.type === "double-cash") {
         doubleTrailCashSpace(index);
@@ -7477,10 +7483,11 @@
         };
         selection.remaining = 0;
         addLog(`<strong>Bank Claim placed.</strong> Space ${index + 1} will pay extra.`);
-      } else if (selection.type === "golden-snare") {
-        state.trail.trapSnare = index;
+      } else if (selection.type === "blank-check") {
+        state.trail.spaces[index] = "cash";
+        state.trail.cashValues[index] = Math.max(1, Number(selection.amount || 5));
         selection.remaining = 0;
-        addLog(`<strong>Golden Snare set.</strong> Space ${index + 1} is waiting for ${state.names.sub}.`);
+        addLog(`<strong>Blank Check placed.</strong> Space ${index + 1} becomes a cash space.`);
       } else if (selection.type === "add-slide") {
         const option = (selection.options || []).find((item) => item.from === index);
         if (option) {
@@ -7544,9 +7551,19 @@
           : `Waiting for ${labelFor(card.player)} to activate.`;
       } else if (state.trail.trailSelection) {
         const selection = state.trail.trailSelection;
-        els.trailCardAction.textContent = trailSelectionAllowed()
-          ? `Choose ${selection.remaining} ${selection.label || "space"}${selection.remaining === 1 ? "" : "s"}.`
-          : `Waiting for ${state.names.dom} to choose ${selection.label || "spaces"}.`;
+        if (selection.type === "add-slide") {
+          const canChooseSlide = trailSelectionAllowed();
+          els.trailCardAction.innerHTML = `
+            <span>${canChooseSlide ? "Choose a slide location." : `Waiting for ${state.names.dom} to choose a slide location.`}</span>
+            <span class="setup-actions">
+              ${(selection.options || []).map((option) => `<button data-trail-select-space="${option.from}"${canChooseSlide ? "" : " disabled"}>${option.from + 1} to ${option.to + 1}</button>`).join("")}
+            </span>
+          `;
+        } else {
+          els.trailCardAction.textContent = trailSelectionAllowed()
+            ? `Choose ${selection.remaining} ${selection.label || "space"}${selection.remaining === 1 ? "" : "s"}.`
+            : `Waiting for ${state.names.dom} to choose ${selection.label || "spaces"}.`;
+        }
       } else {
         els.trailCardAction.textContent = "Card activated.";
       }
@@ -9235,14 +9252,14 @@
       const labels = {
         start: "Start",
         finish: "Finish",
-        plain: "Path",
+        plain: "Blank",
         "player-card": "Card",
         "fate-card": "Chance",
         cash: "Cash",
         trap: "Trap",
         slide: "Slide"
       };
-      return labels[type] || "Path";
+      return labels[type] || "Blank";
     }
 
     function renderTrailCardPanel(card, emptyText) {
@@ -9602,7 +9619,7 @@
       const segments = trail.spaces.map((rawType, index) => {
         const type = effectiveTrailSpaceType(index);
         const occupied = trail.positions.dom === index || trail.positions.sub === index;
-        const selectable = trailSpaceSelectable(index);
+        const selectable = trailSpaceSelectionCandidate(index);
         const doubled = type === "cash" && trailCashMultiplier(index) > 1;
         const extraClasses = `${selectable ? " selectable" : ""}${doubled ? " doubled" : ""}`;
         if (type === "finish") {
@@ -9621,9 +9638,10 @@
         const occupied = trail.positions.dom === index || trail.positions.sub === index;
         const shortLabel = type === "cash" ? money(trailCashValue(index)) : trailSpaceShortLabel(type);
         const textPoints = trailSegmentTextPoints(index);
-        const centerLabel = shortLabel || (type === "plain" ? "PATH" : "");
+        const centerLabel = shortLabel || "";
+        const selectable = trailSpaceSelectionCandidate(index);
         return `
-          <g class="trail-node ${type}${occupied ? " occupied" : ""}">
+          <g class="trail-node ${type}${occupied ? " occupied" : ""}${selectable ? " selectable" : ""}" data-trail-space="${index}">
             <title>${index + 1}. ${trailSpaceLabel(type)}${multiplier > 1 ? ` x${multiplier}` : ""}</title>
             <text class="trail-node-kind" x="${textPoints.center.x.toFixed(1)}" y="${textPoints.center.y.toFixed(1)}">${multiplier > 1 ? `${centerLabel} x${multiplier}` : centerLabel}</text>
           </g>
@@ -9643,7 +9661,6 @@
               <stop offset="100%" stop-color="rgba(86,181,255,0.48)"></stop>
             </linearGradient>
           </defs>
-          <circle class="trail-landmark" cx="500" cy="350" r="116"></circle>
           <path class="trail-route-shadow" d="${route}"></path>
           ${segments}
           ${renderTrailFinishFlag(trailSegmentTextPoints(TRAIL_FINISH).center)}
@@ -9685,6 +9702,8 @@
     }
 
     function renderBoard() {
+      const boardWrap = els.board.closest(".board-wrap");
+      if (boardWrap) boardWrap.classList.toggle("trail-board-wrap", state.currentGame === "tributeTrail");
       if (state.currentGame === "tributeChess") {
         renderChessBoard();
         return;
@@ -10390,13 +10409,13 @@
         `<strong>Goal:</strong> race along the 60-space path and be the first player to reach the finish.`,
         `<strong>Trail Tribute:</strong> before the first roll, ${state.names.dom} chooses what percentage of Trail Tribute moves into her bank when the game ends.`,
         `<strong>Turns:</strong> the starting player is random. On your turn, click the die in the center of the board and move that many spaces.`,
-        `<strong>Space mix:</strong> the board has 15 Card spaces, 15 Chance spaces, 18 Cash spaces, 8 Trap spaces, and 2 Slide spaces between Start and Finish.`,
+        `<strong>Space mix:</strong> the board has 15 Card spaces, 15 Chance spaces, 18 Cash spaces, 8 blank spaces, and 2 Slide spaces between Start and Finish.`,
         `<strong>Card spaces:</strong> the same Card space draws from the dom deck or sub deck depending on who lands there.`,
         `<strong>Dom cards:</strong> these can upgrade the dom die, double cash spaces, move players, or make the sub miss a turn.`,
         `<strong>Sub cards:</strong> these are Twitter worship prompts for ${state.names.dom}'s profile, such as liking and reposting a random number of recent posts. They are manual prompts, not automated.`,
         `<strong>Chance spaces:</strong> these draw from the shared Chance deck and resolve movement, skip, or cash effects.`,
         `<strong>Cash spaces:</strong> each cash space shows a random amount from $1 to $5. If ${state.names.sub} lands there, it enters Trail Tribute. If ${state.names.dom} lands there, it becomes spending money. Doubled cash spaces pay twice the shown amount.`,
-        `<strong>Trap spaces:</strong> traps pull players backward.`,
+        `<strong>Blank spaces:</strong> blank spaces do nothing unless a card temporarily turns them into cash spaces.`,
         `<strong>Slide spaces:</strong> landing there sends the player down the marked slide to an earlier space without triggering that destination space.`,
         `<strong>Finish:</strong> if ${state.names.sub} reaches the end first, the game ends immediately. If ${state.names.dom} reaches the end first, she can end the game or go shopping.`,
         `<strong>Shopping:</strong> while shopping is active, ${state.names.dom} can buy cards on her turn using spending money. Dom cards cost ${money(8)} and activate right away, Sub cards cost ${money(4)} and activate at the end of the next ${state.names.sub} turn, and Chance cards cost ${money(6)} and activate right away. ${state.names.sub} rolls two dice while sprinting for the finish.`,
@@ -10648,7 +10667,7 @@
       }
       if (state.currentGame === "tributeTrail") {
         els.gameTitle.textContent = "Tribute Trail";
-        els.gameSubtitle.textContent = "A 60-space board race with card, chance, cash, trap, slide spaces, and a Trail Tribute meter.";
+        els.gameSubtitle.textContent = "A 60-space board race with card, chance, cash, blank, slide spaces, and a Trail Tribute meter.";
         return;
       }
       if (state.currentGame === "tributeDice") {
@@ -10787,7 +10806,15 @@
     els.tributeFourPowerModal.addEventListener("click", (event) => {
       if (event.target === els.tributeFourPowerModal) closeTributeFourPowerModal();
     });
-    els.trailCardReveal.addEventListener("click", () => clearTrailCardReveal(true));
+    els.trailCardReveal.addEventListener("click", (event) => {
+      const selectButton = event.target.closest("[data-trail-select-space]");
+      if (selectButton) {
+        event.stopPropagation();
+        selectTrailSpace(Number(selectButton.dataset.trailSelectSpace));
+        return;
+      }
+      clearTrailCardReveal(true);
+    });
     els.trailShopStartBtn.addEventListener("click", trailShopStartAction);
     els.trailShopEndBtn.addEventListener("click", trailShopEndAction);
     els.trailShopWaitBtn.addEventListener("click", trailShopWaitAction);
