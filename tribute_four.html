@@ -6488,7 +6488,6 @@
             const waitingOnCard = state.active ? resolveTrailSpace(player) === "card" : false;
             if (state.active && !waitingOnCard) passTrailTurn(otherRole(player));
             render();
-            publishState();
           });
         }
       }, 780);
@@ -6517,11 +6516,17 @@
         moved += 1;
         if (next >= TRAIL_FINISH) finishTrailGame(player);
         render();
-        publishState();
         if (!state.active || next === current || moved >= steps) {
-          state.trail.moving = false;
-          state.trail.movingPlayer = null;
-          if (done) window.setTimeout(done, 90);
+          window.setTimeout(() => {
+            if (done) done();
+            if (state.trail && state.currentGame === "tributeTrail") {
+              state.trail.moving = false;
+              state.trail.movingPlayer = null;
+              state.trail.rollAnimationUntil = 0;
+              render();
+              publishState();
+            }
+          }, 90);
           return;
         }
         window.setTimeout(stepOnce, 135);
