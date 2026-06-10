@@ -6401,6 +6401,9 @@
       if (!state.trail.trailSelection) {
         state.trail.cashSelection = null;
       }
+      if (!state.trail.revealedCard && state.trail.pendingCardActivation) {
+        state.trail.revealedCard = currentTrailCardForReveal();
+      }
       if (!state.trail.moving) {
         state.trail.movingPlayer = null;
       }
@@ -6980,9 +6983,12 @@
       state.trail.revealedCard = state.trail.lastPlayerCard;
       state.trail.cardCollapsed = false;
       state.trail.pendingCardActivation = {
+        id: state.trail.lastPlayerCard.id,
         player,
         deck: state.trail.lastPlayerCard.deck,
+        source: sourceIndex,
         title: card.title,
+        text: card.text,
         effectKey: card.effectKey || "",
         amount: card.amount || 0
       };
@@ -7217,9 +7223,12 @@
       state.trail.revealedCard = state.trail.lastFateCard;
       state.trail.cardCollapsed = false;
       state.trail.pendingCardActivation = {
+        id: state.trail.lastFateCard.id,
         player,
         deck: "Chance Deck",
+        source: sourceIndex,
         title: card.title,
+        text: card.text,
         effectKey: card.effectKey || "",
         amount: card.amount || 0
       };
@@ -7231,6 +7240,24 @@
       if (state.trail.pendingCardActivation.player !== card.player) return false;
       const localRole = localOnlineRole();
       return !localRole || localRole === card.player;
+    }
+
+    function currentTrailCardForReveal() {
+      if (!state.trail) return null;
+      if (state.trail.revealedCard) return state.trail.revealedCard;
+      const pending = state.trail.pendingCardActivation;
+      if (!pending) return null;
+      return {
+        id: pending.id || "",
+        player: pending.player,
+        deck: pending.deck || "Card",
+        source: Number(pending.source || 0),
+        effectKey: pending.effectKey || "",
+        amount: pending.amount || 0,
+        title: pending.title || "Card",
+        text: pending.text || "",
+        activated: false
+      };
     }
 
     function applyTrailCardEffect(card) {
@@ -7345,9 +7372,10 @@
     }
 
     function activateTrailCard() {
-      const card = state.currentGame === "tributeTrail" && state.trail ? state.trail.revealedCard : null;
+      const card = state.currentGame === "tributeTrail" && state.trail ? currentTrailCardForReveal() : null;
       if (!trailCardActivationAllowed(card)) return false;
       state.trail.pendingCardActivation = null;
+      state.trail.revealedCard = card;
       card.activated = true;
       addLog(`<strong>${labelFor(card.player)} activates ${card.title}.</strong>`);
       applyTrailCardEffect(card);
@@ -7468,7 +7496,7 @@
 
     function clearTrailCardReveal(allowActivation = true) {
       if (!state.trail) return;
-      const card = state.trail.revealedCard;
+      const card = currentTrailCardForReveal();
       if (!card) return;
       if (allowActivation && state.trail.pendingCardActivation && trailCardActivationAllowed(state.trail.revealedCard)) {
         activateTrailCard();
@@ -7487,7 +7515,7 @@
 
     function renderTrailCardReveal() {
       const trailVisible = state.screen === "game" && state.currentGame === "tributeTrail";
-      const card = trailVisible && state.trail ? state.trail.revealedCard : null;
+      const card = trailVisible && state.trail ? currentTrailCardForReveal() : null;
       const pendingCard = Boolean(state.trail && state.trail.pendingCardActivation && card && !card.activated);
       els.trailBankPill.classList.toggle("hidden", !trailVisible);
       els.trailCardModal.classList.toggle("hidden", !card);
