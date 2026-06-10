@@ -6401,9 +6401,6 @@
       if (!state.trail.trailSelection) {
         state.trail.cashSelection = null;
       }
-      if (!state.trail.revealedCard && state.trail.pendingCardActivation) {
-        state.trail.revealedCard = currentTrailCardForReveal();
-      }
       if (!state.trail.moving) {
         state.trail.movingPlayer = null;
       }
@@ -7238,13 +7235,13 @@
     function trailCardActivationAllowed(card) {
       if (!card || !state.trail || !state.trail.pendingCardActivation) return false;
       if (state.trail.pendingCardActivation.player !== card.player) return false;
+      if (state.trail.pendingCardActivation.id && card.id && state.trail.pendingCardActivation.id !== card.id) return false;
       const localRole = localOnlineRole();
       return !localRole || localRole === card.player;
     }
 
-    function currentTrailCardForReveal() {
+    function trailPendingCardRecord() {
       if (!state.trail) return null;
-      if (state.trail.revealedCard) return state.trail.revealedCard;
       const pending = state.trail.pendingCardActivation;
       if (!pending) return null;
       return {
@@ -7258,6 +7255,11 @@
         text: pending.text || "",
         activated: false
       };
+    }
+
+    function currentTrailCardForReveal() {
+      if (!state.trail) return null;
+      return trailPendingCardRecord() || state.trail.revealedCard || null;
     }
 
     function applyTrailCardEffect(card) {
@@ -7372,7 +7374,7 @@
     }
 
     function activateTrailCard() {
-      const card = state.currentGame === "tributeTrail" && state.trail ? currentTrailCardForReveal() : null;
+      const card = state.currentGame === "tributeTrail" && state.trail ? trailPendingCardRecord() : null;
       if (!trailCardActivationAllowed(card)) return false;
       state.trail.pendingCardActivation = null;
       state.trail.revealedCard = card;
@@ -7498,7 +7500,7 @@
       if (!state.trail) return;
       const card = currentTrailCardForReveal();
       if (!card) return;
-      if (allowActivation && state.trail.pendingCardActivation && trailCardActivationAllowed(state.trail.revealedCard)) {
+      if (allowActivation && state.trail.pendingCardActivation && trailCardActivationAllowed(card)) {
         activateTrailCard();
         return;
       }
