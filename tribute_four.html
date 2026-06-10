@@ -7451,9 +7451,10 @@
     function renderTrailCardReveal() {
       const trailVisible = state.screen === "game" && state.currentGame === "tributeTrail";
       const card = trailVisible && state.trail ? state.trail.revealedCard : null;
+      const pendingCard = Boolean(state.trail && state.trail.pendingCardActivation && card && !card.activated);
       els.trailBankPill.classList.toggle("hidden", !trailVisible);
       els.trailCardModal.classList.toggle("hidden", !card);
-      els.trailCardModal.classList.toggle("compact", Boolean(card && state.trail.cardCollapsed));
+      els.trailCardModal.classList.toggle("compact", Boolean(card && !pendingCard && state.trail.cardCollapsed));
       els.trailCardReveal.classList.remove("dom-deck", "sub-deck", "chance-deck");
       if (!card) return;
       const deckClass = String(card.deck || "").toLowerCase().includes("dom")
