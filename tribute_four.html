@@ -5021,14 +5021,14 @@
         state.online.roleChoices = snapshot.onlineLobby.roleChoices || state.online.roleChoices;
         state.online.spectators = snapshot.onlineLobby.spectators || state.online.spectators || {};
       }
+      state.online.applying = false;
       els.log.innerHTML = snapshot.logHtml || "";
       els.playerSummary.textContent = `${state.names.dom} is the dom. ${state.names.sub} is the sub.`;
       setScreen(state.screen);
       renderRoles();
-      render();
-      state.online.applying = false;
       processSubLinkRequest();
-      processApprovedWager();
+      if (processApprovedWager()) return;
+      render();
     }
 
     async function createOnlineRoom() {
@@ -5476,7 +5476,7 @@
     }
 
     function prepareRound(type, emptyLabel = "game") {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return null;
+      if (!wagerStartBypass && localOnlineRole() && localOnlineRole() !== SUB) return null;
       if (type === "reclaim" && state.domVault <= 0) {
         addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal ${emptyLabel} first to unlock reclaim.`);
         return null;
@@ -5602,15 +5602,18 @@
         startApprovedWager(pending);
         return;
       }
-      updatePendingWager({
+      const approvedPending = {
+        ...pending,
         status: "approved",
         approvedStartId: `${pending.id}-start`,
         approvedAt: Date.now()
-      });
+      };
+      updatePendingWager(approvedPending);
+      startApprovedWager(approvedPending);
     }
 
     function startApprovedWager(pending) {
-      if (!pending || processedWagerStartId === pending.approvedStartId) return;
+      if (!pending || processedWagerStartId === pending.approvedStartId) return false;
       processedWagerStartId = pending.approvedStartId || pending.id;
       state.pendingWager = null;
       els.betInput.value = normalizeBuyIn(Number(pending.amount));
@@ -5624,13 +5627,14 @@
       } finally {
         wagerStartBypass = false;
       }
+      return true;
     }
 
     function processApprovedWager() {
       const pending = state.pendingWager;
-      if (!pending || pending.status !== "approved" || !pending.approvedStartId) return;
-      if (state.online.room && localOnlineRole() !== SUB) return;
-      startApprovedWager(pending);
+      if (!pending || pending.status !== "approved" || !pending.approvedStartId) return false;
+      if (state.online.room && localOnlineRole() !== SUB) return false;
+      return startApprovedWager(pending);
     }
 
     function renderWagerApproval() {
