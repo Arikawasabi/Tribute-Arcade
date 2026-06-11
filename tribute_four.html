@@ -100,6 +100,37 @@
       transform: translate(-50%, 0);
     }
 
+    .checkers-queen-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.98);
+      transition: opacity 240ms ease, transform 240ms ease;
+    }
+
+    .checkers-queen-splash.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .checkers-queen-splash span {
+      max-width: min(900px, 92vw);
+      color: #ffd45f;
+      font-size: clamp(2.4rem, 8vw, 6.5rem);
+      font-weight: 950;
+      line-height: 0.95;
+      text-align: center;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 18px rgba(239, 199, 94, 0.44),
+        0 8px 30px rgba(0, 0, 0, 0.86);
+    }
+
     button, input, select {
       font: inherit;
     }
@@ -371,6 +402,13 @@
     #wagerModal {
       align-content: center;
       gap: 16px;
+      z-index: 220;
+      pointer-events: auto;
+    }
+
+    #wagerModal .wager-modal,
+    #wagerModal button {
+      pointer-events: auto;
     }
 
     .wager-modal .setup-actions {
@@ -981,8 +1019,9 @@
     .board-wrap {
       padding: clamp(10px, 2vw, 18px);
       border-radius: 8px;
-      background: #0f1319;
-      border: 1px solid rgba(244, 239, 232, 0.13);
+      background: rgba(15, 19, 25, 0.26);
+      border: 1px solid rgba(244, 239, 232, 0.10);
+      backdrop-filter: blur(1px);
     }
 
     .board-wrap.trail-board-wrap {
@@ -1006,8 +1045,8 @@
       min-height: 0;
       padding: 0;
       border-radius: 50%;
-      background: #191f28;
-      border: 3px solid #2d3948;
+      background: rgba(25, 31, 40, 0.74);
+      border: 3px solid rgba(76, 93, 114, 0.72);
       box-shadow: inset 0 8px 18px rgba(0, 0, 0, 0.42);
     }
 
@@ -1065,12 +1104,12 @@
       padding: 0;
       border-radius: 5px;
       border: 1px solid rgba(86, 181, 255, 0.18);
-      background: linear-gradient(135deg, #101923, #142332);
+      background: linear-gradient(135deg, rgba(16, 25, 35, 0.76), rgba(20, 35, 50, 0.76));
       box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.28);
     }
 
     .fleet-cell.ship {
-      background: linear-gradient(135deg, #37424c, #5d6872);
+      background: linear-gradient(135deg, rgba(55, 66, 76, 0.88), rgba(93, 104, 114, 0.88));
       border-color: rgba(244, 239, 232, 0.28);
     }
 
@@ -1091,12 +1130,12 @@
 
     .fleet-cell.fogged {
       border-color: rgba(244, 239, 232, 0.32);
-      background: linear-gradient(135deg, #24272e, #171a21);
+      background: linear-gradient(135deg, rgba(36, 39, 46, 0.84), rgba(23, 26, 33, 0.84));
     }
 
     .fleet-cell.noisy {
       border-color: rgba(101, 210, 143, 0.65);
-      background: linear-gradient(135deg, #172c25, #11201d);
+      background: linear-gradient(135deg, rgba(23, 44, 37, 0.86), rgba(17, 32, 29, 0.86));
       box-shadow:
         inset 0 0 18px rgba(0, 0, 0, 0.28),
         0 0 16px rgba(101, 210, 143, 0.16);
@@ -1104,7 +1143,7 @@
 
     .fleet-cell.blocked {
       border-color: rgba(239, 199, 94, 0.65);
-      background: linear-gradient(135deg, #302819, #4a3518);
+      background: linear-gradient(135deg, rgba(48, 40, 25, 0.88), rgba(74, 53, 24, 0.88));
     }
 
     .twentyone-table {
@@ -1290,9 +1329,10 @@
       aspect-ratio: 1;
       max-height: min(72vh, 720px);
       margin: 0 auto;
-      border: 1px solid rgba(244, 239, 232, 0.18);
+      border: 1px solid rgba(244, 239, 232, 0.14);
       border-radius: 8px;
       overflow: hidden;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
     }
 
     .chess-square {
@@ -1309,12 +1349,12 @@
     }
 
     .chess-square.light {
-      background: #cdbf9e;
+      background: rgba(205, 191, 158, 0.88);
       color: #17120f;
     }
 
     .chess-square.dark {
-      background: #5a6b58;
+      background: rgba(90, 107, 88, 0.88);
       color: #17120f;
     }
 
@@ -1354,6 +1394,126 @@
     .chess-square.sub-piece {
       color: #134f79;
       text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .checkers-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      aspect-ratio: 1;
+      max-height: min(72vh, 720px);
+      margin: 0 auto;
+      border: 1px solid rgba(244, 239, 232, 0.14);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(21, 17, 15, 0.34);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+    }
+
+    .checkers-square {
+      position: relative;
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 0;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .checkers-square.light {
+      background: rgba(208, 194, 165, 0.88);
+    }
+
+    .checkers-square.dark {
+      background: rgba(89, 63, 56, 0.88);
+    }
+
+    .checkers-square.selected {
+      outline: 4px solid var(--gold);
+      outline-offset: -4px;
+    }
+
+    .checkers-square.legal {
+      box-shadow: inset 0 0 0 999px rgba(101, 210, 143, 0.22);
+    }
+
+    .checkers-piece {
+      position: relative;
+      width: 68%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff7e6;
+      font-weight: 900;
+      font-size: clamp(0.9rem, 3vw, 1.8rem);
+      border: 3px solid rgba(255, 255, 255, 0.56);
+      box-shadow:
+        inset 0 -10px 14px rgba(0, 0, 0, 0.24),
+        0 10px 20px rgba(0, 0, 0, 0.28);
+    }
+
+    .checkers-piece.dom {
+      background: linear-gradient(145deg, var(--dom), #8e2449);
+    }
+
+    .checkers-piece.king.dom {
+      width: 76%;
+      background:
+        radial-gradient(circle at 34% 24%, rgba(255, 233, 177, 0.92), rgba(255, 233, 177, 0.12) 20%, transparent 34%),
+        linear-gradient(145deg, #f04e78, #8e2449 58%, #4b1028);
+      border-color: rgba(255, 219, 112, 0.92);
+      color: #fff2b5;
+      box-shadow:
+        inset 0 0 0 4px rgba(255, 244, 204, 0.20),
+        inset 0 -12px 18px rgba(0, 0, 0, 0.34),
+        0 0 22px rgba(239, 199, 94, 0.42),
+        0 14px 24px rgba(0, 0, 0, 0.34);
+    }
+
+    .checkers-piece.king.dom::before {
+      content: "♛";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #ffe08a;
+      font-size: clamp(1.35rem, 4.2vw, 2.7rem);
+      line-height: 1;
+      text-shadow:
+        0 2px 0 rgba(74, 16, 40, 0.82),
+        0 0 12px rgba(255, 220, 130, 0.62);
+    }
+
+    .checkers-piece.sub {
+      background: linear-gradient(145deg, var(--sub), #23699f);
+    }
+
+    .checkers-piece.king.sub {
+      border-color: rgba(197, 231, 255, 0.86);
+      box-shadow:
+        inset 0 0 0 3px rgba(255, 255, 255, 0.18),
+        inset 0 -10px 14px rgba(0, 0, 0, 0.24),
+        0 0 18px rgba(86, 181, 255, 0.28);
+    }
+
+    .checkers-piece.frozen {
+      filter: grayscale(0.25);
+      box-shadow:
+        inset 0 0 0 4px rgba(157, 217, 255, 0.45),
+        0 0 22px rgba(157, 217, 255, 0.5);
+    }
+
+    .checkers-piece.marked {
+      box-shadow:
+        inset 0 0 0 4px rgba(239, 199, 94, 0.50),
+        0 0 20px rgba(239, 199, 94, 0.44);
+    }
+
+    .checkers-piece.pinned {
+      box-shadow:
+        inset 0 0 0 4px rgba(240, 78, 120, 0.46),
+        0 0 20px rgba(240, 78, 120, 0.38);
     }
 
     .trail-layout {
@@ -2410,6 +2570,7 @@
 <body>
   <div class="distraction-backdrop" id="distractionBackdrop"></div>
   <div class="distraction-overlay" id="distractionOverlay"></div>
+  <div class="checkers-queen-splash" id="checkersQueenSplash"><span id="checkersQueenSplashText"></span></div>
 
   <main class="screen splash" id="lobbyScreen">
     <header class="splash-header">
@@ -2599,6 +2760,14 @@
         <span>
           <h2>Tribute Chess</h2>
           <p>Classic chess with queen stances, shared charges, and reclaim commands.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeCheckersCard">
+        <span>
+          <h2>Tribute Checkers</h2>
+          <p>Classic checkers where dom captures build Claim and her queens drain cash from captured sub pieces.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
@@ -2807,6 +2976,43 @@
       </div>
     </section>
     <div class="wager-emoji-dock hidden" id="wagerEmojiDock"></div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="blackjackSettingsModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Blackjack Settings</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="blackjackSettingsText">Choose how long the table runs.</p>
+        <div class="role-row">
+          <button data-blackjack-rounds="single" class="primary">1 Round</button>
+          <button data-blackjack-rounds="marks">First To 3</button>
+        </div>
+        <div class="role-row">
+          <button data-blackjack-powers="on" class="primary">Powers On</button>
+          <button data-blackjack-powers="off">Powers Off</button>
+        </div>
+        <div class="setup-actions">
+          <button id="blackjackSettingsConfirmBtn" class="primary">Start Blackjack</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="checkersQueenModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="checkersQueenTitle">Queen Offer</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="checkersQueenText">Choose whether the dom starts with a queen.</p>
+        <div class="setup-actions" id="checkersQueenActions">
+          <button id="checkersQueenNoBtn">No</button>
+          <button id="checkersQueenYesBtn" class="primary">Yes</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="modal-backdrop hidden" id="rulesModal">
@@ -3337,6 +3543,7 @@
       dice: createDiceState(),
       wheel: createWheelState(),
       trail: createTrailState(),
+      checkers: createCheckersState(),
       chess: createChessState(),
       chat: []
     };
@@ -3349,6 +3556,8 @@
       gameScreen: document.getElementById("gameScreen"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
+      checkersQueenSplash: document.getElementById("checkersQueenSplash"),
+      checkersQueenSplashText: document.getElementById("checkersQueenSplashText"),
       playerOneName: document.getElementById("playerOneName"),
       playerTwoName: document.getElementById("playerTwoName"),
       continueSetupBtn: document.getElementById("continueSetupBtn"),
@@ -3411,6 +3620,7 @@
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
       tributeTrailCard: document.getElementById("tributeTrailCard"),
+      tributeCheckersCard: document.getElementById("tributeCheckersCard"),
       tributeChessCard: document.getElementById("tributeChessCard"),
       createRoomBtn: document.getElementById("createRoomBtn"),
       onlineStatus: document.getElementById("onlineStatus"),
@@ -3437,6 +3647,15 @@
       wagerModalBody: document.getElementById("wagerModalBody"),
       wagerModalActions: document.getElementById("wagerModalActions"),
       wagerEmojiDock: document.getElementById("wagerEmojiDock"),
+      blackjackSettingsModal: document.getElementById("blackjackSettingsModal"),
+      blackjackSettingsText: document.getElementById("blackjackSettingsText"),
+      blackjackSettingsConfirmBtn: document.getElementById("blackjackSettingsConfirmBtn"),
+      checkersQueenModal: document.getElementById("checkersQueenModal"),
+      checkersQueenTitle: document.getElementById("checkersQueenTitle"),
+      checkersQueenText: document.getElementById("checkersQueenText"),
+      checkersQueenActions: document.getElementById("checkersQueenActions"),
+      checkersQueenYesBtn: document.getElementById("checkersQueenYesBtn"),
+      checkersQueenNoBtn: document.getElementById("checkersQueenNoBtn"),
       rulesBtn: document.getElementById("rulesBtn"),
       rulesModal: document.getElementById("rulesModal"),
       rulesModalTitle: document.getElementById("rulesModalTitle"),
@@ -3506,7 +3725,8 @@
     let selectedTributeFourPower = "lock";
     let selectedFleetPower = "scan";
     let selectedChessPower = "stance:none";
-    let selectedTwentyOnePower = "forcedHit";
+    let selectedCheckersPower = "crownPull";
+    let selectedTwentyOnePower = "pushLuck";
 
     function createBoard() {
       return Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
@@ -3514,6 +3734,42 @@
 
     function createTicTacToeBoard() {
       return Array.from({ length: 3 }, () => Array(3).fill(EMPTY));
+    }
+
+    function createCheckersState() {
+      return {
+        board: Array.from({ length: 8 }, (_, row) => Array.from({ length: 8 }, (_, col) => {
+          if ((row + col) % 2 === 0) return null;
+          if (row < 3) return { role: DOM, king: false };
+          if (row > 4) return { role: SUB, king: false };
+          return null;
+        })),
+        selected: null,
+        legalMoves: [],
+        mustContinue: false,
+        frozen: null,
+        powerMode: "",
+        pinned: null,
+        marked: null,
+        hungryCrown: 0,
+        tollArmed: 0,
+        queenSetup: null,
+        queenDrainBoost: false,
+        queenSplashMessage: "",
+        queenSplashUntil: 0,
+        powerUses: {
+          crownPull: 3,
+          marked: 3,
+          pinned: 3,
+          hungryCrown: 3,
+          tributeToll: 3,
+          takeover: 3
+        },
+        lockMode: false,
+        lockAvailable: false,
+        claims: 0,
+        queenDrainTotal: 0
+      };
     }
 
     function createDiceState() {
@@ -3563,11 +3819,23 @@
           dom: [],
           sub: []
         },
+        setupPending: false,
+        settings: {
+          rounds: "single",
+          powers: "on"
+        },
+        marks: {
+          dom: 0,
+          sub: 0
+        },
+        targetMarks: 1,
+        nextHandPending: false,
         stood: false,
         dealerTurn: false,
+        pushLuckPending: false,
+        pushLuckAvailable: false,
         revealDom: false,
         softSaveAvailable: false,
-        forceHitAvailable: false,
         outcome: ""
       };
     }
@@ -3876,10 +4144,11 @@
     }
 
     function localSeat() {
+      if (!state.online.room) return null;
       const claim = readSeatClaim();
       if (claim && claim.seat === SPECTATOR) return claim.seat;
       if (claim && (claim.seat === "one" || claim.seat === "two")) {
-        if (!state.online.room || !seatIsOwned(claim.seat) || seatClaimMatches(claim, claim.seat)) return claim.seat;
+        if (!seatIsOwned(claim.seat) || seatClaimMatches(claim, claim.seat)) return claim.seat;
       }
       if (state.online.room && (state.online.seat === "one" || state.online.seat === "two")) {
         if (!claim || !seatClaimMatches(claim, state.online.seat)) return null;
@@ -4366,6 +4635,19 @@
       publishState();
     }
 
+    function openTributeCheckers() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "tributeCheckers";
+      setScreen("game");
+      resetTributeCheckersBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>${state.names.dom}</strong> claims the dark squares. <strong>${state.names.sub}</strong> buys into the first checkers game.`);
+      render();
+      publishState();
+    }
+
     function backToMenu() {
       state.active = false;
       state.pendingWager = null;
@@ -4409,6 +4691,7 @@
       els.tributeWheelCard.disabled = domPickBlocked;
       els.tributeDiceCard.disabled = domPickBlocked;
       els.tributeTrailCard.disabled = domPickBlocked;
+      els.tributeCheckersCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
       els.testingBtn.classList.toggle("hidden", !testingGamesUnlocked());
       if (state.screen === "testing" && !testingGamesUnlocked()) {
@@ -4733,22 +5016,95 @@
         .find((file) => file && /^image\/(?:png|jpe?g|gif|webp|bmp)$/i.test(file.type));
     }
 
-    function useLocalDistractionFile(file) {
-      if (!domLinkControlsAllowed() || !file) return;
-      const maxBytes = 2_000_000;
-      if (file.size > maxBytes) {
-        els.sideDistractionStatus.textContent = "That image is too large to sync. Try one under 2 MB.";
-        return;
+    function dataUrlBytes(dataUrl) {
+      const base64 = String(dataUrl || "").split(",")[1] || "";
+      return Math.ceil(base64.length * 0.75);
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => resolve(reader.result));
+        reader.addEventListener("error", () => reject(reader.error || new Error("Could not read file")));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function loadImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        image.addEventListener("load", () => {
+          URL.revokeObjectURL(url);
+          resolve(image);
+        });
+        image.addEventListener("error", () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("Could not load image"));
+        });
+        image.src = url;
+      });
+    }
+
+    function drawCompressedImage(image, maxDimension, mimeType, quality) {
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height));
+      const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+      const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      context.clearRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+      return canvas.toDataURL(mimeType, quality);
+    }
+
+    async function compressImageFile(file) {
+      const targetBytes = 1_800_000;
+      const originalMaxBytes = 2_000_000;
+      if (/^image\/gif$/i.test(file.type)) {
+        if (file.size > originalMaxBytes) {
+          throw new Error("Large GIFs cannot be safely compressed without losing animation. Try a smaller GIF or a PNG/JPG/WebP.");
+        }
+        return { dataUrl: await readFileAsDataUrl(file), compressed: false };
       }
-      const reader = new FileReader();
-      reader.addEventListener("load", () => {
-        els.sideDistractionInput.value = reader.result;
-        els.sideDistractionStatus.textContent = "Local image loaded. Press Post to show it.";
-      });
-      reader.addEventListener("error", () => {
-        els.sideDistractionStatus.textContent = "Could not read that image.";
-      });
-      reader.readAsDataURL(file);
+      if (file.size <= originalMaxBytes) {
+        return { dataUrl: await readFileAsDataUrl(file), compressed: false };
+      }
+      const image = await loadImageFromFile(file);
+      const mimeType = "image/webp";
+      const dimensions = [1800, 1500, 1200, 960, 760];
+      const qualities = [0.82, 0.72, 0.62, 0.52, 0.42];
+      let best = "";
+      for (const dimension of dimensions) {
+        for (const quality of qualities) {
+          const dataUrl = drawCompressedImage(image, dimension, mimeType, quality);
+          if (!best || dataUrlBytes(dataUrl) < dataUrlBytes(best)) best = dataUrl;
+          if (dataUrlBytes(dataUrl) <= targetBytes) {
+            return { dataUrl, compressed: true, bytes: dataUrlBytes(dataUrl) };
+          }
+        }
+      }
+      if (best && dataUrlBytes(best) <= 2_500_000) {
+        return { dataUrl: best, compressed: true, bytes: dataUrlBytes(best) };
+      }
+      throw new Error("That image is still too large after compression. Try cropping it or using a smaller file.");
+    }
+
+    async function useLocalDistractionFile(file) {
+      if (!domLinkControlsAllowed() || !file) return;
+      els.sideDistractionStatus.textContent = file.size > 2_000_000
+        ? "Compressing image for room sync..."
+        : "Loading local image...";
+      try {
+        const result = await compressImageFile(file);
+        els.sideDistractionInput.value = result.dataUrl;
+        els.sideDistractionStatus.textContent = result.compressed
+          ? `Image compressed to about ${(dataUrlBytes(result.dataUrl) / 1_000_000).toFixed(1)} MB. Press Post to show it.`
+          : "Local image loaded. Press Post to show it.";
+      } catch (error) {
+        els.sideDistractionStatus.textContent = error.message || "Could not read that image.";
+      }
     }
 
     function handleDistractionPaste(event) {
@@ -4957,6 +5313,7 @@
         dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
+        checkers: state.checkers,
         chess: state.chess,
         chat: state.chat,
         onlineLobby: {
@@ -5011,6 +5368,7 @@
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
       state.trail = snapshot.trail || state.trail;
+      state.checkers = snapshot.checkers || state.checkers;
       normalizeTrailState();
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
@@ -5466,6 +5824,7 @@
       "tributeFour",
       "tributeFleet",
       "tributeChess",
+      "tributeCheckers",
       "tributeTwentyOne",
       "tributeTicTacToe",
       "tributeDice"
@@ -5627,6 +5986,8 @@
       } finally {
         wagerStartBypass = false;
       }
+      render();
+      publishState();
       return true;
     }
 
@@ -5635,6 +5996,27 @@
       if (!pending || pending.status !== "approved" || !pending.approvedStartId) return false;
       if (state.online.room && localOnlineRole() !== SUB) return false;
       return startApprovedWager(pending);
+    }
+
+    function handleWagerAction(action, button) {
+      if (action === "approve") approvePendingWager();
+      if (action === "deny") denyPendingWager();
+      if (action === "adjust-request") requestWagerAdjustment();
+      if (action === "back-review") updatePendingWager({ status: "review", direction: "" });
+      if (action === "ask-approval") askDomToApproveAdjustedWager();
+      if (action === "reject-adjust") rejectAdjustedWager();
+      if (action === "adjust") adjustPendingWagerAmount(Number(button.dataset.delta || 0));
+      if (action === "emoji") sendWagerEmoji(button.dataset.emoji || "");
+    }
+
+    function bindWagerActionButtons() {
+      els.wagerModal.querySelectorAll("[data-wager-action]").forEach((button) => {
+        button.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          handleWagerAction(button.dataset.wagerAction, button);
+        };
+      });
     }
 
     function renderWagerApproval() {
@@ -5700,6 +6082,7 @@
             return `<span class="wager-emoji-pop" style="--x:${x}px; animation-delay:${delay}ms">${escapeHtml(item.emoji)}</span>`;
           }).join("");
         }
+        bindWagerActionButtons();
         return;
       }
 
@@ -5712,6 +6095,7 @@
           <p class="chooser-line">${escapeHtml(wagerLabel(pending.type))}: ${money(pending.amount)}</p>
         `;
         els.wagerModalActions.innerHTML = "";
+        bindWagerActionButtons();
         return;
       }
 
@@ -5739,12 +6123,17 @@
           ${adjustButtons}
         `;
       }
+      bindWagerActionButtons();
     }
 
     function startNormalMatch() {
       if (!wagerStartBypass && !requestWagerApproval("normal")) return;
       if (state.currentGame === "tributeChess") {
         startChessNormalMatch();
+        return;
+      }
+      if (state.currentGame === "tributeCheckers") {
+        startCheckersNormalMatch();
         return;
       }
       if (state.currentGame === "tributeTwentyOne") {
@@ -5788,6 +6177,10 @@
       if (!wagerStartBypass && !requestWagerApproval("reclaim")) return;
       if (state.currentGame === "tributeChess") {
         startChessReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "tributeCheckers") {
+        startCheckersReclaimMatch();
         return;
       }
       if (state.currentGame === "tributeTwentyOne") {
@@ -6040,9 +6433,13 @@
         openChessPowerModal();
         return;
       }
+      if (state.currentGame === "tributeCheckers") {
+        openCheckersPowerModal();
+        return;
+      }
       if (state.currentGame === "tributeTwentyOne") {
         const role = localOnlineRole();
-        if ((role === DOM || (!role && canForceTwentyOneHit())) && canOpenTwentyOnePowerModal()) {
+        if ((role === DOM || !role) && canOpenTwentyOnePowerModal()) {
           openTwentyOnePowerModal();
           return;
         }
@@ -6289,8 +6686,132 @@
       activateQueenPower(selectedChessPower);
     }
 
+    function checkersPowerDefinitions() {
+      return {
+        crownPull: {
+          label: "Crown Pull",
+          tier: 0,
+          detail: `${state.names.dom} chooses a ${state.names.sub} piece diagonally near one of her queens. If there is an empty diagonal square between them, the piece is pulled one step closer. No captures or crowning.`
+        },
+        marked: {
+          label: "Marked",
+          tier: 1,
+          detail: `${state.names.dom} marks one ${state.names.sub} piece. If she captures it later, she gains +2 Claim and drains ${money(2)}.`
+        },
+        pinned: {
+          label: "Pinned",
+          tier: 2,
+          detail: `${state.names.dom} pins one ${state.names.sub} piece. On its next turn, that piece can only move if it is making a capture.`
+        },
+        hungryCrown: {
+          label: "Hungry Crown",
+          tier: 3,
+          detail: `The next ${state.names.dom} queen capture drains an extra ${money(2)} into her bank.`
+        },
+        tributeToll: {
+          label: "Tribute Toll",
+          tier: 4,
+          detail: `Arms a toll for the next ${state.names.sub} move. If that move ends next to a ${state.names.dom} queen, ${money(1)} drains into ${state.names.dom}'s bank.`
+        },
+        takeover: {
+          label: "Takeover",
+          tier: 5,
+          detail: `${state.names.dom} chooses a ${state.names.sub} piece adjacent to one of her queens and converts it into a dom piece. Kings cannot be taken over.`
+        }
+      };
+    }
+
+    function checkersPowerTypes() {
+      return ["crownPull", "marked", "pinned", "hungryCrown", "tributeToll", "takeover"];
+    }
+
+    function checkersPowerUnlocked(type) {
+      const definition = checkersPowerDefinitions()[type];
+      return Boolean(definition && state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= definition.tier);
+    }
+
+    function checkersPowerInfo(type) {
+      const definition = checkersPowerDefinitions()[type] || checkersPowerDefinitions().crownPull;
+      const uses = Number(state.checkers && state.checkers.powerUses && state.checkers.powerUses[type] || 0);
+      const unlocked = checkersPowerUnlocked(type);
+      const available = Boolean(state.active && state.turn === DOM && unlocked && uses > 0);
+      return {
+        ...definition,
+        available,
+        uses,
+        status: available ? `${uses} remaining` : (unlocked ? "0 remaining" : `Unlocks at Tilt ${definition.tier}`)
+      };
+    }
+
+    function canOpenCheckersPowerModal() {
+      if (state.currentGame !== "tributeCheckers" || state.mode !== "reclaim") return false;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
+      return checkersPowerTypes().some((type) => checkersPowerInfo(type).available || checkersPowerUnlocked(type));
+    }
+
+    function openCheckersPowerModal() {
+      if (!canOpenCheckersPowerModal()) return;
+      if (!checkersPowerInfo(selectedCheckersPower).available) {
+        selectedCheckersPower = checkersPowerTypes().find((type) => checkersPowerInfo(type).available) || "crownPull";
+      }
+      renderCheckersPowerModal();
+      els.tributeFourPowerModal.classList.remove("hidden");
+    }
+
+    function renderCheckersPowerModal() {
+      els.powerModalTitle.textContent = "Tribute Checkers Powers";
+      const powers = checkersPowerTypes().map((type) => ({ type, ...checkersPowerInfo(type) }));
+      els.tributeFourPowerOptions.innerHTML = powers.map((power) => `
+        <button data-checkers-power="${power.type}" class="${selectedCheckersPower === power.type ? "active" : ""}">
+          <strong>${power.label}</strong><br>
+          <span>${power.status}</span>
+        </button>
+      `).join("");
+      const selected = powers.find((power) => power.type === selectedCheckersPower) || powers[0];
+      els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
+      els.tributeFourPowerUseBtn.disabled = !selected.available;
+    }
+
+    function spendCheckersPower(type) {
+      if (!state.checkers.powerUses) state.checkers.powerUses = createCheckersState().powerUses;
+      state.checkers.powerUses[type] = Math.max(0, Number(state.checkers.powerUses[type] || 0) - 1);
+    }
+
+    function useCheckersPower() {
+      const info = checkersPowerInfo(selectedCheckersPower);
+      if (!info.available) {
+        renderCheckersPowerModal();
+        return;
+      }
+      if (selectedCheckersPower === "hungryCrown") {
+        spendCheckersPower("hungryCrown");
+        state.checkers.hungryCrown = Number(state.checkers.hungryCrown || 0) + 1;
+        closeTributeFourPowerModal();
+        addLog(`<strong>Hungry Crown armed.</strong> ${state.names.dom}'s next queen capture drains extra cash.`);
+        render();
+        publishState();
+        return;
+      }
+      if (selectedCheckersPower === "tributeToll") {
+        spendCheckersPower("tributeToll");
+        state.checkers.tollArmed = Number(state.checkers.tollArmed || 0) + 1;
+        closeTributeFourPowerModal();
+        addLog(`<strong>Tribute Toll armed.</strong> If ${state.names.sub}'s next move ends beside a queen, cash drains.`);
+        render();
+        publishState();
+        return;
+      }
+      state.checkers.powerMode = selectedCheckersPower;
+      state.checkers.selected = null;
+      state.checkers.legalMoves = [];
+      closeTributeFourPowerModal();
+      addLog(`<strong>${info.label} armed.</strong> ${state.names.dom} chooses a ${state.names.sub} piece.`);
+      render();
+      publishState();
+    }
+
     function twentyOnePowerInfo(type) {
-      const reclaim = state.mode === "reclaim" && domAdvantagesEnabled();
+      const reclaim = state.mode === "reclaim" && domAdvantagesEnabled() && blackjackPowersEnabled();
       const info = {
         peek: {
           label: "Peek",
@@ -6306,12 +6827,12 @@
           detail: `<strong>Soft Save.</strong> Once per reclaim, a ${state.names.dom} bust from 22 to 24 is treated as 21.`,
           uses: reclaim && state.tiltLevel >= 2 ? `${state.twentyOne.softSaveAvailable ? 1 : 0} remaining / 1 total this reclaim` : "0 available at this tilt"
         },
-        forcedHit: {
-          label: "Forced Hit",
+        pushLuck: {
+          label: "Push Your Luck",
           unlocked: reclaim && state.tiltLevel >= 3,
-          available: canForceTwentyOneHit(),
-          detail: `<strong>Forced Hit.</strong> Before ${state.names.sub} stands, ${state.names.dom} can force ${state.names.sub} to take one extra card.`,
-          uses: reclaim && state.tiltLevel >= 3 ? `${state.twentyOne.forceHitAvailable ? 1 : 0} remaining / 1 total this reclaim` : "0 available at this tilt"
+          available: reclaim && state.tiltLevel >= 3 && Boolean(state.twentyOne.pushLuckAvailable),
+          detail: `<strong>Push Your Luck.</strong> After ${state.names.sub} stands, ${state.names.dom} may force one extra ${state.names.sub} card. If ${state.names.sub} busts, ${state.names.dom} wins. If ${state.names.sub} survives, ${state.names.dom} immediately takes one kickback card before playing her dealer hand.`,
+          uses: reclaim && state.tiltLevel >= 3 ? (state.twentyOne.pushLuckAvailable ? "available after the sub stands" : "already decided this hand") : "0 available at this tilt"
         },
         dealerLock: {
           label: "Dealer Lock",
@@ -6335,14 +6856,14 @@
     }
 
     function twentyOnePowerTypes() {
-      return ["peek", "softSave", "forcedHit", "dealerLock", "houseSweep"];
+      return ["peek", "softSave", "pushLuck", "dealerLock", "houseSweep"];
     }
 
     function canOpenTwentyOnePowerModal() {
       if (state.currentGame !== "tributeTwentyOne" || state.mode !== "reclaim") return false;
       if (!state.active || state.turn !== SUB || state.twentyOne.dealerTurn) return false;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
-      return domAdvantagesEnabled() && state.tiltLevel >= 1;
+      return domAdvantagesEnabled() && blackjackPowersEnabled() && state.tiltLevel >= 1;
     }
 
     function openTwentyOnePowerModal() {
@@ -6362,16 +6883,11 @@
       `).join("");
       const selected = powers.find((power) => power.type === selectedTwentyOnePower) || powers[0];
       els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
-      els.tributeFourPowerUseBtn.disabled = selectedTwentyOnePower !== "forcedHit" || !selected.available;
+      els.tributeFourPowerUseBtn.disabled = true;
     }
 
     function useTwentyOnePower() {
-      if (selectedTwentyOnePower !== "forcedHit" || !canForceTwentyOneHit()) {
-        renderTwentyOnePowerModal();
-        return;
-      }
-      closeTributeFourPowerModal();
-      forceTwentyOneHit();
+      renderTwentyOnePowerModal();
     }
 
     function useCurrentPowerModalSelection() {
@@ -6379,6 +6895,8 @@
         useFleetPower();
       } else if (state.currentGame === "tributeChess") {
         useChessPower();
+      } else if (state.currentGame === "tributeCheckers") {
+        useCheckersPower();
       } else if (state.currentGame === "tributeTwentyOne") {
         useTwentyOnePower();
       } else {
@@ -7674,12 +8192,89 @@
       els.trailShopEndBtn.disabled = !canControl;
     }
 
+    function renderBlackjackSettingsModal() {
+      const show = state.screen === "game"
+        && state.currentGame === "tributeTwentyOne"
+        && state.twentyOne
+        && state.twentyOne.setupPending;
+      els.blackjackSettingsModal.classList.toggle("hidden", !show);
+      if (!show) return;
+      const role = localOnlineRole();
+      const canChoose = !state.online.room || role === DOM;
+      const rounds = state.twentyOne.settings.rounds || "single";
+      const powers = state.twentyOne.settings.powers || "on";
+      els.blackjackSettingsText.textContent = canChoose
+        ? "Choose how long this Blackjack table runs."
+        : `${state.names.dom} is choosing the Blackjack settings.`;
+      els.blackjackSettingsModal.querySelectorAll("[data-blackjack-rounds]").forEach((button) => {
+        button.classList.toggle("primary", button.dataset.blackjackRounds === rounds);
+        button.disabled = !canChoose;
+      });
+      els.blackjackSettingsModal.querySelectorAll("[data-blackjack-powers]").forEach((button) => {
+        button.classList.toggle("primary", button.dataset.blackjackPowers === powers);
+        button.disabled = !canChoose;
+      });
+      els.blackjackSettingsConfirmBtn.disabled = !canChoose;
+    }
+
+    function renderCheckersQueenModal() {
+      const setup = state.screen === "game" && state.currentGame === "tributeCheckers" && state.checkers
+        ? state.checkers.queenSetup
+        : null;
+      els.checkersQueenModal.classList.toggle("hidden", !setup);
+      if (!setup) return;
+      const role = localOnlineRole();
+      const stage = setup.stage || "sub";
+      const isLocal = !state.online.room || !role;
+      if (stage === "sub") {
+        const canChoose = isLocal || role === SUB;
+        els.checkersQueenTitle.textContent = "Offer Her A Queen";
+        els.checkersQueenText.textContent = canChoose
+          ? `Does ${state.names.sub} allow ${state.names.dom} to start with a queen?`
+          : `${state.names.sub} is deciding whether ${state.names.dom} deserves to start with a queen.`;
+        els.checkersQueenYesBtn.textContent = "Allow Queen";
+        els.checkersQueenNoBtn.textContent = "Deny Her";
+        els.checkersQueenYesBtn.disabled = !canChoose;
+        els.checkersQueenNoBtn.disabled = !canChoose;
+        return;
+      }
+      const canChoose = isLocal || role === DOM;
+      els.checkersQueenTitle.textContent = "Take The Crown?";
+      els.checkersQueenText.textContent = canChoose
+        ? `${state.names.sub} did not think you deserved a queen. Take one anyway? If you do, Queen's Drain becomes $2 / $4 / $6 this game.`
+        : `${state.names.dom} is deciding whether to take the queen anyway.`;
+      els.checkersQueenYesBtn.textContent = "Take Queen";
+      els.checkersQueenNoBtn.textContent = "Start Normal";
+      els.checkersQueenYesBtn.disabled = !canChoose;
+      els.checkersQueenNoBtn.disabled = !canChoose;
+    }
+
+    function renderCheckersQueenSplash() {
+      const checkers = state.screen === "game" && state.currentGame === "tributeCheckers" ? state.checkers : null;
+      const remaining = checkers ? Math.max(0, Number(checkers.queenSplashUntil || 0) - Date.now()) : 0;
+      const show = Boolean(checkers && checkers.queenSplashMessage && remaining > 0 && shouldShowSubOnlyMedia());
+      els.checkersQueenSplash.classList.toggle("active", show);
+      els.checkersQueenSplashText.textContent = show ? checkers.queenSplashMessage : "";
+      window.clearTimeout(renderCheckersQueenSplash.timer);
+      if (show) {
+        renderCheckersQueenSplash.timer = window.setTimeout(render, remaining + 40);
+      }
+    }
+
     function resetPrototype() {
       state.pendingWager = null;
       if (state.currentGame === "tributeChess") {
         resetTributeChessBoard();
         els.log.innerHTML = "";
         addLog(`<strong>Tribute Chess reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
+      if (state.currentGame === "tributeCheckers") {
+        resetTributeCheckersBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Tribute Checkers reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
         render();
         publishState();
         return;
@@ -7783,6 +8378,438 @@
       state.lockedTribute = state.domVault;
       state.winningCells = [];
       state.twentyOne = createTwentyOneState();
+    }
+
+    function resetTributeCheckersBoard() {
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+      state.checkers = createCheckersState();
+    }
+
+    function startCheckersNormalMatch() {
+      const bet = prepareRound("normal");
+      if (bet === null) return;
+      const starter = randomStarter();
+      preserveTiltLevel(() => beginCheckersQueenSetup(starter));
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} will move first after the queen offer.`, false);
+    }
+
+    function startCheckersReclaimMatch() {
+      const pot = prepareRound("reclaim", "game");
+      if (pot === null) return;
+      beginCheckersQueenSetup(DOM);
+      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} starts after the queen offer. Tilt level ${state.tiltLevel}.`, false);
+    }
+
+    function beginCheckersQueenSetup(starter) {
+      state.checkers = createCheckersState();
+      state.turn = starter;
+      state.active = false;
+      state.checkers.queenSetup = {
+        stage: "sub",
+        starter,
+        decidedAt: 0
+      };
+    }
+
+    function resetCheckersMatch(starter) {
+      state.checkers = createCheckersState();
+      state.turn = starter;
+      state.active = true;
+    }
+
+    function randomCheckersQueenRow() {
+      const roll = Math.random();
+      if (roll < 0.70) return 0;
+      if (roll < 0.95) return 1;
+      return 2;
+    }
+
+    function giveDomStartingCheckersQueen() {
+      const board = state.checkers.board;
+      const preferredRow = randomCheckersQueenRow();
+      const rows = [preferredRow, 0, 1, 2].filter((row, index, list) => list.indexOf(row) === index);
+      let candidates = [];
+      rows.some((row) => {
+        candidates = board[row]
+          .map((piece, col) => piece && piece.role === DOM && !piece.king ? { row, col } : null)
+          .filter(Boolean);
+        return candidates.length > 0;
+      });
+      if (!candidates.length) {
+        board.forEach((row, rowIndex) => row.forEach((piece, col) => {
+          if (piece && piece.role === DOM && !piece.king) candidates.push({ row: rowIndex, col });
+        }));
+      }
+      if (!candidates.length) return null;
+      const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+      board[chosen.row][chosen.col].king = true;
+      return chosen;
+    }
+
+    function finishCheckersQueenSetup() {
+      const starter = state.checkers.queenSetup && state.checkers.queenSetup.starter || state.turn || SUB;
+      state.checkers.queenSetup = null;
+      state.turn = starter;
+      state.active = true;
+      addLog(`<strong>Checkers begins.</strong> ${labelFor(starter)} moves first.`);
+      render();
+      publishState();
+    }
+
+    function subAllowsCheckersQueen() {
+      if (state.currentGame !== "tributeCheckers" || !state.checkers.queenSetup) return;
+      if (state.online.room && localOnlineRole() !== SUB) return;
+      giveDomStartingCheckersQueen();
+      addLog(`<strong>Queen granted.</strong> ${state.names.sub} worships properly and begs ${state.names.dom} to start crowned.`);
+      finishCheckersQueenSetup();
+    }
+
+    function subRefusesCheckersQueen() {
+      if (state.currentGame !== "tributeCheckers" || !state.checkers.queenSetup) return;
+      if (state.online.room && localOnlineRole() !== SUB) return;
+      state.checkers.queenSetup.stage = "dom";
+      addLog(`<strong>Queen denied?</strong> ${state.names.sub} decided ${state.names.dom} did not deserve a queen.`);
+      render();
+      publishState();
+    }
+
+    function domDeclinesCheckersQueen() {
+      if (state.currentGame !== "tributeCheckers" || !state.checkers.queenSetup || state.checkers.queenSetup.stage !== "dom") return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      addLog(`<strong>No starting queen.</strong> ${state.names.dom} lets the board begin without mercy.`);
+      finishCheckersQueenSetup();
+    }
+
+    function domTakesCheckersQueen() {
+      if (state.currentGame !== "tributeCheckers" || !state.checkers.queenSetup || state.checkers.queenSetup.stage !== "dom") return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      state.checkers.queenDrainBoost = true;
+      giveDomStartingCheckersQueen();
+      state.checkers.queenSplashMessage = `You disappointed ${state.names.dom}. Now you'll regret it.`;
+      state.checkers.queenSplashUntil = Date.now() + 2600;
+      addLog(`<strong>Queen taken.</strong> ${state.names.sub} disappointed ${state.names.dom}. They will regret making her claim the crown herself.`);
+      finishCheckersQueenSetup();
+    }
+
+    function checkersDirections(piece) {
+      if (!piece) return [];
+      if (piece.king) return [[1, -1], [1, 1], [-1, -1], [-1, 1]];
+      return piece.role === DOM ? [[1, -1], [1, 1]] : [[-1, -1], [-1, 1]];
+    }
+
+    function checkersInside(row, col) {
+      return row >= 0 && row < 8 && col >= 0 && col < 8;
+    }
+
+    function checkersCoordMatches(coord, row, col) {
+      return Boolean(coord && coord.row === row && coord.col === col);
+    }
+
+    function checkersPiecePinned(row, col) {
+      return Boolean(state.checkers.pinned && state.checkers.pinned.row === row && state.checkers.pinned.col === col && state.checkers.pinned.turns > 0);
+    }
+
+    function checkersPieceFrozen(row, col) {
+      return Boolean(state.checkers.frozen && state.checkers.frozen.row === row && state.checkers.frozen.col === col && state.checkers.frozen.turns > 0);
+    }
+
+    function checkersDomQueens() {
+      const queens = [];
+      state.checkers.board.forEach((row, rowIndex) => row.forEach((piece, colIndex) => {
+        if (piece && piece.role === DOM && piece.king) queens.push({ row: rowIndex, col: colIndex });
+      }));
+      return queens;
+    }
+
+    function checkersAdjacentToDomQueen(row, col) {
+      return checkersDomQueens().some((queen) => Math.abs(queen.row - row) === 1 && Math.abs(queen.col - col) === 1);
+    }
+
+    function checkersPullTarget(row, col) {
+      const board = state.checkers.board;
+      return checkersDomQueens().map((queen) => {
+        const rowDistance = queen.row - row;
+        const colDistance = queen.col - col;
+        if (Math.abs(rowDistance) !== Math.abs(colDistance)) return null;
+        if (Math.abs(rowDistance) < 2 || Math.abs(rowDistance) > 3) return null;
+        const targetRow = row + Math.sign(rowDistance);
+        const targetCol = col + Math.sign(colDistance);
+        if (!checkersInside(targetRow, targetCol) || board[targetRow][targetCol]) return null;
+        return { row: targetRow, col: targetCol };
+      }).find(Boolean);
+    }
+
+    function checkersQueenDrainAmount() {
+      const claims = Number(state.checkers.claims || 0);
+      const boost = Boolean(state.checkers.queenDrainBoost);
+      if (claims >= 6) return boost ? 6 : 3;
+      if (claims >= 3) return boost ? 4 : 2;
+      return boost ? 2 : 1;
+    }
+
+    function applyCheckersCaptureRewards(piece, capturedPiece, captureRow, captureCol) {
+      if (!piece || piece.role !== DOM || !capturedPiece || capturedPiece.role !== SUB) return;
+      state.checkers.claims = Number(state.checkers.claims || 0) + 1;
+      addLog(`<strong>Claim taken.</strong> ${state.names.dom} gains 1 Claim from the captured piece.`);
+      if (checkersCoordMatches(state.checkers.marked, captureRow, captureCol)) {
+        state.checkers.claims = Number(state.checkers.claims || 0) + 2;
+        state.domVault += 2;
+        state.lockedTribute = state.domVault;
+        state.checkers.marked = null;
+        addLog(`<strong>Marked piece claimed.</strong> ${state.names.dom} gains +2 Claim and drains ${money(2)}.`);
+      }
+      if (piece.king) {
+        const bonus = Number(state.checkers.hungryCrown || 0) > 0 ? 2 : 0;
+        const drain = checkersQueenDrainAmount() + bonus;
+        if (bonus) state.checkers.hungryCrown = Math.max(0, Number(state.checkers.hungryCrown || 0) - 1);
+        state.domVault += drain;
+        state.lockedTribute = state.domVault;
+        state.checkers.queenDrainTotal = Number(state.checkers.queenDrainTotal || 0) + drain;
+        addLog(`<strong>Queen's Drain.</strong> ${state.names.dom}'s queen drains ${money(drain)} into her bank.`);
+      }
+    }
+
+    function checkersMovesFor(row, col, capturesOnly = false) {
+      const board = state.checkers.board;
+      const piece = board[row] && board[row][col];
+      if (!piece || piece.role !== state.turn || checkersPieceFrozen(row, col)) return [];
+      const pinned = checkersPiecePinned(row, col);
+      const moves = [];
+      checkersDirections(piece).forEach(([dr, dc]) => {
+        const stepRow = row + dr;
+        const stepCol = col + dc;
+        const jumpRow = row + dr * 2;
+        const jumpCol = col + dc * 2;
+        if (checkersInside(jumpRow, jumpCol)
+          && board[stepRow][stepCol]
+          && board[stepRow][stepCol].role !== piece.role
+          && !board[jumpRow][jumpCol]) {
+          moves.push({ from: [row, col], to: [jumpRow, jumpCol], capture: [stepRow, stepCol] });
+        } else if (!capturesOnly && !pinned && checkersInside(stepRow, stepCol) && !board[stepRow][stepCol]) {
+          moves.push({ from: [row, col], to: [stepRow, stepCol], capture: null });
+        }
+      });
+      return moves;
+    }
+
+    function allCheckersMoves(role = state.turn) {
+      const priorTurn = state.turn;
+      state.turn = role;
+      const captures = [];
+      const quiet = [];
+      for (let row = 0; row < 8; row += 1) {
+        for (let col = 0; col < 8; col += 1) {
+          const moves = checkersMovesFor(row, col, false);
+          moves.forEach((move) => (move.capture ? captures : quiet).push(move));
+        }
+      }
+      state.turn = priorTurn;
+      return captures.length ? captures : quiet;
+    }
+
+    function useTargetedCheckersPower(row, col) {
+      const mode = state.checkers.powerMode;
+      if (!mode) return false;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return true;
+      const board = state.checkers.board;
+      const piece = board[row] && board[row][col];
+      if (!piece || piece.role !== SUB) return true;
+      if (mode === "crownPull") {
+        const target = checkersPullTarget(row, col);
+        if (!target) {
+          addLog(`<strong>Crown Pull failed.</strong> Choose a ${state.names.sub} piece diagonally two or three spaces from a queen with an empty square between.`);
+          render();
+          return true;
+        }
+        spendCheckersPower("crownPull");
+        board[target.row][target.col] = piece;
+        board[row][col] = null;
+        if (checkersCoordMatches(state.checkers.marked, row, col)) state.checkers.marked = { row: target.row, col: target.col };
+        state.checkers.powerMode = "";
+        addLog(`<strong>Crown Pull.</strong> ${state.names.dom}'s queen pulls a ${state.names.sub} piece closer.`);
+      } else if (mode === "marked") {
+        spendCheckersPower("marked");
+        state.checkers.marked = { row, col };
+        state.checkers.powerMode = "";
+        addLog(`<strong>Marked.</strong> One ${state.names.sub} piece is worth extra Claim and cash if captured.`);
+      } else if (mode === "pinned") {
+        spendCheckersPower("pinned");
+        state.checkers.pinned = { row, col, turns: 1 };
+        state.checkers.powerMode = "";
+        addLog(`<strong>Pinned.</strong> One ${state.names.sub} piece can only move by capture on its next turn.`);
+      } else if (mode === "takeover") {
+        if (piece.king || !checkersAdjacentToDomQueen(row, col)) {
+          addLog(`<strong>Takeover failed.</strong> Choose a regular ${state.names.sub} piece adjacent to a ${state.names.dom} queen.`);
+          render();
+          return true;
+        }
+        spendCheckersPower("takeover");
+        piece.role = DOM;
+        piece.king = false;
+        if (checkersCoordMatches(state.checkers.marked, row, col)) state.checkers.marked = null;
+        if (checkersCoordMatches(state.checkers.pinned, row, col)) state.checkers.pinned = null;
+        state.checkers.powerMode = "";
+        addLog(`<strong>Takeover.</strong> ${state.names.dom}'s queen claims a nearby ${state.names.sub} piece.`);
+      }
+      state.checkers.selected = null;
+      state.checkers.legalMoves = [];
+      const winner = checkersWinner();
+      if (winner) {
+        endCheckersMatch(winner, `${labelFor(winner)} controls the board.`);
+        return true;
+      }
+      render();
+      publishState();
+      return true;
+    }
+
+    function selectCheckersSquare(row, col) {
+      if (state.currentGame !== "tributeCheckers" || !state.active) return;
+      if (state.checkers.powerMode || state.checkers.lockMode) {
+        if (state.checkers.lockMode) {
+          lockCheckersPiece(row, col);
+          return;
+        }
+        useTargetedCheckersPower(row, col);
+        return;
+      }
+      if (localOnlineRole() && localOnlineRole() !== state.turn) return;
+      const selected = state.checkers.selected;
+      if (selected) {
+        const move = (state.checkers.legalMoves || []).find((candidate) => candidate.to[0] === row && candidate.to[1] === col);
+        if (move) {
+          moveCheckersPiece(move);
+          return;
+        }
+      }
+      const piece = state.checkers.board[row] && state.checkers.board[row][col];
+      if (!piece || piece.role !== state.turn) return;
+      const forcedCaptures = allCheckersMoves(state.turn).filter((move) => move.capture);
+      const legal = checkersMovesFor(row, col, forcedCaptures.length > 0);
+      if (!legal.length) return;
+      state.checkers.selected = [row, col];
+      state.checkers.legalMoves = legal;
+      render();
+    }
+
+    function moveCheckersPiece(move) {
+      const board = state.checkers.board;
+      const [fromRow, fromCol] = move.from;
+      const [toRow, toCol] = move.to;
+      const piece = board[fromRow][fromCol];
+      board[fromRow][fromCol] = null;
+      board[toRow][toCol] = piece;
+      if (checkersCoordMatches(state.checkers.marked, fromRow, fromCol)) state.checkers.marked = { row: toRow, col: toCol };
+      if (move.capture) {
+        const capturedPiece = board[move.capture[0]][move.capture[1]];
+        applyCheckersCaptureRewards(piece, capturedPiece, move.capture[0], move.capture[1]);
+        board[move.capture[0]][move.capture[1]] = null;
+      }
+      if ((piece.role === DOM && toRow === 7) || (piece.role === SUB && toRow === 0)) {
+        piece.king = true;
+      }
+      if (checkersCoordMatches(state.checkers.pinned, fromRow, fromCol)) state.checkers.pinned = null;
+      if (piece.role === SUB && Number(state.checkers.tollArmed || 0) > 0) {
+        state.checkers.tollArmed = Math.max(0, Number(state.checkers.tollArmed || 0) - 1);
+        if (checkersAdjacentToDomQueen(toRow, toCol)) {
+          state.domVault += 1;
+          state.lockedTribute = state.domVault;
+          addLog(`<strong>Tribute Toll.</strong> ${state.names.sub} ends beside a queen, so ${money(1)} drains into ${state.names.dom}'s bank.`);
+        }
+      }
+      state.checkers.selected = null;
+      state.checkers.legalMoves = [];
+      if (move.capture) {
+        const nextCaptures = checkersMovesFor(toRow, toCol, true);
+        if (nextCaptures.length) {
+          state.checkers.selected = [toRow, toCol];
+          state.checkers.legalMoves = nextCaptures;
+          addLog(`<strong>${labelFor(state.turn)} jumps.</strong> Another capture is required.`);
+          render();
+          publishState();
+          return;
+        }
+      }
+      const winner = checkersWinner();
+      if (winner) {
+        endCheckersMatch(winner, `${labelFor(winner)} controls the board.`);
+        return;
+      }
+      passCheckersTurn();
+      render();
+      publishState();
+    }
+
+    function passCheckersTurn() {
+      const leaving = state.turn;
+      if (state.checkers.frozen && state.checkers.frozen.role === leaving) {
+        state.checkers.frozen.turns -= 1;
+        if (state.checkers.frozen.turns <= 0) state.checkers.frozen = null;
+      }
+      if (leaving === SUB && state.checkers.pinned) {
+        state.checkers.pinned.turns -= 1;
+        if (state.checkers.pinned.turns <= 0) state.checkers.pinned = null;
+      }
+      state.turn = otherRole(state.turn);
+      const moves = allCheckersMoves(state.turn);
+      if (!moves.length) {
+        const winner = leaving;
+        endCheckersMatch(winner, `${labelFor(state.turn)} has no legal move.`);
+      }
+    }
+
+    function checkersWinner() {
+      const pieces = { [DOM]: 0, [SUB]: 0 };
+      state.checkers.board.forEach((row) => row.forEach((piece) => {
+        if (piece) pieces[piece.role] += 1;
+      }));
+      if (!pieces[DOM]) return SUB;
+      if (!pieces[SUB]) return DOM;
+      return null;
+    }
+
+    function canLockCheckersPiece() {
+      return state.currentGame === "tributeCheckers"
+        && state.active
+        && state.mode === "reclaim"
+        && domAdvantagesEnabled()
+        && state.turn === DOM
+        && state.checkers.lockAvailable
+        && (!state.online.room || localOnlineRole() === DOM);
+    }
+
+    function lockCheckersPiece(row, col) {
+      if (!canLockCheckersPiece()) return;
+      const piece = state.checkers.board[row] && state.checkers.board[row][col];
+      if (!piece || piece.role !== SUB) return;
+      state.checkers.frozen = { row, col, role: SUB, turns: 1 };
+      state.checkers.lockAvailable = false;
+      state.checkers.lockMode = false;
+      addLog(`<strong>Lock Piece.</strong> ${state.names.dom} freezes one ${state.names.sub} piece for its next turn.`);
+      render();
+      publishState();
+    }
+
+    function endCheckersMatch(winner, reason) {
+      state.active = false;
+      const result = settleRoundBank(winner);
+      if (result.outcome === "subReclaim") {
+        addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${reason} ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "subNormal") {
+        addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "domReclaim") {
+        addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
+      } else {
+        addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
     }
 
     function resetWheelSpinBoard() {
@@ -8814,19 +9841,84 @@
     function startTwentyOneNormalMatch() {
       const bet = prepareRound("normal");
       if (bet === null) return;
-      preserveTiltLevel(resetTwentyOneHand);
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)} and takes the first decision.`, false);
+      preserveTiltLevel(startTwentyOneSetup);
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${state.names.dom} chooses the Blackjack settings.`, false);
     }
 
     function startTwentyOneReclaimMatch() {
       const pot = prepareRound("reclaim", "hand");
       if (pot === null) return;
-      resetTwentyOneHand();
-      finishRoundStart(`<strong>Reclaim hand:</strong> ${state.names.sub} is trying to win back ${money(pot)} from ${state.names.dom}'s bank.`, false);
+      startTwentyOneSetup();
+      finishRoundStart(`<strong>Reclaim table:</strong> ${state.names.sub} is trying to win back ${money(pot)} from ${state.names.dom}'s bank. ${state.names.dom} chooses the Blackjack settings.`, false);
     }
 
-    function resetTwentyOneHand() {
+    function startTwentyOneSetup() {
       state.twentyOne = createTwentyOneState();
+      state.twentyOne.setupPending = true;
+      state.twentyOne.settings = { rounds: "single", powers: "on" };
+      state.twentyOne.targetMarks = 1;
+      state.twentyOne.marks = { dom: 0, sub: 0 };
+      state.turn = DOM;
+      state.active = true;
+      render();
+    }
+
+    function blackjackPowersEnabled() {
+      return state.twentyOne && (!state.twentyOne.settings || state.twentyOne.settings.powers !== "off");
+    }
+
+    function setBlackjackRounds(rounds) {
+      if (state.currentGame !== "tributeTwentyOne" || !state.twentyOne.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      state.twentyOne.settings.rounds = rounds === "marks" ? "marks" : "single";
+      state.twentyOne.targetMarks = state.twentyOne.settings.rounds === "marks" ? 3 : 1;
+      render();
+      publishState();
+    }
+
+    function setBlackjackPowers(powerMode) {
+      if (state.currentGame !== "tributeTwentyOne" || !state.twentyOne.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      state.twentyOne.settings.powers = powerMode === "off" ? "off" : "on";
+      render();
+      publishState();
+    }
+
+    function confirmBlackjackSettings() {
+      if (state.currentGame !== "tributeTwentyOne" || !state.twentyOne.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      state.twentyOne.setupPending = false;
+      state.twentyOne.marks = { dom: 0, sub: 0 };
+      state.twentyOne.targetMarks = state.twentyOne.settings.rounds === "marks" ? 3 : 1;
+      const roundText = state.twentyOne.targetMarks === 3 ? "first to 3 marks" : "one round";
+      addLog(`<strong>Blackjack settings locked.</strong> ${roundText}, powers ${blackjackPowersEnabled() ? "on" : "off"}.`);
+      resetTwentyOneHand(true);
+      publishState();
+    }
+
+    function startNextTwentyOneHand() {
+      if (state.currentGame !== "tributeTwentyOne" || !state.twentyOne.nextHandPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      state.twentyOne.nextHandPending = false;
+      resetTwentyOneHand(true);
+      addLog(`<strong>Next hand.</strong> First to ${state.twentyOne.targetMarks} marks wins the table.`);
+      publishState();
+    }
+
+    function resetTwentyOneHand(keepMatch = false) {
+      const previous = keepMatch && state.twentyOne ? {
+        settings: { ...(state.twentyOne.settings || { rounds: "single", powers: "on" }) },
+        marks: { ...(state.twentyOne.marks || { dom: 0, sub: 0 }) },
+        targetMarks: Number(state.twentyOne.targetMarks || 1),
+        nextHandPending: Boolean(state.twentyOne.nextHandPending)
+      } : null;
+      state.twentyOne = createTwentyOneState();
+      if (previous) {
+        state.twentyOne.settings = previous.settings;
+        state.twentyOne.marks = previous.marks;
+        state.twentyOne.targetMarks = previous.targetMarks;
+        state.twentyOne.nextHandPending = false;
+      }
       state.twentyOne.deck = shuffleDeck(createTwentyOneDeck());
       state.twentyOne.hands.sub.push(drawTwentyOneCard());
       state.twentyOne.hands.dom.push(drawTwentyOneCard());
@@ -8835,8 +9927,9 @@
       state.twentyOne.revealDom = false;
       state.twentyOne.stood = false;
       state.twentyOne.dealerTurn = false;
-      state.twentyOne.softSaveAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 2;
-      state.twentyOne.forceHitAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.twentyOne.pushLuckPending = false;
+      state.twentyOne.pushLuckAvailable = blackjackPowersEnabled() && state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
+      state.twentyOne.softSaveAvailable = blackjackPowersEnabled() && state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 2;
       state.twentyOne.outcome = "";
       state.turn = SUB;
       state.active = true;
@@ -8876,6 +9969,9 @@
           endTwentyOneHand(DOM, `${state.names.sub} busts.`);
           return;
         }
+      } else if (state.turn === DOM && state.twentyOne.pushLuckPending) {
+        pushTwentyOneLuck();
+        return;
       } else if (state.turn === DOM && state.twentyOne.dealerTurn) {
         if (localOnlineRole() && localOnlineRole() !== DOM) return;
         state.twentyOne.hands.dom.push(drawTwentyOneCard());
@@ -8902,12 +9998,21 @@
       if (state.turn === SUB) {
         if (localOnlineRole() && localOnlineRole() !== SUB) return;
         state.twentyOne.stood = true;
-        state.twentyOne.revealDom = true;
-        state.twentyOne.dealerTurn = true;
         state.turn = DOM;
-        addLog(`<strong>${state.names.sub} stands.</strong> ${state.names.dom} takes the dealer turn.`);
+        if (canOfferTwentyOnePushLuck()) {
+          state.twentyOne.pushLuckPending = true;
+          addLog(`<strong>${state.names.sub} stands.</strong> ${state.names.dom} may Push Your Luck.`);
+        } else {
+          state.twentyOne.revealDom = true;
+          state.twentyOne.dealerTurn = true;
+          addLog(`<strong>${state.names.sub} stands.</strong> ${state.names.dom} takes the dealer turn.`);
+        }
         render();
         publishState();
+        return;
+      }
+      if (state.turn === DOM && state.twentyOne.pushLuckPending) {
+        declineTwentyOnePushLuck();
         return;
       }
       if (state.turn === DOM && state.twentyOne.dealerTurn) {
@@ -8925,33 +10030,60 @@
       }
     }
 
-    function canForceTwentyOneHit() {
+    function canOfferTwentyOnePushLuck() {
       return state.currentGame === "tributeTwentyOne"
         && state.active
         && state.mode === "reclaim"
         && domAdvantagesEnabled()
-        && state.turn === SUB
+        && blackjackPowersEnabled()
         && state.tiltLevel >= 3
-        && state.twentyOne.forceHitAvailable;
+        && state.twentyOne.pushLuckAvailable;
     }
 
-    function forceTwentyOneHit() {
-      if (!canForceTwentyOneHit()) return;
+    function pushTwentyOneLuck() {
+      if (!state.twentyOne.pushLuckPending || !canOfferTwentyOnePushLuck()) return;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return;
-      state.twentyOne.forceHitAvailable = false;
+      state.twentyOne.pushLuckPending = false;
+      state.twentyOne.pushLuckAvailable = false;
       state.twentyOne.hands.sub.push(drawTwentyOneCard());
-      addLog(`<strong>Forced Hit.</strong> ${state.names.dom} makes ${state.names.sub} take one card.`);
+      addLog(`<strong>Push Your Luck.</strong> ${state.names.dom} makes ${state.names.sub} take one more card.`);
       if (twentyOneScore(state.twentyOne.hands.sub).bust) {
         state.twentyOne.revealDom = true;
-        endTwentyOneHand(DOM, `${state.names.sub} busts on the forced hit.`);
+        endTwentyOneHand(DOM, `${state.names.sub} busts after being pushed.`);
+        return;
+      }
+      state.twentyOne.revealDom = true;
+      state.twentyOne.dealerTurn = true;
+      state.twentyOne.hands.dom.push(drawTwentyOneCard());
+      addLog(`<strong>Kickback.</strong> ${state.names.sub} survives, so ${state.names.dom} takes one card before playing the dealer hand.`);
+      const domScore = twentyOneScore(state.twentyOne.hands.dom);
+      if (domScore.bust) {
+        if (state.twentyOne.softSaveAvailable && domScore.total <= 24) {
+          state.twentyOne.softSaveAvailable = false;
+          endTwentyOneHand(DOM, `Soft Save catches ${state.names.dom}'s ${domScore.total} and treats it as 21.`);
+          return;
+        }
+        endTwentyOneHand(SUB, `${state.names.dom} busts on the kickback card.`);
         return;
       }
       render();
       publishState();
     }
 
+    function declineTwentyOnePushLuck() {
+      if (!state.twentyOne.pushLuckPending) return;
+      if (localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.twentyOne.pushLuckPending = false;
+      state.twentyOne.pushLuckAvailable = false;
+      state.twentyOne.revealDom = true;
+      state.twentyOne.dealerTurn = true;
+      addLog(`<strong>${state.names.dom} lets the stand hold.</strong> Dealer hand begins.`);
+      render();
+      publishState();
+    }
+
     function twentyOneDealerStandMinimum() {
-      return state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 4 ? 16 : 17;
+      return state.mode === "reclaim" && domAdvantagesEnabled() && blackjackPowersEnabled() && state.tiltLevel >= 4 ? 16 : 17;
     }
 
     function settleTwentyOneDealerHand() {
@@ -8968,7 +10100,7 @@
       } else if (domScore.total > subScore.total) {
         endTwentyOneHand(DOM, `${state.names.dom} holds ${domScore.total} against ${subScore.total}.`);
       } else if (subScore.total > domScore.total) {
-        if (state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 5 && subScore.total - domScore.total <= 1) {
+        if (state.mode === "reclaim" && domAdvantagesEnabled() && blackjackPowersEnabled() && state.tiltLevel >= 5 && subScore.total - domScore.total <= 1) {
           endTwentyOneHand(DOM, `House Sweep takes the close hand: ${subScore.total} against ${domScore.total}.`);
         } else {
           endTwentyOneHand(SUB, `${state.names.sub} holds ${subScore.total} against ${domScore.total}.`);
@@ -9005,6 +10137,26 @@
       state.active = false;
       state.twentyOne.revealDom = true;
       state.twentyOne.outcome = reason;
+
+      if (state.twentyOne.targetMarks > 1) {
+        if (winner === DOM || winner === SUB) {
+          state.twentyOne.marks[winner] = Number(state.twentyOne.marks[winner] || 0) + 1;
+          addLog(`<strong>${labelFor(winner)} takes the hand.</strong> ${reason} Marks: ${state.names.dom} ${state.twentyOne.marks.dom}, ${state.names.sub} ${state.twentyOne.marks.sub}.`);
+          if (state.twentyOne.marks[winner] < state.twentyOne.targetMarks) {
+            state.twentyOne.nextHandPending = true;
+            render();
+            publishState();
+            return;
+          }
+          addLog(`<strong>${labelFor(winner)} wins the Blackjack table.</strong> First to ${state.twentyOne.targetMarks} marks.`);
+        } else {
+          addLog(`<strong>Push.</strong> ${reason} No mark awarded.`);
+          state.twentyOne.nextHandPending = true;
+          render();
+          publishState();
+          return;
+        }
+      }
 
       const result = settleRoundBank(winner);
       if (result.outcome === "subReclaim") {
@@ -9763,11 +10915,52 @@
       els.board.appendChild(panels);
     }
 
+    function renderCheckersBoard() {
+      const checkers = state.checkers || createCheckersState();
+      els.board.className = "checkers-board";
+      els.board.innerHTML = "";
+      const selected = checkers.selected ? `${checkers.selected[0]},${checkers.selected[1]}` : "";
+      const legal = new Set((checkers.legalMoves || []).map((move) => `${move.to[0]},${move.to[1]}`));
+      for (let row = 0; row < 8; row += 1) {
+        for (let col = 0; col < 8; col += 1) {
+          const dark = (row + col) % 2 === 1;
+          const cell = document.createElement("button");
+          cell.className = `checkers-square ${dark ? "dark" : "light"}`;
+          if (selected === `${row},${col}`) cell.classList.add("selected");
+          if (legal.has(`${row},${col}`)) cell.classList.add("legal");
+          const localRole = localOnlineRole();
+          cell.disabled = !state.active
+            || !dark
+            || (checkers.lockMode || checkers.powerMode
+              ? Boolean(localRole && localRole !== DOM)
+              : Boolean(localRole && localRole !== state.turn));
+          cell.setAttribute("aria-label", `Checkers row ${row + 1}, column ${col + 1}`);
+          cell.addEventListener("click", () => selectCheckersSquare(row, col));
+          const piece = checkers.board[row] && checkers.board[row][col];
+          if (piece) {
+            const token = document.createElement("span");
+            token.className = `checkers-piece ${piece.role}`;
+            if (piece.king) token.classList.add("king");
+            if (checkersPieceFrozen(row, col)) token.classList.add("frozen");
+            if (checkersCoordMatches(checkers.marked, row, col)) token.classList.add("marked");
+            if (checkersCoordMatches(checkers.pinned, row, col)) token.classList.add("pinned");
+            token.textContent = piece.king && piece.role === SUB ? "K" : "";
+            cell.appendChild(token);
+          }
+          els.board.appendChild(cell);
+        }
+      }
+    }
+
     function renderBoard() {
       const boardWrap = els.board.closest(".board-wrap");
       if (boardWrap) boardWrap.classList.toggle("trail-board-wrap", state.currentGame === "tributeTrail");
       if (state.currentGame === "tributeChess") {
         renderChessBoard();
+        return;
+      }
+      if (state.currentGame === "tributeCheckers") {
+        renderCheckersBoard();
         return;
       }
       if (state.currentGame === "tributeTwentyOne") {
@@ -10199,6 +11392,21 @@
     function renderTwentyOneBoard() {
       els.board.className = "twentyone-table";
       els.board.innerHTML = "";
+      const target = Number(state.twentyOne.targetMarks || 1);
+      if (target > 1 || state.twentyOne.setupPending) {
+        const canNext = state.twentyOne.nextHandPending && (!state.online.room || localOnlineRole() === DOM);
+        const score = document.createElement("section");
+        score.className = "hand-panel";
+        score.innerHTML = `
+          <div class="hand-header"><span>Blackjack Table</span><strong>${target > 1 ? `First to ${target}` : "1 Round"}</strong></div>
+          <p class="chooser-line">${state.names.dom}: ${Number(state.twentyOne.marks.dom || 0)} mark${Number(state.twentyOne.marks.dom || 0) === 1 ? "" : "s"} · ${state.names.sub}: ${Number(state.twentyOne.marks.sub || 0)} mark${Number(state.twentyOne.marks.sub || 0) === 1 ? "" : "s"}</p>
+          <p class="chooser-line">Powers ${blackjackPowersEnabled() ? "on" : "off"}.</p>
+          ${state.twentyOne.nextHandPending ? `<div class="setup-actions"><button id="nextTwentyOneHandBtn" class="primary"${canNext ? "" : " disabled"}>Start Next Hand</button></div>` : ""}
+        `;
+        els.board.appendChild(score);
+        const nextButton = score.querySelector("#nextTwentyOneHandBtn");
+        if (nextButton) nextButton.addEventListener("click", startNextTwentyOneHand);
+      }
       els.board.appendChild(renderTwentyOneHand(DOM));
       els.board.appendChild(renderTwentyOneHand(SUB));
     }
@@ -10207,7 +11415,7 @@
       const panel = document.createElement("section");
       panel.className = "hand-panel";
       const hand = state.twentyOne.hands[player] || [];
-      const domPeek = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 1 && localOnlineRole() === DOM;
+      const domPeek = state.mode === "reclaim" && domAdvantagesEnabled() && blackjackPowersEnabled() && state.tiltLevel >= 1 && localOnlineRole() === DOM;
       const hiddenDomCard = player === DOM && state.active && !state.twentyOne.revealDom && !domPeek;
       const visibleCards = hiddenDomCard ? hand.slice(0, 1) : hand;
       const score = twentyOneScore(visibleCards);
@@ -10354,6 +11562,19 @@
           `<strong>Affected pieces:</strong> ${affected}.`
         ];
       }
+      if (state.currentGame === "tributeCheckers") {
+        const armed = state.checkers.powerMode
+          ? `${checkersPowerInfo(state.checkers.powerMode).label} armed.`
+          : "No targeted power armed.";
+        const available = checkersPowerTypes()
+          .filter((type) => checkersPowerInfo(type).available)
+          .map((type) => checkersPowerInfo(type).label);
+        return [
+          `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${checkersTiltSummary()}`,
+          `<strong>Claim:</strong> ${Number(state.checkers.claims || 0)}. Queen's Drain: ${money(checkersQueenDrainAmount())} per queen capture.`,
+          `<strong>Powers:</strong> ${available.length ? available.join(", ") : "none ready"}. ${armed}`
+        ];
+      }
       if (state.currentGame === "tributeTwentyOne") {
         return [`<strong>Current tilt:</strong> level ${state.tiltLevel}: ${twentyOneTiltSummary()}`];
       }
@@ -10369,6 +11590,7 @@
 
     function currentGameLabel() {
       if (state.currentGame === "tributeChess") return "Tribute Chess";
+      if (state.currentGame === "tributeCheckers") return "Tribute Checkers";
       if (state.currentGame === "tributeTwentyOne") return "Tribute Blackjack";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
@@ -10382,6 +11604,10 @@
       renderRulesTabs(state.currentGame === "tributeChess");
       if (state.currentGame === "tributeChess") {
         renderChessRules();
+        return;
+      }
+      if (state.currentGame === "tributeCheckers") {
+        renderCheckersRules();
         return;
       }
       if (state.currentGame === "tributeTwentyOne") {
@@ -10525,17 +11751,52 @@
       return "dom plays white and wins draws.";
     }
 
+    function checkersTiltSummary() {
+      if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
+      if (state.tiltLevel >= 5) return "Crown Pull, Marked, Pinned, Hungry Crown, Tribute Toll, and Takeover are available.";
+      if (state.tiltLevel >= 4) return "Crown Pull, Marked, Pinned, Hungry Crown, and Tribute Toll are available.";
+      if (state.tiltLevel >= 3) return "Crown Pull, Marked, Pinned, and Hungry Crown are available.";
+      if (state.tiltLevel >= 2) return "Crown Pull, Marked, and Pinned are available.";
+      if (state.tiltLevel >= 1) return "Crown Pull and Marked are available.";
+      return "Crown Pull is available.";
+    }
+
+    function renderCheckersRules() {
+      const rules = [
+        `<strong>Goal:</strong> capture every opposing piece or leave the other player with no legal move.`,
+        `<strong>Movement:</strong> regular pieces move diagonally forward one dark square. Kings move diagonally both ways.`,
+        `<strong>Captures:</strong> jumps are forced. If another jump is available after a capture, the same piece must keep jumping.`,
+        `<strong>Kings:</strong> a piece that reaches the far side becomes a king.`,
+        `<strong>Dom queens:</strong> ${state.names.dom}'s kings are queens. When a queen captures a ${state.names.sub} piece, cash drains into ${state.names.dom}'s bank.`,
+        `<strong>Claim:</strong> ${state.names.dom} gains 1 Claim whenever she captures a ${state.names.sub} piece. Queen's Drain scales with Claim: $1 at 0-2, $2 at 3-5, and $3 at 6+.`,
+        `<strong>Starting queen:</strong> before the game starts, ${state.names.sub} is asked whether ${state.names.dom} may begin with a queen. If refused, ${state.names.dom} may take one anyway; doing so raises Queen's Drain to $2, $4, and $6 for that game.`,
+        `<strong>Normal start:</strong> a random player starts.`,
+        `<strong>Reclaim start:</strong> ${state.names.dom} starts.`,
+        `<strong>Reclaim powers:</strong> each unlocked power has 3 uses per game. ${state.names.dom} presses Power, picks a power, then targets the board if needed.`,
+        `<strong>Tilt 0:</strong> Crown Pull. Pull a nearby ${state.names.sub} piece one diagonal step closer to a queen if the square between them is empty.`,
+        `<strong>Tilt 1:</strong> Marked. Mark one ${state.names.sub} piece; capturing it later gives +2 Claim and drains $2.`,
+        `<strong>Tilt 2:</strong> Pinned. Pin one ${state.names.sub} piece so it can only move by capture on its next turn.`,
+        `<strong>Tilt 3:</strong> Hungry Crown. The next ${state.names.dom} queen capture drains an extra $2.`,
+        `<strong>Tilt 4:</strong> Tribute Toll. If ${state.names.sub}'s next move ends beside a ${state.names.dom} queen, $1 drains.`,
+        `<strong>Tilt 5+:</strong> Takeover. A ${state.names.dom} queen can convert an adjacent regular ${state.names.sub} piece.`
+      ];
+      setRuleList(rules);
+    }
+
     function renderTwentyOneRules() {
       const rules = [
         `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet.`,
+        `<strong>Table settings:</strong> before the first hand, ${state.names.dom} chooses either 1 Round or First To 3, and can turn Blackjack powers on or off.`,
+        `<strong>First To 3:</strong> each won hand gives that player 1 mark. Push hands redeal with no mark. First player to 3 marks wins the bet or reclaim.`,
         `<strong>Player hand:</strong> ${state.names.sub} chooses Hit or Stand.`,
         `<strong>Dealer hand:</strong> after ${state.names.sub} stands, ${state.names.dom}'s hidden card is revealed and ${state.names.dom} chooses Hit or Stand for the dealer hand.`,
         `<strong>Dealer limit:</strong> ${state.names.dom} cannot stand below 17 unless Dealer Lock is active.`,
         `<strong>Win condition:</strong> closest to 21 wins. Busts lose. Normal ties push.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. Reclaim ties go to ${state.names.dom}.`,
+        `<strong>Powers:</strong> if powers are off, Peek, Soft Save, Push Your Luck, Dealer Lock, and House Sweep do not apply.`,
         `<strong>Tilt 1, Peek:</strong> ${state.names.dom} can see her hidden dealer card.`,
         `<strong>Tilt 2, Soft Save:</strong> once per reclaim, a dom bust from 22 to 24 is treated as 21.`,
-        `<strong>Tilt 3, Forced Hit:</strong> once before ${state.names.sub} stands, ${state.names.dom} can force one extra ${state.names.sub} card.`,
+        `<strong>Tilt 3, Push Your Luck:</strong> after ${state.names.sub} stands, ${state.names.dom} may force one extra ${state.names.sub} card. If ${state.names.sub} survives, ${state.names.dom} immediately takes one kickback card before playing her dealer hand.`,
         `<strong>Tilt 4, Dealer Lock:</strong> ${state.names.dom} can stand on 16 or higher.`,
         `<strong>Tilt 5+, House Sweep:</strong> in reclaim, ${state.names.sub} must beat ${state.names.dom} by at least 2.`
       ];
@@ -10544,10 +11805,11 @@
 
     function twentyOneTiltRules() {
       if (!domAdvantagesEnabled()) return [`Tilt level ${state.tiltLevel}: dom advantages are disabled.`];
+      if (!blackjackPowersEnabled()) return [`Tilt level ${state.tiltLevel}: Blackjack powers are off for this table.`];
       const rules = [`Tilt level ${state.tiltLevel}: ${twentyOneTiltSummary()}`];
       if (state.tiltLevel >= 1) rules.push("Peek: the dom can see her hidden dealer card.");
       if (state.tiltLevel >= 2) rules.push("Soft Save: once per reclaim, a dom bust from 22 to 24 is treated as 21.");
-      if (state.tiltLevel >= 3) rules.push("Forced Hit: once before the sub stands, the dom can force one extra sub card.");
+      if (state.tiltLevel >= 3) rules.push("Push Your Luck: after the sub stands, the dom may force one extra sub card, but surviving subs make the dom take a kickback card.");
       if (state.tiltLevel >= 4) rules.push("Dealer Lock: the dom can stand on 16 or higher.");
       if (state.tiltLevel >= 5) rules.push("House Sweep: in reclaim, the sub must beat the dom by at least 2.");
       return rules;
@@ -10555,9 +11817,10 @@
 
     function twentyOneTiltSummary() {
       if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
-      if (state.tiltLevel >= 5) return "Peek, Soft Save, Forced Hit, Dealer Lock, and House Sweep.";
-      if (state.tiltLevel >= 4) return "Peek, Soft Save, Forced Hit, and Dealer Lock.";
-      if (state.tiltLevel >= 3) return "Peek, Soft Save, and Forced Hit.";
+      if (!blackjackPowersEnabled()) return "Blackjack powers are off for this table.";
+      if (state.tiltLevel >= 5) return "Peek, Soft Save, Push Your Luck, Dealer Lock, and House Sweep.";
+      if (state.tiltLevel >= 4) return "Peek, Soft Save, Push Your Luck, and Dealer Lock.";
+      if (state.tiltLevel >= 3) return "Peek, Soft Save, and Push Your Luck.";
       if (state.tiltLevel >= 2) return "Peek and Soft Save.";
       if (state.tiltLevel >= 1) return "Peek.";
       return "ties go to the dom.";
@@ -10629,11 +11892,24 @@
           els.turnText.innerHTML = `<strong>Tribute Trail</strong> is ready to reset.`;
         }
       } else if (!state.active) {
-        els.turnText.innerHTML = state.domVault > 0
-          ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
-          : `<strong>${state.names.sub}</strong> must make a normal bet to begin.`;
+        if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.queenSetup) {
+          const stage = state.checkers.queenSetup.stage || "sub";
+          els.turnText.innerHTML = stage === "sub"
+            ? `<strong>${state.names.sub}</strong> decides whether ${state.names.dom} starts with a queen.`
+            : `<strong>${state.names.dom}</strong> decides whether to take the queen anyway.`;
+        } else {
+          els.turnText.innerHTML = state.domVault > 0
+            ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
+            : `<strong>${state.names.sub}</strong> must make a normal bet to begin.`;
+        }
       } else if (state.currentGame === "tributeTwentyOne") {
-        if (state.twentyOne.dealerTurn) {
+        if (state.twentyOne.setupPending) {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Blackjack settings.`;
+        } else if (state.twentyOne.nextHandPending) {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> starts the next Blackjack hand.`;
+        } else if (state.twentyOne.pushLuckPending) {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> may Push Your Luck. Force one more ${state.names.sub} card, or let the stand hold.`;
+        } else if (state.twentyOne.dealerTurn) {
           const score = twentyOneScore(state.twentyOne.hands.dom).total;
           const minimum = twentyOneDealerStandMinimum();
           els.turnText.innerHTML = `<strong>${state.names.dom}</strong> controls the dealer hand at ${score}. ${score < minimum ? `Hit until at least ${minimum}.` : "Hit or stand."}`;
@@ -10680,21 +11956,28 @@
         els.passBtn.disabled = !state.active || !queenActive || !queenPowerControlsAllowed(localRole);
         els.passBtn.textContent = "Power";
       } else if (state.currentGame === "tributeTwentyOne") {
-        const domCanForce = domAdvantageControlsAllowed(localRole) && canForceTwentyOneHit();
-        const subDecision = state.active && state.turn === SUB;
+        const pushLuckPending = state.active && state.turn === DOM && state.twentyOne.pushLuckPending;
+        const setupPending = Boolean(state.twentyOne.setupPending);
+        const subDecision = state.active && state.turn === SUB && !setupPending;
         const domDealerTurn = state.active && state.turn === DOM && state.twentyOne.dealerTurn;
         const canHit = (subDecision && (!localRole || localRole === SUB))
-          || (domDealerTurn && (!localRole || localRole === DOM));
+          || ((domDealerTurn || pushLuckPending) && (!localRole || localRole === DOM));
         els.hitBtn.disabled = !canHit;
         els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne" || localRole === SPECTATOR);
-        const domPowerView = Boolean((localRole === DOM || (!localRole && canForceTwentyOneHit())) && canOpenTwentyOnePowerModal());
+        const domPowerView = Boolean((localRole === DOM || !localRole) && canOpenTwentyOnePowerModal());
         const canStand = (subDecision && (!localRole || localRole === SUB))
-          || (domDealerTurn && (!localRole || localRole === DOM));
+          || ((domDealerTurn || pushLuckPending) && (!localRole || localRole === DOM));
         els.passBtn.disabled = domPowerView
           ? false
-          : (domCanForce ? false : !canStand);
-        els.hitBtn.textContent = "Hit";
-        els.passBtn.textContent = domPowerView || (domCanForce && subDecision) ? "Power" : "Stand";
+          : !canStand;
+        els.hitBtn.textContent = pushLuckPending ? "Push Them" : "Hit";
+        els.passBtn.textContent = pushLuckPending ? "Let Them Stand" : (domPowerView ? "Power" : "Stand");
+      } else if (state.currentGame === "tributeCheckers") {
+        els.hitBtn.classList.add("hidden");
+        const checkersPowerReady = checkersPowerTypes().some((type) => checkersPowerInfo(type).available);
+        const canUsePower = state.active && state.mode === "reclaim" && state.turn === DOM && checkersPowerReady && !onlineBlocksDom;
+        els.passBtn.disabled = !canUsePower;
+        els.passBtn.textContent = state.checkers.powerMode ? "Power Armed" : "Power";
       } else if (state.currentGame === "tributeFleet") {
         const hasFleetPowers = state.mode === "reclaim" && (state.tiltLevel >= 1 || (state.fleet.modifiers || []).length > 0);
         els.passBtn.disabled = !state.active || !hasFleetPowers || onlineBlocksDom;
@@ -10724,6 +12007,11 @@
       if (state.currentGame === "tributeChess") {
         els.gameTitle.textContent = "Tribute Chess";
         els.gameSubtitle.textContent = "Classic chess with cash stakes. Reclaim turns the dom queen into the source of Freeze, Skip, and Command charges.";
+        return;
+      }
+      if (state.currentGame === "tributeCheckers") {
+        els.gameTitle.textContent = "Tribute Checkers";
+        els.gameSubtitle.textContent = "Classic checkers with forced jumps, Claim scaling, dom queens, and cash-draining captures.";
         return;
       }
       if (state.currentGame === "tributeTwentyOne") {
@@ -10775,6 +12063,9 @@
       renderWagerApproval();
       renderTrailCardReveal();
       renderTrailShopModal();
+      renderBlackjackSettingsModal();
+      renderCheckersQueenModal();
+      renderCheckersQueenSplash();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
@@ -10808,6 +12099,23 @@
     });
     els.gameSelectTabs.forEach((button) => {
       button.addEventListener("click", () => updateSettings({ activeGameTab: button.dataset.gameTab }));
+    });
+    els.blackjackSettingsModal.querySelectorAll("[data-blackjack-rounds]").forEach((button) => {
+      button.addEventListener("click", () => setBlackjackRounds(button.dataset.blackjackRounds));
+    });
+    els.blackjackSettingsModal.querySelectorAll("[data-blackjack-powers]").forEach((button) => {
+      button.addEventListener("click", () => setBlackjackPowers(button.dataset.blackjackPowers));
+    });
+    els.blackjackSettingsConfirmBtn.addEventListener("click", confirmBlackjackSettings);
+    els.checkersQueenYesBtn.addEventListener("click", () => {
+      const stage = state.checkers && state.checkers.queenSetup && state.checkers.queenSetup.stage;
+      if (stage === "dom") domTakesCheckersQueen();
+      else subAllowsCheckersQueen();
+    });
+    els.checkersQueenNoBtn.addEventListener("click", () => {
+      const stage = state.checkers && state.checkers.queenSetup && state.checkers.queenSetup.stage;
+      if (stage === "dom") domDeclinesCheckersQueen();
+      else subRefusesCheckersQueen();
     });
     els.sideTabs.forEach((button) => {
       button.addEventListener("click", () => setSideTab(button.dataset.sideTab));
@@ -10861,7 +12169,7 @@
       if (event.target === els.rulesModal) closeRulesModal();
     });
     els.tributeFourPowerOptions.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-tribute-four-power], [data-fleet-power], [data-chess-power], [data-twenty-one-power]");
+      const button = event.target.closest("[data-tribute-four-power], [data-fleet-power], [data-chess-power], [data-checkers-power], [data-twenty-one-power]");
       if (!button || button.disabled) return;
       if (button.dataset.tributeFourPower) {
         selectedTributeFourPower = button.dataset.tributeFourPower;
@@ -10872,6 +12180,9 @@
       } else if (button.dataset.chessPower) {
         selectedChessPower = button.dataset.chessPower;
         renderChessPowerModal();
+      } else if (button.dataset.checkersPower) {
+        selectedCheckersPower = button.dataset.checkersPower;
+        renderCheckersPowerModal();
       } else if (button.dataset.twentyOnePower) {
         selectedTwentyOnePower = button.dataset.twentyOnePower;
         renderTwentyOnePowerModal();
@@ -10931,15 +12242,7 @@
     els.wagerModal.addEventListener("click", (event) => {
       const button = event.target.closest("[data-wager-action]");
       if (!button) return;
-      const action = button.dataset.wagerAction;
-      if (action === "approve") approvePendingWager();
-      if (action === "deny") denyPendingWager();
-      if (action === "adjust-request") requestWagerAdjustment();
-      if (action === "back-review") updatePendingWager({ status: "review", direction: "" });
-      if (action === "ask-approval") askDomToApproveAdjustedWager();
-      if (action === "reject-adjust") rejectAdjustedWager();
-      if (action === "adjust") adjustPendingWagerAmount(Number(button.dataset.delta || 0));
-      if (action === "emoji") sendWagerEmoji(button.dataset.emoji || "");
+      handleWagerAction(button.dataset.wagerAction, button);
     });
     els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
     els.tributeFourCard.addEventListener("click", openTributeFour);
@@ -10950,6 +12253,7 @@
     els.tributeWheelCard.addEventListener("click", openWheelSpin);
     els.tributeTrailCard.addEventListener("click", openTributeTrail);
     els.tributeChessCard.addEventListener("click", openTributeChess);
+    els.tributeCheckersCard.addEventListener("click", openTributeCheckers);
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
     els.copyInviteBtn.addEventListener("click", copyInviteLink);
     document.querySelectorAll(".role-btn[data-player]").forEach((button) => {
