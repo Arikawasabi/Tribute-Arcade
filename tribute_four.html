@@ -11977,8 +11977,6 @@
       if (suit === "H" || suit === "D") element.classList.add("red");
       const symbol = suitSymbol(suit);
       const art = PLAYING_CARD_ART[`${rank}${suit}`];
-      element.appendChild(playingCardCorner(rank, symbol, "top"));
-      element.appendChild(playingCardCorner(rank, symbol, "bottom"));
       if (art) {
         const image = document.createElement("img");
         image.className = "playing-card-art";
@@ -11987,6 +11985,8 @@
         image.loading = "lazy";
         element.appendChild(image);
       } else {
+        element.appendChild(playingCardCorner(rank, symbol, "top"));
+        element.appendChild(playingCardCorner(rank, symbol, "bottom"));
         element.appendChild(renderPlayingCardPips(rank, symbol));
         const label = document.createElement("span");
         label.className = "playing-card-label";
