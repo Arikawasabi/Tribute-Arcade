@@ -1413,10 +1413,15 @@
 
     .playing-card.hidden-card {
       background:
-        linear-gradient(135deg, rgba(239, 199, 94, 0.18), rgba(240, 78, 120, 0.18)),
+        linear-gradient(rgba(20, 16, 13, 0.02), rgba(20, 16, 13, 0.22)),
+        url("tribute_card_back.webp") center / cover no-repeat,
         #201813;
       color: var(--gold);
       border-color: rgba(239, 199, 94, 0.36);
+    }
+
+    .playing-card.hidden-card::before {
+      border-color: rgba(255, 239, 194, 0.42);
     }
 
     .chess-board {
@@ -11552,7 +11557,7 @@
       element.className = "playing-card";
       if (hidden) {
         element.classList.add("hidden-card");
-        element.textContent = "BJ";
+        element.setAttribute("aria-label", "Face-down card");
         return element;
       }
       const suit = card.slice(-1);
