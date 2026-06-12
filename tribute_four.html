@@ -1588,10 +1588,13 @@
       color: #b61f3f;
     }
 
-    .playing-card-rank,
-    .playing-card-suit {
+    .playing-card-corner {
       position: absolute;
-      left: 7%;
+      top: 5%;
+      left: 6%;
+      display: grid;
+      justify-items: center;
+      gap: 1px;
       font-family: Georgia, serif;
       font-weight: 900;
       line-height: 1;
@@ -1599,28 +1602,22 @@
       text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
     }
 
-    .playing-card-rank {
-      top: 5%;
-      font-size: clamp(0.92rem, 2vw, 1.16rem);
-    }
-
-    .playing-card-suit {
-      top: 19%;
-      font-size: clamp(0.72rem, 1.65vw, 0.95rem);
-    }
-
-    .playing-card-rank.bottom,
-    .playing-card-suit.bottom {
-      inset: auto 7% auto auto;
+    .playing-card-corner.bottom {
+      inset: auto 6% 5% auto;
       transform: rotate(180deg);
     }
 
-    .playing-card-rank.bottom {
-      bottom: 5%;
+    .playing-card-rank,
+    .playing-card-suit {
+      display: block;
     }
 
-    .playing-card-suit.bottom {
-      bottom: 19%;
+    .playing-card-rank {
+      font-size: clamp(0.78rem, 1.55vw, 1rem);
+    }
+
+    .playing-card-suit {
+      font-size: clamp(0.58rem, 1.2vw, 0.78rem);
     }
 
     .playing-card-art {
@@ -1635,14 +1632,14 @@
 
     .playing-card-pips {
       position: absolute;
-      inset: 15% 22%;
+      inset: 18% 24%;
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       align-items: center;
       justify-items: center;
       gap: 2px 8px;
       font-family: Georgia, serif;
-      font-size: clamp(0.74rem, 1.8vw, 1.04rem);
+      font-size: clamp(0.68rem, 1.45vw, 0.98rem);
       line-height: 1;
       z-index: 2;
     }
@@ -12000,16 +11997,17 @@
     }
 
     function playingCardCorner(rank, symbol, position) {
-      const fragment = document.createDocumentFragment();
+      const corner = document.createElement("span");
+      corner.className = `playing-card-corner ${position === "bottom" ? "bottom" : ""}`.trim();
       const rankEl = document.createElement("span");
-      rankEl.className = `playing-card-rank ${position === "bottom" ? "bottom" : ""}`.trim();
+      rankEl.className = "playing-card-rank";
       rankEl.textContent = rank;
       const suitEl = document.createElement("span");
-      suitEl.className = `playing-card-suit ${position === "bottom" ? "bottom" : ""}`.trim();
+      suitEl.className = "playing-card-suit";
       suitEl.textContent = symbol;
-      fragment.appendChild(rankEl);
-      fragment.appendChild(suitEl);
-      return fragment;
+      corner.appendChild(rankEl);
+      corner.appendChild(suitEl);
+      return corner;
     }
 
     function renderPlayingCardPips(rank, symbol) {
