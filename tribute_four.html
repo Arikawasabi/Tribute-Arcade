@@ -1624,8 +1624,9 @@
 
     .playing-card-corner {
       position: absolute;
-      top: 7%;
-      left: 6.6%;
+      top: 6.6%;
+      left: 4.2%;
+      width: 13%;
       display: grid;
       justify-items: center;
       gap: 1px;
@@ -1637,7 +1638,7 @@
     }
 
     .playing-card-corner.bottom {
-      inset: auto 6.6% 7% auto;
+      inset: auto 4.2% 6.6% auto;
       transform: rotate(180deg);
     }
 
@@ -1647,11 +1648,11 @@
     }
 
     .playing-card-rank {
-      font-size: clamp(0.82rem, 1.65vw, 1.08rem);
+      font-size: clamp(0.74rem, 1.48vw, 0.98rem);
     }
 
     .playing-card-suit {
-      font-size: clamp(0.62rem, 1.28vw, 0.84rem);
+      font-size: clamp(0.58rem, 1.16vw, 0.78rem);
     }
 
     .playing-card-art {
@@ -1691,7 +1692,7 @@
       justify-items: center;
       gap: 2px 8px;
       font-family: Georgia, serif;
-      font-size: clamp(0.78rem, 1.65vw, 1.12rem);
+      font-size: clamp(0.76rem, 1.58vw, 1.08rem);
       line-height: 1;
       z-index: 2;
     }
@@ -5308,8 +5309,8 @@
       ctx.lineWidth = 5;
       ctx.strokeStyle = gold;
       ctx.stroke();
-      drawCardIndex(ctx, rank, symbol, ink, 82, 92, false);
-      drawCardIndex(ctx, rank, symbol, ink, 918, 1308, true);
+      drawCardIndex(ctx, rank, symbol, ink, 102, 88, false);
+      drawCardIndex(ctx, rank, symbol, ink, 898, 1312, true);
       if (isCourtRank(rank)) {
         roundRectPath(ctx, 238, 270, 524, 700, 20);
         ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
@@ -5341,10 +5342,10 @@
       ctx.fillStyle = ink;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.font = "900 96px Georgia";
+      ctx.font = "900 88px Georgia";
       ctx.fillText(rank, 0, 0);
-      ctx.font = "900 68px Georgia";
-      ctx.fillText(symbol, 0, 88);
+      ctx.font = "900 62px Georgia";
+      ctx.fillText(symbol, 0, 82);
       ctx.restore();
     }
 
