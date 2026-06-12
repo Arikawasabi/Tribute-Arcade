@@ -1664,6 +1664,24 @@
       z-index: 0;
     }
 
+    .playing-card.custom-full-card {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+    }
+
+    .playing-card.custom-full-card::before {
+      display: none;
+    }
+
+    .playing-card.custom-full-card .playing-card-art {
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
     .playing-card-pips {
       position: absolute;
       inset: 18% 24%;
@@ -12212,7 +12230,7 @@
 
     const PLAYING_CARD_ART = {
       AS: "ace_of_spades_card_mockup_clean_v2.webp",
-      JS: "jack_of_spades_card_mockup_clean.webp",
+      JS: "jack_of_spades_rebuilt.png",
       QS: "queen_of_spades_card_mockup_clean.webp",
       KS: "king_of_spades_card_mockup_clean.webp",
       AH: "ace_of_hearts_card_mockup_clean.webp",
@@ -12228,7 +12246,7 @@
       QC: "queen_of_clubs_card_mockup_clean_v2.webp",
       KC: "king_of_clubs_card_mockup_clean_v3.webp"
     };
-    const USE_CUSTOM_PLAYING_CARD_ART = false;
+    const CUSTOM_FULL_PLAYING_CARDS = new Set(["JS"]);
 
     function renderPlayingCard(card, hidden) {
       const element = document.createElement("div");
@@ -12242,8 +12260,9 @@
       const rank = card.slice(0, -1);
       if (suit === "H" || suit === "D") element.classList.add("red");
       const symbol = suitSymbol(suit);
-      const art = USE_CUSTOM_PLAYING_CARD_ART ? PLAYING_CARD_ART[`${rank}${suit}`] : "";
+      const art = CUSTOM_FULL_PLAYING_CARDS.has(`${rank}${suit}`) ? PLAYING_CARD_ART[`${rank}${suit}`] : "";
       if (art) {
+        element.classList.add("custom-full-card");
         const image = document.createElement("img");
         image.className = "playing-card-art";
         image.src = art;
