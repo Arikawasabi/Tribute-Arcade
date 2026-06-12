@@ -1148,7 +1148,115 @@
 
     .twentyone-table {
       display: grid;
+      grid-template-areas:
+        "dom"
+        "table"
+        "sub";
+      gap: 14px;
+      min-height: min(72vh, 760px);
+      padding: clamp(10px, 1.5vw, 18px);
+      border: 1px solid rgba(239, 199, 94, 0.16);
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 50% 46%, rgba(239, 199, 94, 0.13), transparent 28%),
+        radial-gradient(circle at 50% 55%, rgba(240, 78, 120, 0.12), transparent 42%),
+        linear-gradient(135deg, rgba(14, 39, 34, 0.78), rgba(26, 18, 25, 0.86));
+      box-shadow: inset 0 0 0 1px rgba(244, 239, 232, 0.05), 0 18px 50px rgba(0, 0, 0, 0.24);
+    }
+
+    .twentyone-table-center {
+      grid-area: table;
+      display: grid;
+      grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1.2fr) minmax(120px, 0.8fr);
+      align-items: center;
       gap: 16px;
+      min-height: 168px;
+      padding: 12px clamp(10px, 2vw, 18px);
+      border-block: 1px solid rgba(244, 239, 232, 0.10);
+      background: linear-gradient(90deg, transparent, rgba(20, 16, 13, 0.34), transparent);
+    }
+
+    .twentyone-status-card {
+      justify-self: center;
+      max-width: 360px;
+      display: grid;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .twentyone-status-card strong {
+      color: var(--gold);
+      font-size: clamp(1.05rem, 2.1vw, 1.55rem);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .twentyone-status-card span,
+    .twentyone-status-card p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .twentyone-score-strip {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .twentyone-score-strip span {
+      min-width: 74px;
+      padding: 6px 10px;
+      border: 1px solid rgba(239, 199, 94, 0.28);
+      border-radius: 999px;
+      background: rgba(20, 16, 13, 0.36);
+      color: var(--text);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    .twentyone-shoe {
+      position: relative;
+      width: clamp(78px, 10vw, 112px);
+      aspect-ratio: 5 / 7;
+      justify-self: center;
+    }
+
+    .twentyone-shoe .playing-card {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      transform-origin: center;
+    }
+
+    .twentyone-table .twentyone-shoe .playing-card {
+      width: 100%;
+    }
+
+    .twentyone-shoe .playing-card:nth-child(1) {
+      transform: translate(-10px, 8px) rotate(-7deg);
+      opacity: 0.48;
+    }
+
+    .twentyone-shoe .playing-card:nth-child(2) {
+      transform: translate(-4px, 3px) rotate(-2deg);
+      opacity: 0.74;
+    }
+
+    .twentyone-shoe .playing-card:nth-child(3) {
+      transform: translate(4px, -3px) rotate(4deg);
+    }
+
+    .twentyone-actions-note {
+      justify-self: center;
+      max-width: 220px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+      line-height: 1.35;
+      text-align: center;
     }
 
     .wheel-table {
@@ -1279,6 +1387,22 @@
       background: linear-gradient(135deg, rgba(18, 42, 35, 0.92), rgba(28, 30, 35, 0.92));
     }
 
+    .twentyone-hand {
+      min-height: clamp(170px, 24vh, 236px);
+      align-content: center;
+      background:
+        linear-gradient(135deg, rgba(18, 42, 35, 0.72), rgba(28, 30, 35, 0.78)),
+        radial-gradient(circle at 50% 50%, rgba(239, 199, 94, 0.08), transparent 60%);
+    }
+
+    .twentyone-hand.dom-hand {
+      grid-area: dom;
+    }
+
+    .twentyone-hand.sub-hand {
+      grid-area: sub;
+    }
+
     .hand-header {
       display: flex;
       align-items: center;
@@ -1288,12 +1412,27 @@
       font-weight: 700;
     }
 
+    .twentyone-hand .hand-header strong {
+      color: var(--gold);
+      font-size: 1rem;
+    }
+
     .card-row {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       min-height: 104px;
       align-items: center;
+    }
+
+    .twentyone-hand .card-row {
+      justify-content: center;
+      gap: clamp(10px, 1.4vw, 18px);
+      min-height: clamp(128px, 20vh, 180px);
+    }
+
+    .twentyone-table .playing-card {
+      width: clamp(76px, 11vw, 118px);
     }
 
     .playing-card {
@@ -2645,6 +2784,30 @@
 
       .status-pill {
         width: 100%;
+      }
+
+      .twentyone-table {
+        min-height: auto;
+        padding: 10px;
+      }
+
+      .twentyone-table-center {
+        grid-template-columns: 1fr;
+        min-height: 0;
+        gap: 10px;
+      }
+
+      .twentyone-shoe {
+        width: 74px;
+        min-height: 104px;
+      }
+
+      .twentyone-actions-note {
+        max-width: none;
+      }
+
+      .twentyone-hand {
+        min-height: 150px;
       }
 
       .fleet-layout {
@@ -11495,34 +11658,96 @@
       els.board.className = "twentyone-table";
       els.board.innerHTML = "";
       const target = Number(state.twentyOne.targetMarks || 1);
-      if (target > 1 || state.twentyOne.setupPending) {
-        const canNext = state.twentyOne.nextHandPending && (!state.online.room || localOnlineRole() === DOM);
-        const score = document.createElement("section");
-        score.className = "hand-panel";
-        score.innerHTML = `
-          <div class="hand-header"><span>Blackjack Table</span><strong>${target > 1 ? `First to ${target}` : "1 Round"}</strong></div>
-          <p class="chooser-line">${state.names.dom}: ${Number(state.twentyOne.marks.dom || 0)} mark${Number(state.twentyOne.marks.dom || 0) === 1 ? "" : "s"} · ${state.names.sub}: ${Number(state.twentyOne.marks.sub || 0)} mark${Number(state.twentyOne.marks.sub || 0) === 1 ? "" : "s"}</p>
-          <p class="chooser-line">Powers ${blackjackPowersEnabled() ? "on" : "off"}.</p>
-          ${state.twentyOne.nextHandPending ? `<div class="setup-actions"><button id="nextTwentyOneHandBtn" class="primary"${canNext ? "" : " disabled"}>Start Next Hand</button></div>` : ""}
-        `;
-        els.board.appendChild(score);
-        const nextButton = score.querySelector("#nextTwentyOneHandBtn");
-        if (nextButton) nextButton.addEventListener("click", startNextTwentyOneHand);
-      }
       els.board.appendChild(renderTwentyOneHand(DOM));
+      els.board.appendChild(renderTwentyOneTableCenter(target));
       els.board.appendChild(renderTwentyOneHand(SUB));
+    }
+
+    function renderTwentyOneTableCenter(target) {
+      const canNext = state.twentyOne.nextHandPending && (!state.online.room || localOnlineRole() === DOM);
+      const center = document.createElement("section");
+      center.className = "twentyone-table-center";
+      center.appendChild(renderTwentyOneShoe());
+
+      const status = document.createElement("div");
+      status.className = "twentyone-status-card";
+      const phase = twentyOnePhaseText();
+      status.innerHTML = `
+        <strong>${phase.title}</strong>
+        <span>${phase.detail}</span>
+        <div class="twentyone-score-strip">
+          <span>${target > 1 ? `First to ${target}` : "1 Round"}</span>
+          <span>${state.names.dom}: ${Number(state.twentyOne.marks.dom || 0)}</span>
+          <span>${state.names.sub}: ${Number(state.twentyOne.marks.sub || 0)}</span>
+          <span>Powers ${blackjackPowersEnabled() ? "On" : "Off"}</span>
+        </div>
+        ${state.twentyOne.outcome ? `<p>${escapeHtml(state.twentyOne.outcome)}</p>` : ""}
+        ${state.twentyOne.nextHandPending ? `<div class="setup-actions"><button id="nextTwentyOneHandBtn" class="primary"${canNext ? "" : " disabled"}>Start Next Hand</button></div>` : ""}
+      `;
+      center.appendChild(status);
+
+      const note = document.createElement("div");
+      note.className = "twentyone-actions-note";
+      note.textContent = twentyOneActionHint();
+      center.appendChild(note);
+
+      const nextButton = center.querySelector("#nextTwentyOneHandBtn");
+      if (nextButton) nextButton.addEventListener("click", startNextTwentyOneHand);
+      return center;
+    }
+
+    function renderTwentyOneShoe() {
+      const shoe = document.createElement("div");
+      shoe.className = "twentyone-shoe";
+      for (let index = 0; index < 3; index += 1) {
+        shoe.appendChild(renderPlayingCard("AS", true));
+      }
+      return shoe;
+    }
+
+    function twentyOnePhaseText() {
+      if (state.twentyOne.setupPending) {
+        return { title: "Settings", detail: `${state.names.dom} is setting the table.` };
+      }
+      if (!state.active) {
+        return { title: "Table Closed", detail: "Place a bet or reclaim to start the next hand." };
+      }
+      if (state.twentyOne.nextHandPending) {
+        return { title: "Hand Complete", detail: "The table is waiting for the next hand." };
+      }
+      if (state.twentyOne.pushLuckPending) {
+        return { title: "Push Your Luck", detail: `${state.names.dom} may force one extra ${state.names.sub} card.` };
+      }
+      if (state.twentyOne.dealerTurn) {
+        return { title: "Dealer Turn", detail: `${state.names.dom} plays the dealer hand.` };
+      }
+      if (state.turn === SUB) {
+        return { title: "Sub Decision", detail: `${state.names.sub} chooses to hit or stand.` };
+      }
+      return { title: "Dom Decision", detail: `${state.names.dom} controls the table.` };
+    }
+
+    function twentyOneActionHint() {
+      if (state.twentyOne.setupPending) return "Choose rounds and powers before the cards are dealt.";
+      if (state.twentyOne.nextHandPending) return "The next hand starts with a fresh shuffle.";
+      if (!state.active) return "The table is waiting for tribute.";
+      if (state.twentyOne.pushLuckPending) return "Use Hit to push, or Stand to let them keep it.";
+      if (state.twentyOne.dealerTurn) return "Dealer must reach the table minimum before standing.";
+      if (state.turn === SUB) return "Hit draws another card. Stand passes control to the dom.";
+      return "Watch the hidden card flip when the dealer turn begins.";
     }
 
     function renderTwentyOneHand(player) {
       const panel = document.createElement("section");
-      panel.className = "hand-panel";
+      panel.className = `hand-panel twentyone-hand ${player === DOM ? "dom-hand" : "sub-hand"}`;
       const hand = state.twentyOne.hands[player] || [];
       const domPeek = state.mode === "reclaim" && domAdvantagesEnabled() && blackjackPowersEnabled() && state.tiltLevel >= 1 && localOnlineRole() === DOM;
       const hiddenDomCard = player === DOM && state.active && !state.twentyOne.revealDom && !domPeek;
       const visibleCards = hiddenDomCard ? hand.slice(0, 1) : hand;
       const score = twentyOneScore(visibleCards);
       const scoreText = hiddenDomCard ? `${score.total}+` : score.total;
-      panel.innerHTML = `<div class="hand-header"><span>${labelFor(player)}</span><strong>${hand.length ? scoreText : "-"}</strong></div>`;
+      const roleText = player === DOM ? "Dealer hand" : "Player hand";
+      panel.innerHTML = `<div class="hand-header"><span>${labelFor(player)} <small>${roleText}</small></span><strong>${hand.length ? scoreText : "-"}</strong></div>`;
       const row = document.createElement("div");
       row.className = "card-row";
       hand.forEach((card, index) => {
