@@ -582,6 +582,40 @@
       transform: none;
     }
 
+    .card-viewer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .card-viewer-item {
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(244, 239, 232, 0.12);
+      background: rgba(20, 16, 13, 0.48);
+    }
+
+    .card-viewer-item .playing-card {
+      width: min(100%, 132px);
+    }
+
+    .card-viewer-actions {
+      display: grid;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .card-viewer-actions strong {
+      text-align: center;
+      color: var(--gold);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+    }
+
     .ttt-board {
       width: min(92vw, 420px);
       aspect-ratio: 1;
@@ -1651,6 +1685,42 @@
 
     .playing-card-pip.flip {
       transform: rotate(180deg);
+    }
+
+    .playing-card-court {
+      position: absolute;
+      inset: 18% 18%;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 6px;
+      border: 1px solid rgba(141, 103, 34, 0.28);
+      border-radius: 5px;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.42), transparent 36%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(214, 191, 143, 0.18));
+      z-index: 2;
+    }
+
+    .playing-card-court-rank {
+      font-family: Georgia, serif;
+      font-size: clamp(1.65rem, 4.2vw, 2.8rem);
+      line-height: 0.9;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
+    }
+
+    .playing-card-court-suit {
+      font-family: Georgia, serif;
+      font-size: clamp(1.2rem, 3.2vw, 2rem);
+      line-height: 1;
+    }
+
+    .playing-card-court-name {
+      color: rgba(23, 18, 15, 0.72);
+      font-size: 0.38rem;
+      letter-spacing: 0.08em;
+      line-height: 1;
+      text-transform: uppercase;
     }
 
     .playing-card-label {
@@ -3217,6 +3287,14 @@
     </header>
 
     <section class="game-grid" id="boardGamesGrid">
+      <button class="panel game-card" id="cardViewerCard">
+        <span>
+          <h2>Card Viewer</h2>
+          <p>Inspect and download clean generated playing cards for editing.</p>
+        </span>
+        <strong class="status-pill">Testing</strong>
+      </button>
+
       <button class="panel game-card" id="tributeDiceCard">
         <span>
           <h2>Tribute Dice</h2>
@@ -3257,6 +3335,18 @@
         <strong class="status-pill">Idea</strong>
       </article>
     </section>
+  </main>
+
+  <main class="screen splash hidden" id="cardViewerScreen">
+    <header class="splash-header">
+      <h1>Card Viewer</h1>
+      <p class="subtitle">Clean generated playing cards for download and editing.</p>
+      <div class="setup-actions">
+        <button id="cardViewerBackBtn">Testing</button>
+      </div>
+    </header>
+
+    <section class="card-viewer-grid" id="cardViewerGrid"></section>
   </main>
 
   <main class="screen app hidden" id="gameScreen">
@@ -3949,6 +4039,7 @@
       setupScreen: document.getElementById("setupScreen"),
       gameSelectScreen: document.getElementById("gameSelectScreen"),
       testingScreen: document.getElementById("testingScreen"),
+      cardViewerScreen: document.getElementById("cardViewerScreen"),
       gameScreen: document.getElementById("gameScreen"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
@@ -3973,6 +4064,9 @@
       miniGamesGrid: document.getElementById("miniGamesGrid"),
       testingGamesGrid: document.getElementById("testingGamesGrid"),
       boardGamesGrid: document.getElementById("boardGamesGrid"),
+      cardViewerCard: document.getElementById("cardViewerCard"),
+      cardViewerBackBtn: document.getElementById("cardViewerBackBtn"),
+      cardViewerGrid: document.getElementById("cardViewerGrid"),
       testingBtn: document.getElementById("testingBtn"),
       testingBackBtn: document.getElementById("testingBackBtn"),
       domSettingsPane: document.getElementById("domSettingsPane"),
@@ -4600,6 +4694,7 @@
       els.lobbyScreen.classList.toggle("hidden", screen !== "lobby");
       els.gameSelectScreen.classList.toggle("hidden", screen !== "select");
       els.testingScreen.classList.toggle("hidden", screen !== "testing");
+      els.cardViewerScreen.classList.toggle("hidden", screen !== "cardViewer");
       els.gameScreen.classList.toggle("hidden", screen !== "game");
       renderControlGlow();
       renderMenu();
@@ -5074,6 +5169,18 @@
       render();
     }
 
+    function openCardViewer() {
+      if (!testingGamesUnlocked()) return;
+      setScreen("cardViewer");
+      renderCardViewer();
+      render();
+    }
+
+    function closeCardViewer() {
+      setScreen("testing");
+      render();
+    }
+
     function renderMenu() {
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
       els.menuDomBank.textContent = money(state.domVault);
@@ -5112,6 +5219,164 @@
       els.mainGamesGrid.classList.toggle("hidden", tab !== "main");
       els.miniGamesGrid.classList.toggle("hidden", tab !== "mini");
       els.testingGamesGrid.classList.toggle("hidden", tab !== "testing");
+    }
+
+    function viewerDeckCards() {
+      const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+      const suits = ["S", "H", "D", "C"];
+      return suits.flatMap((suit) => ranks.map((rank) => `${rank}${suit}`));
+    }
+
+    function renderCardViewer() {
+      if (!els.cardViewerGrid || state.screen !== "cardViewer") return;
+      els.cardViewerGrid.innerHTML = "";
+      viewerDeckCards().forEach((card) => {
+        const item = document.createElement("article");
+        item.className = "card-viewer-item";
+        item.appendChild(renderPlayingCard(card, false));
+        const actions = document.createElement("div");
+        actions.className = "card-viewer-actions";
+        const title = document.createElement("strong");
+        title.textContent = playingCardFileName(card).replace(/_/g, " ");
+        const download = document.createElement("button");
+        download.type = "button";
+        download.textContent = "Download PNG";
+        download.addEventListener("click", () => downloadGeneratedPlayingCard(card));
+        actions.appendChild(title);
+        actions.appendChild(download);
+        item.appendChild(actions);
+        els.cardViewerGrid.appendChild(item);
+      });
+    }
+
+    function playingCardFileName(card) {
+      const suit = card.slice(-1);
+      const rank = card.slice(0, -1);
+      return `${rankName(rank).toLowerCase()}_of_${suitName(suit).toLowerCase()}`;
+    }
+
+    function downloadGeneratedPlayingCard(card) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1000;
+      canvas.height = 1400;
+      drawGeneratedPlayingCard(canvas, card);
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${playingCardFileName(card)}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function drawGeneratedPlayingCard(canvas, card) {
+      const ctx = canvas.getContext("2d");
+      const suit = card.slice(-1);
+      const rank = card.slice(0, -1);
+      const symbol = suitSymbol(suit);
+      const red = suit === "H" || suit === "D";
+      const ink = red ? "#b61f3f" : "#17120f";
+      const gold = "#c1a56f";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      bg.addColorStop(0, "#fffdf8");
+      bg.addColorStop(1, "#efe2c4");
+      roundRectPath(ctx, 42, 42, 916, 1316, 44);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "rgba(23, 18, 15, 0.48)";
+      ctx.stroke();
+      roundRectPath(ctx, 124, 124, 752, 1152, 18);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = gold;
+      ctx.stroke();
+      drawCardIndex(ctx, rank, symbol, ink, 88, 96, false);
+      drawCardIndex(ctx, rank, symbol, ink, 912, 1304, true);
+      if (isCourtRank(rank)) {
+        roundRectPath(ctx, 238, 270, 524, 700, 20);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(141, 103, 34, 0.34)";
+        ctx.stroke();
+        ctx.fillStyle = ink;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "900 270px Georgia";
+        ctx.fillText(rank, 500, 520);
+        ctx.font = "900 180px Georgia";
+        ctx.fillText(symbol, 500, 720);
+      } else {
+        drawCardPips(ctx, rank, symbol, ink);
+      }
+      ctx.fillStyle = "rgba(23, 18, 15, 0.76)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = "900 44px Arial";
+      ctx.fillText(`${rankName(rank).toUpperCase()} OF ${suitName(suit).toUpperCase()}`, 500, 1218);
+    }
+
+    function drawCardIndex(ctx, rank, symbol, ink, x, y, inverted) {
+      ctx.save();
+      ctx.translate(x, y);
+      if (inverted) ctx.rotate(Math.PI);
+      ctx.fillStyle = ink;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.font = "900 116px Georgia";
+      ctx.fillText(rank, 0, 0);
+      ctx.font = "900 78px Georgia";
+      ctx.fillText(symbol, 0, 104);
+      ctx.restore();
+    }
+
+    function drawCardPips(ctx, rank, symbol, ink) {
+      const value = rank === "A" ? 1 : Number(rank);
+      const count = Number.isFinite(value) ? value : 1;
+      const positions = pipPositions(count);
+      ctx.fillStyle = ink;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = count === 1 ? "900 260px Georgia" : "900 116px Georgia";
+      positions.forEach((point, index) => {
+        ctx.save();
+        ctx.translate(point.x, point.y);
+        if (index >= Math.ceil(count / 2)) ctx.rotate(Math.PI);
+        ctx.fillText(symbol, 0, 0);
+        ctx.restore();
+      });
+    }
+
+    function pipPositions(count) {
+      const x1 = 330;
+      const x2 = 670;
+      const cx = 500;
+      const rows = [270, 430, 590, 750, 910];
+      if (count === 1) return [{ x: cx, y: 590 }];
+      if (count === 2) return [{ x: cx, y: 300 }, { x: cx, y: 880 }];
+      if (count === 3) return [{ x: cx, y: 280 }, { x: cx, y: 590 }, { x: cx, y: 900 }];
+      if (count === 4) return [{ x: x1, y: 310 }, { x: x2, y: 310 }, { x: x1, y: 870 }, { x: x2, y: 870 }];
+      if (count === 5) return [{ x: x1, y: 300 }, { x: x2, y: 300 }, { x: cx, y: 590 }, { x: x1, y: 880 }, { x: x2, y: 880 }];
+      if (count === 6) return [{ x: x1, y: 280 }, { x: x2, y: 280 }, { x: x1, y: 590 }, { x: x2, y: 590 }, { x: x1, y: 900 }, { x: x2, y: 900 }];
+      if (count === 7) return [{ x: x1, y: 260 }, { x: x2, y: 260 }, { x: cx, y: 430 }, { x: x1, y: 590 }, { x: x2, y: 590 }, { x: x1, y: 900 }, { x: x2, y: 900 }];
+      if (count === 8) return [{ x: x1, y: 250 }, { x: x2, y: 250 }, { x: cx, y: 405 }, { x: x1, y: 560 }, { x: x2, y: 560 }, { x: cx, y: 715 }, { x: x1, y: 900 }, { x: x2, y: 900 }];
+      if (count === 9) return [{ x: x1, y: 250 }, { x: x2, y: 250 }, { x: x1, y: 430 }, { x: x2, y: 430 }, { x: cx, y: 590 }, { x: x1, y: 750 }, { x: x2, y: 750 }, { x: x1, y: 930 }, { x: x2, y: 930 }];
+      return [{ x: x1, y: 240 }, { x: x2, y: 240 }, { x: cx, y: 360 }, { x: x1, y: 480 }, { x: x2, y: 480 }, { x: x1, y: 700 }, { x: x2, y: 700 }, { x: cx, y: 820 }, { x: x1, y: 940 }, { x: x2, y: 940 }];
+    }
+
+    function roundRectPath(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+      ctx.lineTo(x + width, y + height - r);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      ctx.lineTo(x + r, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
     }
 
     function renderControlGlow() {
@@ -11963,6 +12228,7 @@
       QC: "queen_of_clubs_card_mockup_clean_v2.webp",
       KC: "king_of_clubs_card_mockup_clean_v3.webp"
     };
+    const USE_CUSTOM_PLAYING_CARD_ART = false;
 
     function renderPlayingCard(card, hidden) {
       const element = document.createElement("div");
@@ -11976,7 +12242,7 @@
       const rank = card.slice(0, -1);
       if (suit === "H" || suit === "D") element.classList.add("red");
       const symbol = suitSymbol(suit);
-      const art = PLAYING_CARD_ART[`${rank}${suit}`];
+      const art = USE_CUSTOM_PLAYING_CARD_ART ? PLAYING_CARD_ART[`${rank}${suit}`] : "";
       if (art) {
         const image = document.createElement("img");
         image.className = "playing-card-art";
@@ -11987,7 +12253,11 @@
       } else {
         element.appendChild(playingCardCorner(rank, symbol, "top"));
         element.appendChild(playingCardCorner(rank, symbol, "bottom"));
-        element.appendChild(renderPlayingCardPips(rank, symbol));
+        if (isCourtRank(rank)) {
+          element.appendChild(renderPlayingCardCourt(rank, symbol, suit));
+        } else {
+          element.appendChild(renderPlayingCardPips(rank, symbol));
+        }
         const label = document.createElement("span");
         label.className = "playing-card-label";
         label.textContent = `${rankName(rank)} ${suitName(suit)}`;
@@ -12008,6 +12278,21 @@
       corner.appendChild(rankEl);
       corner.appendChild(suitEl);
       return corner;
+    }
+
+    function isCourtRank(rank) {
+      return rank === "J" || rank === "Q" || rank === "K";
+    }
+
+    function renderPlayingCardCourt(rank, symbol, suit) {
+      const court = document.createElement("div");
+      court.className = "playing-card-court";
+      court.innerHTML = `
+        <span class="playing-card-court-rank">${rank}</span>
+        <span class="playing-card-court-suit">${symbol}</span>
+        <span class="playing-card-court-name">${rankName(rank)} of ${suitName(suit)}</span>
+      `;
+      return court;
     }
 
     function renderPlayingCardPips(rank, symbol) {
@@ -12654,6 +12939,7 @@
       renderText();
       renderSavedLinkButton();
       renderMenu();
+      renderCardViewer();
       renderLobby();
       renderSidePanel();
       renderLeaveRoomButtons();
@@ -12819,6 +13105,8 @@
     els.backToMenuBtn.addEventListener("click", backToMenu);
     els.testingBtn.addEventListener("click", openTestingScreen);
     els.testingBackBtn.addEventListener("click", closeTestingScreen);
+    els.cardViewerCard.addEventListener("click", openCardViewer);
+    els.cardViewerBackBtn.addEventListener("click", closeCardViewer);
     if (els.continueSetupBtn) els.continueSetupBtn.addEventListener("click", continueToSetup);
     els.confirmLobbyNameBtn.addEventListener("click", confirmLobbyName);
     els.joinRoomBtn.addEventListener("click", joinRoomFromInput);
