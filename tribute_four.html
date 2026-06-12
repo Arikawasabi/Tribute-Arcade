@@ -5290,8 +5290,8 @@
       ctx.lineWidth = 5;
       ctx.strokeStyle = gold;
       ctx.stroke();
-      drawCardIndex(ctx, rank, symbol, ink, 88, 96, false);
-      drawCardIndex(ctx, rank, symbol, ink, 912, 1304, true);
+      drawCardIndex(ctx, rank, symbol, ink, 78, 72, false);
+      drawCardIndex(ctx, rank, symbol, ink, 922, 1328, true);
       if (isCourtRank(rank)) {
         roundRectPath(ctx, 238, 270, 524, 700, 20);
         ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
@@ -5323,10 +5323,10 @@
       ctx.fillStyle = ink;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.font = "900 116px Georgia";
+      ctx.font = "900 96px Georgia";
       ctx.fillText(rank, 0, 0);
-      ctx.font = "900 78px Georgia";
-      ctx.fillText(symbol, 0, 104);
+      ctx.font = "900 68px Georgia";
+      ctx.fillText(symbol, 0, 88);
       ctx.restore();
     }
 
