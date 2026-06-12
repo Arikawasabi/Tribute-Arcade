@@ -680,8 +680,22 @@
       grid-template-columns: minmax(0, 1fr);
     }
 
+    .app.blackjack-wide {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
     .app.trail-wide .game-shell {
       grid-column: 1 / -1;
+    }
+
+    .app.blackjack-wide .game-shell {
+      grid-column: 1 / -1;
+      gap: 10px;
+    }
+
+    .app.blackjack-wide .turn-strip {
+      display: none;
     }
 
     .topbar {
@@ -814,6 +828,56 @@
       grid-template-columns: 1fr 1fr;
       gap: 8px;
       margin-top: 12px;
+    }
+
+    .blackjack-ledger {
+      grid-column: 1 / -1;
+    }
+
+    .blackjack-ledger .panel-header {
+      display: none;
+    }
+
+    .blackjack-ledger .panel-body {
+      display: grid;
+      grid-template-columns: minmax(300px, 1fr) minmax(290px, auto) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+    }
+
+    .blackjack-ledger .ledger {
+      grid-template-columns: repeat(3, minmax(110px, 1fr));
+      gap: 8px;
+    }
+
+    .blackjack-ledger .metric {
+      min-height: 34px;
+      padding: 7px 10px;
+    }
+
+    .blackjack-ledger .metric span:first-child {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .blackjack-ledger .metric strong {
+      font-size: 0.95rem;
+    }
+
+    .blackjack-ledger .bet-row,
+    .blackjack-ledger .mode-grid {
+      margin-top: 0;
+    }
+
+    .blackjack-ledger .mode-grid {
+      grid-template-columns: auto auto;
+    }
+
+    .blackjack-ledger .tilt-status,
+    .blackjack-ledger .wheel-dom-tools {
+      grid-column: 1 / -1;
     }
 
     .tilt-status {
@@ -1164,6 +1228,15 @@
       box-shadow: inset 0 0 0 1px rgba(244, 239, 232, 0.05), 0 18px 50px rgba(0, 0, 0, 0.24);
     }
 
+    .app.blackjack-wide .board-wrap {
+      padding: 10px;
+    }
+
+    .app.blackjack-wide .twentyone-table {
+      min-height: min(78vh, 840px);
+      gap: 16px;
+    }
+
     .twentyone-table-center {
       grid-area: table;
       display: grid;
@@ -1257,6 +1330,54 @@
       font-weight: 700;
       line-height: 1.35;
       text-align: center;
+    }
+
+    .twentyone-table-actions {
+      justify-self: center;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(96px, 1fr));
+      gap: 8px;
+      width: min(260px, 100%);
+    }
+
+    .twentyone-table-actions button {
+      min-height: 42px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .twentyone-table-actions button:nth-child(1) {
+      background: linear-gradient(135deg, rgba(101, 210, 143, 0.95), rgba(55, 160, 108, 0.95));
+      border-color: rgba(198, 255, 218, 0.48);
+      color: #07120d;
+    }
+
+    .twentyone-table-actions button:nth-child(2) {
+      background: linear-gradient(135deg, rgba(239, 199, 94, 0.95), rgba(150, 106, 43, 0.95));
+      border-color: rgba(255, 236, 172, 0.42);
+      color: #17100a;
+    }
+
+    .twentyone-table-actions button.twentyone-power-action {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, rgba(240, 78, 120, 0.95), rgba(132, 31, 67, 0.95));
+      border-color: rgba(255, 171, 199, 0.45);
+      color: var(--text);
+    }
+
+    .twentyone-table-actions button:disabled {
+      cursor: not-allowed;
+      filter: grayscale(0.35);
+      opacity: 0.42;
+    }
+
+    .app.blackjack-wide .twentyone-table .playing-card {
+      width: clamp(92px, 8.8vw, 142px);
+    }
+
+    .app.blackjack-wide .twentyone-table .twentyone-shoe .playing-card {
+      width: 100%;
     }
 
     .wheel-table {
@@ -2742,6 +2863,15 @@
         grid-template-columns: 1fr;
       }
 
+      .blackjack-ledger .panel-body {
+        grid-template-columns: 1fr;
+      }
+
+      .blackjack-ledger .ledger,
+      .blackjack-ledger .mode-grid {
+        grid-template-columns: 1fr;
+      }
+
       .setup-grid {
         grid-template-columns: 1fr;
       }
@@ -2795,6 +2925,10 @@
         grid-template-columns: 1fr;
         min-height: 0;
         gap: 10px;
+      }
+
+      .twentyone-table-actions {
+        width: 100%;
       }
 
       .twentyone-shoe {
@@ -11686,14 +11820,70 @@
       `;
       center.appendChild(status);
 
-      const note = document.createElement("div");
-      note.className = "twentyone-actions-note";
-      note.textContent = twentyOneActionHint();
-      center.appendChild(note);
+      const actions = renderTwentyOneTableActions();
+      center.appendChild(actions || renderTwentyOneActionNote());
 
       const nextButton = center.querySelector("#nextTwentyOneHandBtn");
       if (nextButton) nextButton.addEventListener("click", startNextTwentyOneHand);
       return center;
+    }
+
+    function renderTwentyOneActionNote() {
+      const note = document.createElement("div");
+      note.className = "twentyone-actions-note";
+      note.textContent = twentyOneActionHint();
+      return note;
+    }
+
+    function twentyOneActionState() {
+      const localRole = localOnlineRole();
+      const setupPending = Boolean(state.twentyOne.setupPending);
+      const pushLuckPending = state.active && state.turn === DOM && state.twentyOne.pushLuckPending;
+      const subDecision = state.active && state.turn === SUB && !setupPending;
+      const domDealerTurn = state.active && state.turn === DOM && state.twentyOne.dealerTurn;
+      const canDraw = (subDecision && (!localRole || localRole === SUB))
+        || ((domDealerTurn || pushLuckPending) && (!localRole || localRole === DOM));
+      const canHold = (subDecision && (!localRole || localRole === SUB))
+        || ((domDealerTurn || pushLuckPending) && (!localRole || localRole === DOM));
+      const canPower = Boolean((localRole === DOM || !localRole) && canOpenTwentyOnePowerModal());
+      return {
+        canDraw,
+        canHold,
+        canPower,
+        drawLabel: pushLuckPending ? "Force Draw" : "Draw",
+        holdLabel: pushLuckPending ? "Let Them Hold" : "Hold"
+      };
+    }
+
+    function renderTwentyOneTableActions() {
+      if (state.twentyOne.setupPending || state.twentyOne.nextHandPending || !state.active || localOnlineRole() === SPECTATOR) return null;
+      const actionState = twentyOneActionState();
+      if (!actionState.canDraw && !actionState.canHold && !actionState.canPower) return null;
+      const actions = document.createElement("div");
+      actions.className = "twentyone-table-actions";
+      const drawButton = document.createElement("button");
+      drawButton.type = "button";
+      drawButton.textContent = actionState.drawLabel;
+      drawButton.disabled = !actionState.canDraw;
+      drawButton.addEventListener("click", hitTwentyOne);
+      actions.appendChild(drawButton);
+
+      const holdButton = document.createElement("button");
+      holdButton.type = "button";
+      holdButton.textContent = actionState.holdLabel;
+      holdButton.disabled = !actionState.canHold;
+      holdButton.addEventListener("click", standTwentyOne);
+      actions.appendChild(holdButton);
+
+      if (actionState.canPower) {
+        const powerButton = document.createElement("button");
+        powerButton.type = "button";
+        powerButton.className = "twentyone-power-action";
+        powerButton.textContent = "Power";
+        powerButton.addEventListener("click", openTwentyOnePowerModal);
+        actions.appendChild(powerButton);
+      }
+      return actions;
     }
 
     function renderTwentyOneShoe() {
@@ -12258,8 +12448,11 @@
     function renderText() {
       renderGameChrome();
       const isTrail = state.currentGame === "tributeTrail";
+      const isBlackjack = state.currentGame === "tributeTwentyOne";
       els.gameScreen.classList.toggle("trail-wide", isTrail);
+      els.gameScreen.classList.toggle("blackjack-wide", isBlackjack);
       els.cashLedgerPanel.classList.toggle("hidden", isTrail);
+      els.cashLedgerPanel.classList.toggle("blackjack-ledger", isBlackjack);
       els.trailBankAmount.textContent = money(state.trail && state.trail.tributeBank || 0);
       els.trailSpendingAmount.textContent = money(state.trail && state.trail.spendingMoney || 0);
       els.pot.textContent = money(state.pot);
@@ -12377,6 +12570,8 @@
           : !canStand;
         els.hitBtn.textContent = pushLuckPending ? "Push Them" : "Hit";
         els.passBtn.textContent = pushLuckPending ? "Let Them Stand" : (domPowerView ? "Power" : "Stand");
+        els.hitBtn.classList.add("hidden");
+        els.passBtn.classList.add("hidden");
       } else if (state.currentGame === "tributeCheckers") {
         els.hitBtn.classList.add("hidden");
         const checkersPowerReady = checkersPowerTypes().some((type) => checkersPowerInfo(type).available);
