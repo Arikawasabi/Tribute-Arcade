@@ -1637,6 +1637,21 @@
       text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
     }
 
+    .playing-card-corner::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 28%;
+      width: 78%;
+      height: 92%;
+      border-right: 1px solid rgba(141, 103, 34, 0.42);
+      border-bottom: 1px solid rgba(141, 103, 34, 0.42);
+      border-bottom-right-radius: 100%;
+      pointer-events: none;
+      transform: translate(18%, -4%);
+      z-index: -1;
+    }
+
     .playing-card-corner.bottom {
       inset: auto 4.2% 6.6% auto;
       transform: rotate(180deg);
@@ -1685,25 +1700,25 @@
 
     .playing-card-pips {
       position: absolute;
-      inset: 17% 21%;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      align-items: center;
-      justify-items: center;
-      gap: 2px 8px;
+      inset: 0;
+      display: block;
       font-family: Georgia, serif;
-      font-size: clamp(0.76rem, 1.58vw, 1.08rem);
       line-height: 1;
       z-index: 2;
     }
 
-    .playing-card-pips.single {
-      grid-template-columns: 1fr;
-      font-size: clamp(1.55rem, 4vw, 2.4rem);
+    .playing-card-pip {
+      position: absolute;
+      font-size: clamp(0.82rem, 1.72vw, 1.16rem);
+      transform: translate(-50%, -50%);
+    }
+
+    .playing-card-pips.single .playing-card-pip {
+      font-size: clamp(1.7rem, 4.3vw, 2.65rem);
     }
 
     .playing-card-pip.flip {
-      transform: rotate(180deg);
+      transform: translate(-50%, -50%) rotate(180deg);
     }
 
     .playing-card-court {
@@ -5311,6 +5326,8 @@
       ctx.stroke();
       drawCardIndex(ctx, rank, symbol, ink, 102, 88, false);
       drawCardIndex(ctx, rank, symbol, ink, 898, 1312, true);
+      drawCardIndexCurve(ctx, 102, 88, false);
+      drawCardIndexCurve(ctx, 898, 1312, true);
       if (isCourtRank(rank)) {
         roundRectPath(ctx, 238, 270, 524, 700, 20);
         ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
@@ -5346,6 +5363,19 @@
       ctx.fillText(rank, 0, 0);
       ctx.font = "900 62px Georgia";
       ctx.fillText(symbol, 0, 82);
+      ctx.restore();
+    }
+
+    function drawCardIndexCurve(ctx, x, y, inverted) {
+      ctx.save();
+      ctx.translate(x, y);
+      if (inverted) ctx.rotate(Math.PI);
+      ctx.strokeStyle = "rgba(141, 103, 34, 0.72)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(76, 52);
+      ctx.quadraticCurveTo(74, 128, 8, 168);
+      ctx.stroke();
       ctx.restore();
     }
 
@@ -12320,12 +12350,14 @@
       const pips = document.createElement("div");
       pips.className = `playing-card-pips ${value === 1 ? "single" : ""}`.trim();
       const count = Number.isFinite(value) ? value : 1;
-      for (let index = 0; index < count; index += 1) {
+      pipPositions(count).forEach((point, index) => {
         const pip = document.createElement("span");
         pip.className = `playing-card-pip ${index >= Math.ceil(count / 2) ? "flip" : ""}`.trim();
+        pip.style.left = `${point.x / 10}%`;
+        pip.style.top = `${point.y / 14}%`;
         pip.textContent = symbol;
         pips.appendChild(pip);
-      }
+      });
       return pips;
     }
 
