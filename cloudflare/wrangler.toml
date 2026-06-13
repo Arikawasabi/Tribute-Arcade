@@ -1,0 +1,15 @@
+name = "tribute-arcade"
+main = "cloudflare_worker.js"
+compatibility_date = "2026-06-08"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomObject"]

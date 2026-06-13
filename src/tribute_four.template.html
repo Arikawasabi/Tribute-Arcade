@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tribute Four</title>
+  <style>
+/* {{TRIBUTE_ARCADE_CSS}} */
+</style>
+</head>
+<body>
+  <div class="distraction-backdrop" id="distractionBackdrop"></div>
+  <div class="distraction-overlay" id="distractionOverlay"></div>
+  <div class="checkers-queen-splash" id="checkersQueenSplash"><span id="checkersQueenSplashText"></span></div>
+
+  <main class="screen splash" id="lobbyScreen">
+    <header class="splash-header">
+      <h1>Tribute Arcade</h1>
+      <p class="subtitle">Pick a name, host or join a room, then choose roles once both players are present.</p>
+    </header>
+
+    <section class="menu-dashboard">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Online Room</h2>
+          <button id="createRoomBtn" class="primary">Host Game</button>
+        </div>
+        <div class="panel-body">
+          <label class="field-label">
+            Your name
+            <input id="lobbyNameInput" type="text" autocomplete="off" placeholder="Enter name">
+          </label>
+          <div class="setup-actions">
+            <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
+            <button class="leave-room-btn hidden">Leave Lobby</button>
+          </div>
+          <p class="chooser-line" id="onlineStatus">Offline local game.</p>
+          <p class="chooser-line hidden" id="roomCodeDisplay">Room code: -----</p>
+          <div class="share-links hidden" id="shareLinks">
+            <div class="copy-row">
+              <div class="share-link" id="inviteShareLink"></div>
+              <button id="copyInviteBtn">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Join Room</h2>
+        </div>
+        <div class="panel-body">
+          <label class="field-label">
+            Room code
+            <input id="joinRoomCodeInput" type="text" autocomplete="off" placeholder="ABCDE" maxlength="8">
+          </label>
+          <div class="setup-actions">
+            <button id="joinRoomBtn" class="primary">Join Room</button>
+          </div>
+          <p class="chooser-line">Open the main site, enter the host's code, then confirm your name.</p>
+        </div>
+      </div>
+
+      <div class="panel" id="localTestingPanel">
+        <div class="panel-header">
+          <h2 class="panel-title">Local Testing</h2>
+        </div>
+        <div class="panel-body">
+          <p class="chooser-line">Play both sides on this device without creating a room.</p>
+          <div class="setup-actions">
+            <button id="playLocalBtn" class="primary">Play Locally</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Players</h2>
+        </div>
+        <div class="panel-body">
+          <div class="player-list" id="lobbyPlayerList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="screen splash hidden" id="setupScreen">
+    <header class="splash-header">
+      <h1>Tribute Arcade</h1>
+      <p class="subtitle">Choose roles and names. In online rooms, each player controls their own card.</p>
+    </header>
+
+    <section class="setup-grid">
+      <div class="player-card">
+        <h2 class="panel-title">Player One</h2>
+        <div class="role-row">
+          <button class="role-btn" data-player="one" data-role="dom">Dom</button>
+          <button class="role-btn" data-player="one" data-role="sub">Sub</button>
+        </div>
+        <label class="field-label">
+          Name
+          <input id="playerOneName" type="text" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="player-card">
+        <h2 class="panel-title">Player Two</h2>
+        <div class="role-row">
+          <button class="role-btn" data-player="two" data-role="dom">Dom</button>
+          <button class="role-btn" data-player="two" data-role="sub">Sub</button>
+        </div>
+        <label class="field-label">
+          Name
+          <input id="playerTwoName" type="text" autocomplete="off">
+        </label>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="setupRoomPanel">
+      <div class="panel-header">
+        <h2 class="panel-title">Room Link</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="setupRoomStatus">Offline local setup.</p>
+        <div class="copy-row">
+          <div class="share-link" id="setupShareLink"></div>
+          <button id="copySetupInviteBtn">Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="setup-actions">
+      <p class="turn-copy" id="setupMessage"></p>
+      <button id="confirmPlayersBtn" class="primary">Confirm</button>
+    </div>
+  </main>
+
+  <main class="screen splash hidden" id="gameSelectScreen">
+    <header class="splash-header">
+      <h1>Game Select</h1>
+      <p class="subtitle" id="playerSummary">Choose a game.</p>
+      <div class="setup-actions">
+        <button id="testingBtn">Testing</button>
+        <button class="leave-room-btn hidden">Leave Lobby</button>
+      </div>
+    </header>
+
+    <section class="menu-dashboard">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Global Bank</h2>
+        </div>
+        <div class="panel-body">
+          <div class="metric"><span id="menuBankLabel">Dom's bank</span><strong id="menuDomBank">$0</strong></div>
+          <p class="chooser-line" id="chooserStatus">Dom picks the next game.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Bet Rules</h2>
+        </div>
+        <div class="panel-body menu-rules">
+          <section>
+            <h3>Standard Bets</h3>
+            <p>The submissive player must place a bet to start a game. If the submissive player wins, the dominant player's bank remains unchanged. If the submissive player loses, the bet amount is added to the total debt owed to the dominant player once all games are complete.</p>
+          </section>
+          <section>
+            <h3>Reclaims</h3>
+            <p>Reclaims are high-risk bets that allow the submissive player to recover outstanding debt owed to the dominant player. However, reclaim rounds heavily favor the dominant player and are significantly harder to win.</p>
+            <p>Each failed reclaim further increases the dominant player's advantage in future reclaim rounds, causing the odds to become progressively more difficult for the submissive player.</p>
+            <p>If the submissive player loses a reclaim round, the total amount owed to the dominant player is doubled.</p>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <div class="game-select-tabs">
+      <button class="game-select-tab active" data-game-tab="main">Main Games</button>
+      <button class="game-select-tab" data-game-tab="mini">Mini Games</button>
+      <button class="game-select-tab" data-game-tab="testing">In Testing</button>
+    </div>
+
+    <section class="game-grid" id="mainGamesGrid">
+      <button class="panel game-card" id="tributeFourCard">
+        <span>
+          <h2>Tribute Four</h2>
+          <p>Connect Four with normal bets, reclaim matches, and tilted dom-favored rules.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeFleetCard">
+        <span>
+          <h2>Tribute Fleet</h2>
+          <p>Battleship with hidden fleets, cash stakes, and reclaim pressure on the sub's shots.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeChessCard">
+        <span>
+          <h2>Tribute Chess</h2>
+          <p>Classic chess with queen stances, shared charges, and reclaim commands.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeCheckersCard">
+        <span>
+          <h2>Tribute Checkers</h2>
+          <p>Classic checkers where dom captures build Claim and her queens drain cash from captured sub pieces.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+    </section>
+
+    <section class="game-grid hidden" id="miniGamesGrid">
+      <button class="panel game-card" id="tributeTwentyOneCard">
+        <span>
+          <h2>Tribute Blackjack</h2>
+          <p>Blackjack hands where the sub plays first, then the dom takes the dealer turn and presses the table edge in reclaim.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeTicTacToeCard">
+        <span>
+          <h2>Tribute Tic Tac Toe</h2>
+          <p>Quick three-in-a-row bets. In reclaim, the dom starts and drawn boards go to her.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeWheelCard">
+        <span>
+          <h2>Wheel Spin</h2>
+          <p>A 36-space cash wheel with timed spins, dom powers, and the $25 prizes boxed in by danger.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+    </section>
+
+    <section class="game-grid hidden" id="testingGamesGrid">
+      <button class="panel game-card" id="tributeTrailCard">
+        <span>
+          <h2>Tribute Trail</h2>
+          <p>A 60-space public test race with dice rolls, card draws, chance draws, cash spaces, blank spaces, and slides.</p>
+        </span>
+        <strong class="status-pill">Public Test</strong>
+      </button>
+    </section>
+
+  </main>
+
+  <main class="screen splash hidden" id="testingScreen">
+    <header class="splash-header">
+      <h1>Testing</h1>
+      <p class="subtitle">Unfinished prototypes and board game experiments.</p>
+      <div class="setup-actions">
+        <button id="testingBackBtn">Game Select</button>
+      </div>
+    </header>
+
+    <section class="game-grid" id="boardGamesGrid">
+      <button class="panel game-card" id="cardViewerCard">
+        <span>
+          <h2>Card Viewer</h2>
+          <p>Inspect and download clean generated playing cards for editing.</p>
+        </span>
+        <strong class="status-pill">Testing</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeDiceCard">
+        <span>
+          <h2>Tribute Dice</h2>
+          <p>A bluffing dice prototype with claims, calls, and cash pressure.</p>
+        </span>
+        <strong class="status-pill">Testing</strong>
+      </button>
+
+      <article class="panel game-card idea-card">
+        <span>
+          <h2>Debt Spiral</h2>
+          <p>A looping board where the sub tries to escape while the dom keeps them circling and growing the bank.</p>
+        </span>
+        <strong class="status-pill">Idea</strong>
+      </article>
+
+      <article class="panel game-card idea-card">
+        <span>
+          <h2>Tribute Manor</h2>
+          <p>A room-based board with cards, keys, favors, and a race to reach the exit before the dom closes in.</p>
+        </span>
+        <strong class="status-pill">Idea</strong>
+      </article>
+
+      <article class="panel game-card idea-card">
+        <span>
+          <h2>Obedience Path</h2>
+          <p>A branching board where the sub pushes toward the end while the dom redirects, delays, and marks spaces.</p>
+        </span>
+        <strong class="status-pill">Idea</strong>
+      </article>
+
+      <article class="panel game-card idea-card">
+        <span>
+          <h2>Card + Dice Duel</h2>
+          <p>A versus track game where movement comes from rolls and cards add powers, taxes, and traps.</p>
+        </span>
+        <strong class="status-pill">Idea</strong>
+      </article>
+    </section>
+  </main>
+
+  <main class="screen splash hidden" id="cardViewerScreen">
+    <header class="splash-header">
+      <h1>Card Viewer</h1>
+      <p class="subtitle">Clean generated playing cards for download and editing.</p>
+      <div class="setup-actions">
+        <button id="cardViewerBackBtn">Testing</button>
+      </div>
+    </header>
+
+    <section class="card-viewer-grid" id="cardViewerGrid"></section>
+  </main>
+
+  <main class="screen app hidden" id="gameScreen">
+    <header class="topbar">
+      <div>
+        <h1 id="gameTitle">Tribute Four</h1>
+        <p class="subtitle" id="gameSubtitle">Connect Four with cash stakes. The sub chooses a normal bet to start. If the dom wins, that cash enters her bank; later the sub can risk a tilted reclaim match to win the banked cash back.</p>
+      </div>
+      <div class="setup-actions">
+        <button id="openSavedLinkBtn">Open Saved Link</button>
+        <button id="rulesBtn">Rules</button>
+        <button id="backToMenuBtn">Games</button>
+        <button class="leave-room-btn hidden">Leave Lobby</button>
+        <div class="status-pill" id="modeLabel">Normal Match</div>
+      </div>
+    </header>
+
+    <section class="panel" id="cashLedgerPanel">
+      <div class="panel-header">
+        <h2 class="panel-title">Cash Ledger</h2>
+      </div>
+      <div class="panel-body">
+        <div class="ledger">
+          <div class="metric"><span>Current pot</span><strong id="pot">0</strong></div>
+          <div class="metric"><span>Dom's bank</span><strong id="domVault">0</strong></div>
+          <div class="metric"><span>Cash to reclaim</span><strong id="lockedTribute">0</strong></div>
+        </div>
+
+        <div class="bet-row">
+          <input id="betInput" type="number" min="1" step="1" value="10" aria-label="Bet amount">
+          <button id="normalBtn" class="primary">Bet</button>
+        </div>
+
+        <div class="mode-grid">
+          <button id="reclaimBtn" class="secondary">Reclaim</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+        <div class="tilt-status hidden" id="tiltStatus"></div>
+        <section class="wheel-dom-tools hidden" id="wheelPowerPanel"></section>
+      </div>
+    </section>
+
+    <section class="game-shell">
+      <div class="turn-strip">
+        <p class="turn-copy" id="turnText"><strong>Sub</strong> must make a normal bet to begin.</p>
+        <select id="queenStanceSelect" class="hidden" title="Choose the dom queen's stance">
+          <option value="none">None</option>
+          <option value="gaze">Gaze</option>
+          <option value="tithe">Tithe</option>
+          <option value="leash">Leash</option>
+        </select>
+        <span id="queenChargeText" class="queen-charge-tray hidden">No charges</span>
+        <button id="hitBtn" class="hidden">Hit</button>
+        <button id="queenRepositionBtn" class="hidden">Reposition</button>
+        <button id="queenShieldBtn" class="hidden">Shield</button>
+        <button id="chessSkipBtn" class="hidden">Queue Skip</button>
+        <button id="passBtn" title="Open the dom power selector">Power</button>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Match Log</h2>
+        </div>
+        <div class="panel-body">
+          <div class="log" id="log"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="modal-backdrop hidden" id="roleModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Choose Role</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="roleModalText">Choose your role for this room.</p>
+        <div class="role-row">
+          <button id="chooseDomBtn" class="role-btn">Dom</button>
+          <button id="chooseSubBtn" class="role-btn">Sub</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="subLinkModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Open Link</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="subLinkModalText">The dom wants to open a link.</p>
+        <div class="role-row">
+          <button id="openSubLinkBtn" class="primary">Open Link</button>
+          <button id="declineSubLinkBtn">Not Now</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="wagerModal">
+    <section class="panel wager-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="wagerModalTitle">Wager Review</h2>
+      </div>
+      <div class="panel-body">
+        <div class="wager-summary" id="wagerModalBody"></div>
+        <div class="setup-actions" id="wagerModalActions"></div>
+      </div>
+    </section>
+    <div class="wager-emoji-dock hidden" id="wagerEmojiDock"></div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="blackjackSettingsModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Blackjack Settings</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="blackjackSettingsText">Choose how long the table runs.</p>
+        <div class="role-row">
+          <button data-blackjack-rounds="single" class="primary">1 Round</button>
+          <button data-blackjack-rounds="marks">First To 3</button>
+        </div>
+        <div class="role-row">
+          <button data-blackjack-powers="on" class="primary">Powers On</button>
+          <button data-blackjack-powers="off">Powers Off</button>
+        </div>
+        <div class="setup-actions">
+          <button id="blackjackSettingsConfirmBtn" class="primary">Start Blackjack</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="checkersQueenModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="checkersQueenTitle">Queen Offer</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="checkersQueenText">Choose whether the dom starts with a queen.</p>
+        <div class="setup-actions" id="checkersQueenActions">
+          <button id="checkersQueenNoBtn">No</button>
+          <button id="checkersQueenYesBtn" class="primary">Yes</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="rulesModal">
+    <section class="panel rules-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="rulesModalTitle">Rules</h2>
+      </div>
+      <div class="panel-body">
+        <div class="rules-tabs hidden" id="rulesTabs">
+          <button class="rules-tab active" data-rules-tab="normal">Normal Rules</button>
+          <button class="rules-tab" data-rules-tab="queen">Queen Powers</button>
+        </div>
+        <ul class="rules" id="ruleList"></ul>
+        <div class="setup-actions">
+          <button id="closeRulesBtn" class="primary">Close</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="tributeFourPowerModal">
+    <section class="panel power-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="powerModalTitle">Power</h2>
+      </div>
+      <div class="panel-body">
+        <div class="power-option-grid" id="tributeFourPowerOptions"></div>
+        <div class="power-detail" id="tributeFourPowerDetail"></div>
+        <div class="setup-actions">
+          <button id="tributeFourPowerBackBtn">Back</button>
+          <button id="tributeFourPowerUseBtn" class="primary">Use</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="trail-bank-panel hidden" id="trailBankPill">
+    <div class="trail-overlay-bank">
+      <div><span>Trail Tribute</span><strong id="trailBankAmount">$0</strong></div>
+      <div><span>Spending Money</span><strong id="trailSpendingAmount">$0</strong></div>
+    </div>
+  </div>
+  <div class="trail-money-flights" id="trailMoneyFlights" aria-hidden="true"></div>
+
+  <div class="modal-backdrop hidden" id="trailCardModal">
+    <div class="trail-overlay-stack">
+      <section class="panel trail-card-reveal" id="trailCardReveal">
+        <p class="trail-card-deck" id="trailCardDeck">Deck</p>
+        <h2 id="trailCardTitle">Card</h2>
+        <p id="trailCardText">Click to close.</p>
+        <div class="trail-card-action" id="trailCardAction">Click to activate.</div>
+        <p class="chooser-line">Click to shrink. Hover or tap to expand.</p>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="trailShopModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title" id="trailShopTitle">Trail Shopping</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="trailShopText">Choose how to spend.</p>
+        <div class="trail-transfer-picker hidden" id="trailTransferPicker">
+          <label for="trailTransferSlider">
+            <span>Bank transfer</span>
+            <strong id="trailTransferValue">50%</strong>
+          </label>
+          <input id="trailTransferSlider" type="range" min="0" max="100" step="10" value="50">
+        </div>
+        <div class="trail-shop-options" id="trailShopOptions">
+          <button data-trail-shop="dom"><strong>$6</strong><span>Buy Dom Card</span></button>
+          <button data-trail-shop="sub"><strong>$3</strong><span>Buy Sub Card</span></button>
+          <button data-trail-shop="chance"><strong>$4</strong><span>Buy Chance Card</span></button>
+        </div>
+        <div class="setup-actions" id="trailShopActions">
+          <button id="trailShopWaitBtn">Wait</button>
+          <button id="trailShopStartBtn" class="primary">Go Shopping</button>
+          <button id="trailShopEndBtn" class="danger">End Game</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="leaveNoticeModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Alone in Room</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="leaveNoticeText">The other player left the room.</p>
+        <div class="role-row">
+          <button id="hideLeaveNoticeBtn">Hide</button>
+          <button id="takePlayerOneBtn" class="hidden">Take Player One</button>
+          <button id="takePlayerTwoBtn" class="hidden">Take Player Two</button>
+          <button id="returnLobbyNoticeBtn" class="primary">Return to Lobby</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="side-popout" id="sidePopout">
+    <div class="side-header">
+      <h2 class="panel-title" id="sidePanelTitle">Room</h2>
+      <button id="sideToggleBtn" title="Collapse panel">Hide</button>
+    </div>
+    <div class="side-tabs">
+      <button class="side-tab active" data-side-tab="chat">Chat</button>
+      <button class="side-tab" data-side-tab="settings" id="sideSettingsTab">Settings</button>
+    </div>
+    <div class="side-body">
+      <section class="side-pane chat-pane" id="sideChatPane">
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-compose">
+          <input id="chatInput" type="text" maxlength="220" autocomplete="off" placeholder="Send a message">
+          <button id="sendChatBtn" class="primary">Send</button>
+        </div>
+      </section>
+      <section class="side-pane hidden" id="sideSettingsPane">
+        <div class="settings-pane" id="domSettingsPane">
+          <h3 class="panel-title">Dom Settings</h3>
+          <label class="settings-row">
+            Dom advantages
+            <select id="domAdvantageMode">
+              <option value="dom">Enabled for dom</option>
+              <option value="off">Disabled globally</option>
+              <option value="both">Enabled for both players</option>
+            </select>
+          </label>
+          <label class="settings-row">
+            Queen powers
+            <select id="queenPowerMode">
+              <option value="tiered">Unlock by tier</option>
+              <option value="always">Always enabled</option>
+              <option value="off">Disabled</option>
+            </select>
+          </label>
+          <label class="settings-row">
+            Queen power users
+            <select id="queenPowerUsers">
+              <option value="dom">Dom only</option>
+              <option value="both">Both players</option>
+            </select>
+          </label>
+          <label class="field-label">
+            Link for sub
+            <input id="sideDomLinkInput" type="url" placeholder="https://example.com">
+          </label>
+          <div class="mode-grid">
+            <button id="sideSaveDomLinkBtn">Save Link</button>
+            <button id="sideSendDomLinkBtn" class="primary">Open Link</button>
+          </div>
+          <p class="chooser-line" id="sideDomLinkStatus">Save a link, then open it for the sub whenever you want.</p>
+          <label class="field-label">
+            Distraction image or GIF
+            <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
+          </label>
+          <label class="field-label">
+            Display mode
+            <select id="sideDistractionMode">
+              <option value="background-both">Background for both players</option>
+              <option value="background-sub">Background for sub only</option>
+              <option value="overlay-sub">Timed overlay for sub only</option>
+            </select>
+          </label>
+          <label class="field-label" id="sideDistractionDurationRow">
+            Overlay seconds
+            <input id="sideDistractionDuration" type="number" min="1" max="60" step="1" value="15">
+          </label>
+          <div class="mode-grid">
+            <button id="postDistractionBtn" class="primary">Post</button>
+            <button id="clearDistractionBtn">Clear</button>
+          </div>
+          <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
+        </div>
+        <div class="settings-pane hidden" id="subSettingsPane">
+          <h3 class="panel-title">Sub Settings</h3>
+          <label class="settings-row">
+            Default bet
+            <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
+          </label>
+          <label class="settings-row">
+            Link warning
+            <select id="subLinkWarningMode">
+              <option value="warn">Ask before opening</option>
+              <option value="auto">Open without asking</option>
+            </select>
+          </label>
+        </div>
+      </section>
+    </div>
+  </aside>
+  <button class="side-restore-tab hidden" data-open-side-tab="chat" title="Open chat panel">Chat</button>
+  <button class="side-restore-tab settings hidden" data-open-side-tab="settings" title="Open settings panel">Settings</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script>
+/* {{TRIBUTE_ARCADE_BOOT_JS}} */
+</script>
+  <script>
+/* {{TRIBUTE_ARCADE_APP_JS}} */
+</script>
+</body>
+</html>
