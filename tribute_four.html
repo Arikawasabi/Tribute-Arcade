@@ -1269,6 +1269,7 @@
     .app.blackjack-wide .twentyone-table {
       min-height: min(78vh, 840px);
       gap: 16px;
+      overflow: visible;
     }
 
     .twentyone-table-center {
@@ -1408,10 +1409,31 @@
 
     .app.blackjack-wide .twentyone-table .playing-card {
       width: clamp(92px, 8.8vw, 142px);
+      cursor: zoom-in;
+      transform-origin: center;
+      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      will-change: transform;
+      z-index: 1;
     }
 
     .app.blackjack-wide .twentyone-table .twentyone-shoe .playing-card {
       width: 100%;
+      cursor: default;
+      transform: none;
+      z-index: 1;
+    }
+
+    .app.blackjack-wide .twentyone-hand,
+    .app.blackjack-wide .twentyone-hand .card-row {
+      overflow: visible;
+    }
+
+    .app.blackjack-wide .twentyone-hand .playing-card:hover,
+    .app.blackjack-wide .twentyone-hand .playing-card:focus-visible {
+      transform: scale(1.85);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.56), 0 0 0 2px rgba(239, 199, 94, 0.55);
+      filter: saturate(1.08) contrast(1.03);
+      z-index: 30;
     }
 
     .wheel-table {
