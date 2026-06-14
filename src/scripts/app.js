@@ -8031,6 +8031,7 @@
         image.src = art;
         image.alt = `${rankName(rank)} of ${suitName(suit)}`;
         image.loading = "lazy";
+        image.decoding = "async";
         element.appendChild(image);
       } else {
         element.appendChild(playingCardCorner(rank, symbol, "top"));
