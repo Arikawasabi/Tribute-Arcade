@@ -111,8 +111,6 @@
       lobbyScreen: document.getElementById("lobbyScreen"),
       setupScreen: document.getElementById("setupScreen"),
       gameSelectScreen: document.getElementById("gameSelectScreen"),
-      testingScreen: document.getElementById("testingScreen"),
-      cardViewerScreen: document.getElementById("cardViewerScreen"),
       gameScreen: document.getElementById("gameScreen"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
@@ -137,11 +135,6 @@
       miniGamesGrid: document.getElementById("miniGamesGrid"),
       testingGamesGrid: document.getElementById("testingGamesGrid"),
       boardGamesGrid: document.getElementById("boardGamesGrid"),
-      cardViewerCard: document.getElementById("cardViewerCard"),
-      cardViewerBackBtn: document.getElementById("cardViewerBackBtn"),
-      cardViewerGrid: document.getElementById("cardViewerGrid"),
-      testingBtn: document.getElementById("testingBtn"),
-      testingBackBtn: document.getElementById("testingBackBtn"),
       domSettingsPane: document.getElementById("domSettingsPane"),
       subSettingsPane: document.getElementById("subSettingsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
@@ -178,7 +171,6 @@
       queenPowerUsers: document.getElementById("queenPowerUsers"),
       tributeFourCard: document.getElementById("tributeFourCard"),
       tributeFleetCard: document.getElementById("tributeFleetCard"),
-      tributeDiceCard: document.getElementById("tributeDiceCard"),
       tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
@@ -766,8 +758,6 @@
       els.setupScreen.classList.toggle("hidden", screen !== "setup");
       els.lobbyScreen.classList.toggle("hidden", screen !== "lobby");
       els.gameSelectScreen.classList.toggle("hidden", screen !== "select");
-      els.testingScreen.classList.toggle("hidden", screen !== "testing");
-      els.cardViewerScreen.classList.toggle("hidden", screen !== "cardViewer");
       els.gameScreen.classList.toggle("hidden", screen !== "game");
       renderControlGlow();
       renderMenu();
@@ -1123,19 +1113,6 @@
       publishState();
     }
 
-    function openTributeDice() {
-      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
-      state.pendingWager = null;
-      state.currentGame = "tributeDice";
-      setScreen("game");
-      resetTributeDiceBoard();
-      applyDefaultBet();
-      els.log.innerHTML = "";
-      addLog(`<strong>${state.names.sub}</strong> opens the first dice bet. Raise the claim, or call the bluff.`);
-      render();
-      publishState();
-    }
-
     function openTributeTwentyOne() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.pendingWager = null;
@@ -1231,29 +1208,6 @@
       return names.some((name) => String(name || "").trim().toLowerCase() === "dusk");
     }
 
-    function openTestingScreen() {
-      if (!testingGamesUnlocked()) return;
-      setScreen("testing");
-      render();
-    }
-
-    function closeTestingScreen() {
-      setScreen("select");
-      render();
-    }
-
-    function openCardViewer() {
-      if (!testingGamesUnlocked()) return;
-      setScreen("cardViewer");
-      renderCardViewer();
-      render();
-    }
-
-    function closeCardViewer() {
-      setScreen("testing");
-      render();
-    }
-
     function renderMenu() {
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
       els.menuDomBank.textContent = money(state.domVault);
@@ -1265,16 +1219,9 @@
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
       els.tributeWheelCard.disabled = domPickBlocked;
-      els.tributeDiceCard.disabled = domPickBlocked;
       els.tributeTrailCard.disabled = domPickBlocked;
       els.tributeCheckersCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
-      els.testingBtn.classList.toggle("hidden", !testingGamesUnlocked());
-      if (state.screen === "testing" && !testingGamesUnlocked()) {
-        state.screen = "select";
-        els.testingScreen.classList.add("hidden");
-        els.gameSelectScreen.classList.remove("hidden");
-      }
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
         : `${state.names.dom || "Dom"} picks the next game.`;
@@ -1292,132 +1239,6 @@
       els.mainGamesGrid.classList.toggle("hidden", tab !== "main");
       els.miniGamesGrid.classList.toggle("hidden", tab !== "mini");
       els.testingGamesGrid.classList.toggle("hidden", tab !== "testing");
-    }
-
-    function viewerDeckCards() {
-      const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-      const suits = ["S", "H", "D", "C"];
-      return suits.flatMap((suit) => ranks.map((rank) => `${rank}${suit}`));
-    }
-
-    function renderCardViewer() {
-      if (!els.cardViewerGrid || state.screen !== "cardViewer") return;
-      els.cardViewerGrid.innerHTML = "";
-      viewerDeckCards().forEach((card) => {
-        const item = document.createElement("article");
-        item.className = "card-viewer-item";
-        item.appendChild(renderPlayingCard(card, false));
-        const actions = document.createElement("div");
-        actions.className = "card-viewer-actions";
-        const title = document.createElement("strong");
-        title.textContent = playingCardFileName(card).replace(/_/g, " ");
-        const download = document.createElement("button");
-        download.type = "button";
-        download.textContent = "Download PNG";
-        download.addEventListener("click", () => downloadGeneratedPlayingCard(card));
-        actions.appendChild(title);
-        actions.appendChild(download);
-        item.appendChild(actions);
-        els.cardViewerGrid.appendChild(item);
-      });
-    }
-
-    function playingCardFileName(card) {
-      const suit = card.slice(-1);
-      const rank = card.slice(0, -1);
-      return `${rankName(rank).toLowerCase()}_of_${suitName(suit).toLowerCase()}`;
-    }
-
-    function downloadGeneratedPlayingCard(card) {
-      const canvas = document.createElement("canvas");
-      canvas.width = 1000;
-      canvas.height = 1400;
-      drawGeneratedPlayingCard(canvas, card);
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `${playingCardFileName(card)}.png`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    }
-
-    function drawGeneratedPlayingCard(canvas, card) {
-      const ctx = canvas.getContext("2d");
-      const suit = card.slice(-1);
-      const rank = card.slice(0, -1);
-      const symbol = suitSymbol(suit);
-      const red = suit === "H" || suit === "D";
-      const ink = red ? "#b61f3f" : "#17120f";
-      const gold = "#c1a56f";
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      bg.addColorStop(0, "#fffdf8");
-      bg.addColorStop(1, "#efe2c4");
-      roundRectPath(ctx, 42, 42, 916, 1316, 44);
-      ctx.fillStyle = bg;
-      ctx.fill();
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = "rgba(23, 18, 15, 0.48)";
-      ctx.stroke();
-      roundRectPath(ctx, 124, 124, 752, 1152, 18);
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = gold;
-      ctx.stroke();
-      drawCardIndex(ctx, rank, symbol, ink, 102, 88, false);
-      drawCardIndex(ctx, rank, symbol, ink, 898, 1312, true);
-      if (isCourtRank(rank)) {
-        roundRectPath(ctx, 238, 270, 524, 700, 20);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
-        ctx.fill();
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "rgba(141, 103, 34, 0.34)";
-        ctx.stroke();
-        ctx.fillStyle = ink;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = "900 270px Georgia";
-        ctx.fillText(rank, 500, 520);
-        ctx.font = "900 180px Georgia";
-        ctx.fillText(symbol, 500, 720);
-      } else {
-        drawCardPips(ctx, rank, symbol, ink);
-      }
-      ctx.fillStyle = "rgba(23, 18, 15, 0.76)";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = "900 44px Arial";
-      ctx.fillText(`${rankName(rank).toUpperCase()} OF ${suitName(suit).toUpperCase()}`, 500, 1218);
-    }
-
-    function drawCardIndex(ctx, rank, symbol, ink, x, y, inverted) {
-      ctx.save();
-      ctx.translate(x, y);
-      if (inverted) ctx.rotate(Math.PI);
-      ctx.fillStyle = ink;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.font = "900 88px Georgia";
-      ctx.fillText(rank, 0, 0);
-      ctx.font = "900 62px Georgia";
-      ctx.fillText(symbol, 0, 82);
-      ctx.restore();
-    }
-
-    function drawCardPips(ctx, rank, symbol, ink) {
-      const value = rank === "A" ? 1 : Number(rank);
-      const count = Number.isFinite(value) ? value : 1;
-      const positions = pipPositions(count);
-      ctx.fillStyle = ink;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = count === 1 ? "900 280px Georgia" : "900 136px Georgia";
-      positions.forEach((point, index) => {
-        ctx.save();
-        ctx.translate(point.x, point.y);
-        if (index >= Math.ceil(count / 2)) ctx.rotate(Math.PI);
-        ctx.fillText(symbol, 0, 0);
-        ctx.restore();
-      });
     }
 
     function pipPositions(count) {
@@ -2560,8 +2381,7 @@
       "tributeChess",
       "tributeCheckers",
       "tributeTwentyOne",
-      "tributeTicTacToe",
-      "tributeDice"
+      "tributeTicTacToe"
     ]);
 
     function usesRoundFlow(game = state.currentGame) {
@@ -2886,10 +2706,6 @@
         startFleetNormalMatch();
         return;
       }
-      if (state.currentGame === "tributeDice") {
-        startDiceNormalMatch();
-        return;
-      }
       const bet = prepareRound("normal");
       if (bet === null) return;
       state.blockedColumns = [];
@@ -2931,10 +2747,6 @@
       }
       if (state.currentGame === "tributeFleet") {
         startFleetReclaimMatch();
-        return;
-      }
-      if (state.currentGame === "tributeDice") {
-        startDiceReclaimMatch();
         return;
       }
       const pot = prepareRound("reclaim", "match");
@@ -5053,14 +4865,6 @@
         publishState();
         return;
       }
-      if (state.currentGame === "tributeDice") {
-        resetTributeDiceBoard();
-        els.log.innerHTML = "";
-        addLog(`<strong>Tribute Dice reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
-        render();
-        publishState();
-        return;
-      }
       resetTributeFourBoard();
       els.log.innerHTML = "";
       addLog(`<strong>Tribute Four reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
@@ -5819,16 +5623,6 @@
       return value === 0 ? "blank" : money(value);
     }
 
-    function resetTributeDiceBoard() {
-      state.turn = SUB;
-      state.active = false;
-      state.mode = "normal";
-      state.pot = 0;
-      state.lockedTribute = state.domVault;
-      state.winningCells = [];
-      state.dice = createDiceState();
-    }
-
     function resetTributeTicTacToeBoard() {
       state.board = createTicTacToeBoard();
       state.turn = SUB;
@@ -5916,72 +5710,6 @@
 
     function isTicTacToeFull() {
       return state.board.every((row) => row.every(Boolean));
-    }
-
-    function rollDiceHand() {
-      return Array.from({ length: 3 }, () => 1 + Math.floor(Math.random() * 6));
-    }
-
-    function startDiceNormalMatch() {
-      const bet = prepareRound("normal");
-      if (bet === null) return;
-      state.dice = createDiceState();
-      state.dice.dice.sub = rollDiceHand();
-      state.dice.dice.dom = rollDiceHand();
-      const starter = randomStarter();
-      state.turn = starter;
-      state.active = true;
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} makes the first claim.`);
-    }
-
-    function startDiceReclaimMatch() {
-      const pot = prepareRound("reclaim", "match");
-      if (pot === null) return;
-      state.dice = createDiceState();
-      state.dice.dice.sub = rollDiceHand();
-      state.dice.dice.dom = rollDiceHand();
-      state.turn = DOM;
-      state.active = true;
-      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} tries to win back ${money(pot)}. ${state.names.dom} makes the first claim.`);
-    }
-
-    function diceBidValue(bid) {
-      return bid ? (bid.count * 10 + bid.face) : 0;
-    }
-
-    function diceBidOptions() {
-      const options = [];
-      const current = diceBidValue(state.dice.bid);
-      for (let count = 1; count <= 6; count += 1) {
-        for (let face = 1; face <= 6; face += 1) {
-          const bid = { count, face };
-          if (diceBidValue(bid) > current) options.push(bid);
-        }
-      }
-      return options;
-    }
-
-    function makeDiceBid(count, face) {
-      if (!state.active || state.currentGame !== "tributeDice") return;
-      if (localOnlineRole() && localOnlineRole() !== state.turn) return;
-      state.dice.bid = { count, face, by: state.turn };
-      addLog(`<strong>${labelFor(state.turn)} claims</strong> at least ${count} ${face}${count === 1 ? "" : "s"}.`);
-      state.turn = state.turn === SUB ? DOM : SUB;
-      render();
-      publishState();
-    }
-
-    function callDiceBluff() {
-      if (!state.active || state.currentGame !== "tributeDice" || !state.dice.bid) return;
-      if (localOnlineRole() && localOnlineRole() !== state.turn) return;
-      const bid = state.dice.bid;
-      const allDice = [...state.dice.dice.sub, ...state.dice.dice.dom];
-      const actual = allDice.filter((value) => value === bid.face).length;
-      const bidderWins = actual >= bid.count;
-      state.dice.revealed = true;
-      state.dice.outcome = `${actual} ${bid.face}${actual === 1 ? "" : "s"} on the table.`;
-      addLog(`<strong>${labelFor(state.turn)} calls.</strong> ${state.dice.outcome} ${labelFor(bidderWins ? bid.by : state.turn)} wins the dice round.`);
-      endMatch(bidderWins ? bid.by : state.turn, []);
     }
 
     function chessEngine() {
@@ -7717,10 +7445,6 @@
         renderFleetBoard();
         return;
       }
-      if (state.currentGame === "tributeDice") {
-        renderDiceBoard();
-        return;
-      }
       els.board.innerHTML = "";
       els.board.className = "board";
       const winSet = new Set(state.winningCells.map(([r, c]) => `${r},${c}`));
@@ -8013,58 +7737,6 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("SPIN", center, center);
-    }
-
-    function renderDiceBoard() {
-      const viewer = localOnlineRole();
-      const canAct = state.active && (!viewer || viewer === state.turn);
-      const showAll = !viewer || !state.active || state.dice.revealed;
-      els.board.innerHTML = "";
-      els.board.className = "dice-table";
-      const panels = document.createElement("div");
-      panels.className = "dice-panels";
-      [DOM, SUB].forEach((role) => {
-        const panel = document.createElement("section");
-        panel.className = "dice-panel";
-        const visible = showAll || viewer === role;
-        const dice = state.dice.dice[role] || [];
-        panel.innerHTML = `<strong>${labelFor(role)}</strong><div class="dice-row">${dice.map((value) => `<span class="die">${visible ? value : "?"}</span>`).join("") || `<span class="die">-</span>`}</div>`;
-        panels.appendChild(panel);
-      });
-      els.board.appendChild(panels);
-
-      const status = document.createElement("section");
-      status.className = "dice-panel";
-      const bid = state.dice.bid;
-      const bidText = bid
-        ? `Current claim: at least ${bid.count} ${bid.face}${bid.count === 1 ? "" : "s"} by ${labelFor(bid.by)}.`
-        : "No claim yet.";
-      status.innerHTML = `<p>${bidText}</p>${state.dice.outcome ? `<p>${state.dice.outcome}</p>` : ""}`;
-      els.board.appendChild(status);
-
-      if (!state.active) return;
-      const actions = document.createElement("section");
-      actions.className = "dice-panel";
-      actions.innerHTML = `<strong>${labelFor(state.turn)} to act</strong>`;
-      if (bid) {
-        const call = document.createElement("button");
-        call.className = "secondary";
-        call.textContent = "Call Bluff";
-        call.disabled = !canAct;
-        call.addEventListener("click", callDiceBluff);
-        actions.appendChild(call);
-      }
-      const grid = document.createElement("div");
-      grid.className = "bid-grid";
-      diceBidOptions().forEach((option) => {
-        const button = document.createElement("button");
-        button.textContent = `${option.count} x ${option.face}`;
-        button.disabled = !canAct;
-        button.addEventListener("click", () => makeDiceBid(option.count, option.face));
-        grid.appendChild(button);
-      });
-      actions.appendChild(grid);
-      els.board.appendChild(actions);
     }
 
     function renderChessBoard() {
@@ -8534,7 +8206,7 @@
 
     function currentTiltStatusItems() {
       if (state.screen !== "game") return [];
-      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail") return [];
+      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail") return [];
       if (state.currentGame === "tributeFleet") {
         const modifiers = state.fleet.modifiers || [];
         const modifierText = modifiers.length
@@ -8616,10 +8288,6 @@
         renderTributeTrailRules();
         return;
       }
-      if (state.currentGame === "tributeDice") {
-        renderDiceRules();
-        return;
-      }
       if (state.currentGame === "tributeFleet") {
         renderFleetRules();
         return;
@@ -8698,15 +8366,6 @@
         `<strong>Finish:</strong> if ${state.names.sub} reaches the end first, the game ends immediately. If ${state.names.dom} reaches the end first, she can end the game or go shopping.`,
         `<strong>Shopping:</strong> while shopping is active, ${state.names.dom} can buy cards on her turn using spending money. Dom cards cost ${money(6)} and activate right away, Sub cards cost ${money(3)} and activate at the end of the next ${state.names.sub} turn, and Chance cards cost ${money(4)} and activate right away. ${state.names.sub} rolls two dice while sprinting for the finish.`,
         `<strong>No bet required:</strong> Tribute Trail does not use normal bets, reclaims, or tilt in this version.`
-      ];
-      setRuleList(rules);
-    }
-
-    function renderDiceRules() {
-      const rules = [
-        `<strong>Status:</strong> Tribute Dice is currently removed from the game menu while its design is being reworked.`,
-        `<strong>Old prototype:</strong> each player rolled three dice, players raised claims, and the opponent could call bluff.`,
-        `<strong>Old resolution:</strong> if the table contained enough matching dice, the bidder won. Otherwise the caller won.`
       ];
       setRuleList(rules);
     }
@@ -8979,7 +8638,7 @@
         els.passBtn.textContent = "Power";
       } else if (state.currentGame === "tributeTrail") {
         els.passBtn.classList.add("hidden");
-      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "tributeDice" || state.currentGame === "wheelSpin") {
+      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin") {
         els.passBtn.classList.add("hidden");
       } else {
         const tributeFourPowerReady = !state.lockColumnMode && ((state.lockColumnAvailable && !state.lockColumnMode) || (state.pressureDropAvailable && !state.pressureDropArmed));
@@ -9029,11 +8688,6 @@
         els.gameSubtitle.textContent = "A 60-space board race with card, chance, cash, blank, slide spaces, and a Trail Tribute meter.";
         return;
       }
-      if (state.currentGame === "tributeDice") {
-        els.gameTitle.textContent = "Tribute Dice";
-        els.gameSubtitle.textContent = "Bluffing dice with cash stakes. Raise the claim, call the bluff, and make the other player prove it.";
-        return;
-      }
       if (state.currentGame === "tributeFleet") {
         els.gameTitle.textContent = "Tribute Fleet";
         els.gameSubtitle.textContent = "Battleship with cash stakes. Fleets are hidden and auto-placed; normal bets are fair, while reclaim matches tilt the water toward the dom.";
@@ -9051,7 +8705,6 @@
       renderText();
       renderSavedLinkButton();
       renderMenu();
-      renderCardViewer();
       renderLobby();
       renderSidePanel();
       renderLeaveRoomButtons();
@@ -9215,10 +8868,6 @@
     if (els.queenPowerMode) els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
     if (els.queenPowerUsers) els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
     els.backToMenuBtn.addEventListener("click", backToMenu);
-    els.testingBtn.addEventListener("click", openTestingScreen);
-    els.testingBackBtn.addEventListener("click", closeTestingScreen);
-    els.cardViewerCard.addEventListener("click", openCardViewer);
-    els.cardViewerBackBtn.addEventListener("click", closeCardViewer);
     if (els.continueSetupBtn) els.continueSetupBtn.addEventListener("click", continueToSetup);
     els.confirmLobbyNameBtn.addEventListener("click", confirmLobbyName);
     els.joinRoomBtn.addEventListener("click", joinRoomFromInput);
@@ -9245,7 +8894,6 @@
     els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
     els.tributeFourCard.addEventListener("click", openTributeFour);
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
-    els.tributeDiceCard.addEventListener("click", openTributeDice);
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
     els.tributeWheelCard.addEventListener("click", openWheelSpin);
