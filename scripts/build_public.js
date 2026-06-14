@@ -90,9 +90,7 @@ function pruneUnusedDeployAssets() {
   const refs = parseReferencedAssetNames();
   const candidates = [
     path.join(cloudflareDir, "custom_playing_card_deck_sheet.png"),
-    path.join(cloudflareDir, "jack_of_spades_rebuilt.png"),
-    path.join(renderDir, "custom_playing_card_deck_sheet.png"),
-    path.join(renderDir, "jack_of_spades_rebuilt.png")
+    path.join(renderDir, "custom_playing_card_deck_sheet.png")
   ];
   let removed = 0;
   for (const file of candidates) {
