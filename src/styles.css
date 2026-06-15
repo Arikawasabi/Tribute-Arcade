@@ -1329,15 +1329,15 @@
       justify-self: center;
       display: grid;
       grid-template-columns: repeat(2, minmax(96px, 1fr));
-      gap: 8px;
-      width: min(260px, 100%);
+      gap: 10px;
+      width: min(340px, 100%);
     }
 
     .twentyone-table-actions button {
-      min-height: 42px;
-      padding: 10px 12px;
+      min-height: 50px;
+      padding: 12px 14px;
       border-radius: 8px;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
     }
 
     .twentyone-table-actions button:nth-child(1) {

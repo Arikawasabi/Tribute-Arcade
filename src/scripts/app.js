@@ -388,6 +388,7 @@
         stood: false,
         dealerTurn: false,
         pushLuckPending: false,
+        pushLuckQueued: false,
         pushLuckAvailable: false,
         revealDom: false,
         softSaveAvailable: false,
@@ -3059,6 +3060,7 @@
       `).join("");
       const selected = powers.find((power) => power.type === selectedTributeFourPower) || powers[0];
       els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
+      els.tributeFourPowerUseBtn.textContent = "Use";
       els.tributeFourPowerUseBtn.disabled = !selected.available;
     }
 
@@ -3132,6 +3134,7 @@
       `).join("");
       const selected = powers.find((power) => power.type === selectedFleetPower) || powers[0];
       els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
+      els.tributeFourPowerUseBtn.textContent = "Use";
       els.tributeFourPowerUseBtn.disabled = selectedFleetPower !== "scan" || !selected.available;
     }
 
@@ -3210,6 +3213,7 @@
       const selected = powers.find((power) => power.type === selectedChessPower) || powers[0];
       const affected = queenAffectedLabel() || "no pieces";
       els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.<br><strong>Charges:</strong> ${state.chess.charges || 0}. <strong>Affected:</strong> ${affected}.`;
+      els.tributeFourPowerUseBtn.textContent = "Use";
       els.tributeFourPowerUseBtn.disabled = !selected.available;
     }
 
@@ -3315,6 +3319,7 @@
       `).join("");
       const selected = powers.find((power) => power.type === selectedCheckersPower) || powers[0];
       els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
+      els.tributeFourPowerUseBtn.textContent = "Use";
       els.tributeFourPowerUseBtn.disabled = !selected.available;
     }
 
@@ -3377,8 +3382,10 @@
           label: "Push Your Luck",
           unlocked: reclaim && state.tiltLevel >= 3,
           available: reclaim && state.tiltLevel >= 3 && Boolean(state.twentyOne.pushLuckAvailable),
-          detail: `<strong>Push Your Luck.</strong> After ${state.names.sub} stands, ${state.names.dom} may force one extra ${state.names.sub} card. If ${state.names.sub} busts, ${state.names.dom} wins. If ${state.names.sub} survives, ${state.names.dom} immediately takes one kickback card before playing her dealer hand.`,
-          uses: reclaim && state.tiltLevel >= 3 ? (state.twentyOne.pushLuckAvailable ? "available after the sub stands" : "already decided this hand") : "0 available at this tilt"
+          detail: `<strong>Push Your Luck.</strong> ${state.names.dom} may queue this while ${state.names.sub} is deciding. If ${state.names.sub} stands, it forces one extra ${state.names.sub} card. If ${state.names.sub} busts, ${state.names.dom} wins. If ${state.names.sub} survives, ${state.names.dom} immediately takes one kickback card before playing her dealer hand.`,
+          uses: reclaim && state.tiltLevel >= 3
+            ? (state.twentyOne.pushLuckQueued ? "queued for this hand" : (state.twentyOne.pushLuckAvailable ? "1 remaining / 1 total this hand" : "already decided this hand"))
+            : "0 available at this tilt"
         },
         dealerLock: {
           label: "Dealer Lock",
@@ -3395,9 +3402,10 @@
           uses: "passive while active"
         }
       }[type];
+      const queued = type === "pushLuck" && state.twentyOne.pushLuckQueued;
       return {
         ...info,
-        status: info.available ? "Ready" : (info.unlocked ? "0 remaining" : "Not unlocked")
+        status: queued ? "Queued" : (info.available ? "Ready" : (info.unlocked ? "0 remaining" : "Not unlocked"))
       };
     }
 
@@ -3407,9 +3415,23 @@
 
     function canOpenTwentyOnePowerModal() {
       if (state.currentGame !== "tributeTwentyOne" || state.mode !== "reclaim") return false;
-      if (!state.active || state.turn !== SUB || state.twentyOne.dealerTurn) return false;
+      if (!state.active || state.twentyOne.setupPending || state.twentyOne.nextHandPending) return false;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
       return domAdvantagesEnabled() && blackjackPowersEnabled() && state.tiltLevel >= 1;
+    }
+
+    function canQueueTwentyOnePushLuck() {
+      return canOfferTwentyOnePushLuck()
+        && state.turn === SUB
+        && !state.twentyOne.pushLuckPending
+        && !state.twentyOne.dealerTurn
+        && !state.twentyOne.pushLuckQueued;
+    }
+
+    function canUseTwentyOnePushLuckNow() {
+      return canOfferTwentyOnePushLuck()
+        && state.turn === DOM
+        && state.twentyOne.pushLuckPending;
     }
 
     function openTwentyOnePowerModal() {
@@ -3429,10 +3451,29 @@
       `).join("");
       const selected = powers.find((power) => power.type === selectedTwentyOnePower) || powers[0];
       els.tributeFourPowerDetail.innerHTML = `${selected.detail}<br><br><strong>Uses:</strong> ${selected.uses}.`;
-      els.tributeFourPowerUseBtn.disabled = true;
+      const canUseSelected = selected.type === "pushLuck"
+        && selected.available
+        && (canQueueTwentyOnePushLuck() || canUseTwentyOnePushLuckNow());
+      els.tributeFourPowerUseBtn.disabled = !canUseSelected;
+      els.tributeFourPowerUseBtn.textContent = selected.type === "pushLuck"
+        ? (state.twentyOne.pushLuckQueued ? "Queued" : (canUseTwentyOnePushLuckNow() ? "Force Draw" : "Queue"))
+        : "Use";
     }
 
     function useTwentyOnePower() {
+      if (selectedTwentyOnePower === "pushLuck" && canUseTwentyOnePushLuckNow()) {
+        closeTributeFourPowerModal();
+        pushTwentyOneLuck();
+        return;
+      }
+      if (selectedTwentyOnePower === "pushLuck" && canQueueTwentyOnePushLuck()) {
+        state.twentyOne.pushLuckQueued = true;
+        closeTributeFourPowerModal();
+        addLog(`<strong>Push Your Luck queued.</strong> If ${state.names.sub} stands, ${state.names.dom} forces one more card.`);
+        render();
+        publishState();
+        return;
+      }
       renderTwentyOnePowerModal();
     }
 
@@ -6390,6 +6431,7 @@
       state.twentyOne.stood = false;
       state.twentyOne.dealerTurn = false;
       state.twentyOne.pushLuckPending = false;
+      state.twentyOne.pushLuckQueued = false;
       state.twentyOne.pushLuckAvailable = blackjackPowersEnabled() && state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 3;
       state.twentyOne.softSaveAvailable = blackjackPowersEnabled() && state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 2;
       state.twentyOne.outcome = "";
@@ -6463,6 +6505,11 @@
         state.turn = DOM;
         if (canOfferTwentyOnePushLuck()) {
           state.twentyOne.pushLuckPending = true;
+          if (state.twentyOne.pushLuckQueued) {
+            addLog(`<strong>${state.names.sub} stands.</strong> ${state.names.dom}'s queued Push Your Luck triggers.`);
+            pushTwentyOneLuck(true);
+            return;
+          }
           addLog(`<strong>${state.names.sub} stands.</strong> ${state.names.dom} may Push Your Luck.`);
         } else {
           state.twentyOne.revealDom = true;
@@ -6502,10 +6549,11 @@
         && state.twentyOne.pushLuckAvailable;
     }
 
-    function pushTwentyOneLuck() {
+    function pushTwentyOneLuck(fromQueued = false) {
       if (!state.twentyOne.pushLuckPending || !canOfferTwentyOnePushLuck()) return;
-      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
+      if (!fromQueued && !domAdvantageControlsAllowed(localOnlineRole())) return;
       state.twentyOne.pushLuckPending = false;
+      state.twentyOne.pushLuckQueued = false;
       state.twentyOne.pushLuckAvailable = false;
       state.twentyOne.hands.sub.push(drawTwentyOneCard());
       addLog(`<strong>Push Your Luck.</strong> ${state.names.dom} makes ${state.names.sub} take one more card.`);
@@ -6536,6 +6584,7 @@
       if (!state.twentyOne.pushLuckPending) return;
       if (localOnlineRole() && localOnlineRole() !== DOM) return;
       state.twentyOne.pushLuckPending = false;
+      state.twentyOne.pushLuckQueued = false;
       state.twentyOne.pushLuckAvailable = false;
       state.twentyOne.revealDom = true;
       state.twentyOne.dealerTurn = true;
@@ -6598,6 +6647,8 @@
     function endTwentyOneHand(winner, reason) {
       state.active = false;
       state.twentyOne.revealDom = true;
+      state.twentyOne.pushLuckPending = false;
+      state.twentyOne.pushLuckQueued = false;
       state.twentyOne.outcome = reason;
 
       if (state.twentyOne.targetMarks > 1) {
@@ -7858,7 +7909,8 @@
         canHold,
         canPower,
         drawLabel: pushLuckPending ? "Force Draw" : "Draw",
-        holdLabel: pushLuckPending ? "Let Them Hold" : "Hold"
+        holdLabel: pushLuckPending ? "Let Them Hold" : "Hold",
+        powerLabel: state.twentyOne.pushLuckQueued ? "Power Queued" : "Power"
       };
     }
 
@@ -7868,25 +7920,27 @@
       if (!actionState.canDraw && !actionState.canHold && !actionState.canPower) return null;
       const actions = document.createElement("div");
       actions.className = "twentyone-table-actions";
-      const drawButton = document.createElement("button");
-      drawButton.type = "button";
-      drawButton.textContent = actionState.drawLabel;
-      drawButton.disabled = !actionState.canDraw;
-      drawButton.addEventListener("click", hitTwentyOne);
-      actions.appendChild(drawButton);
+      if (actionState.canDraw || actionState.canHold || !actionState.canPower) {
+        const drawButton = document.createElement("button");
+        drawButton.type = "button";
+        drawButton.textContent = actionState.drawLabel;
+        drawButton.disabled = !actionState.canDraw;
+        drawButton.addEventListener("click", hitTwentyOne);
+        actions.appendChild(drawButton);
 
-      const holdButton = document.createElement("button");
-      holdButton.type = "button";
-      holdButton.textContent = actionState.holdLabel;
-      holdButton.disabled = !actionState.canHold;
-      holdButton.addEventListener("click", standTwentyOne);
-      actions.appendChild(holdButton);
+        const holdButton = document.createElement("button");
+        holdButton.type = "button";
+        holdButton.textContent = actionState.holdLabel;
+        holdButton.disabled = !actionState.canHold;
+        holdButton.addEventListener("click", standTwentyOne);
+        actions.appendChild(holdButton);
+      }
 
       if (actionState.canPower) {
         const powerButton = document.createElement("button");
         powerButton.type = "button";
         powerButton.className = "twentyone-power-action";
-        powerButton.textContent = "Power";
+        powerButton.textContent = actionState.powerLabel;
         powerButton.addEventListener("click", openTwentyOnePowerModal);
         actions.appendChild(powerButton);
       }
@@ -7915,6 +7969,9 @@
       if (state.twentyOne.pushLuckPending) {
         return { title: "Push Your Luck", detail: `${state.names.dom} may force one extra ${state.names.sub} card.` };
       }
+      if (state.turn === SUB && state.twentyOne.pushLuckQueued) {
+        return { title: "Power Queued", detail: `${state.names.dom}'s Push Your Luck is waiting for ${state.names.sub} to stand.` };
+      }
       if (state.twentyOne.dealerTurn) {
         return { title: "Dealer Turn", detail: `${state.names.dom} plays the dealer hand.` };
       }
@@ -7929,6 +7986,7 @@
       if (state.twentyOne.nextHandPending) return "The next hand starts with a fresh shuffle.";
       if (!state.active) return "The table is waiting for tribute.";
       if (state.twentyOne.pushLuckPending) return "Use Hit to push, or Stand to let them keep it.";
+      if (state.turn === SUB && state.twentyOne.pushLuckQueued) return `${state.names.dom}'s Push Your Luck is queued. If ${state.names.sub} stands, one extra card is forced.`;
       if (state.twentyOne.dealerTurn) return "Dealer must reach the table minimum before standing.";
       if (state.turn === SUB) return "Hit draws another card. Stand passes control to the dom.";
       return "Watch the hidden card flip when the dealer turn begins.";
@@ -8446,7 +8504,7 @@
         `<strong>Powers:</strong> if powers are off, Peek, Soft Save, Push Your Luck, Dealer Lock, and House Sweep do not apply.`,
         `<strong>Tilt 1, Peek:</strong> ${state.names.dom} can see her hidden dealer card.`,
         `<strong>Tilt 2, Soft Save:</strong> once per reclaim, a dom bust from 22 to 24 is treated as 21.`,
-        `<strong>Tilt 3, Push Your Luck:</strong> after ${state.names.sub} stands, ${state.names.dom} may force one extra ${state.names.sub} card. If ${state.names.sub} survives, ${state.names.dom} immediately takes one kickback card before playing her dealer hand.`,
+        `<strong>Tilt 3, Push Your Luck:</strong> ${state.names.dom} may queue this while ${state.names.sub} is deciding. If ${state.names.sub} stands, it forces one extra ${state.names.sub} card. If ${state.names.sub} survives, ${state.names.dom} immediately takes one kickback card before playing her dealer hand.`,
         `<strong>Tilt 4, Dealer Lock:</strong> ${state.names.dom} can stand on 16 or higher.`,
         `<strong>Tilt 5+, House Sweep:</strong> in reclaim, ${state.names.sub} must beat ${state.names.dom} by at least 2.`
       ];
@@ -8459,7 +8517,7 @@
       const rules = [`Tilt level ${state.tiltLevel}: ${twentyOneTiltSummary()}`];
       if (state.tiltLevel >= 1) rules.push("Peek: the dom can see her hidden dealer card.");
       if (state.tiltLevel >= 2) rules.push("Soft Save: once per reclaim, a dom bust from 22 to 24 is treated as 21.");
-      if (state.tiltLevel >= 3) rules.push("Push Your Luck: after the sub stands, the dom may force one extra sub card, but surviving subs make the dom take a kickback card.");
+      if (state.tiltLevel >= 3) rules.push("Push Your Luck: the dom may queue this while the sub is deciding. If the sub stands, it forces one extra sub card, but surviving subs make the dom take a kickback card.");
       if (state.tiltLevel >= 4) rules.push("Dealer Lock: the dom can stand on 16 or higher.");
       if (state.tiltLevel >= 5) rules.push("House Sweep: in reclaim, the sub must beat the dom by at least 2.");
       return rules;
