@@ -13,6 +13,7 @@ const stylesPath = path.join(srcDir, "styles.css");
 const bootScriptPath = path.join(srcScriptsDir, "online-runtime.js");
 const appScriptPath = path.join(srcScriptsDir, "app.js");
 const outputHtmlPath = path.join(outputsDir, "tribute_four.html");
+const rootHtmlPath = path.join(root, "tribute_four.html");
 
 const cssToken = "/* {{TRIBUTE_ARCADE_CSS}} */";
 const bootToken = "/* {{TRIBUTE_ARCADE_BOOT_JS}} */";
@@ -56,6 +57,7 @@ function buildHtml() {
   html = html.replace(cssToken, read(stylesPath).replace(/\s*$/, ""));
   html = html.replace(bootToken, read(bootScriptPath).replace(/\s*$/, ""));
   html = html.replace(appToken, read(appScriptPath).replace(/\s*$/, ""));
+  write(rootHtmlPath, html);
   write(outputHtmlPath, html);
   write(path.join(cloudflareDir, "tribute_four.html"), html);
   write(path.join(renderDir, "tribute_four.html"), html);

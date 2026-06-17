@@ -34,7 +34,6 @@
         domAdvantageMode: "dom",
         subDefaultBet: 10,
         subLinkWarningMode: "warn",
-        domLinkUrl: "",
         distractionUrl: "",
         distractionMode: "background-both",
         distractionDuration: 15,
@@ -141,9 +140,7 @@
       subDefaultBetInput: document.getElementById("subDefaultBetInput"),
       subLinkWarningMode: document.getElementById("subLinkWarningMode"),
       domLinkUrlInput: document.getElementById("domLinkUrlInput") || document.getElementById("sideDomLinkInput"),
-      saveDomLinkBtn: document.getElementById("saveDomLinkBtn"),
       sendDomLinkBtn: document.getElementById("sendDomLinkBtn"),
-      openSavedLinkBtn: document.getElementById("openSavedLinkBtn"),
       domLinkStatus: document.getElementById("domLinkStatus") || document.getElementById("sideDomLinkStatus"),
       sidePopout: document.getElementById("sidePopout"),
       sidePanelTitle: document.getElementById("sidePanelTitle"),
@@ -157,7 +154,6 @@
       chatInput: document.getElementById("chatInput"),
       sendChatBtn: document.getElementById("sendChatBtn"),
       sideDomLinkInput: document.getElementById("sideDomLinkInput"),
-      sideSaveDomLinkBtn: document.getElementById("sideSaveDomLinkBtn"),
       sideSendDomLinkBtn: document.getElementById("sideSendDomLinkBtn"),
       sideDomLinkStatus: document.getElementById("sideDomLinkStatus"),
       sideDistractionInput: document.getElementById("sideDistractionInput"),
@@ -1301,8 +1297,7 @@
       if (els.domAdvantageMode) els.domAdvantageMode.value = state.settings.domAdvantageMode;
       if (els.subDefaultBetInput) els.subDefaultBetInput.value = state.settings.subDefaultBet;
       if (els.subLinkWarningMode) els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "warn";
-      if (els.domLinkUrlInput) els.domLinkUrlInput.value = state.settings.domLinkUrl || "";
-      if (els.sendDomLinkBtn) els.sendDomLinkBtn.disabled = !state.settings.domLinkUrl;
+      if (els.sendDomLinkBtn) els.sendDomLinkBtn.disabled = !domLinkControlsAllowed();
       if (els.queenPowerMode) els.queenPowerMode.value = state.settings.queenPowerMode;
       if (els.queenPowerUsers) els.queenPowerUsers.value = state.settings.queenPowerUsers;
     }
@@ -1340,38 +1335,30 @@
       return normalizeDomLink(raw);
     }
 
-    function saveDomLink() {
-      saveDomLinkFromInput(els.domLinkUrlInput, els.domLinkStatus);
+    function currentDomLinkInputValue() {
+      if (document.activeElement === els.sideDomLinkInput) return els.sideDomLinkInput.value;
+      if (document.activeElement === els.domLinkUrlInput) return els.domLinkUrlInput.value;
+      return (els.sideDomLinkInput && els.sideDomLinkInput.value) || (els.domLinkUrlInput && els.domLinkUrlInput.value) || "";
     }
 
     function sendDomLinkRequest() {
       const role = localOnlineRole();
       if (state.online.room && role !== DOM) return;
-      const url = normalizeDomLink(state.settings.domLinkUrl || els.domLinkUrlInput.value);
+      const url = normalizeDomLink(currentDomLinkInputValue());
       if (!url) {
-        els.domLinkStatus.textContent = "Save a valid link first.";
-        els.sideDomLinkStatus.textContent = "Save a valid link first.";
+        if (els.domLinkStatus) els.domLinkStatus.textContent = "Enter a valid http or https link.";
+        els.sideDomLinkStatus.textContent = "Enter a valid http or https link.";
         return;
       }
-      state.settings.domLinkUrl = url;
       state.settings.linkRequest = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url
       };
-      els.domLinkStatus.textContent = "Link request sent.";
+      if (els.domLinkStatus) els.domLinkStatus.textContent = "Link request sent.";
       els.sideDomLinkStatus.textContent = "Link request sent.";
       renderSettings();
       renderSidePanel();
       publishSettingsState();
-    }
-
-    function renderSavedLinkButton() {
-      const role = localOnlineRole();
-      const domCanUse = !state.online.room || role === DOM;
-      const hasLink = Boolean(state.settings.domLinkUrl);
-      els.openSavedLinkBtn.classList.toggle("hidden", !domCanUse);
-      els.openSavedLinkBtn.disabled = !domCanUse || !hasLink;
-      els.openSavedLinkBtn.title = hasLink ? "Open the saved link in the sub browser" : "Save a link from Settings first";
     }
 
     function domLinkControlsAllowed() {
@@ -1412,9 +1399,10 @@
           <span>${escapeHtml(message.text)}</span>
         </div>
       `).join("") || `<div class="chat-message"><strong>Table</strong><span>No messages yet.</span></div>`;
-      els.sideDomLinkInput.value = state.settings.domLinkUrl || "";
-      els.sideSendDomLinkBtn.disabled = !canUseDomSettings || !state.settings.domLinkUrl;
-      els.sideSaveDomLinkBtn.disabled = !canUseDomSettings;
+      if (document.activeElement !== els.sideDomLinkInput) {
+        els.sideDomLinkInput.value = els.sideDomLinkInput.value || "";
+      }
+      els.sideSendDomLinkBtn.disabled = !canUseDomSettings;
       els.sideDomLinkInput.disabled = !canUseDomSettings;
       els.sideDistractionInput.disabled = !canUseDomSettings;
       els.sideDistractionMode.disabled = !canUseDomSettings;
@@ -1519,23 +1507,6 @@
       els.chatInput.value = "";
       renderSidePanel();
       publishChatMessage(message);
-    }
-
-    function saveDomLinkFromInput(input, statusEl) {
-      const role = localOnlineRole();
-      if (state.online.room && role !== DOM) return;
-      const url = normalizeDomLink(input.value);
-      if (!url) {
-        statusEl.textContent = "Enter a valid http or https link.";
-        return;
-      }
-      state.settings.domLinkUrl = url;
-      els.domLinkStatus.textContent = "Link saved.";
-      els.sideDomLinkStatus.textContent = "Link saved.";
-      renderSettings();
-      renderSidePanel();
-      renderSavedLinkButton();
-      publishSettingsState();
     }
 
     function postDistraction() {
@@ -1785,12 +1756,11 @@
         url: els.subLinkModal.dataset.url
       };
       if (!request.id || !request.url) return;
+      markSubLinkRequestHandled(request);
       const opened = window.open(request.url, "_blank", "noopener");
       if (!opened) {
-        els.subLinkModalText.textContent = `Your browser blocked the new window. Allow popups for this site, then press Open Link again: ${request.url}`;
-        return;
+        window.alert(`Your browser blocked the new window. Allow popups for this site, then ask ${state.names.dom || "the dom"} to send it again.`);
       }
-      markSubLinkRequestHandled(request);
     }
 
     function declineSubLinkRequest() {
@@ -8762,7 +8732,6 @@
       renderControls();
       renderRules();
       renderText();
-      renderSavedLinkButton();
       renderMenu();
       renderLobby();
       renderSidePanel();
@@ -8843,12 +8812,14 @@
     }
     if (els.subLinkWarningMode) els.subLinkWarningMode.addEventListener("change", () => updateSettings({ subLinkWarningMode: els.subLinkWarningMode.value }));
     if (els.domLinkUrlInput && els.domLinkUrlInput !== els.sideDomLinkInput) {
-      els.domLinkUrlInput.addEventListener("input", () => updateSettings({ domLinkUrl: els.domLinkUrlInput.value }));
+      els.domLinkUrlInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") sendDomLinkRequest();
+      });
     }
-    els.sideDomLinkInput.addEventListener("input", () => updateSettings({ domLinkUrl: els.sideDomLinkInput.value }));
-    if (els.saveDomLinkBtn) els.saveDomLinkBtn.addEventListener("click", saveDomLink);
+    els.sideDomLinkInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") sendDomLinkRequest();
+    });
     if (els.sendDomLinkBtn) els.sendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
-    els.sideSaveDomLinkBtn.addEventListener("click", () => saveDomLinkFromInput(els.sideDomLinkInput, els.sideDomLinkStatus));
     els.sideSendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.postDistractionBtn.addEventListener("click", postDistraction);
     els.clearDistractionBtn.addEventListener("click", clearDistraction);
@@ -8870,7 +8841,6 @@
       els.sideDistractionInput.classList.remove("drop-ready");
     });
     els.sideDistractionInput.addEventListener("drop", handleDistractionDrop);
-    els.openSavedLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.rulesBtn.addEventListener("click", openRulesModal);
     els.closeRulesBtn.addEventListener("click", closeRulesModal);
     els.rulesModal.addEventListener("click", (event) => {
