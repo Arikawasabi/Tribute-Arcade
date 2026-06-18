@@ -9,6 +9,7 @@
     const WHEEL_LIMIT_WINDOW_MS = 15 * 60 * 1000;
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
+    const WHEEL_NUDGE_LIMIT = 4;
     const TRAIL_LENGTH = 60;
     const TRAIL_FINISH = TRAIL_LENGTH - 1;
     const TRAIL_SLIDES = [
@@ -408,6 +409,7 @@
         greedyDom: false,
         nudgeUsed: false,
         finalPayout: null,
+        finalBankDelta: null,
         resultNotes: [],
         limitWindowStartedAt: Date.now(),
         spinsUsed: 0,
@@ -424,10 +426,12 @@
 
     function createWheelSlicesWithPrizeIndex(prizeIndex) {
       const values = [
-        ...Array(13).fill(1),
-        ...Array(9).fill(2),
+        ...Array(10).fill(1),
+        ...Array(8).fill(2),
         ...Array(5).fill(5),
-        ...Array(3).fill(10)
+        ...Array(3).fill(10),
+        ...Array(3).fill(-5),
+        -10
       ];
       for (let i = values.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1143,7 +1147,7 @@
       setScreen("game");
       resetWheelSpinBoard();
       els.log.innerHTML = "";
-      addLog(`<strong>Wheel Spin opened.</strong> ${state.names.sub} can spin whenever ready. Cash spaces pay ${state.names.dom}'s bank; blanks spare the spin.`);
+      addLog(`<strong>Wheel Spin opened.</strong> ${state.names.sub} can spin after ${state.names.dom} unlocks the wheel. Cash spaces pay ${state.names.dom}'s bank, minus spaces drain it, and blanks spare the spin.`);
       render();
       publishState();
     }
@@ -5409,6 +5413,7 @@
       state.wheel.result = null;
       state.wheel.unlocked = false;
       state.wheel.finalPayout = null;
+      state.wheel.finalBankDelta = null;
       state.wheel.resultNotes = [];
       state.wheel.nudgeUsed = false;
       state.wheel.spinsUsed += 1;
@@ -5435,12 +5440,46 @@
       if (spendBless) state.wheel.blessUses += 1;
       if (spendGreedy) state.wheel.greedyUses += 1;
       state.wheel.unlocked = true;
+      playWheelUnlockDing();
       const powers = [];
       if (spendBless) powers.push("Bless");
       if (spendGreedy) powers.push("Greedy Dom");
       addLog(`<strong>${state.names.dom} unlocks the wheel.</strong> ${powers.length ? `${powers.join(" and ")} locked in. ` : ""}${state.names.sub} can spin now.`);
       render();
       publishState();
+    }
+
+    function playWheelUnlockDing() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const context = new AudioContext();
+        const now = context.currentTime;
+        const master = context.createGain();
+        master.gain.setValueAtTime(0.0001, now);
+        master.gain.exponentialRampToValueAtTime(0.18, now + 0.018);
+        master.gain.exponentialRampToValueAtTime(0.0001, now + 0.72);
+        master.connect(context.destination);
+        [
+          { frequency: 880, start: 0, duration: 0.26 },
+          { frequency: 1320, start: 0.12, duration: 0.34 }
+        ].forEach(({ frequency, start, duration }) => {
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(frequency, now + start);
+          gain.gain.setValueAtTime(0.0001, now + start);
+          gain.gain.exponentialRampToValueAtTime(0.7, now + start + 0.018);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
+          oscillator.connect(gain);
+          gain.connect(master);
+          oscillator.start(now + start);
+          oscillator.stop(now + start + duration + 0.03);
+        });
+        window.setTimeout(() => context.close().catch(() => {}), 900);
+      } catch (error) {
+        // Audio is a nice-to-have; gameplay should never depend on it.
+      }
     }
 
     function refreshWheelLimitWindow(now = Date.now()) {
@@ -5468,7 +5507,8 @@
     function wheelPowerRemaining(power) {
       refreshWheelLimitWindow();
       const key = `${power}Uses`;
-      return Math.max(0, WHEEL_POWER_LIMIT - Number(state.wheel[key] || 0));
+      const limit = power === "nudge" ? WHEEL_NUDGE_LIMIT : WHEEL_POWER_LIMIT;
+      return Math.max(0, limit - Number(state.wheel[key] || 0));
     }
 
     function formatWheelTime(ms) {
@@ -5507,10 +5547,20 @@
       state.wheel.resultNotes = result.notes;
       state.active = true;
       if (result.payout > 0) {
-        state.domVault += result.payout;
-        state.lockedTribute = state.domVault;
+        state.wheel.finalBankDelta = result.payout;
+        applyWheelBankDelta(result.payout);
         addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${wheelValueText(value)}${result.notes.length ? ` (${result.notes.join(", ")})` : ""}. ${money(result.payout)} enters her bank.`);
+      } else if (result.payout < 0) {
+        const bankDelta = wheelBankDeltaForPayout(result.payout, state.domVault);
+        state.wheel.finalBankDelta = bankDelta;
+        applyWheelBankDelta(bankDelta);
+        if (bankDelta < 0) {
+          addLog(`<strong>${state.names.dom} loses the spin.</strong> The wheel lands on ${wheelValueText(value)}${result.notes.length ? ` (${result.notes.join(", ")})` : ""}. ${money(Math.abs(bankDelta))} leaves her bank.`);
+        } else {
+          addLog(`<strong>${state.names.dom} dodges the loss.</strong> The wheel lands on ${wheelValueText(value)}, but her bank is already empty.`);
+        }
       } else {
+        state.wheel.finalBankDelta = 0;
         addLog(`<strong>${state.names.sub} hits blank.</strong> Nothing enters ${state.names.dom}'s bank.`);
       }
       state.pot = 0;
@@ -5541,6 +5591,17 @@
         }
       }
       return { payout, notes };
+    }
+
+    function wheelBankDeltaForPayout(payout, startingVault = state.domVault) {
+      const amount = Number(payout || 0);
+      if (amount >= 0) return amount;
+      return -Math.min(Math.max(0, Number(startingVault || 0)), Math.abs(amount));
+    }
+
+    function applyWheelBankDelta(delta) {
+      state.domVault = Math.max(0, Number(state.domVault || 0) + Number(delta || 0));
+      state.lockedTribute = state.domVault;
     }
 
     function wheelUpgradeValue(value) {
@@ -5585,7 +5646,7 @@
       }
       state.wheel.greedyDom = !state.wheel.greedyDom;
       addLog(state.wheel.greedyDom
-        ? `<strong>${state.names.dom} arms Greedy.</strong> $25 pays $60, blanks pay $30, and $1/$2/$5/$10 become blanks when the wheel is unlocked.`
+        ? `<strong>${state.names.dom} arms Greedy.</strong> $25 pays $60, blanks pay $30, $1/$2/$5/$10 become blanks, and minus slots stay dangerous when the wheel is unlocked.`
         : `<strong>${state.names.dom} clears Greedy Dom.</strong>`);
       render();
       publishState();
@@ -5609,6 +5670,7 @@
         return;
       }
       const oldPayout = Number(state.wheel.finalPayout || 0);
+      const oldBankDelta = Number(state.wheel.finalBankDelta ?? oldPayout);
       const oldValue = state.wheel.result;
       const nextIndex = (state.wheel.resultIndex + direction + 36) % 36;
       const sliceAngle = Math.PI * 2 / 36;
@@ -5618,20 +5680,30 @@
       state.wheel.angle -= direction * sliceAngle;
       const result = resolveWheelPayout(nextValue);
       state.wheel.finalPayout = result.payout;
-      state.wheel.resultNotes = [...result.notes, `nudged ${direction > 0 ? "forward" : "back"}`];
+      const nudgeAmount = Math.abs(direction);
+      state.wheel.resultNotes = [...result.notes, `nudged ${direction > 0 ? "forward" : "back"} ${nudgeAmount}`];
       state.wheel.nudgeUsed = true;
       state.wheel.nudgeUses += 1;
-      const delta = result.payout - oldPayout;
-      state.domVault = Math.max(0, state.domVault - oldPayout + result.payout);
+      const baseVault = Math.max(0, Number(state.domVault || 0) - oldBankDelta);
+      const newBankDelta = wheelBankDeltaForPayout(result.payout, baseVault);
+      state.wheel.finalBankDelta = newBankDelta;
+      const delta = newBankDelta - oldBankDelta;
+      state.domVault = Math.max(0, baseVault + newBankDelta);
       state.lockedTribute = state.domVault;
       const deltaText = `${delta >= 0 ? "+" : "-"}${money(Math.abs(delta))}`;
-      addLog(`<strong>${state.names.dom} nudges the wheel ${direction > 0 ? "forward" : "back"}.</strong> ${wheelValueText(oldValue)} becomes ${wheelValueText(nextValue)}; payout is now ${money(result.payout)} and the bank adjusts by ${deltaText}.`);
+      addLog(`<strong>${state.names.dom} nudges the wheel ${direction > 0 ? "forward" : "back"} ${nudgeAmount}.</strong> ${wheelValueText(oldValue)} becomes ${wheelValueText(nextValue)}; result is now ${wheelSignedMoney(result.payout)} and the bank adjusts by ${deltaText}.`);
       render();
       publishState();
     }
 
     function wheelValueText(value) {
-      return value === 0 ? "blank" : money(value);
+      return value === 0 ? "blank" : wheelSignedMoney(value);
+    }
+
+    function wheelSignedMoney(value) {
+      const amount = Number(value || 0);
+      if (amount < 0) return `-${money(Math.abs(amount))}`;
+      return money(amount);
     }
 
     function resetTributeTicTacToeBoard() {
@@ -7516,6 +7588,8 @@
       stage.appendChild(canvas);
       const button = document.createElement("button");
       button.className = "primary wheel-center-button";
+      button.classList.toggle("ready", !state.wheel.spinning && state.wheel.unlocked);
+      button.classList.toggle("locked", !state.wheel.spinning && !state.wheel.unlocked);
       button.textContent = wheelCenterButtonText();
       button.disabled = wheelCenterButtonDisabled();
       button.addEventListener("click", () => {
@@ -7541,8 +7615,7 @@
       if (state.wheel.spinning) return "The wheel is slowing down...";
       if (state.wheel.result !== null) {
         const notes = (state.wheel.resultNotes || []).length ? ` (${state.wheel.resultNotes.join(", ")})` : "";
-        const resultText = state.wheel.result === 0 ? "blank" : money(state.wheel.result);
-        return `Result: ${resultText}${notes} -> ${money(Number(state.wheel.finalPayout || 0))}`;
+        return `Result: ${wheelValueText(state.wheel.result)}${notes} -> ${wheelSignedMoney(Number(state.wheel.finalPayout || 0))}`;
       }
       if (!state.wheel.unlocked) return `${state.names.dom} must unlock the wheel.`;
       return `${state.names.sub} can press the center to spin.`;
@@ -7563,6 +7636,8 @@
     function wheelSliceDisplay(value) {
       const colors = {
         0: "#15110f",
+        "-10": "#4b0f18",
+        "-5": "#69202b",
         1: "#214a37",
         2: "#6f1f34",
         5: "#3a213f",
@@ -7593,9 +7668,9 @@
         }
       }
       return {
-        label: displayValue === 0 ? "BLANK" : money(displayValue),
+        label: displayValue === 0 ? "BLANK" : wheelSignedMoney(displayValue),
         color: colors[displayValue] || colors[value] || "#47332f",
-        textColor: displayValue === 0 ? "#f6efe3" : "#fff2c9",
+        textColor: displayValue < 0 ? "#ffe1e6" : (displayValue === 0 ? "#f6efe3" : "#fff2c9"),
         large: displayValue >= 25,
         affected
       };
@@ -7614,16 +7689,19 @@
       limitRow.innerHTML = `<strong>Refresh</strong><span>${wheelSpinsRemaining()} spins left. Powers: Bless ${wheelPowerRemaining("bless")}, Greedy ${wheelPowerRemaining("greedy")}, Nudge ${wheelPowerRemaining("nudge")}. Resets in ${formatWheelTime(wheelLimitRemainingMs())}.</span>`;
 
       const unlockRow = document.createElement("div");
-      unlockRow.className = "wheel-tool-row";
-      unlockRow.innerHTML = `<strong>Lock</strong>`;
+      unlockRow.className = "wheel-tool-row wheel-unlock-row";
+      unlockRow.classList.toggle("unlocked", state.wheel.unlocked);
+      unlockRow.innerHTML = `<strong>${state.wheel.unlocked ? "Ready" : "Unlock"}</strong>`;
       const unlockButton = document.createElement("button");
-      unlockButton.className = "primary";
-      unlockButton.textContent = state.wheel.unlocked ? "Unlocked" : "Unlock Wheel";
+      unlockButton.className = "primary wheel-unlock-button";
+      unlockButton.classList.toggle("unlocked", state.wheel.unlocked);
+      unlockButton.textContent = state.wheel.unlocked ? "Wheel Unlocked" : "Unlock Wheel";
       unlockButton.disabled = !canUse || state.wheel.unlocked || wheelSpinsRemaining() <= 0;
       unlockButton.addEventListener("click", unlockWheelSpin);
       unlockRow.appendChild(unlockButton);
       const unlockNote = document.createElement("span");
-      unlockNote.textContent = state.wheel.unlocked ? `${state.names.sub} can spin now.` : `${state.names.sub} cannot spin until this is unlocked.`;
+      unlockNote.className = "wheel-unlock-note";
+      unlockNote.textContent = state.wheel.unlocked ? `READY: ${state.names.sub} can press Spin now.` : `Locked: ${state.names.sub} cannot spin until this is unlocked.`;
       unlockRow.appendChild(unlockNote);
 
       const blessRow = document.createElement("div");
@@ -7653,8 +7731,10 @@
       nudgeRow.className = "wheel-tool-row";
       nudgeRow.innerHTML = `<strong>Nudge</strong>`;
       [
+        { label: "Back 2", direction: -2 },
         { label: "Back 1", direction: -1 },
-        { label: "Forward 1", direction: 1 }
+        { label: "Forward 1", direction: 1 },
+        { label: "Forward 2", direction: 2 }
       ].forEach(({ label, direction }) => {
         const button = document.createElement("button");
         button.textContent = label;
@@ -7664,12 +7744,14 @@
       });
 
       const status = document.createElement("div");
-      status.className = "wheel-result";
+      status.className = "wheel-result wheel-tool-status";
+      status.classList.toggle("ready", state.wheel.unlocked);
       const bits = [];
+      if (state.wheel.unlocked) bits.push(`WHEEL UNLOCKED: ${state.names.sub} can spin now`);
       if (state.wheel.blessActive) bits.push("Bless armed: all cash slices upgrade");
-      if (state.wheel.greedyDom) bits.push("Greedy Dom: $25->$60, blank->$30, $1/$2/$5/$10->blank");
+      if (state.wheel.greedyDom) bits.push("Greedy Dom: $25->$60, blank->$30, low cash->blank, minus stays live");
       if (state.wheel.nudgeUsed) bits.push("Nudge used");
-      status.textContent = bits.join(" | ") || `${state.names.dom} can arm Bless, arm Greedy, or nudge once after the result.`;
+      status.textContent = bits.join(" | ") || `${state.names.dom} can arm Bless, arm Greedy, or nudge 1 or 2 spaces after the result.`;
 
       tools.appendChild(limitRow);
       tools.appendChild(unlockRow);
@@ -8387,14 +8469,15 @@
       const rules = [
         `<strong>Spin:</strong> ${state.names.sub} presses the center of the wheel to spin. No bet is required in this mode.`,
         `<strong>The wheel:</strong> 36 equal-size spaces. Every space has the same chance to land.`,
-        `<strong>Cash layout:</strong> 13 spaces show $1, 9 show $2, 5 show $5, 3 show $10, 2 show $25, and 4 are blank.`,
+        `<strong>Cash layout:</strong> 10 spaces show $1, 8 show $2, 5 show $5, 3 show $10, 2 show $25, 3 show -$5, 1 shows -$10, and 4 are blank.`,
         `<strong>Blank placement:</strong> each $25 has a blank directly on either side, with the second blank-$25-blank cluster placed straight across from the first. The remaining spaces reshuffle whenever the 15-minute wheel timer refreshes.`,
         `<strong>Pointer:</strong> the fixed arrow at the top points to the winning space when the wheel stops.`,
-        `<strong>Limits:</strong> the wheel can be spun 8 times every 15 minutes. Bless, Greedy Dom, and Nudge each have 2 uses in that same 15-minute window.`,
+        `<strong>Limits:</strong> the wheel can be spun 8 times every 15 minutes. Bless and Greedy Dom each have 2 uses, while Nudge has 4 uses in that same 15-minute window.`,
         `<strong>Bless:</strong> before the spin, ${state.names.dom} can bless all cash spaces. $1 upgrades to $2, $2 to $5, $5 to $10, and $10 to $25.`,
-        `<strong>Greedy Dom:</strong> before the spin, ${state.names.dom} can make every $25 pay $60 and every blank pay $30, but every $1, $2, $5, and $10 becomes a blank. Bless can still be armed at the same time, but Greedy blanks those lower cash spaces first.`,
-        `<strong>Nudge:</strong> after the wheel stops, ${state.names.dom} can move the result one space forward or back once. The bank adjusts to the new result.`,
+        `<strong>Greedy Dom:</strong> before the spin, ${state.names.dom} can make every $25 pay $60 and every blank pay $30, but every $1, $2, $5, and $10 becomes a blank. Minus slots stay dangerous. Bless can still be armed at the same time, but Greedy blanks those lower cash spaces first.`,
+        `<strong>Nudge:</strong> after the wheel stops, ${state.names.dom} can move the result 1 or 2 spaces forward or back once. The bank adjusts to the new result.`,
         `<strong>Cash result:</strong> landing on a cash space adds that amount to ${state.names.dom}'s bank.`,
+        `<strong>Minus result:</strong> landing on a minus space removes that amount from ${state.names.dom}'s bank, but the bank cannot go below $0.`,
         `<strong>Blank result:</strong> landing on blank means nothing enters ${state.names.dom}'s bank.`
       ];
       setRuleList(rules);
@@ -8730,7 +8813,7 @@
       }
       if (state.currentGame === "wheelSpin") {
         els.gameTitle.textContent = "Wheel Spin";
-        els.gameSubtitle.textContent = "A 36-space wheel with equal odds per slice. Press the center to spin; the fixed arrow marks the winning space.";
+        els.gameSubtitle.textContent = "A 36-space wheel with equal odds per slice. Cash spaces pay the dom bank, minus spaces drain it, and the fixed arrow marks the result.";
         return;
       }
       if (state.currentGame === "tributeTrail") {
