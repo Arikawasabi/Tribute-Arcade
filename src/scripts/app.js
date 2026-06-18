@@ -7820,6 +7820,8 @@
       els.board.className = "twentyone-table";
       els.board.innerHTML = "";
       const target = Number(state.twentyOne.targetMarks || 1);
+      const phase = twentyOnePhaseKey();
+      els.board.dataset.phase = phase;
       els.board.appendChild(renderTwentyOneHand(DOM));
       els.board.appendChild(renderTwentyOneTableCenter(target));
       els.board.appendChild(renderTwentyOneHand(SUB));
@@ -7921,9 +7923,23 @@
       const shoe = document.createElement("div");
       shoe.className = "twentyone-shoe";
       for (let index = 0; index < 3; index += 1) {
-        shoe.appendChild(renderPlayingCard("AS", true));
+        const card = document.createElement("span");
+        card.className = "playing-card hidden-card";
+        card.setAttribute("aria-hidden", "true");
+        shoe.appendChild(card);
       }
+      shoe.setAttribute("aria-label", "Dealer shoe");
       return shoe;
+    }
+
+    function twentyOnePhaseKey() {
+      if (state.twentyOne.setupPending) return "setup";
+      if (state.twentyOne.nextHandPending) return "next-hand";
+      if (!state.active) return "closed";
+      if (state.twentyOne.pushLuckPending) return "push-luck";
+      if (state.turn === SUB && state.twentyOne.pushLuckQueued) return "power-queued";
+      if (state.twentyOne.dealerTurn) return "dealer";
+      return state.turn === SUB ? "sub" : "dom";
     }
 
     function twentyOnePhaseText() {
@@ -7972,6 +7988,11 @@
       const score = twentyOneScore(visibleCards);
       const scoreText = hiddenDomCard ? `${score.total}+` : score.total;
       const roleText = player === DOM ? "Dealer hand" : "Player hand";
+      panel.dataset.cards = String(hand.length);
+      panel.classList.toggle("has-many-cards", hand.length >= 5);
+      panel.classList.toggle("has-full-hand", hand.length >= 6);
+      panel.classList.toggle("is-active-hand", state.active && !state.twentyOne.setupPending && state.turn === player);
+      panel.classList.toggle("is-dealer-turn", state.active && player === DOM && state.twentyOne.dealerTurn);
       panel.innerHTML = `<div class="hand-header"><span>${labelFor(player)} <small>${roleText}</small></span><strong>${hand.length ? scoreText : "-"}</strong></div>`;
       const row = document.createElement("div");
       row.className = "card-row";
