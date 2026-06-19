@@ -10,15 +10,28 @@
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
     const WHEEL_NUDGE_LIMIT = 4;
-    const OBEDIENCE_TARGET_ROUNDS = 5;
-    const OBEDIENCE_COMMANDS = [
-      { id: "kneel", label: "Kneel", detail: "Drop" },
-      { id: "pay", label: "Pay", detail: "Tribute" },
-      { id: "beg", label: "Beg", detail: "Ask" },
-      { id: "thank", label: "Thank", detail: "Praise" },
-      { id: "worship", label: "Worship", detail: "Focus" },
-      { id: "obey", label: "Obey", detail: "Submit" }
+    const OBEDIENCE_GRID_SIZE = 9;
+    const OBEDIENCE_MIN_ORDER = 3;
+    const OBEDIENCE_MAX_PRESSURE = 5;
+    const OBEDIENCE_STARTING_FOCUS = 2;
+    const OBEDIENCE_TILES = [
+      { id: "kneel", label: "Kneel", icon: "K", tone: "pink" },
+      { id: "beg", label: "Beg", icon: "B", tone: "gold" },
+      { id: "praise", label: "Praise", icon: "P", tone: "rose" },
+      { id: "pay", label: "Pay", icon: "$", tone: "green" },
+      { id: "obey", label: "Obey", icon: "O", tone: "gold" },
+      { id: "edge", label: "Edge", icon: "E", tone: "pink" },
+      { id: "wait", label: "Wait", icon: "W", tone: "blue" },
+      { id: "thank", label: "Thank", icon: "T", tone: "rose" },
+      { id: "worship", label: "Worship", icon: "W", tone: "gold" }
     ];
+    const OBEDIENCE_TWISTS = {
+      clean: { label: "Clean", detail: "No twist." },
+      blind: { label: "Blind", detail: "Labels hide during repeat." },
+      shuffle: { label: "Shuffle", detail: "Tiles rearrange for the sub." },
+      cruel: { label: "Cruel", detail: "Mistakes pay extra." },
+      greedy: { label: "Greedy", detail: "Higher pressure payout." }
+    };
     const WHEEL_RISK_MODES = {
       normal: {
         label: "Normal",
@@ -149,11 +162,13 @@
       winningCells: [],
       fleet: createFleetState(),
       twentyOne: createTwentyOneState(),
+      higherLower: createHigherLowerState(),
       dice: createDiceState(),
       wheel: createWheelState(),
       trail: createTrailState(),
       obedience: createObedienceState(),
       checkers: createCheckersState(),
+      reversi: createReversiState(),
       chess: createChessState(),
       chat: [],
       ledger: []
@@ -237,11 +252,13 @@
       tributeFourCard: document.getElementById("tributeFourCard"),
       tributeFleetCard: document.getElementById("tributeFleetCard"),
       tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
+      higherLowerCard: document.getElementById("higherLowerCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
       obedienceOrdersCard: document.getElementById("obedienceOrdersCard"),
       tributeTrailCard: document.getElementById("tributeTrailCard"),
       tributeCheckersCard: document.getElementById("tributeCheckersCard"),
+      tributeReversiCard: document.getElementById("tributeReversiCard"),
       tributeChessCard: document.getElementById("tributeChessCard"),
       createRoomBtn: document.getElementById("createRoomBtn"),
       onlineStatus: document.getElementById("onlineStatus"),
@@ -271,6 +288,11 @@
       blackjackSettingsModal: document.getElementById("blackjackSettingsModal"),
       blackjackSettingsText: document.getElementById("blackjackSettingsText"),
       blackjackSettingsConfirmBtn: document.getElementById("blackjackSettingsConfirmBtn"),
+      higherLowerMercyModal: document.getElementById("higherLowerMercyModal"),
+      higherLowerMercyText: document.getElementById("higherLowerMercyText"),
+      higherLowerMercyCollectBtn: document.getElementById("higherLowerMercyCollectBtn"),
+      higherLowerMercyDenyBtn: document.getElementById("higherLowerMercyDenyBtn"),
+      higherLowerMercyPunishBtn: document.getElementById("higherLowerMercyPunishBtn"),
       checkersQueenModal: document.getElementById("checkersQueenModal"),
       checkersQueenTitle: document.getElementById("checkersQueenTitle"),
       checkersQueenText: document.getElementById("checkersQueenText"),
@@ -319,6 +341,8 @@
       trailMoneyFlights: document.getElementById("trailMoneyFlights"),
       board: document.getElementById("board"),
       turnText: document.getElementById("turnText"),
+      turnDomBankPill: document.getElementById("turnDomBankPill"),
+      turnDomBank: document.getElementById("turnDomBank"),
       modeLabel: document.getElementById("modeLabel"),
       pot: document.getElementById("pot"),
       domVault: document.getElementById("domVault"),
@@ -632,13 +656,63 @@
     function createObedienceState() {
       return {
         phase: "idle",
-        sequence: [],
+        order: [],
         input: [],
         round: 0,
         successes: 0,
         mistakes: 0,
         tributePaid: 0,
-        message: "Dom sets the first order."
+        pressure: 1,
+        focus: OBEDIENCE_STARTING_FOCUS,
+        twist: "clean",
+        pendingTwist: "clean",
+        layout: [],
+        revealedIndex: null,
+        streakLabel: "Unproven",
+        message: "Dom picks an order on the grid."
+      };
+    }
+
+    function createReversiBoard() {
+      const board = Array.from({ length: 8 }, () => Array(8).fill(EMPTY));
+      board[3][3] = DOM;
+      board[3][4] = SUB;
+      board[4][3] = SUB;
+      board[4][4] = DOM;
+      return board;
+    }
+
+    function createReversiState() {
+      return {
+        board: createReversiBoard(),
+        passes: 0,
+        lastMove: null,
+        winner: null,
+        lockedDisc: null,
+        commandAvailable: false,
+        commandWindow: false,
+        commandMode: false,
+        commandRefreshUsed: false
+      };
+    }
+
+    function createHigherLowerState() {
+      return {
+        deck: [],
+        currentCard: null,
+        lastCard: null,
+        queuedRunStake: 25,
+        runStake: 25,
+        targetStreak: 4,
+        baseTribute: 25,
+        wrongStreak: 0,
+        domRunBonus: 0,
+        mercyPending: false,
+        mercyBonus: 0,
+        streak: 0,
+        bestStreak: 0,
+        result: "",
+        winner: null
       };
     }
 
@@ -1232,6 +1306,19 @@
       publishState();
     }
 
+    function openHigherLower() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "higherLower";
+      setScreen("game");
+      resetHigherLowerBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>Higher / Lower opened.</strong> ${state.names.sub} guesses the next card and cashes out before the streak snaps.`);
+      render();
+      publishState();
+    }
+
     function openTributeTicTacToe() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.pendingWager = null;
@@ -1264,7 +1351,20 @@
       setScreen("game");
       resetObedienceOrdersBoard();
       els.log.innerHTML = "";
-      addLog(`<strong>Obedience Orders opened.</strong> ${state.names.dom} builds the pattern. Every ${state.names.sub} mistake pays tribute to her bank.`);
+      addLog(`<strong>Obedience Orders opened.</strong> ${state.names.dom} leads the duel. ${state.names.sub} survives by repeating her command tiles.`);
+      render();
+      publishState();
+    }
+
+    function openTributeReversi() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "tributeReversi";
+      setScreen("game");
+      resetTributeReversiBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>${state.names.sub}</strong> plays dark and moves first. <strong>${state.names.dom}</strong> plays light and waits to flip the board.`);
       render();
       publishState();
     }
@@ -1308,6 +1408,8 @@
     }
 
     function backToMenu() {
+      const role = localOnlineRole();
+      if (state.online.room && role !== DOM) return;
       state.active = false;
       state.pendingWager = null;
       state.pot = 0;
@@ -1335,11 +1437,13 @@
       els.tributeFourCard.disabled = domPickBlocked;
       els.tributeFleetCard.disabled = domPickBlocked;
       els.tributeTwentyOneCard.disabled = domPickBlocked;
+      if (els.higherLowerCard) els.higherLowerCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
       els.tributeWheelCard.disabled = domPickBlocked;
       if (els.obedienceOrdersCard) els.obedienceOrdersCard.disabled = domPickBlocked;
       els.tributeTrailCard.disabled = domPickBlocked;
       els.tributeCheckersCard.disabled = domPickBlocked;
+      if (els.tributeReversiCard) els.tributeReversiCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
@@ -1350,14 +1454,25 @@
     }
 
     function renderGameSelectTabs() {
-      const tab = ["main", "mini", "testing"].includes(state.settings.activeGameTab) ? state.settings.activeGameTab : "main";
+      const tabAliases = {
+        main: "table",
+        mini: "casino",
+        testing: "misc",
+        control: "chance"
+      };
+      const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
+      const tab = ["table", "casino", "chance", "misc", "all"].includes(requestedTab) ? requestedTab : "table";
       state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
         button.classList.toggle("active", button.dataset.gameTab === tab);
       });
-      els.mainGamesGrid.classList.toggle("hidden", tab !== "main");
-      els.miniGamesGrid.classList.toggle("hidden", tab !== "mini");
-      els.testingGamesGrid.classList.toggle("hidden", tab !== "testing");
+      els.mainGamesGrid.classList.remove("hidden");
+      els.miniGamesGrid.classList.add("hidden");
+      els.testingGamesGrid.classList.add("hidden");
+      document.querySelectorAll(".game-card[data-game-categories]").forEach((card) => {
+        const categories = (card.dataset.gameCategories || "").split(/\s+/);
+        card.classList.toggle("hidden", !categories.includes(tab));
+      });
     }
 
     function pipPositions(count) {
@@ -2229,11 +2344,13 @@
         winningCells: state.winningCells,
         fleet: state.fleet,
         twentyOne: state.twentyOne,
+        higherLower: state.higherLower,
         dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
         obedience: state.obedience,
         checkers: state.checkers,
+        reversi: state.reversi,
         chess: state.chess,
         chat: state.chat,
         ledger: state.ledger,
@@ -2286,11 +2403,13 @@
       state.winningCells = snapshot.winningCells || [];
       state.fleet = snapshot.fleet || state.fleet;
       state.twentyOne = snapshot.twentyOne || state.twentyOne;
+      state.higherLower = snapshot.higherLower || state.higherLower;
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
       state.trail = snapshot.trail || state.trail;
       state.obedience = snapshot.obedience || state.obedience;
       state.checkers = snapshot.checkers || state.checkers;
+      state.reversi = snapshot.reversi || state.reversi;
       normalizeTrailState();
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
@@ -2745,11 +2864,25 @@
       return false;
     }
 
+    function requestHigherLowerRun(stake) {
+      if (localOnlineRole() && localOnlineRole() !== SUB) return false;
+      if (state.active || state.pendingWager) return false;
+      const runStake = higherLowerRunStake(stake);
+      state.higherLower = {
+        ...createHigherLowerState(),
+        ...(state.higherLower || {}),
+        queuedRunStake: runStake
+      };
+      startHigherLowerNormalMatch();
+      return true;
+    }
+
     const ROUND_FLOW_GAMES = new Set([
       "tributeFour",
       "tributeFleet",
       "tributeChess",
       "tributeCheckers",
+      "tributeReversi",
       "tributeTwentyOne",
       "tributeTicTacToe"
     ]);
@@ -3106,7 +3239,7 @@
           <button data-wager-action="back-review">Back</button>
         `;
       } else {
-        const adjustButtons = pending.type === "normal"
+        const adjustButtons = pending.type === "normal" && pending.game !== "higherLower"
           ? `<button data-wager-action="adjust-request">Raise / Lower</button>`
           : "";
         els.wagerModalActions.innerHTML = `
@@ -3128,8 +3261,16 @@
         startCheckersNormalMatch();
         return;
       }
+      if (state.currentGame === "tributeReversi") {
+        startReversiNormalMatch();
+        return;
+      }
       if (state.currentGame === "tributeTwentyOne") {
         startTwentyOneNormalMatch();
+        return;
+      }
+      if (state.currentGame === "higherLower") {
+        startHigherLowerNormalMatch();
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -3171,8 +3312,15 @@
         startCheckersReclaimMatch();
         return;
       }
+      if (state.currentGame === "tributeReversi") {
+        startReversiReclaimMatch();
+        return;
+      }
       if (state.currentGame === "tributeTwentyOne") {
         startTwentyOneReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "higherLower") {
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -3227,13 +3375,9 @@
       return Math.max(1, Math.round(value));
     }
 
-    function obedienceCommand(id) {
-      return OBEDIENCE_COMMANDS.find((command) => command.id === id) || OBEDIENCE_COMMANDS[0];
-    }
-
     function resetObedienceOrdersBoard() {
       state.obedience = createObedienceState();
-      state.obedience.message = `${state.names.dom || "Dom"} sets the first order.`;
+      state.obedience.message = `${state.names.dom || "Dom"} picks an order on the grid.`;
       state.active = false;
       state.mode = "normal";
       state.pot = 0;
@@ -3246,41 +3390,184 @@
       return !role || role === player;
     }
 
-    function startObedienceRound() {
-      if (!state.obedience || !obedienceControlsAllowed(DOM)) return;
-      const next = OBEDIENCE_COMMANDS[Math.floor(Math.random() * OBEDIENCE_COMMANDS.length)].id;
-      state.obedience.sequence = [...(state.obedience.sequence || []), next];
-      state.obedience.input = [];
-      state.obedience.round = state.obedience.sequence.length;
-      state.obedience.phase = "study";
-      state.obedience.message = `${state.names.sub || "Sub"} studies ${state.obedience.sequence.length} order${state.obedience.sequence.length === 1 ? "" : "s"}.`;
-      state.active = true;
-      state.turn = SUB;
-      addLog(`<strong>${state.names.dom || "Dom"} gives an order.</strong> Sequence length ${state.obedience.sequence.length}.`);
+    function ensureObedienceOrder() {
+      if (!state.obedience) state.obedience = createObedienceState();
+      if (!Array.isArray(state.obedience.order)) {
+        state.obedience.order = Array.isArray(state.obedience.sequence) ? [...state.obedience.sequence] : [];
+      }
+      if (!Array.isArray(state.obedience.input)) state.obedience.input = [];
+      if (!Array.isArray(state.obedience.layout)) state.obedience.layout = [];
+      if (!Number.isFinite(Number(state.obedience.pressure))) state.obedience.pressure = 1;
+      state.obedience.pressure = Math.max(1, Math.min(OBEDIENCE_MAX_PRESSURE, Math.round(Number(state.obedience.pressure || 1))));
+      if (!Number.isFinite(Number(state.obedience.focus))) state.obedience.focus = OBEDIENCE_STARTING_FOCUS;
+      state.obedience.focus = Math.max(0, Math.round(Number(state.obedience.focus || 0)));
+      if (!state.obedience.twist || !OBEDIENCE_TWISTS[state.obedience.twist]) state.obedience.twist = "clean";
+      if (!state.obedience.pendingTwist || !OBEDIENCE_TWISTS[state.obedience.pendingTwist]) state.obedience.pendingTwist = "clean";
+      if (!state.obedience.streakLabel) state.obedience.streakLabel = obedienceStreakLabel(Number(state.obedience.successes || 0));
+      return state.obedience;
+    }
+
+    function obedienceCellLabel(index) {
+      const cell = Number(index);
+      return OBEDIENCE_TILES[cell] ? OBEDIENCE_TILES[cell].label : "?";
+    }
+
+    function obedienceTile(index) {
+      const cell = Number(index);
+      return OBEDIENCE_TILES[cell] || OBEDIENCE_TILES[0];
+    }
+
+    function obedienceStreakLabel(successes) {
+      if (successes >= 5) return "Perfect";
+      if (successes >= 4) return "Locked In";
+      if (successes >= 3) return "Trained";
+      if (successes >= 2) return "Compliant";
+      if (successes >= 1) return "Focused";
+      return "Unproven";
+    }
+
+    function obediencePressurePayout() {
+      const obedience = ensureObedienceOrder();
+      const pressure = Math.max(1, Math.min(OBEDIENCE_MAX_PRESSURE, Number(obedience.pressure || 1)));
+      const twistBonus = obedience.twist === "greedy" ? 3 : (obedience.twist === "cruel" ? 2 : 0);
+      return Math.max(1, (pressure * 2) + Math.max(0, (obedience.order || []).length - OBEDIENCE_MIN_ORDER) + Number(obedience.mistakes || 0) + twistBonus);
+    }
+
+    function obedienceLayoutForTwist(twist) {
+      const base = Array.from({ length: OBEDIENCE_GRID_SIZE }, (_, index) => index);
+      if (twist !== "shuffle") return base;
+      return [4, 0, 8, 2, 6, 1, 7, 3, 5];
+    }
+
+    function setObedienceGridCell(index) {
+      const obedience = ensureObedienceOrder();
+      if (!obedienceControlsAllowed(DOM) || (obedience.phase !== "idle" && obedience.phase !== "building")) return;
+      const cell = Number(index);
+      if (!Number.isInteger(cell) || cell < 0 || cell >= OBEDIENCE_GRID_SIZE) return;
+      obedience.phase = "building";
+      obedience.order = [...obedience.order, cell];
+      obedience.input = [];
+      obedience.revealedIndex = null;
+      obedience.round = obedience.order.length;
+      obedience.message = `${state.names.dom || "Dom"} picked ${obedience.order.length} command tile${obedience.order.length === 1 ? "" : "s"}.`;
+      state.active = false;
+      state.turn = DOM;
       render();
       publishState();
     }
 
-    function beginObedienceRecall() {
-      if (!state.obedience || state.obedience.phase !== "study" || !obedienceControlsAllowed(SUB)) return;
-      state.obedience.input = [];
-      state.obedience.phase = "recall";
-      state.obedience.message = `${state.names.sub || "Sub"} must repeat the orders in sequence.`;
+    function undoObedienceOrder() {
+      const obedience = ensureObedienceOrder();
+      if (!obedienceControlsAllowed(DOM) || obedience.phase === "recall" || !obedience.order.length) return;
+      obedience.order = obedience.order.slice(0, -1);
+      obedience.input = [];
+      obedience.revealedIndex = null;
+      obedience.round = obedience.order.length;
+      obedience.phase = obedience.order.length ? "building" : "idle";
+      obedience.message = obedience.order.length
+        ? `${state.names.dom || "Dom"} removed the last tile.`
+        : `${state.names.dom || "Dom"} picks an order on the grid.`;
+      render();
+      publishState();
+    }
+
+    function clearObedienceOrder() {
+      const obedience = ensureObedienceOrder();
+      if (!obedienceControlsAllowed(DOM) || obedience.phase === "recall") return;
+      obedience.order = [];
+      obedience.input = [];
+      obedience.revealedIndex = null;
+      obedience.round = 0;
+      obedience.phase = "idle";
+      obedience.message = `${state.names.dom || "Dom"} cleared the grid order.`;
+      state.active = false;
+      state.turn = DOM;
+      render();
+      publishState();
+    }
+
+    function sendObedienceOrder() {
+      const obedience = ensureObedienceOrder();
+      if (!obedienceControlsAllowed(DOM) || obedience.phase === "recall") return;
+      if (obedience.order.length < OBEDIENCE_MIN_ORDER) {
+        obedience.message = `Pick at least ${OBEDIENCE_MIN_ORDER} tiles before sending the order.`;
+        render();
+        publishState();
+        return;
+      }
+      obedience.input = [];
+      obedience.revealedIndex = null;
+      obedience.phase = "recall";
+      obedience.round = obedience.order.length;
+      obedience.twist = obedience.pendingTwist || "clean";
+      obedience.layout = obedienceLayoutForTwist(obedience.twist);
+      obedience.message = `${state.names.sub || "Sub"} repeats the hidden ${OBEDIENCE_TWISTS[obedience.twist].label.toLowerCase()} order.`;
+      state.active = true;
+      state.turn = SUB;
+      addLog(`<strong>${state.names.dom || "Dom"} sends an order.</strong> ${state.names.sub || "Sub"} must repeat ${obedience.order.length} tiles at pressure ${obedience.pressure}.`);
       render();
       publishState();
     }
 
     function obedienceMistakeAmount() {
-      const sequenceLength = state.obedience && state.obedience.sequence ? state.obedience.sequence.length : 1;
-      const mistakes = state.obedience ? Number(state.obedience.mistakes || 0) : 0;
-      return Math.max(1, sequenceLength + mistakes);
+      return obediencePressurePayout();
     }
 
-    function chooseObedienceOrder(commandId) {
-      const obedience = state.obedience;
+    function spendObedienceFocus() {
+      const obedience = ensureObedienceOrder();
+      if (obedience.phase !== "recall" || !obedienceControlsAllowed(SUB) || obedience.focus <= 0) return;
+      const nextIndex = obedience.input.length;
+      if (nextIndex >= obedience.order.length) return;
+      obedience.focus -= 1;
+      obedience.revealedIndex = nextIndex;
+      obedience.message = `Focus spent. Next tile revealed: ${obedienceCellLabel(obedience.order[nextIndex])}.`;
+      render();
+      publishState();
+    }
+
+    function setObedienceTwist(twist) {
+      const obedience = ensureObedienceOrder();
+      if (!obedienceControlsAllowed(DOM) || obedience.phase === "recall" || !OBEDIENCE_TWISTS[twist]) return;
+      obedience.pendingTwist = twist;
+      obedience.message = `${OBEDIENCE_TWISTS[twist].label} twist selected.`;
+      render();
+      publishState();
+    }
+
+    function pressObedienceOrder() {
+      const obedience = ensureObedienceOrder();
+      if (!obedienceControlsAllowed(DOM) || obedience.phase !== "complete") return;
+      obedience.phase = "building";
+      obedience.input = [];
+      obedience.revealedIndex = null;
+      obedience.pressure = Math.min(OBEDIENCE_MAX_PRESSURE, Number(obedience.pressure || 1) + 1);
+      obedience.message = `${state.names.dom || "Dom"} pressed the advantage. Add another tile or send again at pressure ${obedience.pressure}.`;
+      render();
+      publishState();
+    }
+
+    function cashOutObedienceOrder() {
+      const obedience = ensureObedienceOrder();
+      if (!obedienceControlsAllowed(DOM) || obedience.phase !== "complete") return;
+      obedience.phase = "cashed";
+      obedience.message = `${state.names.dom || "Dom"} ended the order at ${obedience.streakLabel}.`;
+      showOutcomeSplash({
+        tone: "sub",
+        kicker: "Order Ended",
+        title: obedience.streakLabel,
+        detail: `${money(obedience.tributePaid || 0)} paid across the duel.`
+      });
+      render();
+      publishState();
+    }
+
+    function repeatObedienceGridCell(index) {
+      const obedience = ensureObedienceOrder();
       if (!obedience || obedience.phase !== "recall" || !obedienceControlsAllowed(SUB)) return;
-      const expected = obedience.sequence[obedience.input.length];
-      if (commandId !== expected) {
+      const cell = Number(index);
+      if (!Number.isInteger(cell) || cell < 0 || cell >= OBEDIENCE_GRID_SIZE) return;
+      const expected = obedience.order[obedience.input.length];
+      if (cell !== expected) {
         const before = state.domVault;
         const tribute = obedienceMistakeAmount();
         state.domVault += tribute;
@@ -3288,12 +3575,15 @@
         obedience.mistakes += 1;
         obedience.tributePaid += tribute;
         obedience.input = [];
-        obedience.phase = "study";
-        obedience.message = `Wrong order. ${money(tribute)} tribute paid. Study the same pattern again.`;
+        obedience.revealedIndex = null;
+        obedience.phase = "building";
+        obedience.message = `Wrong tile. ${money(tribute)} tribute paid. ${state.names.dom || "Dom"} can resend or adjust the order.`;
+        state.active = false;
+        state.turn = DOM;
         recordLedgerEvent({
           type: "obedience",
           label: "Obedience Mistake",
-          detail: `${state.names.sub || "Sub"} missed ${obedienceCommand(expected).label}.`,
+          detail: `${state.names.sub || "Sub"} missed ${obedienceCellLabel(expected)} at pressure ${obedience.pressure}.`,
           delta: tribute,
           before,
           after: state.domVault
@@ -3302,40 +3592,36 @@
           tone: "dom",
           kicker: "Order Failed",
           title: `${money(tribute)} Tribute`,
-          detail: `${obedienceCommand(commandId).label} was not the order.`
+          detail: `${obedienceCellLabel(cell)} was not the order.`
         });
         addLog(`<strong>Order failed.</strong> ${state.names.sub || "Sub"} pays ${money(tribute)} to ${state.names.dom || "Dom"}.`);
         render();
         publishState();
         return;
       }
-      obedience.input = [...obedience.input, commandId];
-      if (obedience.input.length < obedience.sequence.length) {
-        obedience.message = `${obedience.input.length}/${obedience.sequence.length} orders obeyed.`;
+      obedience.input = [...obedience.input, cell];
+      if (obedience.input.length < obedience.order.length) {
+        obedience.revealedIndex = null;
+        obedience.message = `${obedience.input.length}/${obedience.order.length} tiles copied.`;
         render();
         publishState();
         return;
       }
       obedience.successes += 1;
       obedience.input = [];
-      if (obedience.successes >= OBEDIENCE_TARGET_ROUNDS) {
-        obedience.phase = "complete";
-        obedience.message = `${state.names.sub || "Sub"} survived ${OBEDIENCE_TARGET_ROUNDS} order rounds.`;
-        state.active = false;
-        showOutcomeSplash({
-          tone: "sub",
-          kicker: "Orders Complete",
-          title: "Sequence Survived",
-          detail: `${money(obedience.tributePaid || 0)} paid in mistakes.`
-        });
-        addLog(`<strong>Orders complete.</strong> ${state.names.sub || "Sub"} survived the command chain with ${money(obedience.tributePaid || 0)} paid.`);
-      } else {
-        obedience.phase = "idle";
-        obedience.message = `Round ${obedience.successes} obeyed. ${state.names.dom || "Dom"} can add the next order.`;
-        state.active = false;
-        state.turn = DOM;
-        addLog(`<strong>Sequence obeyed.</strong> ${state.names.sub || "Sub"} completed round ${obedience.successes}.`);
-      }
+      obedience.revealedIndex = null;
+      obedience.phase = "complete";
+      obedience.streakLabel = obedienceStreakLabel(Number(obedience.successes || 0));
+      obedience.message = `${state.names.sub || "Sub"} copied ${obedience.order.length} tiles. ${state.names.dom || "Dom"} can press, twist, or cash out.`;
+      state.active = false;
+      state.turn = DOM;
+      showOutcomeSplash({
+        tone: "sub",
+        kicker: "Orders Complete",
+        title: obedience.streakLabel,
+        detail: `${money(obedience.tributePaid || 0)} paid in mistakes.`
+      });
+      addLog(`<strong>Order repeated.</strong> ${state.names.sub || "Sub"} copied ${obedience.order.length} tiles at pressure ${obedience.pressure}.`);
       render();
       publishState();
     }
@@ -3345,18 +3631,322 @@
       const actionButton = event.target.closest("[data-obedience-action]");
       if (actionButton) {
         const action = actionButton.dataset.obedienceAction;
-        if (action === "start") startObedienceRound();
-        if (action === "recall") beginObedienceRecall();
+        if (action === "send") sendObedienceOrder();
+        if (action === "undo") undoObedienceOrder();
+        if (action === "clear") clearObedienceOrder();
+        if (action === "focus") spendObedienceFocus();
+        if (action === "press") pressObedienceOrder();
+        if (action === "cashout") cashOutObedienceOrder();
         if (action === "reset") {
           resetObedienceOrdersBoard();
-          addLog(`<strong>Obedience Orders reset.</strong> ${state.names.dom || "Dom"} can begin a new command chain.`);
+          addLog(`<strong>Obedience Orders reset.</strong> ${state.names.dom || "Dom"} can build a new grid order.`);
           render();
           publishState();
         }
         return;
       }
-      const commandButton = event.target.closest("[data-obedience-command]");
-      if (commandButton) chooseObedienceOrder(commandButton.dataset.obedienceCommand);
+      const twistButton = event.target.closest("[data-obedience-twist]");
+      if (twistButton) {
+        setObedienceTwist(twistButton.dataset.obedienceTwist);
+        return;
+      }
+      const cellButton = event.target.closest("[data-obedience-cell]");
+      if (!cellButton) return;
+      if (state.obedience && state.obedience.phase === "recall") {
+        repeatObedienceGridCell(cellButton.dataset.obedienceCell);
+      } else {
+        setObedienceGridCell(cellButton.dataset.obedienceCell);
+      }
+    }
+
+    const REVERSI_DIRECTIONS = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1], [0, 1],
+      [1, -1], [1, 0], [1, 1]
+    ];
+
+    function resetTributeReversiBoard() {
+      state.reversi = createReversiState();
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.turn = SUB;
+      state.winningCells = [];
+    }
+
+    function startReversiNormalMatch() {
+      const bet = prepareRound("normal", "reversi match");
+      if (bet === null) return;
+      state.reversi = createReversiState();
+      state.turn = SUB;
+      state.active = true;
+      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${state.names.sub} plays dark and moves first.`, false);
+    }
+
+    function startReversiReclaimMatch() {
+      const pot = prepareRound("reclaim", "reversi match");
+      if (pot === null) return;
+      state.reversi = createReversiState();
+      state.reversi.commandAvailable = reversiTierActive(5);
+      state.turn = DOM;
+      state.active = true;
+      addLog(`<strong>Reclaim edge:</strong> ${state.names.dom} plays first as light. Tier ${state.tiltLevel} advantages stack.`);
+      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to win back ${money(pot)} on the Reversi board.`, false);
+    }
+
+    function reversiBoard() {
+      if (!state.reversi || !Array.isArray(state.reversi.board)) state.reversi = createReversiState();
+      return state.reversi.board;
+    }
+
+    function reversiInBounds(row, col) {
+      return row >= 0 && row < 8 && col >= 0 && col < 8;
+    }
+
+    function reversiOpponent(player) {
+      return player === DOM ? SUB : DOM;
+    }
+
+    function reversiTierActive(tier) {
+      return state.currentGame === "tributeReversi"
+        && state.mode === "reclaim"
+        && domAdvantagesEnabled()
+        && Number(state.tiltLevel || 0) >= tier;
+    }
+
+    function brattyReversiTrainingNumbers() {
+      const easterEgg = activeNameEasterEgg();
+      return Boolean(easterEgg && easterEgg.id === "brattyBb" && Number(state.tiltLevel || 0) <= 1);
+    }
+
+    function reversiCanSeeFlipNumbers(viewer = localOnlineRole()) {
+      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return true;
+      if (Number(state.tiltLevel || 0) <= 0) return true;
+      if (brattyReversiTrainingNumbers()) return true;
+      return !viewer || viewer === DOM;
+    }
+
+    function reversiCanSeePriorityWarnings(viewer = localOnlineRole()) {
+      return reversiTierActive(2) && (!viewer || viewer === DOM);
+    }
+
+    function reversiIsCorner(row, col) {
+      return (row === 0 || row === 7) && (col === 0 || col === 7);
+    }
+
+    function reversiIsEdge(row, col) {
+      return row === 0 || row === 7 || col === 0 || col === 7;
+    }
+
+    function reversiLockedMatches(row, col) {
+      const locked = state.reversi && state.reversi.lockedDisc;
+      return Boolean(locked && locked.row === row && locked.col === col);
+    }
+
+    function reversiFlipsForMove(row, col, player, board = reversiBoard()) {
+      if (!reversiInBounds(row, col) || board[row][col]) return [];
+      const opponent = reversiOpponent(player);
+      const flips = [];
+      REVERSI_DIRECTIONS.forEach(([dr, dc]) => {
+        const line = [];
+        let blockedByLock = false;
+        let r = row + dr;
+        let c = col + dc;
+        while (reversiInBounds(r, c) && board[r][c] === opponent) {
+          if (reversiLockedMatches(r, c)) {
+            blockedByLock = true;
+            break;
+          }
+          line.push([r, c]);
+          r += dr;
+          c += dc;
+        }
+        if (!blockedByLock && line.length && reversiInBounds(r, c) && board[r][c] === player) {
+          flips.push(...line);
+        }
+      });
+      return flips;
+    }
+
+    function reversiLegalMoves(player, board = reversiBoard()) {
+      const moves = [];
+      for (let row = 0; row < 8; row += 1) {
+        for (let col = 0; col < 8; col += 1) {
+          const flips = reversiFlipsForMove(row, col, player, board);
+          if (flips.length) moves.push({ row, col, flips });
+        }
+      }
+      return moves;
+    }
+
+    function reversiScore(board = reversiBoard()) {
+      let sub = 0;
+      let dom = 0;
+      for (let row = 0; row < 8; row += 1) {
+        for (let col = 0; col < 8; col += 1) {
+          if (board[row][col] === SUB) sub += 1;
+          if (board[row][col] === DOM) dom += 1;
+        }
+      }
+      return { sub, dom };
+    }
+
+    function playReversiMove(row, col) {
+      if (state.currentGame !== "tributeReversi" || !state.active) return;
+      const commanded = Boolean(state.reversi && state.reversi.commandMode && state.turn === SUB);
+      if (state.reversi && state.reversi.commandWindow && !commanded) return;
+      if (localOnlineRole() && localOnlineRole() !== state.turn && !(commanded && localOnlineRole() === DOM)) return;
+      const board = reversiBoard();
+      const player = state.turn;
+      const flips = reversiFlipsForMove(row, col, player, board);
+      if (!flips.length) return;
+      board[row][col] = player;
+      flips.forEach(([r, c]) => {
+        board[r][c] = player;
+      });
+      state.reversi.lastMove = { row, col, player, flips };
+      state.reversi.passes = 0;
+      if (player === SUB) {
+        state.reversi.lockedDisc = null;
+      }
+      if (commanded) {
+        state.reversi.commandMode = false;
+        state.reversi.commandWindow = false;
+        state.reversi.commandAvailable = false;
+        addLog(`<strong>Command Move.</strong> ${state.names.dom} chooses ${state.names.sub}'s Reversi move.`);
+        if (flips.length <= 1) {
+          addReversiTribute(2, "Command Tax", `${state.names.dom} commands a low-flip move.`);
+        }
+      }
+      addLog(`<strong>${labelFor(player)} places a disc.</strong> ${flips.length} ${flips.length === 1 ? "disc flips" : "discs flip"}.`);
+      if (player === DOM) {
+        applyReversiDomFlipTiers(row, col, flips);
+      }
+      advanceReversiTurn();
+    }
+
+    function addReversiTribute(amount, label, detail) {
+      const delta = Math.max(0, Math.round(Number(amount || 0)));
+      if (!delta) return;
+      const before = state.domVault;
+      state.domVault += delta;
+      state.lockedTribute = state.domVault;
+      recordLedgerEvent({
+        type: "reversi",
+        label,
+        detail,
+        delta: state.domVault - before,
+        before,
+        after: state.domVault
+      });
+      addLog(`<strong>${label}.</strong> ${money(delta)} moves into ${state.names.dom}'s bank.`);
+    }
+
+    function applyReversiDomFlipTiers(row, col, flips) {
+      if (!state.active || state.mode !== "reclaim" || !domAdvantagesEnabled()) return;
+      if (reversiTierActive(3) && flips.length >= 3) {
+        const amount = reversiTierActive(6)
+          ? (flips.length >= 5 ? 4 : 2)
+          : (flips.length >= 5 ? 2 : 1);
+        addReversiTribute(amount, "Tribute Flip", `${state.names.dom} flips ${flips.length} discs in Reversi.`);
+      }
+      if (reversiTierActive(4) && flips.length >= 4) {
+        const [lockRow, lockCol] = flips[0];
+        state.reversi.lockedDisc = { row: lockRow, col: lockCol };
+        addLog(`<strong>Locked Disc.</strong> One flipped ${state.names.dom} disc cannot be flipped back on ${state.names.sub}'s next move.`);
+      }
+      if (reversiTierActive(6) && reversiIsCorner(row, col) && !state.reversi.commandRefreshUsed) {
+        state.reversi.commandAvailable = true;
+        state.reversi.commandRefreshUsed = true;
+        addLog(`<strong>Corner Control.</strong> Command Move refreshes once for taking a corner.`);
+      }
+    }
+
+    function advanceReversiTurn() {
+      const next = reversiOpponent(state.turn);
+      const nextMoves = reversiLegalMoves(next);
+      const currentMoves = reversiLegalMoves(state.turn);
+      state.reversi.commandWindow = false;
+      if (!nextMoves.length && !currentMoves.length) {
+        endReversiMatch();
+        return;
+      }
+      if (!nextMoves.length) {
+        state.reversi.passes += 1;
+        addLog(`<strong>${labelFor(next)} has no legal move.</strong> Turn stays with ${labelFor(state.turn)}.`);
+      } else {
+        state.turn = next;
+        if (shouldOpenReversiCommandWindow(next, nextMoves)) {
+          state.reversi.commandWindow = true;
+          addLog(`<strong>Command window.</strong> ${state.names.dom} may command this Reversi move or let ${state.names.sub} move.`);
+        }
+      }
+      render();
+      publishState();
+    }
+
+    function shouldOpenReversiCommandWindow(next, nextMoves) {
+      return next === SUB
+        && reversiTierActive(5)
+        && state.reversi
+        && state.reversi.commandAvailable
+        && !state.reversi.commandMode
+        && nextMoves.length > 0;
+    }
+
+    function endReversiMatch() {
+      const score = reversiScore();
+      const winner = score.sub > score.dom ? SUB : (score.dom > score.sub ? DOM : (reversiTierActive(5) ? DOM : null));
+      state.reversi.winner = winner;
+      state.active = false;
+      const result = settleRoundBank(winner);
+      const scoreText = `${state.names.sub} ${score.sub}, ${state.names.dom} ${score.dom}.`;
+      if (result.outcome === "subReclaim") {
+        addLog(`<strong>${state.names.sub} wins Reversi reclaim.</strong> ${scoreText} ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "subNormal") {
+        addLog(`<strong>${state.names.sub} wins Reversi.</strong> ${scoreText} Nothing enters ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "domReclaim") {
+        addLog(`<strong>${state.names.dom} wins Reversi reclaim.</strong> ${scoreText} ${money(result.amount)} is added to her bank.`);
+      } else if (result.outcome === "domNormal") {
+        addLog(`<strong>${state.names.dom} wins Reversi.</strong> ${scoreText} ${money(result.amount)} moves into her bank.`);
+      } else {
+        addLog(`<strong>Reversi draw.</strong> ${scoreText} The pot is returned.`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
+    }
+
+    function canUseReversiCommandMove() {
+      return state.currentGame === "tributeReversi"
+        && state.active
+        && state.mode === "reclaim"
+        && reversiTierActive(5)
+        && state.turn === SUB
+        && state.reversi
+        && state.reversi.commandAvailable
+        && state.reversi.commandWindow
+        && !state.reversi.commandMode
+        && domAdvantageControlsAllowed(localOnlineRole())
+        && reversiLegalMoves(SUB).length > 0;
+    }
+
+    function armReversiCommandMove() {
+      if (!canUseReversiCommandMove()) return;
+      state.reversi.commandMode = true;
+      state.reversi.commandWindow = false;
+      addLog(`<strong>Command Move armed.</strong> ${state.names.dom} chooses ${state.names.sub}'s legal Reversi move.`);
+      render();
+      publishState();
+    }
+
+    function declineReversiCommandMove() {
+      if (state.currentGame !== "tributeReversi" || !state.active || !state.reversi || !state.reversi.commandWindow) return;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
+      state.reversi.commandWindow = false;
+      addLog(`<strong>Command passed.</strong> ${state.names.dom} lets ${state.names.sub} choose the Reversi move.`);
+      render();
+      publishState();
     }
 
     function preserveTiltLevel(action) {
@@ -3564,6 +4154,10 @@
       }
       if (state.currentGame === "tributeFleet") {
         openFleetPowerModal();
+        return;
+      }
+      if (state.currentGame === "tributeReversi") {
+        armReversiCommandMove();
         return;
       }
       if (state.currentGame === "tributeFour") {
@@ -5414,6 +6008,20 @@
       els.checkersQueenNoBtn.disabled = !canChoose;
     }
 
+    function renderHigherLowerMercyModal() {
+      if (!els.higherLowerMercyModal) return;
+      const game = state.currentGame === "higherLower" && state.higherLower ? state.higherLower : null;
+      const role = localOnlineRole();
+      const canDecide = Boolean(game && game.mercyPending && domAdvantageControlsAllowed(role));
+      els.higherLowerMercyModal.classList.toggle("hidden", !canDecide);
+      if (!canDecide) return;
+      const possible = higherLowerDomPossibleWin(game);
+      els.higherLowerMercyText.textContent = `${state.names.sub} wants mercy after ${Number(game.wrongStreak || 0)} wrong calls. ${state.names.dom}, they want you to cash out at ${money(possible)}, but do they deserve it for being a pathetic beggar?`;
+      els.higherLowerMercyCollectBtn.disabled = false;
+      els.higherLowerMercyDenyBtn.disabled = false;
+      els.higherLowerMercyPunishBtn.disabled = false;
+    }
+
     function renderCheckersQueenSplash() {
       const checkers = state.screen === "game" && state.currentGame === "tributeCheckers" ? state.checkers : null;
       const remaining = checkers ? Math.max(0, Number(checkers.queenSplashUntil || 0) - Date.now()) : 0;
@@ -5444,10 +6052,26 @@
         publishState();
         return;
       }
+      if (state.currentGame === "tributeReversi") {
+        resetTributeReversiBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Tribute Reversi reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
       if (state.currentGame === "tributeTwentyOne") {
         resetTributeTwentyOneBoard();
         els.log.innerHTML = "";
         addLog(`<strong>Tribute Blackjack reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
+      if (state.currentGame === "higherLower") {
+        resetHigherLowerBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Higher / Lower reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
         render();
         publishState();
         return;
@@ -5543,6 +6167,16 @@
       state.lockedTribute = state.domVault;
       state.winningCells = [];
       state.twentyOne = createTwentyOneState();
+    }
+
+    function resetHigherLowerBoard() {
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+      state.higherLower = createHigherLowerState();
     }
 
     function resetTributeCheckersBoard() {
@@ -7239,6 +7873,199 @@
       return state.twentyOne.deck.pop();
     }
 
+    const HIGHER_LOWER_BASE_TRIBUTE = 25;
+    const HIGHER_LOWER_DOM_STREAK_BONUS = 5;
+    const HIGHER_LOWER_MERCY_THRESHOLD = 4;
+    const HIGHER_LOWER_FORCE_COLLECT_WRONGS = 10;
+    const HIGHER_LOWER_MERCY_BONUSES = [5, 10, 15, 20, 25];
+
+    function higherLowerRunStake(stake) {
+      return Number(stake) === 50 ? 50 : 25;
+    }
+
+    function higherLowerTargetForStake(stake) {
+      return higherLowerRunStake(stake) === 50 ? 6 : 4;
+    }
+
+    function higherLowerExtraPayoutForStake(stake) {
+      return higherLowerRunStake(stake) === 50 ? 10 : 5;
+    }
+
+    function higherLowerCashOutPayout(game = state.higherLower) {
+      const runStake = higherLowerRunStake(game && game.runStake);
+      const target = Number(game && game.targetStreak || 4);
+      const streak = Number(game && game.streak || 0);
+      if (streak < target) return 0;
+      return runStake + Math.max(0, streak - target) * higherLowerExtraPayoutForStake(runStake);
+    }
+
+    function higherLowerDomPossibleWin(game = state.higherLower) {
+      return Number(game && game.baseTribute || HIGHER_LOWER_BASE_TRIBUTE) + Number(game && game.domRunBonus || 0);
+    }
+
+    function startHigherLowerNormalMatch() {
+      const runStake = higherLowerRunStake(state.higherLower && state.higherLower.queuedRunStake);
+      const target = higherLowerTargetForStake(runStake);
+      els.betInput.value = HIGHER_LOWER_BASE_TRIBUTE;
+      const bet = prepareRound("normal", "higher / lower run");
+      if (bet === null) return;
+      state.higherLower = createHigherLowerState();
+      state.higherLower.runStake = runStake;
+      state.higherLower.queuedRunStake = runStake;
+      state.higherLower.targetStreak = target;
+      state.higherLower.baseTribute = HIGHER_LOWER_BASE_TRIBUTE;
+      state.higherLower.deck = shuffleDeck(createTwentyOneDeck());
+      state.higherLower.currentCard = drawHigherLowerCard();
+      state.turn = SUB;
+      state.active = true;
+      finishRoundStart(`<strong>${money(runStake)} run:</strong> ${state.names.sub} must reach streak ${target} to cash out. ${state.names.dom}'s base tribute is ${money(bet)} either way.`, false);
+    }
+
+    function drawHigherLowerCard() {
+      if (!state.higherLower.deck.length) state.higherLower.deck = shuffleDeck(createTwentyOneDeck());
+      return state.higherLower.deck.pop();
+    }
+
+    function higherLowerCardValue(card) {
+      const rank = String(card || "").slice(0, -1);
+      if (rank === "A") return 14;
+      if (rank === "K") return 13;
+      if (rank === "Q") return 12;
+      if (rank === "J") return 11;
+      return Number(rank || 0);
+    }
+
+    function higherLowerGuess(direction) {
+      if (state.currentGame !== "higherLower" || !state.active || !state.higherLower.currentCard) return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const previous = state.higherLower.currentCard;
+      const next = drawHigherLowerCard();
+      const previousValue = higherLowerCardValue(previous);
+      const nextValue = higherLowerCardValue(next);
+      const actual = nextValue > previousValue ? "higher" : (nextValue < previousValue ? "lower" : "same");
+      state.higherLower.lastCard = previous;
+      state.higherLower.currentCard = next;
+      if (direction === actual) {
+        const gain = direction === "same" ? 2 : 1;
+        state.higherLower.wrongStreak = 0;
+        state.higherLower.streak += gain;
+        state.higherLower.bestStreak = Math.max(state.higherLower.bestStreak, state.higherLower.streak);
+        const cashOutPayout = higherLowerCashOutPayout();
+        const target = Number(state.higherLower.targetStreak || 4);
+        state.higherLower.result = `${rankName(next.slice(0, -1))} was ${actual}. Streak ${state.higherLower.streak}. ${state.higherLower.streak >= target ? `Cash out is worth ${money(cashOutPayout)}.` : `Cash out unlocks at ${target}.`}`;
+        addLog(`<strong>Correct.</strong> ${state.names.sub} called ${direction}. Streak ${state.higherLower.streak}.`);
+        render();
+        publishState();
+        return;
+      }
+      state.higherLower.streak = 0;
+      state.higherLower.wrongStreak = Number(state.higherLower.wrongStreak || 0) + 1;
+      if (state.higherLower.wrongStreak >= 2) {
+        state.higherLower.domRunBonus = Number(state.higherLower.domRunBonus || 0) + HIGHER_LOWER_DOM_STREAK_BONUS;
+      }
+      const possible = higherLowerDomPossibleWin();
+      state.higherLower.result = `${rankName(next.slice(0, -1))} was ${actual}. Wrong streak ${state.higherLower.wrongStreak}. ${state.names.dom}'s possible win is ${money(possible)}.`;
+      addLog(`<strong>Wrong.</strong> ${state.names.sub} called ${direction}, but the card was ${actual}. ${state.higherLower.wrongStreak >= 2 ? `${state.names.dom}'s possible win gains ${money(HIGHER_LOWER_DOM_STREAK_BONUS)}.` : "One mistake is only a warning."}`);
+      if (state.higherLower.wrongStreak >= HIGHER_LOWER_FORCE_COLLECT_WRONGS) {
+        endHigherLower(DOM, `${state.names.sub} hit ${state.higherLower.wrongStreak} wrong calls in a row. ${state.names.dom} drains them dry.`);
+        return;
+      }
+      render();
+      publishState();
+    }
+
+    function cashOutHigherLower() {
+      if (state.currentGame !== "higherLower" || !state.active) return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (Number(state.higherLower.streak || 0) < Number(state.higherLower.targetStreak || 4)) return;
+      endHigherLower(SUB, `${state.names.sub} cashes out at streak ${state.higherLower.streak}.`);
+    }
+
+    function collectHigherLowerDomWin() {
+      if (state.currentGame !== "higherLower" || !state.active) return;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
+      if (Number(state.higherLower.domRunBonus || 0) <= 0) return;
+      endHigherLower(DOM, `${state.names.dom} collects after ${state.names.sub}'s mistake streak.`);
+    }
+
+    function begHigherLowerMercy() {
+      if (state.currentGame !== "higherLower" || !state.active) return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (Number(state.higherLower.wrongStreak || 0) < HIGHER_LOWER_MERCY_THRESHOLD || state.higherLower.mercyPending) return;
+      state.higherLower.mercyPending = true;
+      state.higherLower.result = `${state.names.sub} begs for mercy. Waiting for ${state.names.dom}'s decision.`;
+      addLog(`<strong>Mercy begged.</strong> ${state.names.sub} asks ${state.names.dom} to cash out instead of letting the run get worse.`);
+      render();
+      publishState();
+    }
+
+    function decideHigherLowerMercy(choice) {
+      if (state.currentGame !== "higherLower" || !state.active || !state.higherLower.mercyPending) return;
+      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
+      if (choice === "collect") {
+        state.higherLower.mercyPending = false;
+        endHigherLower(DOM, `${state.names.dom} accepts the mercy beg and collects.`);
+        return;
+      }
+      if (choice === "punish") {
+        const bonus = HIGHER_LOWER_MERCY_BONUSES[Math.floor(Math.random() * HIGHER_LOWER_MERCY_BONUSES.length)];
+        state.higherLower.domRunBonus = Number(state.higherLower.domRunBonus || 0) + bonus;
+        state.higherLower.mercyBonus = bonus;
+        state.higherLower.mercyPending = false;
+        state.higherLower.result = `${state.names.dom} denies mercy and adds ${money(bonus)} to the possible win. Don't be such a begging loser.`;
+        addLog(`<strong>Mercy denied.</strong> ${state.names.dom} adds ${money(bonus)} to the possible win for begging.`);
+      } else {
+        state.higherLower.mercyPending = false;
+        state.higherLower.result = `${state.names.dom} denies mercy. Keep playing.`;
+        addLog(`<strong>Mercy denied.</strong> ${state.names.dom} refuses the beg and makes the run continue.`);
+      }
+      render();
+      publishState();
+    }
+
+    function endHigherLower(winner, reason) {
+      state.higherLower.winner = winner;
+      state.active = false;
+      if (winner === DOM) {
+        const tribute = Number(state.higherLower.baseTribute || HIGHER_LOWER_BASE_TRIBUTE);
+        const bonus = Number(state.higherLower.domRunBonus || 0);
+        const amount = higherLowerDomPossibleWin();
+        const before = state.domVault;
+        state.domVault += amount;
+        state.lockedTribute = state.domVault;
+        recordLedgerEvent({
+          type: "tribute",
+          label: "Higher / Lower Break",
+          detail: `${state.names.dom} collects the card run. Base ${money(tribute)}, mistake bonus ${money(bonus)}.`,
+          delta: state.domVault - before,
+          before,
+          after: state.domVault
+        });
+        addLog(`<strong>${state.names.dom} collects the run.</strong> ${reason} ${money(tribute)} tribute${bonus ? ` plus ${money(bonus)} mistake bonus` : ""} moves into her bank.`);
+        showOutcomeSplash({ tone: "dom", kicker: "Collected", title: `${state.names.dom} collects`, detail: `${money(amount)} added to her bank.` });
+      } else if (winner === SUB) {
+        const payout = higherLowerCashOutPayout();
+        const before = state.domVault;
+        state.domVault = Math.max(0, state.domVault - payout);
+        state.lockedTribute = state.domVault;
+        recordLedgerEvent({
+          type: "reclaim",
+          label: "Higher / Lower Cash Out",
+          detail: `${state.names.sub} cashes out a ${money(payout)} Higher / Lower payout.`,
+          delta: state.domVault - before,
+          before,
+          after: state.domVault
+        });
+        addLog(`<strong>${state.names.sub} cashes out.</strong> ${reason} ${money(payout)} is paid back from ${state.names.dom}'s bank.`);
+        showOutcomeSplash({ tone: "sub", kicker: "Cashed Out", title: `${state.names.sub} gets paid back`, detail: `${money(Math.min(payout, before))} removed from the dom bank.` });
+      } else {
+        addLog(`<strong>Higher / Lower ends.</strong> ${reason}`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
+    }
+
     function hitTwentyOne() {
       if (state.currentGame !== "tributeTwentyOne" || !state.active) return;
       if (state.turn === SUB) {
@@ -8257,6 +9084,10 @@
         renderTwentyOneBoard();
         return;
       }
+      if (state.currentGame === "higherLower") {
+        renderHigherLowerBoard();
+        return;
+      }
       if (state.currentGame === "tributeTicTacToe") {
         renderTicTacToeBoard();
         return;
@@ -8271,6 +9102,10 @@
       }
       if (state.currentGame === "obedienceOrders") {
         renderObedienceOrdersBoard();
+        return;
+      }
+      if (state.currentGame === "tributeReversi") {
+        renderReversiBoard();
         return;
       }
       if (state.currentGame === "tributeFleet") {
@@ -8315,59 +9150,170 @@
     }
 
     function renderObedienceOrdersBoard() {
-      const obedience = state.obedience || createObedienceState();
+      const obedience = ensureObedienceOrder();
       els.board.innerHTML = "";
       els.board.className = "obedience-board";
-      const sequenceVisible = obedience.phase === "study" || obedience.phase === "complete";
-      const sequence = document.createElement("div");
-      sequence.className = "obedience-sequence";
-      const shownOrders = obedience.sequence && obedience.sequence.length
-        ? obedience.sequence.map((id, index) => {
-          const command = obedienceCommand(id);
-          return `<span class="obedience-order ${sequenceVisible ? "" : "hidden-order"}">${sequenceVisible ? escapeHtml(command.label) : index + 1}</span>`;
-        }).join("")
-        : `<span class="obedience-order empty">Awaiting first order</span>`;
-      sequence.innerHTML = shownOrders;
-      els.board.appendChild(sequence);
+      const canDom = obedienceControlsAllowed(DOM);
+      const canSub = obedienceControlsAllowed(SUB);
+      const order = obedience.order || [];
+      const input = obedience.input || [];
+      const isRecall = obedience.phase === "recall";
+      const layout = isRecall && obedience.layout.length === OBEDIENCE_GRID_SIZE
+        ? obedience.layout
+        : Array.from({ length: OBEDIENCE_GRID_SIZE }, (_, index) => index);
+      const activeTwist = OBEDIENCE_TWISTS[obedience.twist] || OBEDIENCE_TWISTS.clean;
+      const pendingTwist = OBEDIENCE_TWISTS[obedience.pendingTwist] || OBEDIENCE_TWISTS.clean;
+      const orderMap = new Map();
+      order.forEach((cell, index) => {
+        if (!orderMap.has(cell)) orderMap.set(cell, []);
+        orderMap.get(cell).push(index + 1);
+      });
 
       const stats = document.createElement("div");
       stats.className = "obedience-stats";
       stats.innerHTML = `
-        <span>Round <strong>${Math.min(OBEDIENCE_TARGET_ROUNDS, Number(obedience.successes || 0) + 1)}</strong> / ${OBEDIENCE_TARGET_ROUNDS}</span>
-        <span>Mistakes <strong>${Number(obedience.mistakes || 0)}</strong></span>
+        <span>Pressure <strong>${Number(obedience.pressure || 1)}</strong> / ${OBEDIENCE_MAX_PRESSURE}</span>
+        <span>Focus <strong>${Number(obedience.focus || 0)}</strong></span>
+        <span>Streak <strong>${escapeHtml(obedience.streakLabel || "Unproven")}</strong></span>
+        <span>Order <strong>${order.length}</strong> tiles</span>
+        <span>Payout <strong>${money(obediencePressurePayout())}</strong></span>
         <span>Tribute <strong>${money(Number(obedience.tributePaid || 0))}</strong></span>
       `;
       els.board.appendChild(stats);
 
+      const twistBar = document.createElement("div");
+      twistBar.className = "obedience-twists";
+      twistBar.innerHTML = Object.entries(OBEDIENCE_TWISTS).map(([id, twist]) => `
+        <button class="${obedience.pendingTwist === id ? "active" : ""}" data-obedience-twist="${id}"${canDom && !isRecall ? "" : " disabled"}>
+          <strong>${escapeHtml(twist.label)}</strong>
+          <span>${escapeHtml(twist.detail)}</span>
+        </button>
+      `).join("");
+      els.board.appendChild(twistBar);
+
+      const pressure = document.createElement("div");
+      pressure.className = "obedience-pressure";
+      pressure.innerHTML = `
+        <span>Active: <strong>${escapeHtml(activeTwist.label)}</strong></span>
+        <span>Next: <strong>${escapeHtml(pendingTwist.label)}</strong></span>
+      `;
+      els.board.appendChild(pressure);
+
+      const grid = document.createElement("div");
+      grid.className = `obedience-grid ${isRecall ? "recall" : ""}`;
+      layout.forEach((cell) => {
+        const button = document.createElement("button");
+        const tile = obedienceTile(cell);
+        const picked = orderMap.has(cell);
+        const entered = input.includes(cell);
+        const revealed = isRecall && Number.isInteger(obedience.revealedIndex) && order[obedience.revealedIndex] === cell;
+        const blind = isRecall && obedience.twist === "blind" && !revealed && !entered;
+        button.className = `obedience-cell tone-${tile.tone} ${picked ? "picked" : ""} ${entered ? "entered" : ""} ${revealed ? "revealed" : ""}`;
+        button.dataset.obedienceCell = String(cell);
+        button.disabled = isRecall ? !canSub : !canDom;
+        button.setAttribute("aria-label", `${tile.label} tile`);
+        const marks = picked && !isRecall
+          ? orderMap.get(cell).map((step) => `<span>${step}</span>`).join("")
+          : "";
+        const status = isRecall ? (entered ? "Done" : (revealed ? "Next" : "Pick")) : (picked ? "Set" : "Set");
+        button.innerHTML = `
+          <strong>${blind ? escapeHtml(tile.icon) : escapeHtml(tile.label)}</strong>
+          <em>${status}</em>
+          <small>${marks}</small>
+        `;
+        grid.appendChild(button);
+      });
+      els.board.appendChild(grid);
+
       const message = document.createElement("p");
       message.className = "obedience-message";
-      message.textContent = obedience.message || "Dom sets the first order.";
+      message.textContent = obedience.message || "Dom picks an order on the grid.";
       els.board.appendChild(message);
 
       const actions = document.createElement("div");
       actions.className = "obedience-actions";
-      const canDom = obedienceControlsAllowed(DOM);
-      const canSub = obedienceControlsAllowed(SUB);
-      if (obedience.phase === "study") {
-        actions.innerHTML = `<button class="primary" data-obedience-action="recall"${canSub ? "" : " disabled"}>Begin Recall</button>`;
+      if (isRecall) {
+        actions.innerHTML = `
+          <button class="primary" data-obedience-action="focus"${canSub && obedience.focus > 0 ? "" : " disabled"}>Use Focus</button>
+          <button data-obedience-action="reset"${canDom ? "" : " disabled"}>Reset Order</button>
+        `;
       } else if (obedience.phase === "complete") {
-        actions.innerHTML = `<button class="primary" data-obedience-action="reset"${canDom ? "" : " disabled"}>New Orders</button>`;
+        actions.innerHTML = `
+          <button class="primary" data-obedience-action="press"${canDom ? "" : " disabled"}>Press</button>
+          <button data-obedience-action="send"${canDom ? "" : " disabled"}>Repeat Same</button>
+          <button data-obedience-action="cashout"${canDom ? "" : " disabled"}>Cash Out</button>
+          <button data-obedience-action="reset"${canDom ? "" : " disabled"}>New Order</button>
+        `;
+      } else if (obedience.phase === "cashed") {
+        actions.innerHTML = `
+          <button class="primary" data-obedience-action="reset"${canDom ? "" : " disabled"}>New Order</button>
+        `;
       } else {
-        actions.innerHTML = `<button class="primary" data-obedience-action="start"${canDom ? "" : " disabled"}>${obedience.sequence && obedience.sequence.length ? "Add Order" : "Start Orders"}</button>`;
+        actions.innerHTML = `
+          <button class="primary" data-obedience-action="send"${canDom && order.length >= OBEDIENCE_MIN_ORDER ? "" : " disabled"}>Send Order</button>
+          <button data-obedience-action="undo"${canDom && order.length ? "" : " disabled"}>Undo</button>
+          <button data-obedience-action="clear"${canDom && order.length ? "" : " disabled"}>Clear</button>
+        `;
       }
       els.board.appendChild(actions);
+    }
 
-      const pad = document.createElement("div");
-      pad.className = "obedience-pad";
-      OBEDIENCE_COMMANDS.forEach((command) => {
-        const button = document.createElement("button");
-        button.className = "obedience-command";
-        button.disabled = obedience.phase !== "recall" || !canSub;
-        button.dataset.obedienceCommand = command.id;
-        button.innerHTML = `<strong>${escapeHtml(command.label)}</strong><span>${escapeHtml(command.detail)}</span>`;
-        pad.appendChild(button);
-      });
-      els.board.appendChild(pad);
+    function renderReversiBoard() {
+      const board = reversiBoard();
+      const legal = state.active ? reversiLegalMoves(state.turn) : [];
+      const legalMap = new Map(legal.map((move) => [`${move.row},${move.col}`, move]));
+      const score = reversiScore(board);
+      const last = state.reversi && state.reversi.lastMove;
+      const viewer = localOnlineRole();
+      const showNumbers = reversiCanSeeFlipNumbers(viewer);
+      const showWarnings = reversiCanSeePriorityWarnings(viewer);
+      els.board.innerHTML = "";
+      els.board.className = "reversi-table";
+
+      const status = document.createElement("div");
+      status.className = "reversi-status";
+      status.innerHTML = `
+        <span>${escapeHtml(state.names.sub || "Sub")} <strong>${score.sub}</strong></span>
+        <span>${escapeHtml(state.names.dom || "Dom")} <strong>${score.dom}</strong></span>
+        <span>Legal <strong>${legal.length}</strong></span>
+      `;
+      els.board.appendChild(status);
+
+      const grid = document.createElement("div");
+      grid.className = "reversi-board";
+      for (let row = 0; row < 8; row += 1) {
+        for (let col = 0; col < 8; col += 1) {
+          const value = board[row][col];
+          const key = `${row},${col}`;
+          const move = legalMap.get(key);
+          const cell = document.createElement("button");
+          cell.className = `reversi-cell ${value || ""} ${move ? "legal" : ""}`;
+          if (move && showWarnings && reversiIsCorner(row, col)) cell.classList.add("corner-warning");
+          if (move && showWarnings && !reversiIsCorner(row, col) && reversiIsEdge(row, col)) cell.classList.add("edge-warning");
+          if (reversiLockedMatches(row, col)) cell.classList.add("locked");
+          if (last && last.row === row && last.col === col) cell.classList.add("last");
+          const role = localOnlineRole();
+          const commandPending = state.reversi && state.reversi.commandWindow && !state.reversi.commandMode;
+          const commandViewer = state.reversi && state.reversi.commandMode && state.turn === SUB && (!role || role === DOM);
+          cell.disabled = !state.active || !move || commandPending || (role && role !== state.turn && !commandViewer);
+          cell.setAttribute("aria-label", value
+            ? `${labelFor(value)} disc row ${row + 1}, column ${col + 1}`
+            : `empty reversi square row ${row + 1}, column ${col + 1}`);
+          if (value) {
+            const disc = document.createElement("span");
+            disc.className = "reversi-disc";
+            cell.appendChild(disc);
+          } else if (move) {
+            const hint = document.createElement("span");
+            hint.className = "reversi-hint";
+            hint.textContent = showNumbers ? String(move.flips.length) : "";
+            cell.appendChild(hint);
+          }
+          cell.addEventListener("click", () => playReversiMove(row, col));
+          grid.appendChild(cell);
+        }
+      }
+      els.board.appendChild(grid);
     }
 
     function renderWheelSpinBoard() {
@@ -8691,6 +9637,106 @@
           els.board.appendChild(cell);
         }
       }
+    }
+
+    function renderHigherLowerBoard() {
+      const game = state.higherLower || createHigherLowerState();
+      const canAct = state.active && !game.mercyPending && (!localOnlineRole() || localOnlineRole() === SUB);
+      els.board.className = "higher-lower-table";
+      els.board.innerHTML = "";
+
+      const panel = document.createElement("section");
+      panel.className = "higher-lower-panel";
+
+      const cards = document.createElement("div");
+      cards.className = "higher-lower-cards";
+      const previousWrap = document.createElement("div");
+      previousWrap.className = "higher-lower-card-slot";
+      previousWrap.innerHTML = `<span>Previous</span>`;
+      previousWrap.appendChild(game.lastCard ? renderPlayingCard(game.lastCard, false) : renderPlayingCard("AS", true));
+      const currentWrap = document.createElement("div");
+      currentWrap.className = "higher-lower-card-slot current";
+      currentWrap.innerHTML = `<span>Current</span>`;
+      currentWrap.appendChild(game.currentCard ? renderPlayingCard(game.currentCard, false) : renderPlayingCard("AS", true));
+      cards.appendChild(previousWrap);
+      cards.appendChild(currentWrap);
+
+      const status = document.createElement("div");
+      status.className = "higher-lower-status";
+      const target = Number(game.targetStreak || higherLowerTargetForStake(game.runStake || 25));
+      const cashOutPayout = higherLowerCashOutPayout(game);
+      const extraPayout = higherLowerExtraPayoutForStake(game.runStake || 25);
+      const wrongStreak = Number(game.wrongStreak || 0);
+      const domPossible = higherLowerDomPossibleWin(game);
+      status.innerHTML = `
+        <strong>${state.active ? "Call The Next Card" : "Ready For A Run"}</strong>
+        <p>${escapeHtml(game.result || (state.active ? `Reach streak ${target} to unlock cash out. Each correct call after that adds ${money(extraPayout)} to the payback. Two wrong in a row starts feeding ${state.names.dom}'s possible win.` : "Choose a preset run. The higher stake makes the cash-out target harder and pays back more if the sub survives."))}</p>
+        <div class="higher-lower-meter">
+          <span>Streak <b>${Number(game.streak || 0)}</b></span>
+          <span>Target <b>${target}</b></span>
+          <span>Cash Out <b>${money(cashOutPayout)}</b></span>
+          <span>Wrong <b>${wrongStreak}</b></span>
+          <span>Dom Win <b>${money(domPossible)}</b></span>
+        </div>
+      `;
+
+      const actions = document.createElement("div");
+      actions.className = "higher-lower-actions";
+      [
+        ["lower", "Lower"],
+        ["same", "Same"],
+        ["higher", "Higher"]
+      ].forEach(([guess, label]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.disabled = !canAct;
+        button.addEventListener("click", () => higherLowerGuess(guess));
+        actions.appendChild(button);
+      });
+      const cashOut = document.createElement("button");
+      cashOut.type = "button";
+      cashOut.className = "primary";
+      cashOut.textContent = "Cash Out";
+      cashOut.disabled = !canAct || Number(game.streak || 0) < target;
+      cashOut.addEventListener("click", cashOutHigherLower);
+      actions.appendChild(cashOut);
+
+      const collect = document.createElement("button");
+      collect.type = "button";
+      collect.className = "danger-button";
+      collect.textContent = "Collect";
+      collect.disabled = !state.active || Number(game.domRunBonus || 0) <= 0 || !domAdvantageControlsAllowed(localOnlineRole());
+      collect.addEventListener("click", collectHigherLowerDomWin);
+      actions.appendChild(collect);
+
+      const beg = document.createElement("button");
+      beg.type = "button";
+      beg.textContent = "Beg Mercy";
+      beg.disabled = !canAct
+        || Number(game.wrongStreak || 0) < HIGHER_LOWER_MERCY_THRESHOLD
+        || Boolean(game.mercyPending);
+      beg.addEventListener("click", begHigherLowerMercy);
+      actions.appendChild(beg);
+
+      const setup = document.createElement("div");
+      setup.className = "higher-lower-run-options";
+      [
+        [25, "Streak 4"],
+        [50, "Streak 6"]
+      ].forEach(([stake, label]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.innerHTML = `<strong>${money(stake)} Run</strong><span>${label}</span>`;
+        button.disabled = state.active || Boolean(state.pendingWager) || Boolean(localOnlineRole() && localOnlineRole() !== SUB);
+        button.addEventListener("click", () => requestHigherLowerRun(stake));
+        setup.appendChild(button);
+      });
+
+      panel.appendChild(cards);
+      panel.appendChild(status);
+      panel.appendChild(state.active ? actions : setup);
+      els.board.appendChild(panel);
     }
 
     function chessPieceGlyph(piece) {
@@ -9151,7 +10197,22 @@
 
     function currentTiltStatusItems() {
       if (state.screen !== "game") return [];
-      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail") return [];
+      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail" || state.currentGame === "higherLower") return [];
+      if (state.currentGame === "tributeReversi") {
+        if (state.mode !== "reclaim") return [];
+        const commandText = state.reversi && state.reversi.commandMode
+          ? "Command Move armed."
+          : (state.reversi && state.reversi.commandWindow
+            ? "Command response window open."
+            : (state.reversi && state.reversi.commandAvailable ? "Command Move ready." : "Command Move spent or locked."));
+        const locked = state.reversi && state.reversi.lockedDisc
+          ? `Locked disc: row ${state.reversi.lockedDisc.row + 1}, column ${state.reversi.lockedDisc.col + 1}.`
+          : "No locked disc.";
+        return [
+          `<strong>Current tilt:</strong> level ${state.tiltLevel}: ${reversiTiltSummary()}`,
+          `<strong>Reversi edge:</strong> ${commandText} ${locked}`
+        ];
+      }
       if (state.currentGame === "tributeFleet") {
         const modifiers = state.fleet.modifiers || [];
         const modifierText = modifiers.length
@@ -9198,7 +10259,9 @@
     function currentGameLabel() {
       if (state.currentGame === "tributeChess") return "Tribute Chess";
       if (state.currentGame === "tributeCheckers") return "Tribute Checkers";
+      if (state.currentGame === "tributeReversi") return "Tribute Reversi";
       if (state.currentGame === "tributeTwentyOne") return "Tribute Blackjack";
+      if (state.currentGame === "higherLower") return "Higher / Lower";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
       if (state.currentGame === "tributeTrail") return "Tribute Trail";
@@ -9218,8 +10281,16 @@
         renderCheckersRules();
         return;
       }
+      if (state.currentGame === "tributeReversi") {
+        renderReversiRules();
+        return;
+      }
       if (state.currentGame === "tributeTwentyOne") {
         renderTwentyOneRules();
+        return;
+      }
+      if (state.currentGame === "higherLower") {
+        renderHigherLowerRules();
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -9283,6 +10354,37 @@
       setRuleList(rules);
     }
 
+    function renderReversiRules() {
+      const rules = [
+        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. ${state.names.sub} plays dark and moves first.`,
+        `<strong>Goal:</strong> finish the game with more discs than your opponent.`,
+        `<strong>Moves:</strong> place a disc so one or more enemy discs are trapped in a straight line between your new disc and another of your discs.`,
+        `<strong>Flip:</strong> all trapped discs in every direction become yours. Legal move hints can show how many discs would flip.`,
+        `<strong>Pass:</strong> if a player has no legal move, their turn is skipped automatically.`,
+        `<strong>End:</strong> the game ends when neither player has a legal move. Equal normal scores return the pot.`,
+        `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank; ${state.names.dom} starts reclaim as the table edge.`,
+        `<strong>Tier 0:</strong> both players see flip-count numbers as training wheels.`,
+        `<strong>Tier 1:</strong> only ${state.names.dom} sees flip-count numbers. Bratty mode keeps the numbers visible to both players at tier 1.`,
+        `<strong>Tier 2:</strong> ${state.names.dom} also sees corner and edge warnings.`,
+        `<strong>Tier 3:</strong> ${state.names.dom}'s strong flips pay tribute: 3-4 discs pays $1, 5+ pays $2.`,
+        `<strong>Tier 4:</strong> a ${state.names.dom} flip of 4+ discs locks one flipped disc until after ${state.names.sub}'s next move.`,
+        `<strong>Tier 5:</strong> ${state.names.dom} gets one Command Move and reclaim ties go to ${state.names.dom}.`,
+        `<strong>Tier 6+:</strong> Tribute Flip improves to $2/$4, and taking a corner refreshes Command Move once.`
+      ];
+      setRuleList(rules);
+    }
+
+    function reversiTiltSummary() {
+      if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
+      if (state.tiltLevel >= 6) return "dom numbers, priority warnings, boosted Tribute Flip, Locked Disc, Command Move, dom reclaim ties, and one corner refresh.";
+      if (state.tiltLevel >= 5) return "dom numbers, priority warnings, Tribute Flip, Locked Disc, Command Move, and dom reclaim ties.";
+      if (state.tiltLevel >= 4) return "dom numbers, priority warnings, Tribute Flip, and Locked Disc.";
+      if (state.tiltLevel >= 3) return "dom numbers, priority warnings, and Tribute Flip.";
+      if (state.tiltLevel >= 2) return "dom numbers plus corner and edge warnings.";
+      if (state.tiltLevel >= 1) return brattyReversiTrainingNumbers() ? "both players keep training numbers for Bratty." : "only the dom sees flip-count numbers.";
+      return "both players see flip-count training numbers.";
+    }
+
     function renderWheelSpinRules() {
       const rules = [
         `<strong>Spin:</strong> ${state.names.sub} presses the center of the wheel to spin. No bet is required in this mode.`,
@@ -9305,11 +10407,12 @@
 
     function renderObedienceOrdersRules() {
       const rules = [
-        `<strong>Goal:</strong> ${state.names.sub} repeats ${OBEDIENCE_TARGET_ROUNDS} growing command sequences.`,
-        `<strong>Dom turn:</strong> ${state.names.dom} starts or adds one order to the chain.`,
-        `<strong>Study:</strong> the full order chain is visible until ${state.names.sub} begins recall.`,
-        `<strong>Recall:</strong> ${state.names.sub} presses the command buttons in the exact order.`,
-        `<strong>Mistake:</strong> a wrong command immediately pays tribute to ${state.names.dom}'s bank, then the same chain is studied again.`,
+        `<strong>Goal:</strong> ${state.names.sub} repeats the exact command tile order chosen by ${state.names.dom}.`,
+        `<strong>Dom turn:</strong> ${state.names.dom} builds an order, chooses a twist, and sends it at the current Pressure.`,
+        `<strong>Sub turn:</strong> ${state.names.sub} repeats the hidden order. Focus can reveal the next required tile.`,
+        `<strong>Pressure:</strong> every successful repeat lets ${state.names.dom} press harder, repeat the same order, cash out, or start fresh.`,
+        `<strong>Twists:</strong> Blind hides tile labels, Shuffle rearranges the board, Cruel and Greedy increase mistake payouts.`,
+        `<strong>Mistake:</strong> a wrong tile immediately pays tribute to ${state.names.dom}'s bank, then ${state.names.dom} can resend or adjust the order.`,
         `<strong>No dom cost:</strong> ${state.names.dom}'s bank is never charged in this mode.`
       ];
       setRuleList(rules);
@@ -9464,22 +10567,49 @@
       setRuleList(rules);
     }
 
+    function renderHigherLowerRules() {
+      const rules = [
+        `<strong>Goal:</strong> ${state.names.sub} guesses whether the next card is higher, lower, or the same rank as the current card.`,
+        `<strong>Card order:</strong> 2 is low, ace is high. Matching ranks are only won by calling Same.`,
+        `<strong>Run stakes:</strong> ${money(25)} runs unlock cash out at streak 4 and pay back ${money(25)}. ${money(50)} runs unlock cash out at streak 6 and pay back ${money(50)}.`,
+        `<strong>Correct guess:</strong> the streak rises by 1. Calling Same correctly adds 2 because it is much rarer.`,
+        `<strong>Cash out:</strong> ${state.names.sub} can only cash out after reaching the run target. Extra wins after the target add ${money(5)} on a ${money(25)} run or ${money(10)} on a ${money(50)} run.`,
+        `<strong>Wrong guess:</strong> one wrong call breaks ${state.names.sub}'s current streak but does not end the run.`,
+        `<strong>Dom win build-up:</strong> two wrong guesses in a row adds ${money(HIGHER_LOWER_DOM_STREAK_BONUS)} to ${state.names.dom}'s possible win. Every further consecutive wrong guess adds another ${money(HIGHER_LOWER_DOM_STREAK_BONUS)}.`,
+        `<strong>Beg mercy:</strong> after ${HIGHER_LOWER_MERCY_THRESHOLD} wrong guesses in a row, ${state.names.sub} can beg ${state.names.dom} to collect instead of letting the run get worse.`,
+        `<strong>Drained dry:</strong> at ${HIGHER_LOWER_FORCE_COLLECT_WRONGS} wrong guesses in a row, ${state.names.dom} is forced to collect the current dom win.`,
+        `<strong>Collect:</strong> once a mistake bonus exists, ${state.names.dom} can collect the current dom win instead of letting ${state.names.sub} keep playing.`,
+        `<strong>Reclaim:</strong> Higher / Lower does not use reclaim yet. It is a quick normal-bet punishment game for now.`
+      ];
+      setRuleList(rules);
+    }
+
     function renderText() {
       renderGameChrome();
       const isTrail = state.currentGame === "tributeTrail";
       const isBlackjack = state.currentGame === "tributeTwentyOne";
+      const isHigherLower = state.currentGame === "higherLower";
       els.gameScreen.classList.toggle("trail-wide", isTrail);
       els.gameScreen.classList.toggle("blackjack-wide", isBlackjack);
-      els.cashLedgerPanel.classList.toggle("hidden", isTrail);
+      els.gameScreen.classList.toggle("higherlower-wide", isHigherLower);
+      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower);
       els.cashLedgerPanel.classList.toggle("blackjack-ledger", isBlackjack);
       els.trailBankAmount.textContent = money(state.trail && state.trail.tributeBank || 0);
       els.trailSpendingAmount.textContent = money(state.trail && state.trail.spendingMoney || 0);
       els.pot.textContent = money(state.pot);
       els.domVault.textContent = money(state.domVault);
       els.lockedTribute.textContent = money(state.domVault);
+      if (els.turnDomBankPill) els.turnDomBankPill.classList.toggle("hidden", !isHigherLower);
+      if (els.turnDomBank) els.turnDomBank.textContent = money(state.domVault);
+      if (els.backToMenuBtn) {
+        const role = localOnlineRole();
+        const blocked = Boolean(state.online.room && role !== DOM);
+        els.backToMenuBtn.disabled = blocked;
+        els.backToMenuBtn.title = blocked ? "Only the dom can return to games during an online room." : "";
+      }
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
         ? "Free Spin"
-        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match")));
+        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
@@ -9510,14 +10640,42 @@
         }
       } else if (state.currentGame === "obedienceOrders") {
         const obedience = state.obedience || createObedienceState();
-        if (obedience.phase === "study") {
-          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> studies the order chain.`;
-        } else if (obedience.phase === "recall") {
-          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> repeats the orders.`;
+        if (obedience.phase === "recall") {
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> repeats the hidden command order.`;
         } else if (obedience.phase === "complete") {
-          els.turnText.innerHTML = `<strong>Orders complete.</strong> Start a new chain when ready.`;
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> decides whether to press, twist, or cash out.`;
+        } else if (obedience.phase === "cashed") {
+          els.turnText.innerHTML = `<strong>Order cashed out.</strong> Start a new duel when ready.`;
         } else {
-          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> sets the next order.`;
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> builds the command order.`;
+        }
+      } else if (state.currentGame === "higherLower") {
+        const streak = Number(state.higherLower && state.higherLower.streak || 0);
+        if (state.active) {
+          const target = Number(state.higherLower && state.higherLower.targetStreak || 4);
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> guesses the next card. Streak ${streak}/${target}.`;
+        } else if (state.higherLower && state.higherLower.winner) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.higherLower.winner)}</strong> wins the Higher / Lower run.`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses a preset Higher / Lower run.`;
+        }
+      } else if (state.currentGame === "tributeReversi") {
+        const score = reversiScore();
+        if (state.active) {
+          const legal = reversiLegalMoves(state.turn).length;
+          if (state.reversi && state.reversi.commandWindow) {
+            els.turnText.innerHTML = `<strong>${state.names.dom}</strong> may Command Move or let ${state.names.sub} move.`;
+          } else if (state.reversi && state.reversi.commandMode) {
+            els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses ${state.names.sub}'s legal Reversi move.`;
+          } else {
+            els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to move. ${legal} legal move${legal === 1 ? "" : "s"}.`;
+          }
+        } else if (state.reversi && state.reversi.winner) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.reversi.winner)}</strong> controls the board. ${state.names.sub}: ${score.sub}, ${state.names.dom}: ${score.dom}.`;
+        } else if (score.sub + score.dom > 4) {
+          els.turnText.innerHTML = `<strong>Reversi draw.</strong> ${state.names.sub}: ${score.sub}, ${state.names.dom}: ${score.dom}.`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> starts as dark after the bet is approved.`;
         }
       } else if (!state.active) {
         if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.queenSetup) {
@@ -9556,11 +10714,12 @@
       const onlineBlocksDom = !domAdvantageControlsAllowed(localRole);
       const isWheelSpin = state.currentGame === "wheelSpin";
       const isFreeGame = isWheelSpin || state.currentGame === "tributeTrail" || state.currentGame === "obedienceOrders";
+      const normalOnlyGame = state.currentGame === "higherLower";
       const wagerPending = Boolean(state.pendingWager);
       renderWheelDomTools();
-      els.betInput.classList.toggle("hidden", isFreeGame);
-      els.normalBtn.classList.toggle("hidden", isFreeGame);
-      els.reclaimBtn.classList.toggle("hidden", isFreeGame);
+      els.betInput.classList.toggle("hidden", isFreeGame || normalOnlyGame);
+      els.normalBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame);
+      els.reclaimBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame);
       els.reclaimBtn.disabled = state.active || wagerPending || state.domVault <= 0 || onlineBlocksSub;
       els.normalBtn.disabled = state.active || wagerPending || onlineBlocksSub;
       els.betInput.disabled = state.active || wagerPending || onlineBlocksSub;
@@ -9614,7 +10773,16 @@
         els.passBtn.textContent = "Power";
       } else if (state.currentGame === "tributeTrail") {
         els.passBtn.classList.add("hidden");
-      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders") {
+      } else if (state.currentGame === "tributeReversi") {
+        const canCommand = canUseReversiCommandMove();
+        const commandWindow = Boolean(state.reversi && state.reversi.commandWindow && !state.reversi.commandMode);
+        els.hitBtn.classList.toggle("hidden", !commandWindow);
+        els.hitBtn.disabled = !commandWindow || !domAdvantageControlsAllowed(localRole);
+        els.hitBtn.textContent = "Let Them Move";
+        els.passBtn.classList.toggle("hidden", !(canCommand || (state.reversi && state.reversi.commandMode)));
+        els.passBtn.disabled = !canCommand;
+        els.passBtn.textContent = state.reversi && state.reversi.commandMode ? "Command Armed" : "Command Move";
+      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders" || state.currentGame === "higherLower") {
         els.passBtn.classList.add("hidden");
       } else {
         const tributeFourPowerReady = !state.lockColumnMode && ((state.lockColumnAvailable && !state.lockColumnMode) || (state.pressureDropAvailable && !state.pressureDropArmed));
@@ -9644,9 +10812,19 @@
         els.gameSubtitle.textContent = "Classic checkers with forced jumps, Claim scaling, dom queens, and cash-draining captures.";
         return;
       }
+      if (state.currentGame === "tributeReversi") {
+        els.gameTitle.textContent = "Tribute Reversi";
+        els.gameSubtitle.textContent = "Classic Reversi with cash stakes. Trap lines, flip discs, and finish with control of the board.";
+        return;
+      }
       if (state.currentGame === "tributeTwentyOne") {
         els.gameTitle.textContent = "Tribute Blackjack";
         els.gameSubtitle.textContent = "Blackjack hands with cash stakes. The sub plays first, then the dom controls the dealer hand and takes the table edge in reclaim.";
+        return;
+      }
+      if (state.currentGame === "higherLower") {
+        els.gameTitle.textContent = "Higher / Lower";
+        els.gameSubtitle.textContent = "A quick card streak. The sub pushes for a cash-out target while wrong calls build a dom collect value inside the run.";
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -9666,7 +10844,7 @@
       }
       if (state.currentGame === "obedienceOrders") {
         els.gameTitle.textContent = "Obedience Orders";
-        els.gameSubtitle.textContent = "A command memory mini game. The dom grows the sequence; every sub mistake pays tribute.";
+        els.gameSubtitle.textContent = "A command-tile duel. The dom leads, raises pressure, and punishes mistakes.";
         return;
       }
       if (state.currentGame === "tributeFleet") {
@@ -9693,6 +10871,7 @@
       renderTrailCardReveal();
       renderTrailShopModal();
       renderBlackjackSettingsModal();
+      renderHigherLowerMercyModal();
       renderCheckersQueenModal();
       renderCheckersQueenSplash();
       renderBrattyWelcomeModal();
@@ -9705,6 +10884,8 @@
     els.hitBtn.addEventListener("click", () => {
       if (state.currentGame === "tributeChess") {
         chessFreezeAction();
+      } else if (state.currentGame === "tributeReversi") {
+        declineReversiCommandMove();
       } else {
         hitTwentyOne();
       }
@@ -9885,6 +11066,9 @@
     els.confirmResetBankBtn.addEventListener("click", confirmResetBank);
     if (els.declineBrattyWelcomeBtn) els.declineBrattyWelcomeBtn.addEventListener("click", declineBrattyWelcome);
     if (els.acceptBrattyWelcomeBtn) els.acceptBrattyWelcomeBtn.addEventListener("click", acceptBrattyWelcome);
+    if (els.higherLowerMercyCollectBtn) els.higherLowerMercyCollectBtn.addEventListener("click", () => decideHigherLowerMercy("collect"));
+    if (els.higherLowerMercyDenyBtn) els.higherLowerMercyDenyBtn.addEventListener("click", () => decideHigherLowerMercy("deny"));
+    if (els.higherLowerMercyPunishBtn) els.higherLowerMercyPunishBtn.addEventListener("click", () => decideHigherLowerMercy("punish"));
     els.wagerModal.addEventListener("click", (event) => {
       const button = event.target.closest("[data-wager-action]");
       if (!button) return;
@@ -9894,12 +11078,14 @@
     els.tributeFourCard.addEventListener("click", openTributeFour);
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
+    if (els.higherLowerCard) els.higherLowerCard.addEventListener("click", openHigherLower);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
     els.tributeWheelCard.addEventListener("click", openWheelSpin);
     if (els.obedienceOrdersCard) els.obedienceOrdersCard.addEventListener("click", openObedienceOrders);
     els.tributeTrailCard.addEventListener("click", openTributeTrail);
     els.tributeChessCard.addEventListener("click", openTributeChess);
     els.tributeCheckersCard.addEventListener("click", openTributeCheckers);
+    if (els.tributeReversiCard) els.tributeReversiCard.addEventListener("click", openTributeReversi);
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
     els.copyInviteBtn.addEventListener("click", copyInviteLink);
     document.querySelectorAll(".role-btn[data-player]").forEach((button) => {

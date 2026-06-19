@@ -181,88 +181,116 @@
     </section>
 
     <div class="game-select-tabs">
-      <button class="game-select-tab active" data-game-tab="main">Main Games</button>
-      <button class="game-select-tab" data-game-tab="mini">Mini Games</button>
-      <button class="game-select-tab" data-game-tab="testing">In Testing</button>
+      <button class="game-select-tab active" data-game-tab="table">Table Duels</button>
+      <button class="game-select-tab" data-game-tab="casino">Casino Risk</button>
+      <button class="game-select-tab" data-game-tab="chance">Chance / Punishment</button>
+      <button class="game-select-tab" data-game-tab="misc">Misc / WIP</button>
+      <button class="game-select-tab" data-game-tab="all">All</button>
     </div>
 
     <section class="game-grid" id="mainGamesGrid">
-      <button class="panel game-card" id="tributeFourCard">
+      <button class="panel game-card" id="tributeFourCard" data-game-categories="table all">
         <span>
+          <span class="game-card-tags"><span>1v1</span><span>Classic</span><span>Reclaim</span></span>
           <h2>Tribute Four</h2>
           <p>Connect Four with normal bets, reclaim matches, and tilted dom-favored rules.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeFleetCard">
+      <button class="panel game-card" id="tributeFleetCard" data-game-categories="table all">
         <span>
+          <span class="game-card-tags"><span>1v1</span><span>Hidden Info</span><span>Reclaim</span></span>
           <h2>Tribute Fleet</h2>
           <p>Battleship with hidden fleets, cash stakes, and reclaim pressure on the sub's shots.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeChessCard">
+      <button class="panel game-card" id="tributeChessCard" data-game-categories="table all">
         <span>
+          <span class="game-card-tags"><span>1v1</span><span>Strategy</span><span>Queen Powers</span></span>
           <h2>Tribute Chess</h2>
           <p>Classic chess with queen stances, shared charges, and reclaim commands.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeCheckersCard">
+      <button class="panel game-card" id="tributeCheckersCard" data-game-categories="table all">
         <span>
+          <span class="game-card-tags"><span>1v1</span><span>Classic</span><span>Claim</span></span>
           <h2>Tribute Checkers</h2>
           <p>Classic checkers where dom captures build Claim and her queens drain cash from captured sub pieces.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
-    </section>
 
-    <section class="game-grid hidden" id="miniGamesGrid">
-      <button class="panel game-card" id="tributeTwentyOneCard">
+      <button class="panel game-card" id="tributeReversiCard" data-game-categories="table all">
         <span>
+          <span class="game-card-tags"><span>1v1</span><span>Classic</span><span>Dom Tiers</span></span>
+          <h2>Tribute Reversi</h2>
+          <p>Classic disc-flipping board control where every line turned can swing the table.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeTwentyOneCard" data-game-categories="casino all">
+        <span>
+          <span class="game-card-tags"><span>Casino</span><span>Dealer</span><span>Powers</span></span>
           <h2>Tribute Blackjack</h2>
           <p>Blackjack hands where the sub plays first, then the dom takes the dealer turn and presses the table edge in reclaim.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeTicTacToeCard">
+      <button class="panel game-card" id="tributeTicTacToeCard" data-game-categories="table all">
         <span>
+          <span class="game-card-tags"><span>Quick</span><span>1v1</span><span>Reclaim</span></span>
           <h2>Tribute Tic Tac Toe</h2>
           <p>Quick three-in-a-row bets. In reclaim, the dom starts and drawn boards go to her.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeWheelCard">
+      <button class="panel game-card" id="tributeWheelCard" data-game-categories="chance all">
         <span>
+          <span class="game-card-tags"><span>Chance</span><span>Dom Unlock</span><span>Risk</span></span>
           <h2>Wheel Spin</h2>
           <p>A 36-space cash wheel with timed spins, dom powers, $25 prizes, and minus slots that can drain the dom bank.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="obedienceOrdersCard">
+      <button class="panel game-card" id="higherLowerCard" data-game-categories="chance all">
         <span>
-          <h2>Obedience Orders</h2>
-          <p>A command memory test. The dom builds the pattern; every sub mistake pays tribute to the bank.</p>
+          <span class="game-card-tags"><span>Chance</span><span>Cards</span><span>Streak</span></span>
+          <h2>Higher / Lower</h2>
+          <p>A fast card streak game. Guess the next card, cash out while ahead, or miss and pay the dom.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
-    </section>
 
-    <section class="game-grid hidden" id="testingGamesGrid">
-      <button class="panel game-card" id="tributeTrailCard">
+      <button class="panel game-card" id="obedienceOrdersCard" data-game-categories="misc all">
         <span>
+          <span class="game-card-tags"><span>WIP</span><span>Command</span><span>Memory</span></span>
+          <h2>Obedience Orders</h2>
+          <p>A command-tile duel where the dom leads, raises pressure, and every sub mistake pays tribute.</p>
+        </span>
+        <strong class="status-pill">WIP</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeTrailCard" data-game-categories="misc all">
+        <span>
+          <span class="game-card-tags"><span>WIP</span><span>Race</span><span>Cards</span></span>
           <h2>Tribute Trail</h2>
           <p>A 60-space public test race with dice rolls, card draws, chance draws, cash spaces, blank spaces, and slides.</p>
         </span>
         <strong class="status-pill">Public Test</strong>
       </button>
     </section>
+
+    <section class="game-grid hidden" id="miniGamesGrid"></section>
+    <section class="game-grid hidden" id="testingGamesGrid"></section>
 
     <p class="main-menu-version">Version 1.0.0</p>
   </main>
@@ -309,6 +337,7 @@
     <section class="game-shell">
       <div class="turn-strip">
         <p class="turn-copy" id="turnText"><strong>Sub</strong> must make a normal bet to begin.</p>
+        <div class="turn-bank-pill hidden" id="turnDomBankPill"><span>Dom Bank</span><strong id="turnDomBank">$0</strong></div>
         <select id="queenStanceSelect" class="hidden" title="Choose the dom queen's stance">
           <option value="none">None</option>
           <option value="gaze">Gaze</option>
@@ -428,6 +457,22 @@
         </div>
         <div class="setup-actions">
           <button id="blackjackSettingsConfirmBtn" class="primary">Start Blackjack</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="higherLowerMercyModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Mercy Beg</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="higherLowerMercyText">The sub wants mercy.</p>
+        <div class="setup-actions">
+          <button id="higherLowerMercyCollectBtn" class="primary">Collect</button>
+          <button id="higherLowerMercyDenyBtn">Deny</button>
+          <button id="higherLowerMercyPunishBtn" class="danger-button">Deny + Add</button>
         </div>
       </div>
     </section>
