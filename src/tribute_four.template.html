@@ -12,6 +12,13 @@
   <div class="distraction-backdrop" id="distractionBackdrop"></div>
   <div class="distraction-overlay" id="distractionOverlay"></div>
   <div class="checkers-queen-splash" id="checkersQueenSplash"><span id="checkersQueenSplashText"></span></div>
+  <div class="outcome-splash hidden" id="outcomeSplash">
+    <div class="outcome-splash-card" id="outcomeSplashCard">
+      <span class="outcome-kicker" id="outcomeKicker">Result</span>
+      <strong id="outcomeTitle">Tribute Accepted</strong>
+      <span id="outcomeDetail">The ledger has been updated.</span>
+    </div>
+  </div>
 
   <main class="screen splash" id="lobbyScreen">
     <header class="splash-header">
@@ -237,6 +244,14 @@
         </span>
         <strong class="status-pill">Play</strong>
       </button>
+
+      <button class="panel game-card" id="obedienceOrdersCard">
+        <span>
+          <h2>Obedience Orders</h2>
+          <p>A command memory test. The dom builds the pattern; every sub mistake pays tribute to the bank.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
     </section>
 
     <section class="game-grid hidden" id="testingGamesGrid">
@@ -348,6 +363,36 @@
         <div class="role-row">
           <button id="openSubLinkBtn" class="primary">Open Link</button>
           <button id="declineSubLinkBtn">Not Now</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="resetBankModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Reset Bank?</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="resetBankText">This will reset the dom bank to $0.</p>
+        <div class="role-row">
+          <button id="cancelResetBankBtn">No</button>
+          <button id="confirmResetBankBtn" class="danger-button">Yes</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="brattyWelcomeModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Welcome, Goddess</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="brattyWelcomeText">The arcade recognizes Bratty. A goddess deserves tribute before the first move. Start her bank with $15 and begin at reclaim level 1?</p>
+        <div class="role-row">
+          <button id="declineBrattyWelcomeBtn">No</button>
+          <button id="acceptBrattyWelcomeBtn" class="primary">Yes</button>
         </div>
       </div>
     </section>
@@ -509,6 +554,7 @@
     </div>
     <div class="side-tabs">
       <button class="side-tab active" data-side-tab="chat">Chat</button>
+      <button class="side-tab" data-side-tab="ledger">Ledger</button>
       <button class="side-tab" data-side-tab="settings" id="sideSettingsTab">Settings</button>
     </div>
     <div class="side-body">
@@ -518,6 +564,10 @@
           <input id="chatInput" type="text" maxlength="220" autocomplete="off" placeholder="Send a message">
           <button id="sendChatBtn" class="primary">Send</button>
         </div>
+      </section>
+      <section class="side-pane ledger-pane hidden" id="sideLedgerPane">
+        <div class="command-summary" id="sideLedgerSummary"></div>
+        <div class="ledger-entries" id="sideLedgerEntries"></div>
       </section>
       <section class="side-pane hidden" id="sideSettingsPane">
         <div class="settings-pane" id="domSettingsPane">
@@ -593,6 +643,7 @@
     </div>
   </aside>
   <button class="side-restore-tab hidden" data-open-side-tab="chat" title="Open chat panel">Chat</button>
+  <button class="side-restore-tab ledger hidden" data-open-side-tab="ledger" title="Open ledger panel">Ledger</button>
   <button class="side-restore-tab settings hidden" data-open-side-tab="settings" title="Open settings panel">Settings</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>

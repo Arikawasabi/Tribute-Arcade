@@ -10,6 +10,53 @@
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
     const WHEEL_NUDGE_LIMIT = 4;
+    const OBEDIENCE_TARGET_ROUNDS = 5;
+    const OBEDIENCE_COMMANDS = [
+      { id: "kneel", label: "Kneel", detail: "Drop" },
+      { id: "pay", label: "Pay", detail: "Tribute" },
+      { id: "beg", label: "Beg", detail: "Ask" },
+      { id: "thank", label: "Thank", detail: "Praise" },
+      { id: "worship", label: "Worship", detail: "Focus" },
+      { id: "obey", label: "Obey", detail: "Submit" }
+    ];
+    const WHEEL_RISK_MODES = {
+      normal: {
+        label: "Normal",
+        cost: 5,
+        bonus: 0,
+        extraMinus: 0,
+        prizeValue: 25,
+        prizeBlankRadius: 1,
+        slots: [[1, 8], [2, 7], [5, 5], [10, 3], [-5, 5], [-10, 2]],
+        blessMap: { 1: 2, 2: 5, 5: 10, 10: 25, 25: 50 },
+        greedyPrize: 60,
+        greedyBlank: 30
+      },
+      risky: {
+        label: "Risky",
+        cost: 8,
+        bonus: 5,
+        extraMinus: 2,
+        prizeValue: 25,
+        prizeBlankRadius: 1,
+        slots: [[1, 6], [2, 7], [5, 5], [10, 3], [-5, 7], [-10, 2]],
+        blessMap: { 1: 2, 2: 5, 5: 10, 10: 25, 25: 50 },
+        greedyPrize: 70,
+        greedyBlank: 35
+      },
+      ruthless: {
+        label: "Ruthless",
+        cost: 15,
+        bonus: 10,
+        extraMinus: 4,
+        prizeValue: 50,
+        prizeBlankRadius: 2,
+        slots: [[5, 7], [10, 8], [-5, 9], [-10, 2]],
+        blessMap: { 5: 10, 10: 50, 50: 100 },
+        greedyPrize: 110,
+        greedyBlank: 50
+      }
+    };
     const TRAIL_LENGTH = 60;
     const TRAIL_FINISH = TRAIL_LENGTH - 1;
     const TRAIL_SLIDES = [
@@ -47,6 +94,9 @@
         distractionOverlayY: 18,
         leaveNotice: null,
         linkRequest: null,
+        throneUrl: "",
+        paymentDemand: null,
+        brattyWelcomeSeen: false,
         queenPowerMode: "tiered",
         queenPowerUsers: "dom"
       },
@@ -102,9 +152,11 @@
       dice: createDiceState(),
       wheel: createWheelState(),
       trail: createTrailState(),
+      obedience: createObedienceState(),
       checkers: createCheckersState(),
       chess: createChessState(),
-      chat: []
+      chat: [],
+      ledger: []
     };
 
     const els = {
@@ -116,6 +168,11 @@
       distractionOverlay: document.getElementById("distractionOverlay"),
       checkersQueenSplash: document.getElementById("checkersQueenSplash"),
       checkersQueenSplashText: document.getElementById("checkersQueenSplashText"),
+      outcomeSplash: document.getElementById("outcomeSplash"),
+      outcomeSplashCard: document.getElementById("outcomeSplashCard"),
+      outcomeKicker: document.getElementById("outcomeKicker"),
+      outcomeTitle: document.getElementById("outcomeTitle"),
+      outcomeDetail: document.getElementById("outcomeDetail"),
       playerOneName: document.getElementById("playerOneName"),
       playerTwoName: document.getElementById("playerTwoName"),
       continueSetupBtn: document.getElementById("continueSetupBtn"),
@@ -150,6 +207,17 @@
       sideTabs: document.querySelectorAll(".side-tab"),
       sideSettingsTab: document.getElementById("sideSettingsTab"),
       sideChatPane: document.getElementById("sideChatPane"),
+      sideLedgerPane: document.getElementById("sideLedgerPane"),
+      sideLedgerSummary: document.getElementById("sideLedgerSummary"),
+      sideLedgerEntries: document.getElementById("sideLedgerEntries"),
+      resetBankModal: document.getElementById("resetBankModal"),
+      resetBankText: document.getElementById("resetBankText"),
+      cancelResetBankBtn: document.getElementById("cancelResetBankBtn"),
+      confirmResetBankBtn: document.getElementById("confirmResetBankBtn"),
+      brattyWelcomeModal: document.getElementById("brattyWelcomeModal"),
+      brattyWelcomeText: document.getElementById("brattyWelcomeText"),
+      declineBrattyWelcomeBtn: document.getElementById("declineBrattyWelcomeBtn"),
+      acceptBrattyWelcomeBtn: document.getElementById("acceptBrattyWelcomeBtn"),
       sideSettingsPane: document.getElementById("sideSettingsPane"),
       chatMessages: document.getElementById("chatMessages"),
       chatInput: document.getElementById("chatInput"),
@@ -171,6 +239,7 @@
       tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
+      obedienceOrdersCard: document.getElementById("obedienceOrdersCard"),
       tributeTrailCard: document.getElementById("tributeTrailCard"),
       tributeCheckersCard: document.getElementById("tributeCheckersCard"),
       tributeChessCard: document.getElementById("tributeChessCard"),
@@ -405,6 +474,7 @@
         targetAngle: 0,
         resultIndex: null,
         result: null,
+        riskMode: "normal",
         blessActive: false,
         greedyDom: false,
         nudgeUsed: false,
@@ -419,40 +489,39 @@
       };
     }
 
-    function createWheelSlices() {
+    function createWheelSlices(mode = "normal") {
       const prizeIndex = Math.floor(Math.random() * 36);
-      return createWheelSlicesWithPrizeIndex(prizeIndex);
+      return createWheelSlicesWithPrizeIndex(prizeIndex, mode);
     }
 
-    function createWheelSlicesWithPrizeIndex(prizeIndex) {
-      const values = [
-        ...Array(10).fill(1),
-        ...Array(8).fill(2),
-        ...Array(5).fill(5),
-        ...Array(3).fill(10),
-        ...Array(3).fill(-5),
-        -10
-      ];
+    function createWheelSlicesWithPrizeIndex(prizeIndex, mode = "normal") {
+      const riskMode = wheelRiskModeInfo(mode);
+      const values = wheelRiskModeSlots(riskMode);
       for (let i = values.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
         [values[i], values[j]] = [values[j], values[i]];
       }
       const oppositePrizeIndex = (prizeIndex + 18) % 36;
       const slices = Array(36).fill(null);
-      slices[prizeIndex] = 25;
-      slices[(prizeIndex + 35) % 36] = 0;
-      slices[(prizeIndex + 1) % 36] = 0;
-      slices[oppositePrizeIndex] = 25;
-      slices[(oppositePrizeIndex + 35) % 36] = 0;
-      slices[(oppositePrizeIndex + 1) % 36] = 0;
+      [prizeIndex, oppositePrizeIndex].forEach((center) => {
+        slices[center] = riskMode.prizeValue;
+        for (let offset = 1; offset <= Number(riskMode.prizeBlankRadius || 1); offset += 1) {
+          slices[(center + 36 - offset) % 36] = 0;
+          slices[(center + offset) % 36] = 0;
+        }
+      });
       let valueIndex = 0;
       for (let i = 0; i < slices.length; i += 1) {
         if (slices[i] === null) {
-          slices[i] = values[valueIndex];
+          slices[i] = values[valueIndex] ?? 0;
           valueIndex += 1;
         }
       }
       return slices;
+    }
+
+    function wheelRiskModeSlots(riskMode = wheelRiskModeInfo()) {
+      return (riskMode.slots || []).flatMap(([value, count]) => Array(Math.max(0, Number(count || 0))).fill(value));
     }
 
     function createTrailSpaces() {
@@ -560,6 +629,19 @@
       };
     }
 
+    function createObedienceState() {
+      return {
+        phase: "idle",
+        sequence: [],
+        input: [],
+        round: 0,
+        successes: 0,
+        mistakes: 0,
+        tributePaid: 0,
+        message: "Dom sets the first order."
+      };
+    }
+
     function createChessState() {
       return {
         fen: "start",
@@ -611,6 +693,28 @@
 
     function labelFor(player) {
       return player === DOM ? state.names.dom : state.names.sub;
+    }
+
+    function normalizedNameKey(value) {
+      return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    const BRATTY_THEME_ASSETS = {
+      avatar: "assets/bratty/bratty_avatar.jpg"
+    };
+
+    function activeNameEasterEgg() {
+      const domName = normalizedNameKey(state.names.dom);
+      if (["bb", "bratty", "brattybitch", "brattybitch123", "brattybitchx"].includes(domName)) {
+        return {
+          id: "brattyBb",
+          commandTitle: "BB Command Center",
+          paymentLabel: "BB's throne",
+          paymentPlaceholder: "https://throne.com/brattyb_itch",
+          defaultThroneUrl: "https://throne.com/brattyb_itch"
+        };
+      }
+      return null;
     }
 
     function randomStarter() {
@@ -802,6 +906,7 @@
       els.setupMessage.textContent = "";
       els.playerSummary.textContent = `${state.names.dom} is the dom. ${state.names.sub} is the sub.`;
       setScreen("select");
+      render();
       publishState();
     }
 
@@ -1152,6 +1257,18 @@
       publishState();
     }
 
+    function openObedienceOrders() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "obedienceOrders";
+      setScreen("game");
+      resetObedienceOrdersBoard();
+      els.log.innerHTML = "";
+      addLog(`<strong>Obedience Orders opened.</strong> ${state.names.dom} builds the pattern. Every ${state.names.sub} mistake pays tribute to her bank.`);
+      render();
+      publishState();
+    }
+
     function openTributeTrail() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.pendingWager = null;
@@ -1220,6 +1337,7 @@
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
       els.tributeWheelCard.disabled = domPickBlocked;
+      if (els.obedienceOrdersCard) els.obedienceOrdersCard.disabled = domPickBlocked;
       els.tributeTrailCard.disabled = domPickBlocked;
       els.tributeCheckersCard.disabled = domPickBlocked;
       els.tributeChessCard.disabled = domPickBlocked;
@@ -1278,8 +1396,15 @@
       const controller = state.screen === "game"
         ? (state.active ? state.turn : SUB)
         : DOM;
+      const brattyThemeActive = Boolean(activeNameEasterEgg());
       document.body.classList.toggle("control-dom", controller === DOM);
       document.body.classList.toggle("control-sub", controller === SUB);
+      document.body.classList.toggle("bratty-theme", brattyThemeActive);
+      if (brattyThemeActive) {
+        document.body.style.setProperty("--bratty-avatar-image", `url("${BRATTY_THEME_ASSETS.avatar}")`);
+      } else {
+        document.body.style.removeProperty("--bratty-avatar-image");
+      }
     }
 
     function sideSettingsAllowed() {
@@ -1370,6 +1495,242 @@
       return !state.online.room || role === DOM;
     }
 
+    function paymentControlsAllowed() {
+      const role = localOnlineRole();
+      if (state.online.room) return role === DOM;
+      return Boolean(state.names.dom);
+    }
+
+    function recordLedgerEvent({ type = "event", label = "Ledger Update", detail = "", delta = 0, before = state.domVault, after = state.domVault } = {}) {
+      const amount = Number(delta || 0);
+      const entry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        at: Date.now(),
+        game: currentGameLabel(),
+        type,
+        label,
+        detail,
+        delta: amount,
+        before: Number(before || 0),
+        after: Number(after || 0)
+      };
+      state.ledger = [...(state.ledger || []), entry].slice(-120);
+    }
+
+    function ledgerTotals() {
+      return (state.ledger || []).reduce((totals, entry) => {
+        const delta = Number(entry.delta || 0);
+        if (delta > 0) totals.paid += delta;
+        if (delta < 0) totals.drained += Math.abs(delta);
+        if (entry.type === "cost") totals.costs += Math.abs(delta);
+        if (entry.type === "reclaim") totals.reclaimed += Math.abs(delta);
+        totals.biggest = Math.max(totals.biggest, Math.abs(delta));
+        return totals;
+      }, { paid: 0, drained: 0, costs: 0, reclaimed: 0, biggest: 0 });
+    }
+
+    function renderLedgerPanel() {
+      if (!els.sideLedgerSummary || !els.sideLedgerEntries) return;
+      const totals = ledgerTotals();
+      const easterEgg = activeNameEasterEgg();
+      const canUsePaymentControls = paymentControlsAllowed();
+      const throneUrl = state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl) || "";
+      const throneLabel = throneUrl ? escapeHtml(throneUrl) : "No throne URL saved.";
+      const paymentLabel = easterEgg ? easterEgg.paymentLabel : "Payment throne";
+      const paymentPlaceholder = easterEgg ? easterEgg.paymentPlaceholder : "https://example.com/pay";
+      const throneControls = canUsePaymentControls
+        ? (throneUrl
+          ? `
+            <div class="payment-actions">
+              <button data-ledger-action="change-throne">Change URL</button>
+              <button class="primary" data-ledger-action="demand-payment">Demand Payment</button>
+            </div>
+          `
+          : `
+            <label class="field-label payment-url-field">
+              Throne / payment URL
+              <input id="ledgerThroneUrlInput" type="url" placeholder="${escapeHtml(paymentPlaceholder)}">
+            </label>
+            <div class="payment-actions">
+              <button class="primary" data-ledger-action="save-throne">Save URL</button>
+            </div>
+          `)
+        : `<span class="payment-lock">Only ${escapeHtml(state.names.dom || "the dom")} can edit payment controls.</span>`;
+      els.sideLedgerSummary.innerHTML = `
+        <div class="command-card">
+          <span>Dom bank</span>
+          <strong>${money(state.domVault)}</strong>
+        </div>
+        <div class="command-card">
+          <span>Net session</span>
+          <strong>${money(Math.max(0, totals.paid - totals.drained))}</strong>
+        </div>
+        <div class="command-card wide payment-card">
+          <span>${escapeHtml(paymentLabel)}</span>
+          <strong>${throneLabel}</strong>
+          ${throneControls}
+        </div>
+        ${canUsePaymentControls ? `<button class="danger-button ledger-reset-bank" data-ledger-action="reset-bank">Reset Bank</button>` : ""}
+        <div class="ledger-stats">
+          <span>Paid ${money(totals.paid)}</span>
+          <span>Drained ${money(totals.drained)}</span>
+          <span>Costs ${money(totals.costs)}</span>
+          <span>Biggest ${money(totals.biggest)}</span>
+        </div>
+      `;
+      els.sideLedgerEntries.innerHTML = (state.ledger || []).slice(-80).reverse().map((entry) => {
+        const delta = Number(entry.delta || 0);
+        const deltaClass = delta < 0 ? "loss" : (delta > 0 ? "gain" : "flat");
+        const deltaText = delta === 0 ? "$0" : `${delta > 0 ? "+" : "-"}${money(Math.abs(delta))}`;
+        return `
+          <div class="ledger-entry ${deltaClass}">
+            <div>
+              <strong>${escapeHtml(entry.label || "Ledger Update")}</strong>
+              <span>${escapeHtml(entry.detail || entry.game || "")}</span>
+            </div>
+            <div class="ledger-entry-money">
+              <strong>${deltaText}</strong>
+              <span>${money(entry.before)} -> ${money(entry.after)}</span>
+            </div>
+          </div>
+        `;
+      }).join("") || `<div class="ledger-entry flat"><div><strong>No ledger entries yet.</strong><span>Money changes will appear here as receipts.</span></div><div class="ledger-entry-money"><strong>$0</strong><span>${money(state.domVault)}</span></div></div>`;
+    }
+
+    function handleLedgerAction(action) {
+      if (!paymentControlsAllowed()) return;
+      if (action === "save-throne") {
+        const input = document.getElementById("ledgerThroneUrlInput");
+        const url = normalizeDomLink(input && input.value);
+        if (!url) {
+          if (input) input.focus();
+          return;
+        }
+        updateSettings({ throneUrl: url });
+        return;
+      }
+      if (action === "change-throne") {
+        updateSettings({ throneUrl: "" });
+        return;
+      }
+      if (action === "demand-payment") {
+        demandPayment();
+        return;
+      }
+      if (action === "reset-bank") {
+        openResetBankModal();
+      }
+    }
+
+    function demandPayment() {
+      if (!paymentControlsAllowed()) return;
+      const easterEgg = activeNameEasterEgg();
+      const url = normalizeDomLink(state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl));
+      if (!url) return;
+      state.settings.paymentDemand = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url
+      };
+      addLog(`<strong>${state.names.dom || "Dom"} demands payment.</strong> The throne URL has been sent to ${state.names.sub || "the sub"}.`);
+      renderSidePanel();
+      publishState();
+    }
+
+    function paymentDemandKey() {
+      const claim = readSeatClaim();
+      const seat = claim && claim.seat === SPECTATOR ? claim.secret : (localSeat() || "local");
+      return `tribute-payment-demand:${state.online.room || "local"}:${seat}`;
+    }
+
+    function processPaymentDemand() {
+      const demand = state.settings.paymentDemand;
+      if (!demand || !demand.id || !demand.url) return;
+      const role = localOnlineRole();
+      if (role !== SUB) return;
+      const key = paymentDemandKey();
+      if (window.localStorage.getItem(key) === demand.id) return;
+      window.localStorage.setItem(key, demand.id);
+      const opened = window.open(demand.url, "_blank", "noopener");
+      if (!opened) {
+        showSubLinkModal(demand, "Payment was demanded, but your browser blocked the automatic window.");
+      }
+    }
+
+    function openResetBankModal() {
+      if (!paymentControlsAllowed()) return;
+      els.resetBankText.textContent = `Reset ${state.names.dom || "the dom"}'s bank from ${money(state.domVault)} to $0?`;
+      els.resetBankModal.classList.remove("hidden");
+    }
+
+    function closeResetBankModal() {
+      els.resetBankModal.classList.add("hidden");
+    }
+
+    function confirmResetBank() {
+      if (!paymentControlsAllowed()) return;
+      const before = state.domVault;
+      state.domVault = 0;
+      state.lockedTribute = 0;
+      recordLedgerEvent({
+        type: "reset",
+        label: "Bank Reset",
+        detail: `${state.names.dom || "Dom"} reset the bank.`,
+        delta: -before,
+        before,
+        after: state.domVault
+      });
+      addLog(`<strong>${state.names.dom || "Dom"} resets the bank.</strong> The ledger drops from ${money(before)} to $0.`);
+      closeResetBankModal();
+      render();
+      publishState();
+    }
+
+    function brattyWelcomeAllowed() {
+      const easterEgg = activeNameEasterEgg();
+      if (!easterEgg || easterEgg.id !== "brattyBb") return false;
+      if (state.screen !== "select") return false;
+      if (state.settings.brattyWelcomeSeen) return false;
+      if (state.online.room && localOnlineRole() !== DOM) return false;
+      return Boolean(state.names.dom);
+    }
+
+    function renderBrattyWelcomeModal() {
+      if (!els.brattyWelcomeModal) return;
+      const show = brattyWelcomeAllowed();
+      els.brattyWelcomeModal.classList.toggle("hidden", !show);
+      if (show && els.brattyWelcomeText) {
+        els.brattyWelcomeText.textContent = `${state.names.dom} has entered like a goddess. The arcade knows she deserves tribute before the first move. Start her bank with $15 and begin at reclaim level 1?`;
+      }
+    }
+
+    function declineBrattyWelcome() {
+      state.settings.brattyWelcomeSeen = true;
+      if (els.brattyWelcomeModal) els.brattyWelcomeModal.classList.add("hidden");
+      render();
+      publishState();
+    }
+
+    function acceptBrattyWelcome() {
+      if (!brattyWelcomeAllowed()) return;
+      const before = state.domVault;
+      state.domVault += 15;
+      state.lockedTribute = state.domVault;
+      state.tiltLevel = Math.max(1, Number(state.tiltLevel || 0));
+      state.settings.brattyWelcomeSeen = true;
+      recordLedgerEvent({
+        type: "tribute",
+        label: "Goddess Tribute",
+        detail: `${state.names.dom || "Bratty"} accepted her deserved starting tribute.`,
+        delta: state.domVault - before,
+        before,
+        after: state.domVault
+      });
+      addLog(`<strong>Goddess tribute accepted.</strong> ${state.names.dom || "Bratty"} starts with ${money(15)} in her bank and reclaim level 1.`);
+      if (els.brattyWelcomeModal) els.brattyWelcomeModal.classList.add("hidden");
+      render();
+      publishState();
+    }
+
     function renderSidePanel() {
       const canOpenSettings = sideSettingsAllowed();
       const canUseDomSettings = domLinkControlsAllowed();
@@ -1380,7 +1741,10 @@
       const activeTab = state.settings.activeSideTab || "chat";
       const panelOpen = state.settings.sideOpen !== false;
       if (panelOpen && activeTab === "chat") markChatSeen();
-      els.sidePanelTitle.textContent = state.online.room ? `Room ${state.online.room}` : "Room";
+      const easterEgg = activeNameEasterEgg();
+      els.sidePanelTitle.textContent = activeTab === "ledger"
+        ? (easterEgg ? easterEgg.commandTitle : "Command Center")
+        : (state.online.room ? `Room ${state.online.room}` : "Room");
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
@@ -1396,13 +1760,15 @@
         button.classList.toggle("active", button.dataset.sideTab === activeTab);
       });
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
+      els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");
       els.sideSettingsPane.classList.toggle("hidden", activeTab !== "settings" || !canOpenSettings);
+      renderLedgerPanel();
       els.chatMessages.innerHTML = (state.chat || []).slice(-80).reverse().map((message) => `
         <div class="chat-message">
           <strong>${escapeHtml(message.sender || "Player")}</strong>
           <span>${escapeHtml(message.text)}</span>
         </div>
-      `).join("") || `<div class="chat-message"><strong>Table</strong><span>No messages yet.</span></div>`;
+      `).join("") || `<div class="chat-message"><span>Chat is empty.</span></div>`;
       if (document.activeElement !== els.sideDomLinkInput) {
         els.sideDomLinkInput.value = els.sideDomLinkInput.value || "";
       }
@@ -1810,6 +2176,29 @@
       els.log.prepend(entry);
     }
 
+    let outcomeSplashTimer = null;
+
+    function showOutcomeSplash({ tone = "gold", kicker = "Result", title = "Tribute Updated", detail = "" } = {}) {
+      if (!els.outcomeSplash) return;
+      window.clearTimeout(outcomeSplashTimer);
+      els.outcomeSplashCard.className = `outcome-splash-card ${tone}`;
+      els.outcomeKicker.textContent = kicker;
+      els.outcomeTitle.textContent = title;
+      els.outcomeDetail.textContent = detail;
+      els.outcomeSplash.classList.remove("hidden");
+      window.requestAnimationFrame(() => els.outcomeSplash.classList.add("active"));
+      outcomeSplashTimer = window.setTimeout(hideOutcomeSplash, 2100);
+    }
+
+    function hideOutcomeSplash() {
+      if (!els.outcomeSplash) return;
+      els.outcomeSplash.classList.remove("active");
+      window.clearTimeout(outcomeSplashTimer);
+      outcomeSplashTimer = window.setTimeout(() => {
+        els.outcomeSplash.classList.add("hidden");
+      }, 240);
+    }
+
     function snapshotState() {
       return {
         screen: state.screen,
@@ -1843,9 +2232,11 @@
         dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
+        obedience: state.obedience,
         checkers: state.checkers,
         chess: state.chess,
         chat: state.chat,
+        ledger: state.ledger,
         onlineLobby: {
           seats: state.online.seats,
           seatSecrets: state.online.seatSecrets,
@@ -1898,10 +2289,12 @@
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
       state.trail = snapshot.trail || state.trail;
+      state.obedience = snapshot.obedience || state.obedience;
       state.checkers = snapshot.checkers || state.checkers;
       normalizeTrailState();
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
+      state.ledger = Array.isArray(snapshot.ledger) ? snapshot.ledger.slice(-120) : state.ledger;
       if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
         state.online.seats = snapshot.onlineLobby.seats;
         state.online.seatSecrets = snapshot.onlineLobby.seatSecrets || { one: "", two: "" };
@@ -1915,6 +2308,7 @@
       setScreen(state.screen);
       renderRoles();
       processSubLinkRequest();
+      processPaymentDemand();
       if (processApprovedWager()) return;
       render();
     }
@@ -2314,11 +2708,12 @@
           `Dom loss: balance becomes ${money(0)}`
         ];
       }
-      return [
+      const lines = [
         `Current balance: ${money(state.domVault)}`,
         `Dom win: gains ${money(amount)} and balance becomes ${money(state.domVault + amount)}`,
         `Dom loss: balance remains ${money(state.domVault)}`
       ];
+      return lines;
     }
 
     function requestWagerApproval(type) {
@@ -2389,23 +2784,91 @@
       const amount = state.pot;
       if (winner === SUB) {
         if (state.mode === "reclaim") {
+          const before = state.domVault;
           state.domVault = Math.max(0, state.domVault - amount);
           state.lockedTribute = 0;
           state.tiltLevel = Math.max(0, state.tiltLevel - 1);
-          return { outcome: "subReclaim", amount };
+          recordLedgerEvent({
+            type: "reclaim",
+            label: "Reclaim Won",
+            detail: `${state.names.sub} pulls tribute out of ${state.names.dom}'s bank.`,
+            delta: state.domVault - before,
+            before,
+            after: state.domVault
+          });
+          const result = { outcome: "subReclaim", amount };
+          showRoundOutcomeSplash(result);
+          return result;
         }
-        return { outcome: "subNormal", amount: 0 };
+        const result = { outcome: "subNormal", amount: 0 };
+        showRoundOutcomeSplash(result);
+        return result;
       }
       if (winner === DOM) {
+        const before = state.domVault;
         state.domVault += amount;
         state.lockedTribute = state.domVault;
+        recordLedgerEvent({
+          type: state.mode === "reclaim" ? "denied" : "tribute",
+          label: state.mode === "reclaim" ? "Reclaim Denied" : "Tribute Paid",
+          detail: `${state.names.dom} wins ${currentGameLabel()}.`,
+          delta: state.domVault - before,
+          before,
+          after: state.domVault
+        });
         if (state.mode === "reclaim") {
           state.tiltLevel += 1;
-          return { outcome: "domReclaim", amount };
+          const result = { outcome: "domReclaim", amount };
+          showRoundOutcomeSplash(result);
+          return result;
         }
-        return { outcome: "domNormal", amount };
+        const result = { outcome: "domNormal", amount };
+        showRoundOutcomeSplash(result);
+        return result;
       }
-      return { outcome: "draw", amount: 0 };
+      const result = { outcome: "draw", amount: 0 };
+      showRoundOutcomeSplash(result);
+      return result;
+    }
+
+    function showRoundOutcomeSplash(result) {
+      if (!result) return;
+      if (result.outcome === "domNormal") {
+        showOutcomeSplash({
+          tone: "dom",
+          kicker: "Tribute Accepted",
+          title: `Dom Profit +${money(result.amount)}`,
+          detail: `${state.names.dom}'s bank claims the stake.`
+        });
+      } else if (result.outcome === "domReclaim") {
+        showOutcomeSplash({
+          tone: "danger",
+          kicker: "Reclaim Denied",
+          title: `${state.names.dom} Holds Control`,
+          detail: `${money(result.amount)} is added to the bank.`
+        });
+      } else if (result.outcome === "subReclaim") {
+        showOutcomeSplash({
+          tone: "sub",
+          kicker: "Reclaim Won",
+          title: `${state.names.sub} Takes It Back`,
+          detail: `${money(result.amount)} leaves ${state.names.dom}'s bank.`
+        });
+      } else if (result.outcome === "subNormal") {
+        showOutcomeSplash({
+          tone: "sub",
+          kicker: "Sub Escaped",
+          title: "No Tribute Paid",
+          detail: `${state.names.dom}'s bank stays unchanged.`
+        });
+      } else {
+        showOutcomeSplash({
+          tone: "gold",
+          kicker: "Push",
+          title: "Stake Returned",
+          detail: "No tribute changes hands."
+        });
+      }
     }
 
     function updatePendingWager(changes, publish = true) {
@@ -2762,6 +3225,138 @@
     function normalizeBuyIn(value) {
       if (!Number.isFinite(value)) return Math.max(1, Math.round(state.settings.subDefaultBet || 10));
       return Math.max(1, Math.round(value));
+    }
+
+    function obedienceCommand(id) {
+      return OBEDIENCE_COMMANDS.find((command) => command.id === id) || OBEDIENCE_COMMANDS[0];
+    }
+
+    function resetObedienceOrdersBoard() {
+      state.obedience = createObedienceState();
+      state.obedience.message = `${state.names.dom || "Dom"} sets the first order.`;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.turn = DOM;
+      state.winningCells = [];
+    }
+
+    function obedienceControlsAllowed(player) {
+      const role = localOnlineRole();
+      return !role || role === player;
+    }
+
+    function startObedienceRound() {
+      if (!state.obedience || !obedienceControlsAllowed(DOM)) return;
+      const next = OBEDIENCE_COMMANDS[Math.floor(Math.random() * OBEDIENCE_COMMANDS.length)].id;
+      state.obedience.sequence = [...(state.obedience.sequence || []), next];
+      state.obedience.input = [];
+      state.obedience.round = state.obedience.sequence.length;
+      state.obedience.phase = "study";
+      state.obedience.message = `${state.names.sub || "Sub"} studies ${state.obedience.sequence.length} order${state.obedience.sequence.length === 1 ? "" : "s"}.`;
+      state.active = true;
+      state.turn = SUB;
+      addLog(`<strong>${state.names.dom || "Dom"} gives an order.</strong> Sequence length ${state.obedience.sequence.length}.`);
+      render();
+      publishState();
+    }
+
+    function beginObedienceRecall() {
+      if (!state.obedience || state.obedience.phase !== "study" || !obedienceControlsAllowed(SUB)) return;
+      state.obedience.input = [];
+      state.obedience.phase = "recall";
+      state.obedience.message = `${state.names.sub || "Sub"} must repeat the orders in sequence.`;
+      render();
+      publishState();
+    }
+
+    function obedienceMistakeAmount() {
+      const sequenceLength = state.obedience && state.obedience.sequence ? state.obedience.sequence.length : 1;
+      const mistakes = state.obedience ? Number(state.obedience.mistakes || 0) : 0;
+      return Math.max(1, sequenceLength + mistakes);
+    }
+
+    function chooseObedienceOrder(commandId) {
+      const obedience = state.obedience;
+      if (!obedience || obedience.phase !== "recall" || !obedienceControlsAllowed(SUB)) return;
+      const expected = obedience.sequence[obedience.input.length];
+      if (commandId !== expected) {
+        const before = state.domVault;
+        const tribute = obedienceMistakeAmount();
+        state.domVault += tribute;
+        state.lockedTribute = state.domVault;
+        obedience.mistakes += 1;
+        obedience.tributePaid += tribute;
+        obedience.input = [];
+        obedience.phase = "study";
+        obedience.message = `Wrong order. ${money(tribute)} tribute paid. Study the same pattern again.`;
+        recordLedgerEvent({
+          type: "obedience",
+          label: "Obedience Mistake",
+          detail: `${state.names.sub || "Sub"} missed ${obedienceCommand(expected).label}.`,
+          delta: tribute,
+          before,
+          after: state.domVault
+        });
+        showOutcomeSplash({
+          tone: "dom",
+          kicker: "Order Failed",
+          title: `${money(tribute)} Tribute`,
+          detail: `${obedienceCommand(commandId).label} was not the order.`
+        });
+        addLog(`<strong>Order failed.</strong> ${state.names.sub || "Sub"} pays ${money(tribute)} to ${state.names.dom || "Dom"}.`);
+        render();
+        publishState();
+        return;
+      }
+      obedience.input = [...obedience.input, commandId];
+      if (obedience.input.length < obedience.sequence.length) {
+        obedience.message = `${obedience.input.length}/${obedience.sequence.length} orders obeyed.`;
+        render();
+        publishState();
+        return;
+      }
+      obedience.successes += 1;
+      obedience.input = [];
+      if (obedience.successes >= OBEDIENCE_TARGET_ROUNDS) {
+        obedience.phase = "complete";
+        obedience.message = `${state.names.sub || "Sub"} survived ${OBEDIENCE_TARGET_ROUNDS} order rounds.`;
+        state.active = false;
+        showOutcomeSplash({
+          tone: "sub",
+          kicker: "Orders Complete",
+          title: "Sequence Survived",
+          detail: `${money(obedience.tributePaid || 0)} paid in mistakes.`
+        });
+        addLog(`<strong>Orders complete.</strong> ${state.names.sub || "Sub"} survived the command chain with ${money(obedience.tributePaid || 0)} paid.`);
+      } else {
+        obedience.phase = "idle";
+        obedience.message = `Round ${obedience.successes} obeyed. ${state.names.dom || "Dom"} can add the next order.`;
+        state.active = false;
+        state.turn = DOM;
+        addLog(`<strong>Sequence obeyed.</strong> ${state.names.sub || "Sub"} completed round ${obedience.successes}.`);
+      }
+      render();
+      publishState();
+    }
+
+    function handleObedienceBoardClick(event) {
+      if (state.currentGame !== "obedienceOrders") return;
+      const actionButton = event.target.closest("[data-obedience-action]");
+      if (actionButton) {
+        const action = actionButton.dataset.obedienceAction;
+        if (action === "start") startObedienceRound();
+        if (action === "recall") beginObedienceRecall();
+        if (action === "reset") {
+          resetObedienceOrdersBoard();
+          addLog(`<strong>Obedience Orders reset.</strong> ${state.names.dom || "Dom"} can begin a new command chain.`);
+          render();
+          publishState();
+        }
+        return;
+      }
+      const commandButton = event.target.closest("[data-obedience-command]");
+      if (commandButton) chooseObedienceOrder(commandButton.dataset.obedienceCommand);
     }
 
     function preserveTiltLevel(action) {
@@ -3764,8 +4359,17 @@
       const percent = Math.max(0, Math.min(100, Number(state.trail.transferPercent || 0)));
       const transfer = Math.round(tribute * percent / 100);
       if (transfer > 0) {
+        const before = state.domVault;
         state.domVault += transfer;
         state.lockedTribute = state.domVault;
+        recordLedgerEvent({
+          type: "tribute",
+          label: "Trail Tribute",
+          detail: `${percent}% of Trail Tribute closes into the dom bank.`,
+          delta: transfer,
+          before,
+          after: state.domVault
+        });
       }
       addLog(`<strong>Trail Tribute closes.</strong> ${money(transfer)} of ${money(tribute)} moves into ${state.names.dom}'s bank at ${percent}%.`);
       return transfer;
@@ -4872,6 +5476,14 @@
         publishState();
         return;
       }
+      if (state.currentGame === "obedienceOrders") {
+        resetObedienceOrdersBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Obedience Orders reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
       if (state.currentGame === "tributeFleet") {
         resetTributeFleetBoard();
         els.log.innerHTML = "";
@@ -5111,8 +5723,17 @@
       addLog(`<strong>Claim taken.</strong> ${state.names.dom} gains 1 Claim from the captured piece.`);
       if (checkersCoordMatches(state.checkers.marked, captureRow, captureCol)) {
         state.checkers.claims = Number(state.checkers.claims || 0) + 2;
+        const before = state.domVault;
         state.domVault += 2;
         state.lockedTribute = state.domVault;
+        recordLedgerEvent({
+          type: "drain",
+          label: "Marked Piece Claimed",
+          detail: `${state.names.dom} drains a marked checkers piece.`,
+          delta: 2,
+          before,
+          after: state.domVault
+        });
         state.checkers.marked = null;
         addLog(`<strong>Marked piece claimed.</strong> ${state.names.dom} gains +2 Claim and drains ${money(2)}.`);
       }
@@ -5120,8 +5741,17 @@
         const bonus = Number(state.checkers.hungryCrown || 0) > 0 ? 2 : 0;
         const drain = checkersQueenDrainAmount() + bonus;
         if (bonus) state.checkers.hungryCrown = Math.max(0, Number(state.checkers.hungryCrown || 0) - 1);
+        const before = state.domVault;
         state.domVault += drain;
         state.lockedTribute = state.domVault;
+        recordLedgerEvent({
+          type: "drain",
+          label: "Queen's Drain",
+          detail: `${state.names.dom}'s queen drains a captured piece.`,
+          delta: drain,
+          before,
+          after: state.domVault
+        });
         state.checkers.queenDrainTotal = Number(state.checkers.queenDrainTotal || 0) + drain;
         addLog(`<strong>Queen's Drain.</strong> ${state.names.dom}'s queen drains ${money(drain)} into her bank.`);
       }
@@ -5270,8 +5900,17 @@
       if (piece.role === SUB && Number(state.checkers.tollArmed || 0) > 0) {
         state.checkers.tollArmed = Math.max(0, Number(state.checkers.tollArmed || 0) - 1);
         if (checkersAdjacentToDomQueen(toRow, toCol)) {
+          const before = state.domVault;
           state.domVault += 1;
           state.lockedTribute = state.domVault;
+          recordLedgerEvent({
+            type: "drain",
+            label: "Tribute Toll",
+            detail: `${state.names.sub} ends beside a queen.`,
+            delta: 1,
+            before,
+            after: state.domVault
+          });
           addLog(`<strong>Tribute Toll.</strong> ${state.names.sub} ends beside a queen, so ${money(1)} drains into ${state.names.dom}'s bank.`);
         }
       }
@@ -5425,6 +6064,12 @@
     function unlockWheelSpin() {
       refreshWheelLimitWindow();
       if (!canUseWheelDomTools() || wheelSpinsRemaining() <= 0) return;
+      const riskMode = wheelRiskModeInfo();
+      if (state.domVault < riskMode.cost) {
+        addLog(`<strong class="danger">Wheel tribute needed.</strong> ${state.names.dom} needs ${money(riskMode.cost)} in her bank to unlock ${riskMode.label}.`);
+        render();
+        return;
+      }
       const spendBless = Boolean(state.wheel.blessActive);
       const spendGreedy = Boolean(state.wheel.greedyDom);
       if (spendBless && wheelPowerRemaining("bless") <= 0) {
@@ -5439,12 +6084,19 @@
       }
       if (spendBless) state.wheel.blessUses += 1;
       if (spendGreedy) state.wheel.greedyUses += 1;
+      applyWheelBankDelta(-riskMode.cost, "Wheel Unlock Cost", `${riskMode.label} spin paid before unlock.`);
       state.wheel.unlocked = true;
       playWheelUnlockDing();
       const powers = [];
       if (spendBless) powers.push("Bless");
       if (spendGreedy) powers.push("Greedy Dom");
-      addLog(`<strong>${state.names.dom} unlocks the wheel.</strong> ${powers.length ? `${powers.join(" and ")} locked in. ` : ""}${state.names.sub} can spin now.`);
+      showOutcomeSplash({
+        tone: "gold",
+        kicker: "Wheel Unlocked",
+        title: `${riskMode.label} Spin Permitted`,
+        detail: `${money(riskMode.cost)} paid. ${state.names.sub} can spin now.`
+      });
+      addLog(`<strong>${state.names.dom} unlocks ${riskMode.label} Wheel.</strong> ${money(riskMode.cost)} leaves her bank. ${powers.length ? `${powers.join(" and ")} locked in. ` : ""}${state.names.sub} can spin now.`);
       render();
       publishState();
     }
@@ -5486,7 +6138,7 @@
       const started = Number(state.wheel.limitWindowStartedAt || 0);
       if (!started || now - started >= WHEEL_LIMIT_WINDOW_MS) {
         state.wheel.limitWindowStartedAt = now;
-        state.wheel.slices = createWheelSlices();
+        state.wheel.slices = createWheelSlices(state.wheel.riskMode);
         state.wheel.spinsUsed = 0;
         state.wheel.blessUses = 0;
         state.wheel.greedyUses = 0;
@@ -5548,19 +6200,43 @@
       state.active = true;
       if (result.payout > 0) {
         state.wheel.finalBankDelta = result.payout;
-        applyWheelBankDelta(result.payout);
+        applyWheelBankDelta(result.payout, "Wheel Tribute", `Landed on ${wheelValueText(value)}.`);
+        showOutcomeSplash({
+          tone: "dom",
+          kicker: "Wheel Tribute",
+          title: `Dom Profit +${money(result.payout)}`,
+          detail: `The wheel lands on ${wheelValueText(value)}.`
+        });
         addLog(`<strong>${state.names.dom} takes the spin.</strong> The wheel lands on ${wheelValueText(value)}${result.notes.length ? ` (${result.notes.join(", ")})` : ""}. ${money(result.payout)} enters her bank.`);
       } else if (result.payout < 0) {
         const bankDelta = wheelBankDeltaForPayout(result.payout, state.domVault);
         state.wheel.finalBankDelta = bankDelta;
-        applyWheelBankDelta(bankDelta);
+        applyWheelBankDelta(bankDelta, "Wheel Bank Drained", `Landed on ${wheelValueText(value)}.`);
         if (bankDelta < 0) {
+          showOutcomeSplash({
+            tone: "danger",
+            kicker: "Bank Drained",
+            title: `Dom Loss -${money(Math.abs(bankDelta))}`,
+            detail: `The wheel lands on ${wheelValueText(value)}.`
+          });
           addLog(`<strong>${state.names.dom} loses the spin.</strong> The wheel lands on ${wheelValueText(value)}${result.notes.length ? ` (${result.notes.join(", ")})` : ""}. ${money(Math.abs(bankDelta))} leaves her bank.`);
         } else {
+          showOutcomeSplash({
+            tone: "gold",
+            kicker: "Empty Bank",
+            title: "Loss Dodged",
+            detail: `${state.names.dom}'s bank is already empty.`
+          });
           addLog(`<strong>${state.names.dom} dodges the loss.</strong> The wheel lands on ${wheelValueText(value)}, but her bank is already empty.`);
         }
       } else {
         state.wheel.finalBankDelta = 0;
+        showOutcomeSplash({
+          tone: "gold",
+          kicker: "Blank",
+          title: "No Tribute Paid",
+          detail: "The wheel spares the bank."
+        });
         addLog(`<strong>${state.names.sub} hits blank.</strong> Nothing enters ${state.names.dom}'s bank.`);
       }
       state.pot = 0;
@@ -5571,26 +6247,56 @@
     function resolveWheelPayout(value, index) {
       const notes = [];
       let payout = Number(value || 0);
+      const riskMode = wheelRiskModeInfo();
       if (state.wheel.greedyDom) {
-        if (value === 25) {
-          payout = 60;
-          notes.push("greedy $25 becomes $60");
+        if (value === riskMode.prizeValue) {
+          payout = riskMode.greedyPrize;
+          notes.push(`greedy ${money(riskMode.prizeValue)} becomes ${money(riskMode.greedyPrize)}`);
         } else if (value === 0) {
-          payout = 30;
-          notes.push("greedy blank becomes $30");
-        } else if (value === 1 || value === 2 || value === 5 || value === 10) {
+          payout = riskMode.greedyBlank;
+          notes.push(`greedy blank becomes ${money(riskMode.greedyBlank)}`);
+        } else if (value > 0) {
           payout = 0;
           notes.push(`greedy ${money(value)} becomes blank`);
         }
       }
       if (payout > 0 && state.wheel.blessActive) {
-        const upgraded = wheelUpgradeValue(value);
+        const upgraded = wheelUpgradeValue(value, riskMode);
         if (upgraded > payout) {
           notes.push(`blessed to ${money(upgraded)}`);
           payout = upgraded;
         }
       }
+      if (payout > 0 && riskMode.bonus > 0) {
+        payout += riskMode.bonus;
+        notes.push(`${riskMode.label} bonus +${money(riskMode.bonus)}`);
+      }
       return { payout, notes };
+    }
+
+    function wheelRiskModeInfo(mode = state.wheel && state.wheel.riskMode) {
+      return WHEEL_RISK_MODES[mode] || WHEEL_RISK_MODES.normal;
+    }
+
+    function wheelRiskModeBonusText(info = wheelRiskModeInfo()) {
+      const prizeText = info.prizeValue > 25 ? `${money(info.prizeValue)} prizes` : `${money(info.prizeValue)} prizes`;
+      return info.bonus > 0 ? `${prizeText}; winning spaces pay +${money(info.bonus)}.` : `${prizeText}; winning spaces pay normal value.`;
+    }
+
+    function setWheelRiskMode(mode) {
+      if (!canUseWheelDomTools() || state.wheel.unlocked) return;
+      if (!WHEEL_RISK_MODES[mode]) return;
+      state.wheel.riskMode = mode;
+      state.wheel.slices = createWheelSlices(mode);
+      state.wheel.angle = 0;
+      state.wheel.resultIndex = null;
+      state.wheel.result = null;
+      state.wheel.finalPayout = null;
+      state.wheel.finalBankDelta = null;
+      state.wheel.resultNotes = [];
+      state.wheel.nudgeUsed = false;
+      render();
+      publishState();
     }
 
     function wheelBankDeltaForPayout(payout, startingVault = state.domVault) {
@@ -5599,17 +6305,35 @@
       return -Math.min(Math.max(0, Number(startingVault || 0)), Math.abs(amount));
     }
 
-    function applyWheelBankDelta(delta) {
-      state.domVault = Math.max(0, Number(state.domVault || 0) + Number(delta || 0));
+    function applyWheelBankDelta(delta, label = "Wheel Bank", detail = "") {
+      const before = Number(state.domVault || 0);
+      state.domVault = Math.max(0, before + Number(delta || 0));
       state.lockedTribute = state.domVault;
+      const applied = state.domVault - before;
+      if (applied !== 0) {
+        recordLedgerEvent({
+          type: applied < 0 ? (label.includes("Unlock") ? "cost" : "loss") : "wheel",
+          label,
+          detail,
+          delta: applied,
+          before,
+          after: state.domVault
+        });
+      }
     }
 
-    function wheelUpgradeValue(value) {
-      if (value === 1) return 2;
-      if (value === 2) return 5;
-      if (value === 5) return 10;
-      if (value === 10) return 25;
-      return value;
+    function wheelUpgradeValue(value, riskMode = wheelRiskModeInfo()) {
+      return Number(riskMode.blessMap && riskMode.blessMap[value]) || value;
+    }
+
+    function wheelBlessText(info = wheelRiskModeInfo()) {
+      const entries = Object.entries(info.blessMap || {})
+        .map(([from, to]) => `${money(Number(from))}->${money(Number(to))}`);
+      return entries.length ? entries.join(", ") : "cash spaces keep their values";
+    }
+
+    function wheelGreedyText(info = wheelRiskModeInfo()) {
+      return `${money(info.prizeValue)}->${money(info.greedyPrize)}, blank->${money(info.greedyBlank)}, lower cash->blank`;
     }
 
     function canUseWheelDomTools() {
@@ -5688,8 +6412,19 @@
       const newBankDelta = wheelBankDeltaForPayout(result.payout, baseVault);
       state.wheel.finalBankDelta = newBankDelta;
       const delta = newBankDelta - oldBankDelta;
+      const before = state.domVault;
       state.domVault = Math.max(0, baseVault + newBankDelta);
       state.lockedTribute = state.domVault;
+      if (state.domVault !== before) {
+        recordLedgerEvent({
+          type: delta < 0 ? "loss" : "wheel",
+          label: "Wheel Nudge",
+          detail: `${wheelValueText(oldValue)} becomes ${wheelValueText(nextValue)}.`,
+          delta: state.domVault - before,
+          before,
+          after: state.domVault
+        });
+      }
       const deltaText = `${delta >= 0 ? "+" : "-"}${money(Math.abs(delta))}`;
       addLog(`<strong>${state.names.dom} nudges the wheel ${direction > 0 ? "forward" : "back"} ${nudgeAmount}.</strong> ${wheelValueText(oldValue)} becomes ${wheelValueText(nextValue)}; result is now ${wheelSignedMoney(result.payout)} and the bank adjusts by ${deltaText}.`);
       render();
@@ -7534,6 +8269,10 @@
         renderTrailBoard();
         return;
       }
+      if (state.currentGame === "obedienceOrders") {
+        renderObedienceOrdersBoard();
+        return;
+      }
       if (state.currentGame === "tributeFleet") {
         renderFleetBoard();
         return;
@@ -7573,6 +8312,62 @@
           els.board.appendChild(cell);
         }
       }
+    }
+
+    function renderObedienceOrdersBoard() {
+      const obedience = state.obedience || createObedienceState();
+      els.board.innerHTML = "";
+      els.board.className = "obedience-board";
+      const sequenceVisible = obedience.phase === "study" || obedience.phase === "complete";
+      const sequence = document.createElement("div");
+      sequence.className = "obedience-sequence";
+      const shownOrders = obedience.sequence && obedience.sequence.length
+        ? obedience.sequence.map((id, index) => {
+          const command = obedienceCommand(id);
+          return `<span class="obedience-order ${sequenceVisible ? "" : "hidden-order"}">${sequenceVisible ? escapeHtml(command.label) : index + 1}</span>`;
+        }).join("")
+        : `<span class="obedience-order empty">Awaiting first order</span>`;
+      sequence.innerHTML = shownOrders;
+      els.board.appendChild(sequence);
+
+      const stats = document.createElement("div");
+      stats.className = "obedience-stats";
+      stats.innerHTML = `
+        <span>Round <strong>${Math.min(OBEDIENCE_TARGET_ROUNDS, Number(obedience.successes || 0) + 1)}</strong> / ${OBEDIENCE_TARGET_ROUNDS}</span>
+        <span>Mistakes <strong>${Number(obedience.mistakes || 0)}</strong></span>
+        <span>Tribute <strong>${money(Number(obedience.tributePaid || 0))}</strong></span>
+      `;
+      els.board.appendChild(stats);
+
+      const message = document.createElement("p");
+      message.className = "obedience-message";
+      message.textContent = obedience.message || "Dom sets the first order.";
+      els.board.appendChild(message);
+
+      const actions = document.createElement("div");
+      actions.className = "obedience-actions";
+      const canDom = obedienceControlsAllowed(DOM);
+      const canSub = obedienceControlsAllowed(SUB);
+      if (obedience.phase === "study") {
+        actions.innerHTML = `<button class="primary" data-obedience-action="recall"${canSub ? "" : " disabled"}>Begin Recall</button>`;
+      } else if (obedience.phase === "complete") {
+        actions.innerHTML = `<button class="primary" data-obedience-action="reset"${canDom ? "" : " disabled"}>New Orders</button>`;
+      } else {
+        actions.innerHTML = `<button class="primary" data-obedience-action="start"${canDom ? "" : " disabled"}>${obedience.sequence && obedience.sequence.length ? "Add Order" : "Start Orders"}</button>`;
+      }
+      els.board.appendChild(actions);
+
+      const pad = document.createElement("div");
+      pad.className = "obedience-pad";
+      OBEDIENCE_COMMANDS.forEach((command) => {
+        const button = document.createElement("button");
+        button.className = "obedience-command";
+        button.disabled = obedience.phase !== "recall" || !canSub;
+        button.dataset.obedienceCommand = command.id;
+        button.innerHTML = `<strong>${escapeHtml(command.label)}</strong><span>${escapeHtml(command.detail)}</span>`;
+        pad.appendChild(button);
+      });
+      els.board.appendChild(pad);
     }
 
     function renderWheelSpinBoard() {
@@ -7688,6 +8483,23 @@
       limitRow.className = "wheel-tool-row";
       limitRow.innerHTML = `<strong>Refresh</strong><span>${wheelSpinsRemaining()} spins left. Powers: Bless ${wheelPowerRemaining("bless")}, Greedy ${wheelPowerRemaining("greedy")}, Nudge ${wheelPowerRemaining("nudge")}. Resets in ${formatWheelTime(wheelLimitRemainingMs())}.</span>`;
 
+      const modeRow = document.createElement("div");
+      modeRow.className = "wheel-tool-row wheel-risk-row";
+      modeRow.innerHTML = `<strong>Risk</strong>`;
+      Object.entries(WHEEL_RISK_MODES).forEach(([mode, info]) => {
+        const button = document.createElement("button");
+        button.textContent = `${info.label} ${money(info.cost)}`;
+        button.classList.toggle("active", state.wheel.riskMode === mode);
+        button.disabled = !canUse || state.wheel.unlocked;
+        button.addEventListener("click", () => setWheelRiskMode(mode));
+        modeRow.appendChild(button);
+      });
+      const modeNote = document.createElement("span");
+      const selectedMode = wheelRiskModeInfo();
+      modeNote.className = "wheel-risk-note";
+      modeNote.textContent = `Unlock costs ${money(selectedMode.cost)}. ${wheelRiskModeBonusText(selectedMode)} ${selectedMode.prizeBlankRadius} blank${selectedMode.prizeBlankRadius === 1 ? "" : "s"} on each side of each prize.${selectedMode.extraMinus ? ` Adds ${selectedMode.extraMinus} minus slots.` : ""}`;
+      modeRow.appendChild(modeNote);
+
       const unlockRow = document.createElement("div");
       unlockRow.className = "wheel-tool-row wheel-unlock-row";
       unlockRow.classList.toggle("unlocked", state.wheel.unlocked);
@@ -7695,13 +8507,15 @@
       const unlockButton = document.createElement("button");
       unlockButton.className = "primary wheel-unlock-button";
       unlockButton.classList.toggle("unlocked", state.wheel.unlocked);
-      unlockButton.textContent = state.wheel.unlocked ? "Wheel Unlocked" : "Unlock Wheel";
-      unlockButton.disabled = !canUse || state.wheel.unlocked || wheelSpinsRemaining() <= 0;
+      unlockButton.textContent = state.wheel.unlocked ? "Wheel Unlocked" : `Unlock ${selectedMode.label}`;
+      unlockButton.disabled = !canUse || state.wheel.unlocked || wheelSpinsRemaining() <= 0 || state.domVault < selectedMode.cost;
       unlockButton.addEventListener("click", unlockWheelSpin);
       unlockRow.appendChild(unlockButton);
       const unlockNote = document.createElement("span");
       unlockNote.className = "wheel-unlock-note";
-      unlockNote.textContent = state.wheel.unlocked ? `READY: ${state.names.sub} can press Spin now.` : `Locked: ${state.names.sub} cannot spin until this is unlocked.`;
+      unlockNote.textContent = state.wheel.unlocked
+        ? `READY: ${state.names.sub} can press Spin now. ${selectedMode.label}: ${wheelRiskModeBonusText(selectedMode)}`
+        : `Locked: ${state.names.dom} pays ${money(selectedMode.cost)} to play. ${state.names.sub} cannot spin until this is unlocked.`;
       unlockRow.appendChild(unlockNote);
 
       const blessRow = document.createElement("div");
@@ -7713,9 +8527,6 @@
       blessButton.disabled = !canUse || (!state.wheel.blessActive && wheelPowerRemaining("bless") <= 0);
       blessButton.addEventListener("click", toggleWheelBless);
       blessRow.appendChild(blessButton);
-      const blessNote = document.createElement("span");
-      blessNote.textContent = "$1->$2, $2->$5, $5->$10, $10->$25.";
-      blessRow.appendChild(blessNote);
 
       const greedyRow = document.createElement("div");
       greedyRow.className = "wheel-tool-row";
@@ -7748,12 +8559,14 @@
       status.classList.toggle("ready", state.wheel.unlocked);
       const bits = [];
       if (state.wheel.unlocked) bits.push(`WHEEL UNLOCKED: ${state.names.sub} can spin now`);
+      bits.push(`${selectedMode.label}: unlock ${money(selectedMode.cost)}, ${wheelRiskModeBonusText(selectedMode).toLowerCase()}`);
       if (state.wheel.blessActive) bits.push("Bless armed: all cash slices upgrade");
-      if (state.wheel.greedyDom) bits.push("Greedy Dom: $25->$60, blank->$30, low cash->blank, minus stays live");
+      if (state.wheel.greedyDom) bits.push(`Greedy Dom: ${wheelGreedyText(selectedMode)}, minus stays live`);
       if (state.wheel.nudgeUsed) bits.push("Nudge used");
       status.textContent = bits.join(" | ") || `${state.names.dom} can arm Bless, arm Greedy, or nudge 1 or 2 spaces after the result.`;
 
       tools.appendChild(limitRow);
+      tools.appendChild(modeRow);
       tools.appendChild(unlockRow);
       tools.appendChild(blessRow);
       tools.appendChild(greedyRow);
@@ -8389,6 +9202,7 @@
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
       if (state.currentGame === "tributeTrail") return "Tribute Trail";
+      if (state.currentGame === "obedienceOrders") return "Obedience Orders";
       if (state.currentGame === "tributeFleet") return "Tribute Fleet";
       return "Tribute Four";
     }
@@ -8418,6 +9232,10 @@
       }
       if (state.currentGame === "tributeTrail") {
         renderTributeTrailRules();
+        return;
+      }
+      if (state.currentGame === "obedienceOrders") {
+        renderObedienceOrdersRules();
         return;
       }
       if (state.currentGame === "tributeFleet") {
@@ -8469,16 +9287,30 @@
       const rules = [
         `<strong>Spin:</strong> ${state.names.sub} presses the center of the wheel to spin. No bet is required in this mode.`,
         `<strong>The wheel:</strong> 36 equal-size spaces. Every space has the same chance to land.`,
-        `<strong>Cash layout:</strong> 10 spaces show $1, 8 show $2, 5 show $5, 3 show $10, 2 show $25, 3 show -$5, 1 shows -$10, and 4 are blank.`,
-        `<strong>Blank placement:</strong> each $25 has a blank directly on either side, with the second blank-$25-blank cluster placed straight across from the first. The remaining spaces reshuffle whenever the 15-minute wheel timer refreshes.`,
+        `<strong>Normal layout:</strong> 8 spaces show $1, 7 show $2, 5 show $5, 3 show $10, 2 show $25, 5 show -$5, 2 show -$10, and 4 are blank.`,
+        `<strong>Risky layout:</strong> costs $8, pays +$5 on winning spaces, and replaces 2 $1 spaces with 2 extra -$5 spaces.`,
+        `<strong>Ruthless layout:</strong> costs $15, removes $1 and $2, upgrades those low spaces into $5/$10 pressure, makes the two prize spaces $50, adds +$10 to winning spaces, keeps 4 extra minus slots, and places two blanks on each side of every $50.`,
+        `<strong>Blank placement:</strong> prize clusters are mirrored straight across from each other. Normal and Risky use blank-$25-blank clusters; Ruthless uses blank-blank-$50-blank-blank clusters. The remaining spaces reshuffle whenever the 15-minute wheel timer refreshes.`,
         `<strong>Pointer:</strong> the fixed arrow at the top points to the winning space when the wheel stops.`,
         `<strong>Limits:</strong> the wheel can be spun 8 times every 15 minutes. Bless and Greedy Dom each have 2 uses, while Nudge has 4 uses in that same 15-minute window.`,
-        `<strong>Bless:</strong> before the spin, ${state.names.dom} can bless all cash spaces. $1 upgrades to $2, $2 to $5, $5 to $10, and $10 to $25.`,
-        `<strong>Greedy Dom:</strong> before the spin, ${state.names.dom} can make every $25 pay $60 and every blank pay $30, but every $1, $2, $5, and $10 becomes a blank. Minus slots stay dangerous. Bless can still be armed at the same time, but Greedy blanks those lower cash spaces first.`,
+        `<strong>Bless:</strong> before the spin, ${state.names.dom} can bless all cash spaces. Normal/Risky: $1->$2, $2->$5, $5->$10, $10->$25, $25->$50. Ruthless: $5->$10, $10->$50, $50->$100.`,
+        `<strong>Greedy Dom:</strong> before the spin, Greedy scales with the selected risk. Normal: $25->$60 and blank->$30. Risky: $25->$70 and blank->$35. Ruthless: $50->$110 and blank->$50. Lower cash becomes blank, minus slots stay dangerous, and the risk bonus still applies to winning Greedy spaces.`,
         `<strong>Nudge:</strong> after the wheel stops, ${state.names.dom} can move the result 1 or 2 spaces forward or back once. The bank adjusts to the new result.`,
         `<strong>Cash result:</strong> landing on a cash space adds that amount to ${state.names.dom}'s bank.`,
         `<strong>Minus result:</strong> landing on a minus space removes that amount from ${state.names.dom}'s bank, but the bank cannot go below $0.`,
         `<strong>Blank result:</strong> landing on blank means nothing enters ${state.names.dom}'s bank.`
+      ];
+      setRuleList(rules);
+    }
+
+    function renderObedienceOrdersRules() {
+      const rules = [
+        `<strong>Goal:</strong> ${state.names.sub} repeats ${OBEDIENCE_TARGET_ROUNDS} growing command sequences.`,
+        `<strong>Dom turn:</strong> ${state.names.dom} starts or adds one order to the chain.`,
+        `<strong>Study:</strong> the full order chain is visible until ${state.names.sub} begins recall.`,
+        `<strong>Recall:</strong> ${state.names.sub} presses the command buttons in the exact order.`,
+        `<strong>Mistake:</strong> a wrong command immediately pays tribute to ${state.names.dom}'s bank, then the same chain is studied again.`,
+        `<strong>No dom cost:</strong> ${state.names.dom}'s bank is never charged in this mode.`
       ];
       setRuleList(rules);
     }
@@ -8647,7 +9479,7 @@
       els.lockedTribute.textContent = money(state.domVault);
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
         ? "Free Spin"
-        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"));
+        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match")));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
@@ -8675,6 +9507,17 @@
           els.turnText.innerHTML = `<strong>${labelFor(state.trail.winner)}</strong> reached the finish.`;
         } else {
           els.turnText.innerHTML = `<strong>Tribute Trail</strong> is ready to reset.`;
+        }
+      } else if (state.currentGame === "obedienceOrders") {
+        const obedience = state.obedience || createObedienceState();
+        if (obedience.phase === "study") {
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> studies the order chain.`;
+        } else if (obedience.phase === "recall") {
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> repeats the orders.`;
+        } else if (obedience.phase === "complete") {
+          els.turnText.innerHTML = `<strong>Orders complete.</strong> Start a new chain when ready.`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> sets the next order.`;
         }
       } else if (!state.active) {
         if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.queenSetup) {
@@ -8712,7 +9555,7 @@
       const localRole = localOnlineRole();
       const onlineBlocksDom = !domAdvantageControlsAllowed(localRole);
       const isWheelSpin = state.currentGame === "wheelSpin";
-      const isFreeGame = isWheelSpin || state.currentGame === "tributeTrail";
+      const isFreeGame = isWheelSpin || state.currentGame === "tributeTrail" || state.currentGame === "obedienceOrders";
       const wagerPending = Boolean(state.pendingWager);
       renderWheelDomTools();
       els.betInput.classList.toggle("hidden", isFreeGame);
@@ -8771,7 +9614,7 @@
         els.passBtn.textContent = "Power";
       } else if (state.currentGame === "tributeTrail") {
         els.passBtn.classList.add("hidden");
-      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin") {
+      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders") {
         els.passBtn.classList.add("hidden");
       } else {
         const tributeFourPowerReady = !state.lockColumnMode && ((state.lockColumnAvailable && !state.lockColumnMode) || (state.pressureDropAvailable && !state.pressureDropArmed));
@@ -8821,6 +9664,11 @@
         els.gameSubtitle.textContent = "A 60-space board race with card, chance, cash, blank, slide spaces, and a Trail Tribute meter.";
         return;
       }
+      if (state.currentGame === "obedienceOrders") {
+        els.gameTitle.textContent = "Obedience Orders";
+        els.gameSubtitle.textContent = "A command memory mini game. The dom grows the sequence; every sub mistake pays tribute.";
+        return;
+      }
       if (state.currentGame === "tributeFleet") {
         els.gameTitle.textContent = "Tribute Fleet";
         els.gameSubtitle.textContent = "Battleship with cash stakes. Fleets are hidden and auto-placed; normal bets are fair, while reclaim matches tilt the water toward the dom.";
@@ -8847,11 +9695,13 @@
       renderBlackjackSettingsModal();
       renderCheckersQueenModal();
       renderCheckersQueenSplash();
+      renderBrattyWelcomeModal();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
     els.reclaimBtn.addEventListener("click", startReclaimMatch);
     els.resetBtn.addEventListener("click", resetPrototype);
+    els.board.addEventListener("click", handleObedienceBoardClick);
     els.hitBtn.addEventListener("click", () => {
       if (state.currentGame === "tributeChess") {
         chessFreezeAction();
@@ -8900,6 +9750,16 @@
     });
     els.sideTabs.forEach((button) => {
       button.addEventListener("click", () => setSideTab(button.dataset.sideTab));
+    });
+    els.sideLedgerSummary.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-ledger-action]");
+      if (!button) return;
+      handleLedgerAction(button.dataset.ledgerAction);
+    });
+    els.sideLedgerSummary.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && event.target && event.target.id === "ledgerThroneUrlInput") {
+        handleLedgerAction("save-throne");
+      }
     });
     els.sideToggleBtn.addEventListener("click", toggleSidePanel);
     els.sideRestoreTabs.forEach((button) => {
@@ -8950,6 +9810,7 @@
     els.rulesModal.addEventListener("click", (event) => {
       if (event.target === els.rulesModal) closeRulesModal();
     });
+    if (els.outcomeSplash) els.outcomeSplash.addEventListener("click", hideOutcomeSplash);
     els.tributeFourPowerOptions.addEventListener("click", (event) => {
       const button = event.target.closest("[data-tribute-four-power], [data-fleet-power], [data-chess-power], [data-checkers-power], [data-twenty-one-power]");
       if (!button || button.disabled) return;
@@ -9011,6 +9872,7 @@
       if (event.key === "Escape") {
         closeRulesModal();
         closeTributeFourPowerModal();
+        closeResetBankModal();
         clearTrailCardReveal(false);
       }
     });
@@ -9019,6 +9881,10 @@
     els.chooseSubBtn.addEventListener("click", () => chooseOnlineRole(SUB));
     els.openSubLinkBtn.addEventListener("click", openSubLinkRequest);
     els.declineSubLinkBtn.addEventListener("click", declineSubLinkRequest);
+    els.cancelResetBankBtn.addEventListener("click", closeResetBankModal);
+    els.confirmResetBankBtn.addEventListener("click", confirmResetBank);
+    if (els.declineBrattyWelcomeBtn) els.declineBrattyWelcomeBtn.addEventListener("click", declineBrattyWelcome);
+    if (els.acceptBrattyWelcomeBtn) els.acceptBrattyWelcomeBtn.addEventListener("click", acceptBrattyWelcome);
     els.wagerModal.addEventListener("click", (event) => {
       const button = event.target.closest("[data-wager-action]");
       if (!button) return;
@@ -9030,6 +9896,7 @@
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
     els.tributeWheelCard.addEventListener("click", openWheelSpin);
+    if (els.obedienceOrdersCard) els.obedienceOrdersCard.addEventListener("click", openObedienceOrders);
     els.tributeTrailCard.addEventListener("click", openTributeTrail);
     els.tributeChessCard.addEventListener("click", openTributeChess);
     els.tributeCheckersCard.addEventListener("click", openTributeCheckers);

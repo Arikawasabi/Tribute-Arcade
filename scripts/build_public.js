@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, "..");
 const outputsDir = path.join(root, "outputs");
 const srcDir = path.join(root, "src");
 const srcScriptsDir = path.join(srcDir, "scripts");
+const srcAssetsDir = path.join(srcDir, "assets");
 const cloudflareDir = path.join(outputsDir, "cloudflare", "public");
 const renderDir = path.join(outputsDir, "render_upload");
 const templatePath = path.join(srcDir, "tribute_four.template.html");
@@ -69,6 +70,21 @@ function buildHtml() {
     fs.copyFileSync(serverSource, serverTarget);
   }
   console.log("Built deploy HTML copies.");
+}
+
+function copyStaticAssets() {
+  if (!fs.existsSync(srcAssetsDir)) return;
+  const targets = [
+    path.join(root, "assets"),
+    path.join(outputsDir, "assets"),
+    path.join(cloudflareDir, "assets"),
+    path.join(renderDir, "assets")
+  ];
+  for (const target of targets) {
+    ensureDir(target);
+    fs.cpSync(srcAssetsDir, target, { recursive: true });
+  }
+  console.log("Copied static assets.");
 }
 
 function parseReferencedAssetNames() {
@@ -145,5 +161,6 @@ if (args.has("--extract")) extractSources();
 if (args.has("--prune")) pruneUnusedDeployAssets();
 if (!args.has("--extract") || args.has("--build")) {
   buildHtml();
+  copyStaticAssets();
   rebuildZip();
 }
