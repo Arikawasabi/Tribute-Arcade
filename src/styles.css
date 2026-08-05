@@ -471,6 +471,10 @@
       width: 100%;
     }
 
+    .menu-loss-mode-row {
+      margin-top: 10px;
+    }
+
     .share-links {
       display: grid;
       gap: 8px;
