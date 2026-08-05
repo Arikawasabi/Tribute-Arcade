@@ -109,8 +109,6 @@
         linkRequest: null,
         throneUrl: "",
         paymentDemand: null,
-        lossMode: "bank",
-        tributeMaxAmount: 25,
         brattyWelcomeSeen: false,
         queenPowerMode: "tiered",
         queenPowerUsers: "dom"
@@ -202,9 +200,6 @@
       playerSummary: document.getElementById("playerSummary"),
       menuBankLabel: document.getElementById("menuBankLabel"),
       menuDomBank: document.getElementById("menuDomBank"),
-      menuLossMode: document.getElementById("menuLossMode"),
-      menuTributeMaxInput: document.getElementById("menuTributeMaxInput"),
-      menuLossModeStatus: document.getElementById("menuLossModeStatus"),
       chooserStatus: document.getElementById("chooserStatus"),
       settingsTabs: document.querySelectorAll(".settings-tab"),
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
@@ -1439,24 +1434,6 @@
       updateOnlineUi();
       const localRole = localOnlineRole();
       const domPickBlocked = Boolean(state.online.room && localRole && localRole !== DOM);
-      const lossMode = normalizeLossMode(state.settings.lossMode);
-      const tributeMax = normalizeTributeMax(state.settings.tributeMaxAmount);
-      const tributeUrl = tributeDemandUrl();
-      if (els.menuLossMode) {
-        els.menuLossMode.value = lossMode;
-        els.menuLossMode.disabled = domPickBlocked;
-      }
-      if (els.menuTributeMaxInput) {
-        els.menuTributeMaxInput.value = tributeMax;
-        els.menuTributeMaxInput.disabled = domPickBlocked || lossMode !== "tribute";
-      }
-      if (els.menuLossModeStatus) {
-        els.menuLossModeStatus.textContent = lossMode === "tribute"
-          ? (tributeUrl
-            ? `Normal losses open a manual tribute demand capped at ${money(tributeMax)}.`
-            : "Tribute Demand needs a Throne/payment URL saved in the ledger first.")
-          : "Normal losses add to the dom bank and can be reclaimed.";
-      }
       els.tributeFourCard.disabled = domPickBlocked;
       els.tributeFleetCard.disabled = domPickBlocked;
       els.tributeTwentyOneCard.disabled = domPickBlocked;
@@ -1575,8 +1552,6 @@
         ...changes
       };
       state.settings.subDefaultBet = normalizeBuyIn(Number(state.settings.subDefaultBet));
-      state.settings.lossMode = normalizeLossMode(state.settings.lossMode);
-      state.settings.tributeMaxAmount = normalizeTributeMax(state.settings.tributeMaxAmount);
       if (!state.active) els.betInput.value = state.settings.subDefaultBet;
       renderSettings();
       renderGameSelectTabs();
@@ -1602,45 +1577,6 @@
       if (!raw) return "";
       if (/^data:image\/(?:png|jpe?g|gif|webp|bmp);base64,/i.test(raw)) return raw;
       return normalizeDomLink(raw);
-    }
-
-    function normalizeLossMode(value) {
-      return value === "tribute" ? "tribute" : "bank";
-    }
-
-    function normalizeTributeMax(value) {
-      const amount = Math.round(Number(value || 0));
-      if (!Number.isFinite(amount)) return 25;
-      return Math.max(1, Math.min(500, amount));
-    }
-
-    function tributeDemandUrl() {
-      const easterEgg = activeNameEasterEgg();
-      return normalizeDomLink(state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl));
-    }
-
-    function tributeDemandAmount(rawAmount) {
-      const amount = normalizeBuyIn(Number(rawAmount || 0));
-      const cap = normalizeTributeMax(state.settings.tributeMaxAmount);
-      return Math.max(1, Math.min(amount, cap));
-    }
-
-    function createTributeDemand(amount, reason = "Game loss") {
-      const url = tributeDemandUrl();
-      if (!url) return null;
-      const cappedAmount = tributeDemandAmount(amount);
-      state.settings.paymentDemand = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        url,
-        amount: cappedAmount,
-        reason,
-        manualOnly: true
-      };
-      return state.settings.paymentDemand;
-    }
-
-    function normalLossUsesTributeDemand() {
-      return normalizeLossMode(state.settings.lossMode) === "tribute" && Boolean(tributeDemandUrl());
     }
 
     function currentDomLinkInputValue() {
@@ -1803,12 +1739,12 @@
 
     function demandPayment() {
       if (!paymentControlsAllowed()) return;
-      const url = tributeDemandUrl();
+      const easterEgg = activeNameEasterEgg();
+      const url = normalizeDomLink(state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl));
       if (!url) return;
       state.settings.paymentDemand = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        url,
-        manualOnly: true
+        url
       };
       addLog(`<strong>${state.names.dom || "Dom"} demands payment.</strong> The throne URL has been sent to ${state.names.sub || "the sub"}.`);
       renderSidePanel();
@@ -1831,8 +1767,7 @@
       window.localStorage.setItem(key, demand.id);
       const opened = window.open(demand.url, "_blank", "noopener");
       if (!opened) {
-        const amountText = demand.amount ? ` Manual tribute due: ${money(demand.amount)}.` : "";
-        showSubLinkModal(demand, `${amountText} Payment was demanded, but your browser blocked the automatic window.`);
+        showSubLinkModal(demand, "Payment was demanded, but your browser blocked the automatic window.");
       }
     }
 
@@ -2296,9 +2231,7 @@
     function showSubLinkModal(request, note = "") {
       els.subLinkModal.dataset.requestId = request.id;
       els.subLinkModal.dataset.url = request.url;
-      const amountText = request.amount ? ` Manual tribute due: ${money(request.amount)}.` : "";
-      const manualText = request.manualOnly ? " Choose and pay manually; checkout is not automated." : "";
-      els.subLinkModalText.textContent = `${state.names.dom || "Dom"} wants to open this link: ${request.url}${amountText}${manualText}${note ? ` ${note}` : ""}`;
+      els.subLinkModalText.textContent = `${state.names.dom || "Dom"} wants to open this link: ${request.url}${note ? ` ${note}` : ""}`;
       els.subLinkModal.classList.remove("hidden");
     }
 
@@ -2896,9 +2829,7 @@
       }
       const lines = [
         `Current balance: ${money(state.domVault)}`,
-        normalLossUsesTributeDemand()
-          ? `Dom win: opens a manual tribute demand up to ${money(tributeDemandAmount(amount))}`
-          : `Dom win: gains ${money(amount)} and balance becomes ${money(state.domVault + amount)}`,
+        `Dom win: gains ${money(amount)} and balance becomes ${money(state.domVault + amount)}`,
         `Dom loss: balance remains ${money(state.domVault)}`
       ];
       return lines;
@@ -3007,23 +2938,6 @@
         return result;
       }
       if (winner === DOM) {
-        if (state.mode !== "reclaim" && normalLossUsesTributeDemand()) {
-          const before = state.domVault;
-          const demand = createTributeDemand(amount, `${state.names.dom} wins ${currentGameLabel()}`);
-          if (demand) {
-            recordLedgerEvent({
-              type: "demand",
-              label: "Tribute Demand",
-              detail: `${state.names.dom} wins ${currentGameLabel()}. Manual demand capped at ${money(demand.amount)}.`,
-              delta: 0,
-              before,
-              after: state.domVault
-            });
-            const result = { outcome: "domTributeDemand", amount: demand.amount };
-            showRoundOutcomeSplash(result);
-            return result;
-          }
-        }
         const before = state.domVault;
         state.domVault += amount;
         state.lockedTribute = state.domVault;
@@ -3058,13 +2972,6 @@
           kicker: "Tribute Accepted",
           title: `Dom Profit +${money(result.amount)}`,
           detail: `${state.names.dom}'s bank claims the stake.`
-        });
-      } else if (result.outcome === "domTributeDemand") {
-        showOutcomeSplash({
-          tone: "dom",
-          kicker: "Tribute Demand",
-          title: `${money(result.amount)} manual tribute due`,
-          detail: `${state.names.sub} must choose and pay manually. No checkout is automated.`
         });
       } else if (result.outcome === "domReclaim") {
         showOutcomeSplash({
@@ -4002,8 +3909,6 @@
         addLog(`<strong>${state.names.dom} wins Reversi reclaim.</strong> ${scoreText} ${money(result.amount)} is added to her bank.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins Reversi.</strong> ${scoreText} ${money(result.amount)} moves into her bank.`);
-      } else if (result.outcome === "domTributeDemand") {
-        addLog(`<strong>${state.names.dom} wins Reversi.</strong> ${scoreText} Manual tribute demand sent for ${money(result.amount)}.`);
       } else {
         addLog(`<strong>Reversi draw.</strong> ${scoreText} The pot is returned.`);
       }
@@ -4216,8 +4121,6 @@
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(result.amount)} is added to her bank. She now has ${money(state.domVault)}.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${money(result.amount)} moves into her bank and becomes reclaimable cash.`);
-      } else if (result.outcome === "domTributeDemand") {
-        addLog(`<strong>${state.names.dom} wins.</strong> Manual tribute demand sent for ${money(result.amount)}.`);
       } else {
         addLog(`<strong>Draw.</strong> The pot is returned.`);
       }
@@ -6727,8 +6630,6 @@
         addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
       } else if (result.outcome === "domReclaim") {
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
-      } else if (result.outcome === "domTributeDemand") {
-        addLog(`<strong>${state.names.dom} wins.</strong> ${reason} Manual tribute demand sent for ${money(result.amount)}.`);
       } else {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
       }
@@ -7843,8 +7744,6 @@
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
-      } else if (result.outcome === "domTributeDemand") {
-        addLog(`<strong>${state.names.dom} wins.</strong> ${reason} Manual tribute demand sent for ${money(result.amount)}.`);
       } else {
         addLog(`<strong>Draw.</strong> ${reason}`);
       }
@@ -8131,26 +8030,6 @@
         const tribute = Number(state.higherLower.baseTribute || HIGHER_LOWER_BASE_TRIBUTE);
         const bonus = Number(state.higherLower.domRunBonus || 0);
         const amount = higherLowerDomPossibleWin();
-        if (normalLossUsesTributeDemand()) {
-          const before = state.domVault;
-          const demand = createTributeDemand(amount, `${state.names.dom} breaks Higher / Lower`);
-          if (demand) {
-            recordLedgerEvent({
-              type: "demand",
-              label: "Higher / Lower Demand",
-              detail: `${state.names.dom} collects the card run as a manual tribute demand capped at ${money(demand.amount)}.`,
-              delta: 0,
-              before,
-              after: state.domVault
-            });
-            addLog(`<strong>${state.names.dom} collects.</strong> ${reason} Manual tribute demand sent for ${money(demand.amount)}.`);
-            showOutcomeSplash({ tone: "dom", kicker: "Tribute Demand", title: `${money(demand.amount)} manual tribute due`, detail: `${state.names.sub} must choose and pay manually. No checkout is automated.` });
-            state.higherLower.result = reason;
-            render();
-            publishState();
-            return;
-          }
-        }
         const before = state.domVault;
         state.domVault += amount;
         state.lockedTribute = state.domVault;
@@ -8405,8 +8284,6 @@
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
-      } else if (result.outcome === "domTributeDemand") {
-        addLog(`<strong>${state.names.dom} wins.</strong> ${reason} Manual tribute demand sent for ${money(result.amount)}.`);
       } else {
         addLog(`<strong>Push.</strong> ${reason}`);
       }
@@ -8696,8 +8573,6 @@
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(result.amount)} is added to her bank. She now has ${money(state.domVault)}.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${money(result.amount)} moves into her bank and becomes reclaimable cash.`);
-      } else if (result.outcome === "domTributeDemand") {
-        addLog(`<strong>${state.names.dom} wins.</strong> Manual tribute demand sent for ${money(result.amount)}.`);
       }
       state.pot = 0;
       render();
@@ -11076,11 +10951,6 @@
       if (event.key === "Enter") sendChatMessage();
     });
     if (els.domAdvantageMode) els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
-    if (els.menuLossMode) els.menuLossMode.addEventListener("change", () => updateSettings({ lossMode: els.menuLossMode.value }));
-    if (els.menuTributeMaxInput) {
-      els.menuTributeMaxInput.addEventListener("change", () => updateSettings({ tributeMaxAmount: els.menuTributeMaxInput.value }));
-      els.menuTributeMaxInput.addEventListener("input", () => updateSettings({ tributeMaxAmount: els.menuTributeMaxInput.value }));
-    }
     if (els.subDefaultBetInput) {
       els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
       els.subDefaultBetInput.addEventListener("input", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
