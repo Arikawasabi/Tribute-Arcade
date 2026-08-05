@@ -3941,6 +3941,33 @@
       line-height: 1.2;
     }
 
+    .throne-extension-card.ready {
+      border-color: rgba(101, 210, 143, 0.42);
+      background:
+        linear-gradient(135deg, rgba(101, 210, 143, 0.14), rgba(239, 199, 94, 0.08)),
+        rgba(8, 6, 7, 0.44);
+    }
+
+    .throne-extension-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .throne-extension-countdown {
+      width: 64px;
+      height: 64px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(239, 199, 94, 0.4);
+      border-radius: 50%;
+      color: var(--gold);
+      background: rgba(8, 6, 7, 0.45);
+      font-size: 2rem;
+      font-weight: 900;
+    }
+
     .ledger-stats {
       grid-column: 1 / -1;
       display: grid;
@@ -5447,6 +5474,20 @@
     let selectedChessPower = "stance:none";
     let selectedCheckersPower = "crownPull";
     let selectedTwentyOnePower = "pushLuck";
+    const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
+    const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
+    let throneExtensionStatus = {
+      installed: false,
+      ready: false,
+      hasSavedCard: false,
+      payButtonCount: 0,
+      enabled: false,
+      countdownActive: false,
+      countdownSeconds: 0,
+      message: "Waiting for extension status.",
+      updatedAt: 0
+    };
+    let throneExtensionCountdownTimer = null;
 
     function createBoard() {
       return Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
@@ -6728,6 +6769,26 @@
       const throneLabel = throneUrl ? escapeHtml(throneUrl) : "No throne URL saved.";
       const paymentLabel = easterEgg ? easterEgg.paymentLabel : "Payment throne";
       const paymentPlaceholder = easterEgg ? easterEgg.paymentPlaceholder : "https://example.com/pay";
+      const showExtensionCard = localOnlineRole() === SUB;
+      const extensionFresh = Date.now() - Number(throneExtensionStatus.updatedAt || 0) < 15000;
+      const extensionStateText = !throneExtensionStatus.installed || !extensionFresh
+        ? "Extension not detected."
+        : (throneExtensionStatus.ready ? "Saved-card checkout ready." : "Checkout not ready.");
+      const extensionButton = throneExtensionStatus.countdownActive
+        ? `<button class="danger-button" data-ledger-action="cancel-throne-confirmation">Cancel</button>`
+        : `<button class="primary" data-ledger-action="start-throne-confirmation" ${throneExtensionStatus.ready ? "" : "disabled"}>Start 5-second confirmation</button>`;
+      const extensionCard = showExtensionCard ? `
+        <div class="command-card wide throne-extension-card ${throneExtensionStatus.ready ? "ready" : ""}">
+          <span>Throne extension</span>
+          <strong>${escapeHtml(extensionStateText)}</strong>
+          <p>${escapeHtml(throneExtensionStatus.message || "Waiting for extension status.")}</p>
+          ${throneExtensionStatus.countdownActive ? `<div class="throne-extension-countdown">${Number(throneExtensionStatus.countdownSeconds || 0)}</div>` : ""}
+          <div class="payment-actions">
+            ${extensionButton}
+            <button data-ledger-action="refresh-throne-extension">Refresh</button>
+          </div>
+        </div>
+      ` : "";
       const throneControls = canUsePaymentControls
         ? (throneUrl
           ? `
@@ -6760,6 +6821,7 @@
           <strong>${throneLabel}</strong>
           ${throneControls}
         </div>
+        ${extensionCard}
         ${canUsePaymentControls ? `<button class="danger-button ledger-reset-bank" data-ledger-action="reset-bank">Reset Bank</button>` : ""}
         <div class="ledger-stats">
           <span>Paid ${money(totals.paid)}</span>
@@ -6788,6 +6850,18 @@
     }
 
     function handleLedgerAction(action) {
+      if (action === "refresh-throne-extension") {
+        requestThroneExtensionStatus();
+        return;
+      }
+      if (action === "start-throne-confirmation") {
+        startInGameThroneConfirmation();
+        return;
+      }
+      if (action === "cancel-throne-confirmation") {
+        cancelInGameThroneConfirmation();
+        return;
+      }
       if (!paymentControlsAllowed()) return;
       if (action === "save-throne") {
         const input = document.getElementById("ledgerThroneUrlInput");
@@ -6844,6 +6918,77 @@
       if (!opened) {
         showSubLinkModal(demand, "Payment was demanded, but your browser blocked the automatic window.");
       }
+    }
+
+    function requestThroneExtensionStatus() {
+      if (localOnlineRole() !== SUB) return;
+      window.postMessage({
+        source: "tribute-arcade",
+        type: THRONE_EXTENSION_REQUEST,
+        requestId: `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      }, window.location.origin);
+    }
+
+    function updateThroneExtensionStatus(detail = {}) {
+      throneExtensionStatus = {
+        ...throneExtensionStatus,
+        installed: true,
+        ready: Boolean(detail.ready),
+        hasSavedCard: Boolean(detail.hasSavedCard),
+        payButtonCount: Number(detail.payButtonCount || 0),
+        enabled: Boolean(detail.enabled),
+        countdownActive: Boolean(detail.countdownActive),
+        countdownSeconds: Number(detail.countdownSeconds || 0),
+        message: detail.message || (detail.ready
+          ? "Saved-card checkout is ready on Throne."
+          : "Extension found, but saved-card checkout is not ready."),
+        updatedAt: Date.now()
+      };
+      renderSidePanel();
+    }
+
+    function handleThroneExtensionMessage(event) {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const data = event.data || {};
+      if (data.source !== "throne-snacks-auto-click" || data.type !== THRONE_EXTENSION_RESPONSE) return;
+      updateThroneExtensionStatus(data.status || data);
+    }
+
+    function startInGameThroneConfirmation() {
+      if (localOnlineRole() !== SUB || !throneExtensionStatus.ready || throneExtensionStatus.countdownActive) return;
+      clearInterval(throneExtensionCountdownTimer);
+      throneExtensionStatus = {
+        ...throneExtensionStatus,
+        countdownActive: true,
+        countdownSeconds: 5,
+        message: "In-game confirmation running. Cancel here if this is not right."
+      };
+      renderSidePanel();
+      throneExtensionCountdownTimer = setInterval(() => {
+        throneExtensionStatus.countdownSeconds = Math.max(0, Number(throneExtensionStatus.countdownSeconds || 0) - 1);
+        if (throneExtensionStatus.countdownSeconds <= 0) {
+          clearInterval(throneExtensionCountdownTimer);
+          throneExtensionCountdownTimer = null;
+          throneExtensionStatus = {
+            ...throneExtensionStatus,
+            countdownActive: false,
+            message: "In-game confirmation complete. Finish manually on the Throne checkout page."
+          };
+        }
+        renderSidePanel();
+      }, 1000);
+    }
+
+    function cancelInGameThroneConfirmation() {
+      clearInterval(throneExtensionCountdownTimer);
+      throneExtensionCountdownTimer = null;
+      throneExtensionStatus = {
+        ...throneExtensionStatus,
+        countdownActive: false,
+        countdownSeconds: 0,
+        message: "In-game confirmation cancelled."
+      };
+      renderSidePanel();
     }
 
     function openResetBankModal() {
@@ -16166,6 +16311,8 @@
     document.querySelectorAll(".role-btn[data-player]").forEach((button) => {
       button.addEventListener("click", () => setRole(button.dataset.player, button.dataset.role));
     });
+    window.addEventListener("message", handleThroneExtensionMessage);
+    setInterval(requestThroneExtensionStatus, 5000);
 
     addLog(`<strong>Ready.</strong> Pay to start a normal match.`);
     renderRoles();
