@@ -838,7 +838,7 @@
     }
 
     function applyDefaultBet() {
-      els.betInput.value = normalizeBuyIn(state.settings.subDefaultBet);
+      els.betInput.value = normalizeBuyIn(isThroneSession() ? 5 : state.settings.subDefaultBet);
     }
 
     function currentRoomId() {
@@ -1699,7 +1699,7 @@
         ...changes
       };
       state.settings.subDefaultBet = normalizeBuyIn(Number(state.settings.subDefaultBet));
-      if (!state.active) els.betInput.value = state.settings.subDefaultBet;
+      if (!state.active) applyDefaultBet();
       renderSettings();
       renderGameSelectTabs();
       renderText();
@@ -1995,10 +1995,12 @@
       if (window.localStorage.getItem(key) === demand.id) return;
       window.localStorage.setItem(key, demand.id);
       const opened = window.open(demand.url, "_blank", "noopener");
+      if (demand.reason === "throne-game-loss") {
+        showThroneKissSplash();
+        return;
+      }
       if (!opened) {
         showSubLinkModal(demand, "Payment was demanded, but your browser blocked the automatic window.");
-      } else if (demand.reason === "throne-game-loss") {
-        showThroneKissSplash();
       }
     }
 
@@ -6520,6 +6522,7 @@
       state.active = false;
       state.mode = "normal";
       state.pot = 0;
+      applyDefaultBet();
       addLog(`<strong>Ready for the next Throne amount.</strong>`);
       render();
       publishState();
