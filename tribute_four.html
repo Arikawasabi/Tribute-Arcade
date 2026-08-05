@@ -158,6 +158,31 @@
         0 8px 30px rgba(0, 0, 0, 0.86);
     }
 
+    .throne-kiss-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 38;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255, 79, 134, 0.18), transparent 18rem),
+        rgba(6, 4, 5, 0.42);
+      font-size: clamp(6rem, 26vw, 16rem);
+      line-height: 1;
+      opacity: 0;
+      transform: scale(0.7) rotate(-8deg);
+      filter: drop-shadow(0 24px 50px rgba(0, 0, 0, 0.68));
+      transition: opacity 180ms ease, transform 260ms cubic-bezier(0.2, 1.15, 0.35, 1);
+    }
+
+    .throne-kiss-splash.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1) rotate(0deg);
+    }
+
     .outcome-splash {
       position: fixed;
       inset: 0;
@@ -4224,6 +4249,7 @@
 <body>
   <div class="distraction-backdrop" id="distractionBackdrop"></div>
   <div class="distraction-overlay" id="distractionOverlay"></div>
+  <div class="throne-kiss-splash hidden" id="throneKissSplash" aria-hidden="true">💋</div>
   <div class="checkers-queen-splash" id="checkersQueenSplash"><span id="checkersQueenSplashText"></span></div>
   <div class="outcome-splash hidden" id="outcomeSplash">
     <div class="outcome-splash-card" id="outcomeSplashCard">
@@ -5351,6 +5377,7 @@
       gameScreen: document.getElementById("gameScreen"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
+      throneKissSplash: document.getElementById("throneKissSplash"),
       checkersQueenSplash: document.getElementById("checkersQueenSplash"),
       checkersQueenSplashText: document.getElementById("checkersQueenSplashText"),
       outcomeSplash: document.getElementById("outcomeSplash"),
@@ -6141,9 +6168,13 @@
     function renderSessionModeModal(step = null) {
       if (!els.sessionModeModal) return;
       const isUrlStep = step === "url" || els.sessionModeModal.dataset.step === "url";
+      const easterEgg = activeNameEasterEgg();
+      const defaultThroneUrl = easterEgg && easterEgg.defaultThroneUrl ? normalizeDomLink(easterEgg.defaultThroneUrl) : "";
       els.sessionModeModal.dataset.step = isUrlStep ? "url" : "choice";
       els.sessionModeText.textContent = isUrlStep
-        ? "Paste the Throne URL for this session. Sub losses will create a demand button for the dom."
+        ? (defaultThroneUrl
+          ? `${state.names.dom || "Dom"} has a saved Throne URL. Confirm it for this Throne session.`
+          : "Paste the Throne URL for this session. Sub losses will automatically open the prepared Throne page.")
         : `${state.names.dom || "Dom"}, choose how losses should work this session.`;
       els.sessionThroneUrlRow.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneStatus.classList.toggle("hidden", !isUrlStep);
@@ -6151,7 +6182,10 @@
       els.sessionBankModeBtn.classList.toggle("hidden", isUrlStep);
       els.sessionThroneModeBtn.classList.toggle("hidden", isUrlStep);
       if (isUrlStep && document.activeElement !== els.sessionThroneUrlInput) {
-        els.sessionThroneUrlInput.value = state.settings.throneUrl || "";
+        els.sessionThroneUrlInput.value = state.settings.throneUrl || defaultThroneUrl || "";
+      }
+      if (els.sessionThroneSaveBtn) {
+        els.sessionThroneSaveBtn.textContent = defaultThroneUrl ? "Confirm Throne Game" : "Start Throne Game";
       }
       const remote = state.settings.throneExtensionStatus || {};
       const fresh = Date.now() - Number(remote.updatedAt || 0) < 30000;
@@ -6192,7 +6226,9 @@
 
     function saveThroneSessionMode() {
       if (!sessionModeControlsAllowed()) return;
-      const url = normalizeDomLink(els.sessionThroneUrlInput && els.sessionThroneUrlInput.value);
+      const easterEgg = activeNameEasterEgg();
+      const defaultThroneUrl = easterEgg && easterEgg.defaultThroneUrl ? easterEgg.defaultThroneUrl : "";
+      const url = normalizeDomLink((els.sessionThroneUrlInput && els.sessionThroneUrlInput.value) || defaultThroneUrl);
       if (!url) {
         els.sessionThroneStatus.textContent = "Enter a valid Throne URL first.";
         if (els.sessionThroneUrlInput) els.sessionThroneUrlInput.focus();
@@ -6205,7 +6241,7 @@
         pendingThroneDemand: null
       });
       closeSessionModeModal();
-      addLog(`<strong>Throne game selected.</strong> Sub losses create a demand button for ${state.names.dom}.`);
+      addLog(`<strong>Throne game selected.</strong> Sub losses automatically open the prepared Throne page.`);
     }
 
     function domAdvantagesEnabled() {
@@ -6982,14 +7018,8 @@
             <span>Session type</span>
             <strong>Throne Game</strong>
             <p>${pendingThroneDemand
-              ? `${escapeHtml(state.names.dom || "Dom")} can demand ${money(roundThroneTributeAmount(pendingThroneDemand.amount))} for the latest ${escapeHtml(state.names.sub || "sub")} loss in ${escapeHtml(pendingThroneDemand.game || "the game")}.`
-              : "Normal sub losses will unlock a demand payment button for the dom."}</p>
-            ${canUsePaymentControls && pendingThroneDemand ? `
-              <div class="payment-actions">
-                <button class="primary" data-ledger-action="demand-payment">Demand Payment</button>
-                <button data-ledger-action="clear-throne-demand">Clear</button>
-              </div>
-            ` : ""}
+              ? `${escapeHtml(state.names.sub || "Sub")} lost ${escapeHtml(pendingThroneDemand.game || "the game")}; Tribute Arcade is sending ${money(roundThroneTributeAmount(pendingThroneDemand.amount))} to the Throne extension.`
+              : "Normal sub losses automatically open the prepared Throne page for the sub."}</p>
           </div>
         `
         : `
@@ -7021,7 +7051,7 @@
           ? `
             <div class="payment-actions">
               <button data-ledger-action="change-throne">Change URL</button>
-              <button class="primary" data-ledger-action="demand-payment">Demand Payment</button>
+              ${isThroneSession() ? "" : `<button class="primary" data-ledger-action="demand-payment">Demand Payment</button>`}
             </div>
           `
           : `
@@ -7102,6 +7132,7 @@
         return;
       }
       if (action === "demand-payment") {
+        if (isThroneSession()) return;
         demandPayment();
         return;
       }
@@ -7114,26 +7145,30 @@
       }
     }
 
-    function demandPayment() {
-      if (!paymentControlsAllowed()) return;
+    function demandPayment({ automatic = false } = {}) {
+      if (!automatic && !paymentControlsAllowed()) return;
       const easterEgg = activeNameEasterEgg();
       const pendingDemand = state.settings.pendingThroneDemand;
       const baseUrl = normalizeDomLink(state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl));
       const url = pendingDemand
         ? throneUrlWithTributeAmount(baseUrl, pendingDemand.amount)
         : baseUrl;
-      if (!url) return;
+      if (!url) return false;
       state.settings.paymentDemand = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url,
         tributeAmount: pendingDemand ? roundThroneTributeAmount(pendingDemand.amount) : 0,
-        reason: pendingDemand ? "throne-game-loss" : "manual-demand"
+        reason: pendingDemand ? "throne-game-loss" : "manual-demand",
+        automatic
       };
       state.settings.pendingThroneDemand = null;
-      addLog(`<strong>${state.names.dom || "Dom"} demands payment.</strong> The throne URL has been sent to ${state.names.sub || "the sub"}.`);
+      addLog(automatic
+        ? `<strong>${state.names.sub || "Sub"} loses.</strong> The Throne page opens automatically.`
+        : `<strong>${state.names.dom || "Dom"} demands payment.</strong> The throne URL has been sent to ${state.names.sub || "the sub"}.`);
       renderSidePanel();
       processPaymentDemand();
       publishState();
+      return true;
     }
 
     function paymentDemandKey() {
@@ -7153,6 +7188,8 @@
       const opened = window.open(demand.url, "_blank", "noopener");
       if (!opened) {
         showSubLinkModal(demand, "Payment was demanded, but your browser blocked the automatic window.");
+      } else if (demand.reason === "throne-game-loss") {
+        showThroneKissSplash();
       }
     }
 
@@ -7742,6 +7779,7 @@
     }
 
     let outcomeSplashTimer = null;
+    let throneKissSplashTimer = null;
 
     function showOutcomeSplash({ tone = "gold", kicker = "Result", title = "Tribute Updated", detail = "" } = {}) {
       if (!els.outcomeSplash) return;
@@ -7762,6 +7800,26 @@
       outcomeSplashTimer = window.setTimeout(() => {
         els.outcomeSplash.classList.add("hidden");
       }, 240);
+    }
+
+    function showThroneKissSplash() {
+      if (!els.throneKissSplash) return;
+      window.clearTimeout(throneKissSplashTimer);
+      els.throneKissSplash.classList.remove("hidden");
+      window.requestAnimationFrame(() => els.throneKissSplash.classList.add("active"));
+    }
+
+    function hideThroneKissSplash() {
+      if (!els.throneKissSplash) return;
+      window.clearTimeout(throneKissSplashTimer);
+      els.throneKissSplash.classList.remove("active");
+      throneKissSplashTimer = window.setTimeout(() => {
+        els.throneKissSplash.classList.add("hidden");
+      }, 260);
+    }
+
+    function throneKissSplashActive() {
+      return Boolean(els.throneKissSplash && els.throneKissSplash.classList.contains("active"));
     }
 
     function snapshotState() {
@@ -8279,8 +8337,8 @@
         ];
       }
       const lines = [
-        isThroneSession() ? "Throne game: normal sub losses create a demand button for the dom." : `Current balance: ${money(state.domVault)}`,
-        isThroneSession() ? `${state.names.sub || "Sub"} loss: demand payment unlocks for ${state.names.dom}` : `Dom win: gains ${money(amount)} and balance becomes ${money(state.domVault + amount)}`,
+        isThroneSession() ? "Throne game: normal sub losses automatically open the prepared Throne page." : `Current balance: ${money(state.domVault)}`,
+        isThroneSession() ? `${state.names.sub || "Sub"} loss: opens a ${money(roundThroneTributeAmount(amount))} Throne tribute for ${state.names.dom}` : `Dom win: gains ${money(amount)} and balance becomes ${money(state.domVault + amount)}`,
         `Dom loss: balance remains ${money(state.domVault)}`
       ];
       return lines;
@@ -8374,7 +8432,7 @@
 
     function normalRoundAmountIntro(amount) {
       return isThroneSession()
-        ? `<strong>Throne amount:</strong> ${state.names.sub} sets ${money(amount)}. If ${state.names.sub} loses, ${state.names.dom} can demand the nearest $5 Throne gift.`
+        ? `<strong>Throne amount:</strong> ${state.names.sub} sets ${money(amount)}. If ${state.names.sub} loses, the nearest $5 Throne gift opens automatically.`
         : `<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(amount)}.`;
     }
 
@@ -8413,12 +8471,13 @@
           };
           recordLedgerEvent({
             type: "demand",
-            label: "Throne Demand Ready",
-            detail: `${state.names.sub} loses ${currentGameLabel()}. Demand payment is ready.`,
+            label: "Throne Page Opened",
+            detail: `${state.names.sub} loses ${currentGameLabel()}. The Throne page opens automatically.`,
             delta: 0,
             before,
             after: state.domVault
           });
+          demandPayment({ automatic: true });
           const result = { outcome: "domThrone", amount };
           showRoundOutcomeSplash(result);
           return result;
@@ -8461,9 +8520,9 @@
       } else if (result.outcome === "domThrone") {
         showOutcomeSplash({
           tone: "dom",
-          kicker: "Throne Demand Ready",
-          title: `${state.names.dom} can demand payment`,
-          detail: `Use the ledger button to open ${state.names.dom}'s Throne page for ${state.names.sub}.`
+          kicker: "Throne Opened",
+          title: `${state.names.dom} gets paid`,
+          detail: `${state.names.sub}'s Throne page opens for ${money(roundThroneTributeAmount(result.amount))}.`
         });
       } else if (result.outcome === "domReclaim") {
         showOutcomeSplash({
@@ -9407,7 +9466,7 @@
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins Reversi.</strong> ${scoreText} ${money(result.amount)} moves into her bank.`);
       } else if (result.outcome === "domThrone") {
-        addLog(`<strong>${state.names.sub} loses Reversi.</strong> ${scoreText} Demand payment is ready in the ledger.`);
+        addLog(`<strong>${state.names.sub} loses Reversi.</strong> ${scoreText} The Throne page opens automatically.`);
       } else {
         addLog(`<strong>Reversi draw.</strong> ${scoreText} The pot is returned.`);
       }
@@ -9621,7 +9680,7 @@
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${money(result.amount)} moves into her bank and becomes reclaimable cash.`);
       } else if (result.outcome === "domThrone") {
-        addLog(`<strong>${state.names.sub} loses.</strong> Demand payment is ready in the ledger.`);
+        addLog(`<strong>${state.names.sub} loses.</strong> The Throne page opens automatically.`);
       } else {
         addLog(`<strong>Draw.</strong> The pot is returned.`);
       }
@@ -11624,6 +11683,53 @@
       publishState();
     }
 
+    function resetCurrentGameToAmountChoice() {
+      state.pendingWager = null;
+      if (state.currentGame === "tributeChess") {
+        resetTributeChessBoard();
+      } else if (state.currentGame === "tributeCheckers") {
+        resetTributeCheckersBoard();
+      } else if (state.currentGame === "tributeReversi") {
+        resetTributeReversiBoard();
+      } else if (state.currentGame === "tributeTwentyOne") {
+        resetTributeTwentyOneBoard();
+      } else if (state.currentGame === "higherLower") {
+        resetHigherLowerBoard();
+      } else if (state.currentGame === "tributeTicTacToe") {
+        resetTributeTicTacToeBoard();
+      } else if (state.currentGame === "wheelSpin") {
+        resetWheelSpinBoard();
+      } else if (state.currentGame === "tributeTrail") {
+        resetTributeTrailBoard();
+      } else if (state.currentGame === "obedienceOrders") {
+        resetObedienceOrdersBoard();
+      } else if (state.currentGame === "tributeFleet") {
+        resetTributeFleetBoard();
+      } else {
+        resetTributeFourBoard();
+      }
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      addLog(`<strong>Ready for the next Throne amount.</strong>`);
+      render();
+      publishState();
+    }
+
+    function handleThroneKissDismiss(event) {
+      if (!throneKissSplashActive()) return;
+      if (state.screen !== "game") return;
+      const clickedGameScreen = event.target === els.throneKissSplash
+        || (els.gameScreen && els.gameScreen.contains(event.target))
+        || (els.outcomeSplash && els.outcomeSplash.contains(event.target));
+      if (!clickedGameScreen) return;
+      event.preventDefault();
+      event.stopPropagation();
+      hideOutcomeSplash();
+      hideThroneKissSplash();
+      resetCurrentGameToAmountChoice();
+    }
+
     function resetTributeFourBoard() {
       state.board = createBoard();
       state.turn = SUB;
@@ -12132,7 +12238,7 @@
       } else if (result.outcome === "domReclaim") {
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
       } else if (result.outcome === "domThrone") {
-        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} Demand payment is ready in the ledger.`);
+        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} The Throne page opens automatically.`);
       } else {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
       }
@@ -13248,7 +13354,7 @@
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
       } else if (result.outcome === "domThrone") {
-        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} Demand payment is ready in the ledger.`);
+        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} The Throne page opens automatically.`);
       } else {
         addLog(`<strong>Draw.</strong> ${reason}`);
       }
@@ -13545,14 +13651,15 @@
           };
           recordLedgerEvent({
             type: "demand",
-            label: "Higher / Lower Demand Ready",
-            detail: `${state.names.sub} loses the card run. Demand payment is ready.`,
+            label: "Higher / Lower Throne Opened",
+            detail: `${state.names.sub} loses the card run. The Throne page opens automatically.`,
             delta: 0,
             before,
             after: state.domVault
           });
-          addLog(`<strong>${state.names.sub} loses the run.</strong> ${reason} Demand payment is ready in the ledger.`);
-          showOutcomeSplash({ tone: "dom", kicker: "Throne Demand Ready", title: `${state.names.dom} can demand payment`, detail: `Use the ledger button to open ${state.names.dom}'s Throne page for ${state.names.sub}.` });
+          demandPayment({ automatic: true });
+          addLog(`<strong>${state.names.sub} loses the run.</strong> ${reason}`);
+          showOutcomeSplash({ tone: "dom", kicker: "Throne Opened", title: `${state.names.dom} gets paid`, detail: `${state.names.sub}'s Throne page opens for ${money(roundThroneTributeAmount(amount))}.` });
           state.pot = 0;
           render();
           publishState();
@@ -13813,7 +13920,7 @@
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
       } else if (result.outcome === "domThrone") {
-        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} Demand payment is ready in the ledger.`);
+        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} The Throne page opens automatically.`);
       } else {
         addLog(`<strong>Push.</strong> ${reason}`);
       }
@@ -14104,7 +14211,7 @@
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${money(result.amount)} moves into her bank and becomes reclaimable cash.`);
       } else if (result.outcome === "domThrone") {
-        addLog(`<strong>${state.names.sub} loses.</strong> Demand payment is ready in the ledger.`);
+        addLog(`<strong>${state.names.sub} loses.</strong> The Throne page opens automatically.`);
       }
       state.pot = 0;
       render();
@@ -16415,6 +16522,7 @@
 
     els.normalBtn.addEventListener("click", startNormalMatch);
     els.reclaimBtn.addEventListener("click", startReclaimMatch);
+    document.addEventListener("click", handleThroneKissDismiss, true);
     if (els.throneReclaimPerksInput) {
       els.throneReclaimPerksInput.addEventListener("change", () => {
         updateSettings({ throneReclaimPerks: els.throneReclaimPerksInput.checked });
