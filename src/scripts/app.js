@@ -107,8 +107,13 @@
         distractionOverlayY: 18,
         leaveNotice: null,
         linkRequest: null,
+        sessionMode: "",
+        sessionModePrompted: false,
+        throneReclaimPerks: false,
         throneUrl: "",
         paymentDemand: null,
+        pendingThroneDemand: null,
+        throneExtensionStatus: null,
         brattyWelcomeSeen: false,
         queenPowerMode: "tiered",
         queenPowerUsers: "dom"
@@ -203,6 +208,8 @@
       chooserStatus: document.getElementById("chooserStatus"),
       settingsTabs: document.querySelectorAll(".settings-tab"),
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
+      throneReclaimPerksToggle: document.getElementById("throneReclaimPerksToggle"),
+      throneReclaimPerksInput: document.getElementById("throneReclaimPerksInput"),
       mainGamesGrid: document.getElementById("mainGamesGrid"),
       miniGamesGrid: document.getElementById("miniGamesGrid"),
       testingGamesGrid: document.getElementById("testingGamesGrid"),
@@ -276,6 +283,16 @@
       roleModalText: document.getElementById("roleModalText"),
       chooseDomBtn: document.getElementById("chooseDomBtn"),
       chooseSubBtn: document.getElementById("chooseSubBtn"),
+      sessionModeModal: document.getElementById("sessionModeModal"),
+      sessionModeText: document.getElementById("sessionModeText"),
+      sessionBankModeBtn: document.getElementById("sessionBankModeBtn"),
+      sessionThroneModeBtn: document.getElementById("sessionThroneModeBtn"),
+      sessionThroneUrlRow: document.getElementById("sessionThroneUrlRow"),
+      sessionThroneUrlInput: document.getElementById("sessionThroneUrlInput"),
+      sessionThroneStatus: document.getElementById("sessionThroneStatus"),
+      sessionThroneActions: document.getElementById("sessionThroneActions"),
+      sessionThroneBackBtn: document.getElementById("sessionThroneBackBtn"),
+      sessionThroneSaveBtn: document.getElementById("sessionThroneSaveBtn"),
       subLinkModal: document.getElementById("subLinkModal"),
       subLinkModalText: document.getElementById("subLinkModalText"),
       openSubLinkBtn: document.getElementById("openSubLinkBtn"),
@@ -344,6 +361,7 @@
       turnDomBankPill: document.getElementById("turnDomBankPill"),
       turnDomBank: document.getElementById("turnDomBank"),
       modeLabel: document.getElementById("modeLabel"),
+      potLabel: document.getElementById("potLabel"),
       pot: document.getElementById("pot"),
       domVault: document.getElementById("domVault"),
       lockedTribute: document.getElementById("lockedTribute"),
@@ -374,6 +392,7 @@
     let selectedTwentyOnePower = "pushLuck";
     const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
     const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
+    const THRONE_EXTENSION_FOCUS_CHECKOUT = "TRIBUTE_ARCADE_FOCUS_THRONE_CHECKOUT";
     let throneExtensionStatus = {
       installed: false,
       ready: false,
@@ -385,7 +404,6 @@
       message: "Waiting for extension status.",
       updatedAt: 0
     };
-    let throneExtensionCountdownTimer = null;
 
     function createBoard() {
       return Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
@@ -929,6 +947,102 @@
       return seat ? state.roles[seat] : null;
     }
 
+    function sessionMode() {
+      return state.settings.sessionMode === "throne" ? "throne" : "bank";
+    }
+
+    function isThroneSession() {
+      return sessionMode() === "throne";
+    }
+
+    function reclaimPerksActive() {
+      return state.mode === "reclaim" || (isThroneSession() && state.settings.throneReclaimPerks);
+    }
+
+    function sessionModeControlsAllowed() {
+      const role = localOnlineRole();
+      if (role === SPECTATOR) return false;
+      return !state.online.room || role === DOM;
+    }
+
+    function maybePromptSessionMode() {
+      if (state.screen !== "select") return;
+      if (!sessionModeControlsAllowed()) return;
+      if (state.settings.sessionModePrompted) return;
+      if (!state.names.dom || !state.names.sub) return;
+      openSessionModeModal("choice");
+    }
+
+    function renderSessionModeModal(step = null) {
+      if (!els.sessionModeModal) return;
+      const isUrlStep = step === "url" || els.sessionModeModal.dataset.step === "url";
+      els.sessionModeModal.dataset.step = isUrlStep ? "url" : "choice";
+      els.sessionModeText.textContent = isUrlStep
+        ? "Paste the Throne URL for this session. Sub losses will create a demand button for the dom."
+        : `${state.names.dom || "Dom"}, choose how losses should work this session.`;
+      els.sessionThroneUrlRow.classList.toggle("hidden", !isUrlStep);
+      els.sessionThroneStatus.classList.toggle("hidden", !isUrlStep);
+      els.sessionThroneActions.classList.toggle("hidden", !isUrlStep);
+      els.sessionBankModeBtn.classList.toggle("hidden", isUrlStep);
+      els.sessionThroneModeBtn.classList.toggle("hidden", isUrlStep);
+      if (isUrlStep && document.activeElement !== els.sessionThroneUrlInput) {
+        els.sessionThroneUrlInput.value = state.settings.throneUrl || "";
+      }
+      const remote = state.settings.throneExtensionStatus || {};
+      const fresh = Date.now() - Number(remote.updatedAt || 0) < 30000;
+      const localReady = (!state.online.room || localOnlineRole() === SUB) && throneExtensionStatus.installed;
+      const installed = Boolean((fresh && remote.installed) || localReady);
+      const ready = Boolean((fresh && remote.ready) || ((!state.online.room || localOnlineRole() === SUB) && throneExtensionStatus.ready));
+      els.sessionThroneStatus.textContent = installed
+        ? (ready ? `${state.names.sub || "Sub"} has the extension and checkout is ready.` : `${state.names.sub || "Sub"} has the extension, but checkout is not ready yet.`)
+        : `No extension signal from ${state.names.sub || "the sub"} yet. They may need to install or refresh it.`;
+    }
+
+    function openSessionModeModal(step = "choice") {
+      if (!els.sessionModeModal || !sessionModeControlsAllowed()) return;
+      renderSessionModeModal(step);
+      els.sessionModeModal.classList.remove("hidden");
+    }
+
+    function closeSessionModeModal() {
+      if (els.sessionModeModal) els.sessionModeModal.classList.add("hidden");
+    }
+
+    function chooseBankSessionMode() {
+      if (!sessionModeControlsAllowed()) return;
+      updateSettings({
+        sessionMode: "bank",
+        sessionModePrompted: true,
+        pendingThroneDemand: null
+      });
+      closeSessionModeModal();
+      addLog(`<strong>Regular bank game selected.</strong> Sub losses add to ${state.names.dom}'s bank.`);
+    }
+
+    function chooseThroneSessionMode() {
+      if (!sessionModeControlsAllowed()) return;
+      renderSessionModeModal("url");
+      requestThroneExtensionStatus();
+    }
+
+    function saveThroneSessionMode() {
+      if (!sessionModeControlsAllowed()) return;
+      const url = normalizeDomLink(els.sessionThroneUrlInput && els.sessionThroneUrlInput.value);
+      if (!url) {
+        els.sessionThroneStatus.textContent = "Enter a valid Throne URL first.";
+        if (els.sessionThroneUrlInput) els.sessionThroneUrlInput.focus();
+        return;
+      }
+      updateSettings({
+        sessionMode: "throne",
+        sessionModePrompted: true,
+        throneUrl: url,
+        pendingThroneDemand: null
+      });
+      closeSessionModeModal();
+      addLog(`<strong>Throne game selected.</strong> Sub losses create a demand button for ${state.names.dom}.`);
+    }
+
     function domAdvantagesEnabled() {
       return state.settings.domAdvantageMode !== "off";
     }
@@ -1462,9 +1576,18 @@
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
         : `${state.names.dom || "Dom"} picks the next game.`;
+      if (els.throneReclaimPerksToggle) {
+        const showToggle = isThroneSession() && sessionModeControlsAllowed();
+        els.throneReclaimPerksToggle.classList.toggle("hidden", !showToggle);
+      }
+      if (els.throneReclaimPerksInput) {
+        els.throneReclaimPerksInput.checked = Boolean(state.settings.throneReclaimPerks);
+        els.throneReclaimPerksInput.disabled = !sessionModeControlsAllowed();
+      }
       renderSettings();
       renderGameSelectTabs();
       renderControlGlow();
+      maybePromptSessionMode();
     }
 
     function renderGameSelectTabs() {
@@ -1569,6 +1692,8 @@
       if (!state.active) els.betInput.value = state.settings.subDefaultBet;
       renderSettings();
       renderGameSelectTabs();
+      renderText();
+      renderMenu();
       renderSidePanel();
       publishSettingsState();
     }
@@ -1583,6 +1708,24 @@
         return url.toString();
       } catch (error) {
         return "";
+      }
+    }
+
+    function roundThroneTributeAmount(amount) {
+      const value = Number(amount || 0);
+      if (!Number.isFinite(value)) return 5;
+      return Math.max(5, Math.round(value / 5) * 5);
+    }
+
+    function throneUrlWithTributeAmount(url, amount) {
+      const normalized = normalizeDomLink(url);
+      if (!normalized) return "";
+      try {
+        const next = new URL(normalized);
+        next.hash = `tribute=${roundThroneTributeAmount(amount)}`;
+        return next.toString();
+      } catch (error) {
+        return normalized;
       }
     }
 
@@ -1667,14 +1810,35 @@
       const throneLabel = throneUrl ? escapeHtml(throneUrl) : "No throne URL saved.";
       const paymentLabel = easterEgg ? easterEgg.paymentLabel : "Payment throne";
       const paymentPlaceholder = easterEgg ? easterEgg.paymentPlaceholder : "https://example.com/pay";
-      const showExtensionCard = localOnlineRole() === SUB;
+      const pendingThroneDemand = state.settings.pendingThroneDemand;
+      const sessionCard = isThroneSession()
+        ? `
+          <div class="command-card wide throne-session-card">
+            <span>Session type</span>
+            <strong>Throne Game</strong>
+            <p>${pendingThroneDemand
+              ? `${escapeHtml(state.names.dom || "Dom")} can demand ${money(roundThroneTributeAmount(pendingThroneDemand.amount))} for the latest ${escapeHtml(state.names.sub || "sub")} loss in ${escapeHtml(pendingThroneDemand.game || "the game")}.`
+              : "Normal sub losses will unlock a demand payment button for the dom."}</p>
+            ${canUsePaymentControls && pendingThroneDemand ? `
+              <div class="payment-actions">
+                <button class="primary" data-ledger-action="demand-payment">Demand Payment</button>
+                <button data-ledger-action="clear-throne-demand">Clear</button>
+              </div>
+            ` : ""}
+          </div>
+        `
+        : `
+          <div class="command-card wide">
+            <span>Session type</span>
+            <strong>Regular Bank Game</strong>
+          </div>
+        `;
+      const showExtensionCard = !state.online.room || localOnlineRole() === SUB;
       const extensionFresh = Date.now() - Number(throneExtensionStatus.updatedAt || 0) < 15000;
       const extensionStateText = !throneExtensionStatus.installed || !extensionFresh
         ? "Extension not detected."
         : (throneExtensionStatus.ready ? "Saved-card checkout ready." : "Checkout not ready.");
-      const extensionButton = throneExtensionStatus.countdownActive
-        ? `<button class="danger-button" data-ledger-action="cancel-throne-confirmation">Cancel</button>`
-        : `<button class="primary" data-ledger-action="start-throne-confirmation" ${throneExtensionStatus.ready ? "" : "disabled"}>Start 5-second confirmation</button>`;
+      const extensionButton = `<button class="primary" data-ledger-action="review-throne-checkout" ${throneExtensionStatus.ready ? "" : "disabled"}>Review and confirm on Throne</button>`;
       const extensionCard = showExtensionCard ? `
         <div class="command-card wide throne-extension-card ${throneExtensionStatus.ready ? "ready" : ""}">
           <span>Throne extension</span>
@@ -1719,6 +1883,7 @@
           <strong>${throneLabel}</strong>
           ${throneControls}
         </div>
+        ${sessionCard}
         ${extensionCard}
         ${canUsePaymentControls ? `<button class="danger-button ledger-reset-bank" data-ledger-action="reset-bank">Reset Bank</button>` : ""}
         <div class="ledger-stats">
@@ -1752,12 +1917,8 @@
         requestThroneExtensionStatus();
         return;
       }
-      if (action === "start-throne-confirmation") {
-        startInGameThroneConfirmation();
-        return;
-      }
-      if (action === "cancel-throne-confirmation") {
-        cancelInGameThroneConfirmation();
+      if (action === "review-throne-checkout") {
+        focusThroneCheckoutForReview();
         return;
       }
       if (!paymentControlsAllowed()) return;
@@ -1779,6 +1940,10 @@
         demandPayment();
         return;
       }
+      if (action === "clear-throne-demand") {
+        updateSettings({ pendingThroneDemand: null });
+        return;
+      }
       if (action === "reset-bank") {
         openResetBankModal();
       }
@@ -1787,14 +1952,22 @@
     function demandPayment() {
       if (!paymentControlsAllowed()) return;
       const easterEgg = activeNameEasterEgg();
-      const url = normalizeDomLink(state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl));
+      const pendingDemand = state.settings.pendingThroneDemand;
+      const baseUrl = normalizeDomLink(state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl));
+      const url = pendingDemand
+        ? throneUrlWithTributeAmount(baseUrl, pendingDemand.amount)
+        : baseUrl;
       if (!url) return;
       state.settings.paymentDemand = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        url
+        url,
+        tributeAmount: pendingDemand ? roundThroneTributeAmount(pendingDemand.amount) : 0,
+        reason: pendingDemand ? "throne-game-loss" : "manual-demand"
       };
+      state.settings.pendingThroneDemand = null;
       addLog(`<strong>${state.names.dom || "Dom"} demands payment.</strong> The throne URL has been sent to ${state.names.sub || "the sub"}.`);
       renderSidePanel();
+      processPaymentDemand();
       publishState();
     }
 
@@ -1808,7 +1981,7 @@
       const demand = state.settings.paymentDemand;
       if (!demand || !demand.id || !demand.url) return;
       const role = localOnlineRole();
-      if (role !== SUB) return;
+      if (state.online.room && role !== SUB) return;
       const key = paymentDemandKey();
       if (window.localStorage.getItem(key) === demand.id) return;
       window.localStorage.setItem(key, demand.id);
@@ -1819,7 +1992,7 @@
     }
 
     function requestThroneExtensionStatus() {
-      if (localOnlineRole() !== SUB) return;
+      if (state.online.room && localOnlineRole() !== SUB) return;
       window.postMessage({
         source: "tribute-arcade",
         type: THRONE_EXTENSION_REQUEST,
@@ -1842,6 +2015,23 @@
           : "Extension found, but saved-card checkout is not ready."),
         updatedAt: Date.now()
       };
+      if (localOnlineRole() === SUB) {
+        const previous = state.settings.throneExtensionStatus || {};
+        const synced = {
+          installed: true,
+          ready: throneExtensionStatus.ready,
+          hasSavedCard: throneExtensionStatus.hasSavedCard,
+          enabled: throneExtensionStatus.enabled,
+          updatedAt: throneExtensionStatus.updatedAt
+        };
+        state.settings.throneExtensionStatus = synced;
+        const changed = previous.ready !== synced.ready
+          || previous.installed !== synced.installed
+          || previous.enabled !== synced.enabled
+          || Date.now() - Number(previous.updatedAt || 0) > 30000;
+        if (changed) publishSettingsState();
+      }
+      if (els.sessionModeModal && !els.sessionModeModal.classList.contains("hidden")) renderSessionModeModal();
       renderSidePanel();
     }
 
@@ -1852,41 +2042,18 @@
       updateThroneExtensionStatus(data.status || data);
     }
 
-    function startInGameThroneConfirmation() {
-      if (localOnlineRole() !== SUB || !throneExtensionStatus.ready || throneExtensionStatus.countdownActive) return;
-      clearInterval(throneExtensionCountdownTimer);
+    function focusThroneCheckoutForReview() {
+      if ((state.online.room && localOnlineRole() !== SUB) || !throneExtensionStatus.ready) return;
+      window.postMessage({
+        source: "tribute-arcade",
+        type: THRONE_EXTENSION_FOCUS_CHECKOUT
+      }, window.location.origin);
       throneExtensionStatus = {
         ...throneExtensionStatus,
-        countdownActive: true,
-        countdownSeconds: 5,
-        message: "In-game confirmation running. Cancel here if this is not right."
+        message: "Opening Throne checkout for manual review. Confirm payment in the extension popup."
       };
       renderSidePanel();
-      throneExtensionCountdownTimer = setInterval(() => {
-        throneExtensionStatus.countdownSeconds = Math.max(0, Number(throneExtensionStatus.countdownSeconds || 0) - 1);
-        if (throneExtensionStatus.countdownSeconds <= 0) {
-          clearInterval(throneExtensionCountdownTimer);
-          throneExtensionCountdownTimer = null;
-          throneExtensionStatus = {
-            ...throneExtensionStatus,
-            countdownActive: false,
-            message: "In-game confirmation complete. Finish manually on the Throne checkout page."
-          };
-        }
-        renderSidePanel();
-      }, 1000);
-    }
-
-    function cancelInGameThroneConfirmation() {
-      clearInterval(throneExtensionCountdownTimer);
-      throneExtensionCountdownTimer = null;
-      throneExtensionStatus = {
-        ...throneExtensionStatus,
-        countdownActive: false,
-        countdownSeconds: 0,
-        message: "In-game confirmation cancelled."
-      };
-      renderSidePanel();
+      setTimeout(requestThroneExtensionStatus, 700);
     }
 
     function openResetBankModal() {
@@ -2928,6 +3095,7 @@
     let processedWagerStartId = "";
 
     function wagerLabel(type) {
+      if (type !== "reclaim" && isThroneSession()) return "Throne Amount";
       return type === "reclaim" ? "Reclaim" : "Standard Bet";
     }
 
@@ -2946,8 +3114,8 @@
         ];
       }
       const lines = [
-        `Current balance: ${money(state.domVault)}`,
-        `Dom win: gains ${money(amount)} and balance becomes ${money(state.domVault + amount)}`,
+        isThroneSession() ? "Throne game: normal sub losses create a demand button for the dom." : `Current balance: ${money(state.domVault)}`,
+        isThroneSession() ? `${state.names.sub || "Sub"} loss: demand payment unlocks for ${state.names.dom}` : `Dom win: gains ${money(amount)} and balance becomes ${money(state.domVault + amount)}`,
         `Dom loss: balance remains ${money(state.domVault)}`
       ];
       return lines;
@@ -2958,6 +3126,10 @@
       if (!usesRoundFlow()) return true;
       if (localOnlineRole() && localOnlineRole() !== SUB) return false;
       if (state.active || state.pendingWager) return false;
+      if (type === "reclaim" && isThroneSession()) {
+        addLog(`<strong class="danger">Reclaim is bank-only.</strong> Switch to a regular bank game to use reclaim.`);
+        return false;
+      }
       if (type === "reclaim" && state.domVault <= 0) {
         addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal game first to unlock reclaim.`);
         return false;
@@ -3011,6 +3183,10 @@
 
     function prepareRound(type, emptyLabel = "game") {
       if (!wagerStartBypass && localOnlineRole() && localOnlineRole() !== SUB) return null;
+      if (type === "reclaim" && isThroneSession()) {
+        addLog(`<strong class="danger">Reclaim is bank-only.</strong> Switch to a regular bank game to use reclaim.`);
+        return null;
+      }
       if (type === "reclaim" && state.domVault <= 0) {
         addLog(`<strong class="danger">No banked cash.</strong> ${state.names.sub} has to lose a normal ${emptyLabel} first to unlock reclaim.`);
         return null;
@@ -3029,6 +3205,12 @@
       if (logHtml) addLog(logHtml);
       if (shouldRender) render();
       publishState();
+    }
+
+    function normalRoundAmountIntro(amount) {
+      return isThroneSession()
+        ? `<strong>Throne amount:</strong> ${state.names.sub} sets ${money(amount)}. If ${state.names.sub} loses, ${state.names.dom} can demand the nearest $5 Throne gift.`
+        : `<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(amount)}.`;
     }
 
     function settleRoundBank(winner) {
@@ -3056,6 +3238,26 @@
         return result;
       }
       if (winner === DOM) {
+        if (state.mode !== "reclaim" && isThroneSession()) {
+          const before = state.domVault;
+          state.settings.pendingThroneDemand = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            game: currentGameLabel(),
+            amount,
+            createdAt: Date.now()
+          };
+          recordLedgerEvent({
+            type: "demand",
+            label: "Throne Demand Ready",
+            detail: `${state.names.sub} loses ${currentGameLabel()}. Demand payment is ready.`,
+            delta: 0,
+            before,
+            after: state.domVault
+          });
+          const result = { outcome: "domThrone", amount };
+          showRoundOutcomeSplash(result);
+          return result;
+        }
         const before = state.domVault;
         state.domVault += amount;
         state.lockedTribute = state.domVault;
@@ -3090,6 +3292,13 @@
           kicker: "Tribute Accepted",
           title: `Dom Profit +${money(result.amount)}`,
           detail: `${state.names.dom}'s bank claims the stake.`
+        });
+      } else if (result.outcome === "domThrone") {
+        showOutcomeSplash({
+          tone: "dom",
+          kicker: "Throne Demand Ready",
+          title: `${state.names.dom} can demand payment`,
+          detail: `Use the ledger button to open ${state.names.dom}'s Throne page for ${state.names.sub}.`
         });
       } else if (result.outcome === "domReclaim") {
         showOutcomeSplash({
@@ -3282,11 +3491,12 @@
       if (pending.status === "adjust" || pending.status === "adjust-review") {
         const arrowDisabled = isDomView ? " disabled" : "";
         const waitingApproval = pending.status === "adjust-review";
-        els.wagerModalTitle.textContent = isDomView ? "Adjust The Bet" : "Change The Bet";
+        const amountWord = pending.type !== "reclaim" && isThroneSession() ? "Amount" : "Bet";
+        els.wagerModalTitle.textContent = isDomView ? `Adjust The ${amountWord}` : `Change The ${amountWord}`;
         els.wagerModalBody.innerHTML = `
           <p class="chooser-line">${isDomView
-            ? (waitingApproval ? `${escapeHtml(state.names.sub || "Sub")} wants approval.` : "Watch the new bet live.")
-            : (waitingApproval ? "Waiting for approval." : `${escapeHtml(state.names.dom || "Dom")} wants the bet changed.`)}</p>
+            ? (waitingApproval ? `${escapeHtml(state.names.sub || "Sub")} wants approval.` : `Watch the new ${amountWord.toLowerCase()} live.`)
+            : (waitingApproval ? "Waiting for approval." : `${escapeHtml(state.names.dom || "Dom")} wants the ${amountWord.toLowerCase()} changed.`)}</p>
           ${(!isDomView && pending.denialMessage) ? `<p class="chooser-line danger">${escapeHtml(pending.denialMessage)}</p>` : ""}
           <div class="wager-adjust-row">
             <button data-wager-action="adjust" data-delta="-10"${arrowDisabled}>&lt;-10</button>
@@ -3343,11 +3553,15 @@
       }
 
       const adjustmentNote = pending.status === "adjust"
-        ? `<p class="chooser-line">${escapeHtml(state.names.sub || "Sub")} is adjusting the bet. Current offer: ${money(pending.amount)}</p>`
+        ? `<p class="chooser-line">${escapeHtml(state.names.sub || "Sub")} is adjusting the ${pending.type !== "reclaim" && isThroneSession() ? "amount" : "bet"}. Current offer: ${money(pending.amount)}</p>`
         : "";
+      const pendingLabel = wagerLabel(pending.type);
+      const pickedLine = pending.type !== "reclaim" && isThroneSession()
+        ? `${escapeHtml(state.names.sub || "Sub")} picked the Throne payment amount for ${escapeHtml(currentGameLabel())}.`
+        : `${escapeHtml(state.names.sub || "Sub")} picked ${escapeHtml(pendingLabel)} for ${escapeHtml(currentGameLabel())}.`;
       els.wagerModalBody.innerHTML = `
-        <p class="chooser-line">${escapeHtml(state.names.sub || "Sub")} picked ${escapeHtml(wagerLabel(pending.type))} for ${escapeHtml(currentGameLabel())}.</p>
-        <p class="chooser-line">Amount: ${money(pending.amount)}</p>
+        <p class="chooser-line">${pickedLine}</p>
+        <p class="chooser-line">${escapeHtml(pendingLabel)}: ${money(pending.amount)}</p>
         ${adjustmentNote}
         ${lines.map((line) => `<p class="chooser-line">${escapeHtml(line)}</p>`).join("")}
       `;
@@ -3417,7 +3631,7 @@
       state.pressureDropColumn = null;
       const starter = randomStarter();
       preserveTiltLevel(() => resetMatch(starter));
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`, false);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} starts.`, false);
     }
 
     function startReclaimMatch() {
@@ -3477,13 +3691,13 @@
       state.reclaimPassAvailable = false;
       state.skipAvailable = false;
       state.skipArmed = false;
-      state.lockColumnAvailable = state.mode === "reclaim" && tributeFourLockAvailable();
+      state.lockColumnAvailable = reclaimPerksActive() && tributeFourLockAvailable();
       state.lockColumnMode = false;
       state.lockedColumn = null;
-      state.pressureDropAvailable = state.mode === "reclaim" && tributeFourPressureAvailable();
+      state.pressureDropAvailable = reclaimPerksActive() && tributeFourPressureAvailable();
       state.pressureDropArmed = false;
       state.pressureDropColumn = null;
-      state.domOpened = state.mode === "reclaim";
+      state.domOpened = reclaimPerksActive();
       state.blockedColumns = [];
       render();
     }
@@ -3798,7 +4012,7 @@
       state.reversi = createReversiState();
       state.turn = SUB;
       state.active = true;
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${state.names.sub} plays dark and moves first.`, false);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.sub} plays dark and moves first.`, false);
     }
 
     function startReversiReclaimMatch() {
@@ -3827,7 +4041,7 @@
 
     function reversiTierActive(tier) {
       return state.currentGame === "tributeReversi"
-        && state.mode === "reclaim"
+        && reclaimPerksActive()
         && domAdvantagesEnabled()
         && Number(state.tiltLevel || 0) >= tier;
     }
@@ -3838,7 +4052,7 @@
     }
 
     function reversiCanSeeFlipNumbers(viewer = localOnlineRole()) {
-      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return true;
+      if (!reclaimPerksActive() || !domAdvantagesEnabled()) return true;
       if (Number(state.tiltLevel || 0) <= 0) return true;
       if (brattyReversiTrainingNumbers()) return true;
       return !viewer || viewer === DOM;
@@ -3961,7 +4175,7 @@
     }
 
     function applyReversiDomFlipTiers(row, col, flips) {
-      if (!state.active || state.mode !== "reclaim" || !domAdvantagesEnabled()) return;
+      if (!state.active || !reclaimPerksActive() || !domAdvantagesEnabled()) return;
       if (reversiTierActive(3) && flips.length >= 3) {
         const amount = reversiTierActive(6)
           ? (flips.length >= 5 ? 4 : 2)
@@ -4027,6 +4241,8 @@
         addLog(`<strong>${state.names.dom} wins Reversi reclaim.</strong> ${scoreText} ${money(result.amount)} is added to her bank.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins Reversi.</strong> ${scoreText} ${money(result.amount)} moves into her bank.`);
+      } else if (result.outcome === "domThrone") {
+        addLog(`<strong>${state.names.sub} loses Reversi.</strong> ${scoreText} Demand payment is ready in the ledger.`);
       } else {
         addLog(`<strong>Reversi draw.</strong> ${scoreText} The pot is returned.`);
       }
@@ -4038,7 +4254,7 @@
     function canUseReversiCommandMove() {
       return state.currentGame === "tributeReversi"
         && state.active
-        && state.mode === "reclaim"
+        && reclaimPerksActive()
         && reversiTierActive(5)
         && state.turn === SUB
         && state.reversi
@@ -4074,19 +4290,19 @@
     }
 
     function blockedColumnCount() {
-      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return 0;
+      if (!reclaimPerksActive() || !domAdvantagesEnabled()) return 0;
       if (state.tiltLevel >= 5) return 1;
       if (state.tiltLevel === 1) return 1;
       return 0;
     }
 
     function tributeFourLockAvailable() {
-      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return false;
+      if (!reclaimPerksActive() || !domAdvantagesEnabled()) return false;
       return state.tiltLevel === 2 || state.tiltLevel >= 4;
     }
 
     function tributeFourPressureAvailable() {
-      if (state.mode !== "reclaim" || !domAdvantagesEnabled()) return false;
+      if (!reclaimPerksActive() || !domAdvantagesEnabled()) return false;
       return state.tiltLevel === 3 || state.tiltLevel >= 4;
     }
 
@@ -4105,7 +4321,7 @@
     }
 
     function isColumnBlockedForSub(col) {
-      return state.mode === "reclaim" && state.turn === SUB && (
+      return reclaimPerksActive() && state.turn === SUB && (
         state.blockedColumns.includes(col)
         || state.lockedColumn === col
         || state.pressureDropColumn === col
@@ -4124,7 +4340,7 @@
 
     function setTurn(nextTurn) {
       state.turn = nextTurn;
-      if (state.mode === "reclaim" && state.turn === SUB) {
+      if (reclaimPerksActive() && state.turn === SUB) {
         chooseBlockedColumns();
       } else {
         state.blockedColumns = [];
@@ -4158,11 +4374,11 @@
       }
 
       if (isBoardFull()) {
-        endMatch(state.mode === "reclaim" ? DOM : "draw", []);
+        endMatch(reclaimPerksActive() ? DOM : "draw", []);
         return;
       }
 
-      if (state.mode === "reclaim" && movingPlayer === SUB) {
+      if (reclaimPerksActive() && movingPlayer === SUB) {
         const hadLock = state.lockedColumn !== null;
         const hadPressureColumn = state.pressureDropColumn !== null;
         const pressureColumn = state.pressureDropArmed ? col : null;
@@ -4239,6 +4455,8 @@
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(result.amount)} is added to her bank. She now has ${money(state.domVault)}.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${money(result.amount)} moves into her bank and becomes reclaimable cash.`);
+      } else if (result.outcome === "domThrone") {
+        addLog(`<strong>${state.names.sub} loses.</strong> Demand payment is ready in the ledger.`);
       } else {
         addLog(`<strong>Draw.</strong> The pot is returned.`);
       }
@@ -4308,7 +4526,7 @@
     }
 
     function canOpenTributeFourPowerModal() {
-      if (!state.active || state.mode !== "reclaim" || state.turn !== DOM) return;
+      if (!state.active || !reclaimPerksActive() || state.turn !== DOM) return;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return;
       if (state.lockColumnMode) return false;
       return state.lockColumnAvailable || (state.pressureDropAvailable && !state.pressureDropArmed);
@@ -4366,7 +4584,7 @@
 
     function fleetPowerInfo(type) {
       if (type === "scan") {
-        const unlocked = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 1;
+        const unlocked = reclaimPerksActive() && domAdvantagesEnabled() && state.tiltLevel >= 1;
         const available = state.fleet.scanAvailable && state.active && state.turn === DOM;
         return {
           label: "Scan",
@@ -4390,7 +4608,7 @@
     }
 
     function canOpenFleetPowerModal() {
-      if (state.currentGame !== "tributeFleet" || state.mode !== "reclaim") return false;
+      if (state.currentGame !== "tributeFleet" || !reclaimPerksActive()) return false;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
       return state.active || (state.fleet.modifiers || []).length > 0 || state.tiltLevel >= 1;
     }
@@ -4558,7 +4776,7 @@
 
     function checkersPowerUnlocked(type) {
       const definition = checkersPowerDefinitions()[type];
-      return Boolean(definition && state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= definition.tier);
+      return Boolean(definition && reclaimPerksActive() && domAdvantagesEnabled() && state.tiltLevel >= definition.tier);
     }
 
     function checkersPowerInfo(type) {
@@ -4575,7 +4793,7 @@
     }
 
     function canOpenCheckersPowerModal() {
-      if (state.currentGame !== "tributeCheckers" || state.mode !== "reclaim") return false;
+      if (state.currentGame !== "tributeCheckers" || !reclaimPerksActive()) return false;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
       return checkersPowerTypes().some((type) => checkersPowerInfo(type).available || checkersPowerUnlocked(type));
     }
@@ -4643,7 +4861,7 @@
     }
 
     function twentyOnePowerInfo(type) {
-      const reclaim = state.mode === "reclaim" && domAdvantagesEnabled() && blackjackPowersEnabled();
+      const reclaim = reclaimPerksActive() && domAdvantagesEnabled() && blackjackPowersEnabled();
       const info = {
         peek: {
           label: "Peek",
@@ -4695,7 +4913,7 @@
     }
 
     function canOpenTwentyOnePowerModal() {
-      if (state.currentGame !== "tributeTwentyOne" || state.mode !== "reclaim") return false;
+      if (state.currentGame !== "tributeTwentyOne" || !reclaimPerksActive()) return false;
       if (!state.active || state.twentyOne.setupPending || state.twentyOne.nextHandPending) return false;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return false;
       return domAdvantagesEnabled() && blackjackPowersEnabled() && state.tiltLevel >= 1;
@@ -6312,7 +6530,7 @@
       if (bet === null) return;
       const starter = randomStarter();
       preserveTiltLevel(() => beginCheckersQueenSetup(starter));
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} will move first after the queen offer.`, false);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} will move first after the queen offer.`, false);
     }
 
     function startCheckersReclaimMatch() {
@@ -6720,7 +6938,7 @@
     function canLockCheckersPiece() {
       return state.currentGame === "tributeCheckers"
         && state.active
-        && state.mode === "reclaim"
+        && reclaimPerksActive()
         && domAdvantagesEnabled()
         && state.turn === DOM
         && state.checkers.lockAvailable
@@ -6748,6 +6966,8 @@
         addLog(`<strong>${state.names.sub} wins.</strong> ${reason} Nothing enters ${state.names.dom}'s bank.`);
       } else if (result.outcome === "domReclaim") {
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
+      } else if (result.outcome === "domThrone") {
+        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} Demand payment is ready in the ledger.`);
       } else {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
       }
@@ -7225,7 +7445,7 @@
       const starter = randomStarter();
       state.turn = starter;
       state.active = true;
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} starts.`);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} starts.`);
     }
 
     function startTicTacToeReclaimMatch() {
@@ -7293,7 +7513,7 @@
       if (bet === null) return;
       const starter = randomStarter();
       preserveTiltLevel(() => resetChessMatch(starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB }));
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} plays white and starts.`, false);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} plays white and starts.`, false);
     }
 
     function startChessReclaimMatch() {
@@ -7323,7 +7543,7 @@
     }
 
     function chessQueenStancesActive() {
-      if (!domAdvantagesEnabled() || state.currentGame !== "tributeChess" || state.mode !== "reclaim") return false;
+      if (!domAdvantagesEnabled() || state.currentGame !== "tributeChess" || !reclaimPerksActive()) return false;
       if (state.settings.queenPowerMode === "off") return false;
       if (state.settings.queenPowerMode === "always") return true;
       return state.tiltLevel >= 1;
@@ -7862,6 +8082,8 @@
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
+      } else if (result.outcome === "domThrone") {
+        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} Demand payment is ready in the ledger.`);
       } else {
         addLog(`<strong>Draw.</strong> ${reason}`);
       }
@@ -7874,7 +8096,7 @@
       const bet = prepareRound("normal");
       if (bet === null) return;
       preserveTiltLevel(startTwentyOneSetup);
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${state.names.dom} chooses the Blackjack settings.`, false);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.dom} chooses the Blackjack settings.`, false);
     }
 
     function startTwentyOneReclaimMatch() {
@@ -8148,6 +8370,29 @@
         const tribute = Number(state.higherLower.baseTribute || HIGHER_LOWER_BASE_TRIBUTE);
         const bonus = Number(state.higherLower.domRunBonus || 0);
         const amount = higherLowerDomPossibleWin();
+        if (isThroneSession()) {
+          const before = state.domVault;
+          state.settings.pendingThroneDemand = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            game: "Higher / Lower",
+            amount,
+            createdAt: Date.now()
+          };
+          recordLedgerEvent({
+            type: "demand",
+            label: "Higher / Lower Demand Ready",
+            detail: `${state.names.sub} loses the card run. Demand payment is ready.`,
+            delta: 0,
+            before,
+            after: state.domVault
+          });
+          addLog(`<strong>${state.names.sub} loses the run.</strong> ${reason} Demand payment is ready in the ledger.`);
+          showOutcomeSplash({ tone: "dom", kicker: "Throne Demand Ready", title: `${state.names.dom} can demand payment`, detail: `Use the ledger button to open ${state.names.dom}'s Throne page for ${state.names.sub}.` });
+          state.pot = 0;
+          render();
+          publishState();
+          return;
+        }
         const before = state.domVault;
         state.domVault += amount;
         state.lockedTribute = state.domVault;
@@ -8402,6 +8647,8 @@
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${reason} ${money(result.amount)} is added to her bank.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${reason} ${money(result.amount)} moves into her bank.`);
+      } else if (result.outcome === "domThrone") {
+        addLog(`<strong>${state.names.sub} loses.</strong> ${reason} Demand payment is ready in the ledger.`);
       } else {
         addLog(`<strong>Push.</strong> ${reason}`);
       }
@@ -8415,7 +8662,7 @@
       if (bet === null) return;
       const starter = randomStarter();
       preserveTiltLevel(() => resetFleetMatch(starter));
-      finishRoundStart(`<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(bet)}. ${labelFor(starter)} opens fire first.`, false);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} opens fire first.`, false);
     }
 
     function startFleetReclaimMatch() {
@@ -8691,6 +8938,8 @@
         addLog(`<strong>${state.names.dom} wins reclaim.</strong> ${money(result.amount)} is added to her bank. She now has ${money(state.domVault)}.`);
       } else if (result.outcome === "domNormal") {
         addLog(`<strong>${state.names.dom} wins.</strong> ${money(result.amount)} moves into her bank and becomes reclaimable cash.`);
+      } else if (result.outcome === "domThrone") {
+        addLog(`<strong>${state.names.sub} loses.</strong> Demand payment is ready in the ledger.`);
       }
       state.pot = 0;
       render();
@@ -10818,13 +11067,13 @@
           const minimum = twentyOneDealerStandMinimum();
           els.turnText.innerHTML = `<strong>${state.names.dom}</strong> controls the dealer hand at ${score}. ${score < minimum ? `Hit until at least ${minimum}.` : "Hit or stand."}`;
         } else {
-          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses Hit or Stand. ${state.mode === "reclaim" ? "The table is tilted." : "Clean rules, clean stake."}`;
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses Hit or Stand. ${reclaimPerksActive() ? "The table is tilted." : "Clean rules, clean stake."}`;
         }
       } else {
         const actor = labelFor(state.turn);
         els.turnText.innerHTML = state.currentGame === "wheelSpin"
           ? (state.wheel.spinning ? `<strong>The wheel is spinning.</strong>` : `<strong>${state.names.sub}</strong> must spin the wheel.`)
-          : `<strong>${actor}</strong> to move. ${state.mode === "reclaim" ? "The table is tilted." : "Clean rules, clean stake."}`;
+          : `<strong>${actor}</strong> to move. ${reclaimPerksActive() ? "The table is tilted." : "Clean rules, clean stake."}`;
       }
 
       const onlineBlocksSub = Boolean(localOnlineRole() && localOnlineRole() !== SUB);
@@ -10837,10 +11086,14 @@
       renderWheelDomTools();
       els.betInput.classList.toggle("hidden", isFreeGame || normalOnlyGame);
       els.normalBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame);
-      els.reclaimBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame);
-      els.reclaimBtn.disabled = state.active || wagerPending || state.domVault <= 0 || onlineBlocksSub;
+      els.reclaimBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame || isThroneSession());
+      els.reclaimBtn.disabled = state.active || wagerPending || state.domVault <= 0 || onlineBlocksSub || isThroneSession();
       els.normalBtn.disabled = state.active || wagerPending || onlineBlocksSub;
       els.betInput.disabled = state.active || wagerPending || onlineBlocksSub;
+      if (els.potLabel) els.potLabel.textContent = isThroneSession() ? "Throne amount" : "Current pot";
+      els.normalBtn.textContent = isThroneSession() ? "Set Throne Amount" : "Bet";
+      els.betInput.setAttribute("aria-label", isThroneSession() ? "Throne payment amount" : "Bet amount");
+      els.betInput.title = isThroneSession() ? "This amount is used for the Throne demand if the sub loses." : "Bet amount";
       els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne");
       els.queenRepositionBtn.classList.add("hidden");
       els.queenShieldBtn.classList.add("hidden");
@@ -10997,6 +11250,11 @@
 
     els.normalBtn.addEventListener("click", startNormalMatch);
     els.reclaimBtn.addEventListener("click", startReclaimMatch);
+    if (els.throneReclaimPerksInput) {
+      els.throneReclaimPerksInput.addEventListener("change", () => {
+        updateSettings({ throneReclaimPerks: els.throneReclaimPerksInput.checked });
+      });
+    }
     els.resetBtn.addEventListener("click", resetPrototype);
     els.board.addEventListener("click", handleObedienceBoardClick);
     els.hitBtn.addEventListener("click", () => {
@@ -11178,6 +11436,15 @@
     els.playLocalBtn.addEventListener("click", playLocally);
     els.chooseDomBtn.addEventListener("click", () => chooseOnlineRole(DOM));
     els.chooseSubBtn.addEventListener("click", () => chooseOnlineRole(SUB));
+    if (els.sessionBankModeBtn) els.sessionBankModeBtn.addEventListener("click", chooseBankSessionMode);
+    if (els.sessionThroneModeBtn) els.sessionThroneModeBtn.addEventListener("click", chooseThroneSessionMode);
+    if (els.sessionThroneBackBtn) els.sessionThroneBackBtn.addEventListener("click", () => renderSessionModeModal("choice"));
+    if (els.sessionThroneSaveBtn) els.sessionThroneSaveBtn.addEventListener("click", saveThroneSessionMode);
+    if (els.sessionThroneUrlInput) {
+      els.sessionThroneUrlInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") saveThroneSessionMode();
+      });
+    }
     els.openSubLinkBtn.addEventListener("click", openSubLinkRequest);
     els.declineSubLinkBtn.addEventListener("click", declineSubLinkRequest);
     els.cancelResetBankBtn.addEventListener("click", closeResetBankModal);

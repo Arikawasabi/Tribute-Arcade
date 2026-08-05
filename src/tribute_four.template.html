@@ -148,6 +148,10 @@
       <p class="subtitle" id="playerSummary">Choose a game.</p>
       <div class="setup-actions">
         <button class="leave-room-btn hidden">Leave Lobby</button>
+        <label class="reclaim-perks-toggle hidden" id="throneReclaimPerksToggle">
+          <input id="throneReclaimPerksInput" type="checkbox">
+          <span>Reclaim perks in Throne games</span>
+        </label>
       </div>
     </header>
 
@@ -315,7 +319,7 @@
       </div>
       <div class="panel-body">
         <div class="ledger">
-          <div class="metric"><span>Current pot</span><strong id="pot">0</strong></div>
+          <div class="metric"><span id="potLabel">Current pot</span><strong id="pot">0</strong></div>
           <div class="metric"><span>Dom's bank</span><strong id="domVault">0</strong></div>
           <div class="metric"><span>Cash to reclaim</span><strong id="lockedTribute">0</strong></div>
         </div>
@@ -377,6 +381,30 @@
         <div class="role-row">
           <button id="chooseDomBtn" class="role-btn">Dom</button>
           <button id="chooseSubBtn" class="role-btn">Sub</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="sessionModeModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Choose Session Type</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="sessionModeText">Choose how losses should work this session.</p>
+        <div class="role-row">
+          <button id="sessionBankModeBtn">Regular Bank Game</button>
+          <button id="sessionThroneModeBtn" class="primary">Throne Game</button>
+        </div>
+        <label class="field-label hidden" id="sessionThroneUrlRow">
+          Throne URL
+          <input id="sessionThroneUrlInput" type="url" placeholder="https://throne.com/name">
+        </label>
+        <p class="chooser-line hidden" id="sessionThroneStatus">Checking whether the sub has the extension.</p>
+        <div class="mode-grid hidden" id="sessionThroneActions">
+          <button id="sessionThroneBackBtn">Back</button>
+          <button id="sessionThroneSaveBtn" class="primary">Start Throne Game</button>
         </div>
       </div>
     </section>

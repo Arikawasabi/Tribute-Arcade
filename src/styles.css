@@ -346,6 +346,27 @@
       gap: 10px;
     }
 
+    .reclaim-perks-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 2.35rem;
+      padding: 0 12px;
+      border: 1px solid rgba(241, 201, 101, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+
+    .reclaim-perks-toggle input {
+      width: auto;
+      margin: 0;
+      accent-color: var(--gold);
+    }
+
     .game-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -3893,6 +3914,20 @@
 
     .payment-card strong {
       overflow-wrap: anywhere;
+    }
+
+    .command-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .throne-session-card {
+      border-color: rgba(240, 78, 120, 0.3);
+      background:
+        linear-gradient(135deg, rgba(240, 78, 120, 0.14), rgba(239, 199, 94, 0.08)),
+        rgba(8, 6, 7, 0.44);
     }
 
     .payment-url-field {
