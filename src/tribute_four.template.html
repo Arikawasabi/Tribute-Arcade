@@ -149,6 +149,8 @@
       <p class="subtitle" id="playerSummary">Choose a game.</p>
       <div class="setup-actions">
         <button class="leave-room-btn hidden">Leave Lobby</button>
+        <a class="download-link-button deck-download" href="https://files.catbox.moe/i898dp.zip" target="_blank" rel="noopener">Download card deck</a>
+        <a class="download-link-button throne-extension-download hidden" id="throneExtensionDownloadLink" href="https://catbox.moe/c/q6bnvl" target="_blank" rel="noopener">Install Throne helper</a>
         <label class="throne-amount-control hidden" id="throneAmountControl">
           <span>Throne amount</span>
           <input id="throneAmountInput" type="number" min="1" step="1" value="5" aria-label="Throne amount">
@@ -407,11 +409,6 @@
           <input id="sessionThroneUrlInput" type="url" placeholder="https://throne.com/name">
         </label>
         <p class="chooser-line hidden" id="sessionThroneStatus">Checking whether the sub has the extension.</p>
-        <div class="throne-download-panel hidden" id="sessionThroneDownloadPanel">
-          <strong>Sub extension</strong>
-          <p>Install this manual-confirm Throne helper before playing Throne mode.</p>
-          <a class="download-link-button" href="https://files.catbox.moe/areafr.zip" target="_blank" rel="noopener">Download extension</a>
-        </div>
         <div class="mode-grid hidden" id="sessionThroneActions">
           <button id="sessionThroneBackBtn">Back</button>
           <button id="sessionThroneSaveBtn" class="primary">Start Throne Game</button>

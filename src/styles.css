@@ -368,6 +368,8 @@
     .setup-actions {
       display: flex;
       justify-content: flex-end;
+      align-items: center;
+      flex-wrap: wrap;
       gap: 10px;
     }
 
@@ -387,7 +389,8 @@
     }
 
     .reclaim-perks-toggle.hidden,
-    .throne-amount-control.hidden {
+    .throne-amount-control.hidden,
+    .throne-extension-download.hidden {
       display: none;
     }
 
@@ -417,6 +420,22 @@
       min-height: 1.75rem;
       padding: 4px 8px;
       text-align: center;
+    }
+
+    .throne-amount-control.read-only {
+      border-color: rgba(241, 201, 101, 0.2);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .throne-amount-control.read-only input {
+      color: var(--gold);
+      opacity: 1;
+    }
+
+    .throne-extension-download {
+      min-height: 2.35rem;
+      font-size: 0.82rem;
+      white-space: nowrap;
     }
 
     .game-grid {
@@ -567,33 +586,6 @@
       align-items: stretch;
     }
 
-    .throne-download-panel {
-      display: grid;
-      gap: 8px;
-      padding: 12px;
-      border: 1px solid rgba(255, 79, 134, 0.24);
-      border-radius: 8px;
-      background:
-        linear-gradient(135deg, rgba(255, 79, 134, 0.1), rgba(241, 201, 101, 0.08)),
-        rgba(8, 6, 7, 0.58);
-    }
-
-    .throne-download-panel.hidden {
-      display: none;
-    }
-
-    .throne-download-panel strong {
-      color: var(--gold);
-      font-size: 0.95rem;
-    }
-
-    .throne-download-panel p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.4;
-    }
-
     .download-link-button {
       min-height: 2.5rem;
       display: inline-grid;
@@ -613,6 +605,23 @@
     .download-link-button:hover {
       transform: translateY(-1px);
       box-shadow: 0 14px 30px rgba(255, 79, 134, 0.24);
+    }
+
+    .download-link-button.deck-download {
+      border-color: rgba(244, 239, 232, 0.16);
+      background: linear-gradient(180deg, rgba(56, 38, 37, 0.96), rgba(31, 20, 22, 0.96));
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .download-link-button.deck-download:hover {
+      border-color: rgba(239, 199, 94, 0.55);
+      background: linear-gradient(180deg, rgba(70, 45, 45, 0.98), rgba(39, 24, 27, 0.98));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 8px 20px rgba(0, 0, 0, 0.22);
     }
 
     .player-list {

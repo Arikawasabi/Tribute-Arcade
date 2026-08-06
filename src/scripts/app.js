@@ -217,6 +217,7 @@
       menuRulesFinalText: document.getElementById("menuRulesFinalText"),
       settingsTabs: document.querySelectorAll(".settings-tab"),
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
+      throneExtensionDownloadLink: document.getElementById("throneExtensionDownloadLink"),
       throneAmountControl: document.getElementById("throneAmountControl"),
       throneAmountInput: document.getElementById("throneAmountInput"),
       throneReclaimPerksToggle: document.getElementById("throneReclaimPerksToggle"),
@@ -296,7 +297,6 @@
       chooseSubBtn: document.getElementById("chooseSubBtn"),
       sessionModeModal: document.getElementById("sessionModeModal"),
       sessionModeText: document.getElementById("sessionModeText"),
-      sessionThroneDownloadPanel: document.getElementById("sessionThroneDownloadPanel"),
       sessionBankModeBtn: document.getElementById("sessionBankModeBtn"),
       sessionThroneModeBtn: document.getElementById("sessionThroneModeBtn"),
       sessionThroneUrlRow: document.getElementById("sessionThroneUrlRow"),
@@ -971,6 +971,13 @@
       return normalizeBuyIn(Number(state.settings.throneAmount || 5));
     }
 
+    function throneExtensionInstalledForLocalSub() {
+      if (state.online.room && localOnlineRole() !== SUB) return true;
+      const remote = state.settings.throneExtensionStatus || {};
+      const fresh = Date.now() - Number(remote.updatedAt || 0) < 30000;
+      return Boolean(throneExtensionStatus.installed || (fresh && remote.installed));
+    }
+
     function reclaimPerksActive() {
       return state.mode === "reclaim" || (isThroneSession() && state.settings.throneReclaimPerks);
     }
@@ -1002,7 +1009,6 @@
         : `${state.names.dom || "Dom"}, choose how losses should work this session.`;
       els.sessionThroneUrlRow.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneStatus.classList.toggle("hidden", !isUrlStep);
-      if (els.sessionThroneDownloadPanel) els.sessionThroneDownloadPanel.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneActions.classList.toggle("hidden", !isUrlStep);
       els.sessionBankModeBtn.classList.toggle("hidden", isUrlStep);
       els.sessionThroneModeBtn.classList.toggle("hidden", isUrlStep);
@@ -1625,9 +1631,17 @@
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
         : `${state.names.dom || "Dom"} picks the next game.`;
+      if (els.throneExtensionDownloadLink) {
+        const localRole = localOnlineRole();
+        const showDownload = isThroneSession()
+          && (!state.online.room || localRole === SUB)
+          && !throneExtensionInstalledForLocalSub();
+        els.throneExtensionDownloadLink.classList.toggle("hidden", !showDownload);
+      }
       if (els.throneAmountControl) {
-        const showAmount = isThroneSession() && sessionModeControlsAllowed();
+        const showAmount = isThroneSession();
         els.throneAmountControl.classList.toggle("hidden", !showAmount);
+        els.throneAmountControl.classList.toggle("read-only", showAmount && !sessionModeControlsAllowed());
       }
       if (els.throneAmountInput) {
         els.throneAmountInput.value = currentThroneAmount();

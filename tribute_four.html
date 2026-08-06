@@ -375,6 +375,8 @@
     .setup-actions {
       display: flex;
       justify-content: flex-end;
+      align-items: center;
+      flex-wrap: wrap;
       gap: 10px;
     }
 
@@ -394,7 +396,8 @@
     }
 
     .reclaim-perks-toggle.hidden,
-    .throne-amount-control.hidden {
+    .throne-amount-control.hidden,
+    .throne-extension-download.hidden {
       display: none;
     }
 
@@ -424,6 +427,22 @@
       min-height: 1.75rem;
       padding: 4px 8px;
       text-align: center;
+    }
+
+    .throne-amount-control.read-only {
+      border-color: rgba(241, 201, 101, 0.2);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .throne-amount-control.read-only input {
+      color: var(--gold);
+      opacity: 1;
+    }
+
+    .throne-extension-download {
+      min-height: 2.35rem;
+      font-size: 0.82rem;
+      white-space: nowrap;
     }
 
     .game-grid {
@@ -574,33 +593,6 @@
       align-items: stretch;
     }
 
-    .throne-download-panel {
-      display: grid;
-      gap: 8px;
-      padding: 12px;
-      border: 1px solid rgba(255, 79, 134, 0.24);
-      border-radius: 8px;
-      background:
-        linear-gradient(135deg, rgba(255, 79, 134, 0.1), rgba(241, 201, 101, 0.08)),
-        rgba(8, 6, 7, 0.58);
-    }
-
-    .throne-download-panel.hidden {
-      display: none;
-    }
-
-    .throne-download-panel strong {
-      color: var(--gold);
-      font-size: 0.95rem;
-    }
-
-    .throne-download-panel p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.4;
-    }
-
     .download-link-button {
       min-height: 2.5rem;
       display: inline-grid;
@@ -620,6 +612,23 @@
     .download-link-button:hover {
       transform: translateY(-1px);
       box-shadow: 0 14px 30px rgba(255, 79, 134, 0.24);
+    }
+
+    .download-link-button.deck-download {
+      border-color: rgba(244, 239, 232, 0.16);
+      background: linear-gradient(180deg, rgba(56, 38, 37, 0.96), rgba(31, 20, 22, 0.96));
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .download-link-button.deck-download:hover {
+      border-color: rgba(239, 199, 94, 0.55);
+      background: linear-gradient(180deg, rgba(70, 45, 45, 0.98), rgba(39, 24, 27, 0.98));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 8px 20px rgba(0, 0, 0, 0.22);
     }
 
     .player-list {
@@ -4462,6 +4471,8 @@
       <p class="subtitle" id="playerSummary">Choose a game.</p>
       <div class="setup-actions">
         <button class="leave-room-btn hidden">Leave Lobby</button>
+        <a class="download-link-button deck-download" href="https://files.catbox.moe/i898dp.zip" target="_blank" rel="noopener">Download card deck</a>
+        <a class="download-link-button throne-extension-download hidden" id="throneExtensionDownloadLink" href="https://catbox.moe/c/q6bnvl" target="_blank" rel="noopener">Install Throne helper</a>
         <label class="throne-amount-control hidden" id="throneAmountControl">
           <span>Throne amount</span>
           <input id="throneAmountInput" type="number" min="1" step="1" value="5" aria-label="Throne amount">
@@ -4720,11 +4731,6 @@
           <input id="sessionThroneUrlInput" type="url" placeholder="https://throne.com/name">
         </label>
         <p class="chooser-line hidden" id="sessionThroneStatus">Checking whether the sub has the extension.</p>
-        <div class="throne-download-panel hidden" id="sessionThroneDownloadPanel">
-          <strong>Sub extension</strong>
-          <p>Install this manual-confirm Throne helper before playing Throne mode.</p>
-          <a class="download-link-button" href="https://files.catbox.moe/areafr.zip" target="_blank" rel="noopener">Download extension</a>
-        </div>
         <div class="mode-grid hidden" id="sessionThroneActions">
           <button id="sessionThroneBackBtn">Back</button>
           <button id="sessionThroneSaveBtn" class="primary">Start Throne Game</button>
@@ -5492,6 +5498,7 @@
       menuRulesFinalText: document.getElementById("menuRulesFinalText"),
       settingsTabs: document.querySelectorAll(".settings-tab"),
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
+      throneExtensionDownloadLink: document.getElementById("throneExtensionDownloadLink"),
       throneAmountControl: document.getElementById("throneAmountControl"),
       throneAmountInput: document.getElementById("throneAmountInput"),
       throneReclaimPerksToggle: document.getElementById("throneReclaimPerksToggle"),
@@ -5571,7 +5578,6 @@
       chooseSubBtn: document.getElementById("chooseSubBtn"),
       sessionModeModal: document.getElementById("sessionModeModal"),
       sessionModeText: document.getElementById("sessionModeText"),
-      sessionThroneDownloadPanel: document.getElementById("sessionThroneDownloadPanel"),
       sessionBankModeBtn: document.getElementById("sessionBankModeBtn"),
       sessionThroneModeBtn: document.getElementById("sessionThroneModeBtn"),
       sessionThroneUrlRow: document.getElementById("sessionThroneUrlRow"),
@@ -6246,6 +6252,13 @@
       return normalizeBuyIn(Number(state.settings.throneAmount || 5));
     }
 
+    function throneExtensionInstalledForLocalSub() {
+      if (state.online.room && localOnlineRole() !== SUB) return true;
+      const remote = state.settings.throneExtensionStatus || {};
+      const fresh = Date.now() - Number(remote.updatedAt || 0) < 30000;
+      return Boolean(throneExtensionStatus.installed || (fresh && remote.installed));
+    }
+
     function reclaimPerksActive() {
       return state.mode === "reclaim" || (isThroneSession() && state.settings.throneReclaimPerks);
     }
@@ -6277,7 +6290,6 @@
         : `${state.names.dom || "Dom"}, choose how losses should work this session.`;
       els.sessionThroneUrlRow.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneStatus.classList.toggle("hidden", !isUrlStep);
-      if (els.sessionThroneDownloadPanel) els.sessionThroneDownloadPanel.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneActions.classList.toggle("hidden", !isUrlStep);
       els.sessionBankModeBtn.classList.toggle("hidden", isUrlStep);
       els.sessionThroneModeBtn.classList.toggle("hidden", isUrlStep);
@@ -6900,9 +6912,17 @@
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
         : `${state.names.dom || "Dom"} picks the next game.`;
+      if (els.throneExtensionDownloadLink) {
+        const localRole = localOnlineRole();
+        const showDownload = isThroneSession()
+          && (!state.online.room || localRole === SUB)
+          && !throneExtensionInstalledForLocalSub();
+        els.throneExtensionDownloadLink.classList.toggle("hidden", !showDownload);
+      }
       if (els.throneAmountControl) {
-        const showAmount = isThroneSession() && sessionModeControlsAllowed();
+        const showAmount = isThroneSession();
         els.throneAmountControl.classList.toggle("hidden", !showAmount);
+        els.throneAmountControl.classList.toggle("read-only", showAmount && !sessionModeControlsAllowed());
       }
       if (els.throneAmountInput) {
         els.throneAmountInput.value = currentThroneAmount();
