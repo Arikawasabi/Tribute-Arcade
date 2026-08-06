@@ -574,6 +574,54 @@
       align-items: stretch;
     }
 
+    .throne-download-panel {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid rgba(255, 79, 134, 0.24);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255, 79, 134, 0.1), rgba(241, 201, 101, 0.08)),
+        rgba(8, 6, 7, 0.58);
+    }
+
+    .throne-download-panel.hidden {
+      display: none;
+    }
+
+    .throne-download-panel strong {
+      color: var(--gold);
+      font-size: 0.95rem;
+    }
+
+    .throne-download-panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+
+    .download-link-button {
+      min-height: 2.5rem;
+      display: inline-grid;
+      place-items: center;
+      padding: 0 14px;
+      border: 1px solid rgba(239, 199, 94, 0.55);
+      border-radius: 6px;
+      background: linear-gradient(135deg, rgba(255, 79, 134, 0.92), rgba(241, 201, 101, 0.86));
+      color: #fffaf2;
+      font-weight: 900;
+      text-align: center;
+      text-decoration: none;
+      box-shadow: 0 10px 24px rgba(255, 79, 134, 0.18);
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .download-link-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(255, 79, 134, 0.24);
+    }
+
     .player-list {
       display: grid;
       gap: 8px;
@@ -4437,18 +4485,18 @@
       </div>
       <div class="panel">
         <div class="panel-header">
-          <h2 class="panel-title">Bet Rules</h2>
+          <h2 class="panel-title" id="menuRulesTitle">Bet Rules</h2>
         </div>
         <div class="panel-body menu-rules">
           <section>
-            <h3>Standard Bets</h3>
-            <p>The submissive player must place a bet to start a game. If the submissive player wins, the dominant player's bank remains unchanged. If the submissive player loses, the bet amount is added to the total debt owed to the dominant player once all games are complete.</p>
+            <h3 id="menuRulesPrimaryTitle">Standard Bets</h3>
+            <p id="menuRulesPrimaryText">The submissive player must place a bet to start a game. If the submissive player wins, the dominant player's bank remains unchanged. If the submissive player loses, the bet amount is added to the total debt owed to the dominant player once all games are complete.</p>
           </section>
           <section>
-            <h3>Reclaims</h3>
-            <p>Reclaims are high-risk bets that allow the submissive player to recover outstanding debt owed to the dominant player. However, reclaim rounds heavily favor the dominant player and are significantly harder to win.</p>
-            <p>Each failed reclaim further increases the dominant player's advantage in future reclaim rounds, causing the odds to become progressively more difficult for the submissive player.</p>
-            <p>If the submissive player loses a reclaim round, the total amount owed to the dominant player is doubled.</p>
+            <h3 id="menuRulesSecondaryTitle">Reclaims</h3>
+            <p id="menuRulesSecondaryText">Reclaims are high-risk bets that allow the submissive player to recover outstanding debt owed to the dominant player. However, reclaim rounds heavily favor the dominant player and are significantly harder to win.</p>
+            <p id="menuRulesTertiaryText">Each failed reclaim further increases the dominant player's advantage in future reclaim rounds, causing the odds to become progressively more difficult for the submissive player.</p>
+            <p id="menuRulesFinalText">If the submissive player loses a reclaim round, the total amount owed to the dominant player is doubled.</p>
           </section>
         </div>
       </div>
@@ -4672,6 +4720,11 @@
           <input id="sessionThroneUrlInput" type="url" placeholder="https://throne.com/name">
         </label>
         <p class="chooser-line hidden" id="sessionThroneStatus">Checking whether the sub has the extension.</p>
+        <div class="throne-download-panel hidden" id="sessionThroneDownloadPanel">
+          <strong>Sub extension</strong>
+          <p>Install this manual-confirm Throne helper before playing Throne mode.</p>
+          <a class="download-link-button" href="https://files.catbox.moe/areafr.zip" target="_blank" rel="noopener">Download extension</a>
+        </div>
         <div class="mode-grid hidden" id="sessionThroneActions">
           <button id="sessionThroneBackBtn">Back</button>
           <button id="sessionThroneSaveBtn" class="primary">Start Throne Game</button>
@@ -5430,6 +5483,13 @@
       menuBankLabel: document.getElementById("menuBankLabel"),
       menuDomBank: document.getElementById("menuDomBank"),
       chooserStatus: document.getElementById("chooserStatus"),
+      menuRulesTitle: document.getElementById("menuRulesTitle"),
+      menuRulesPrimaryTitle: document.getElementById("menuRulesPrimaryTitle"),
+      menuRulesPrimaryText: document.getElementById("menuRulesPrimaryText"),
+      menuRulesSecondaryTitle: document.getElementById("menuRulesSecondaryTitle"),
+      menuRulesSecondaryText: document.getElementById("menuRulesSecondaryText"),
+      menuRulesTertiaryText: document.getElementById("menuRulesTertiaryText"),
+      menuRulesFinalText: document.getElementById("menuRulesFinalText"),
       settingsTabs: document.querySelectorAll(".settings-tab"),
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
       throneAmountControl: document.getElementById("throneAmountControl"),
@@ -5511,6 +5571,7 @@
       chooseSubBtn: document.getElementById("chooseSubBtn"),
       sessionModeModal: document.getElementById("sessionModeModal"),
       sessionModeText: document.getElementById("sessionModeText"),
+      sessionThroneDownloadPanel: document.getElementById("sessionThroneDownloadPanel"),
       sessionBankModeBtn: document.getElementById("sessionBankModeBtn"),
       sessionThroneModeBtn: document.getElementById("sessionThroneModeBtn"),
       sessionThroneUrlRow: document.getElementById("sessionThroneUrlRow"),
@@ -6216,6 +6277,7 @@
         : `${state.names.dom || "Dom"}, choose how losses should work this session.`;
       els.sessionThroneUrlRow.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneStatus.classList.toggle("hidden", !isUrlStep);
+      if (els.sessionThroneDownloadPanel) els.sessionThroneDownloadPanel.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneActions.classList.toggle("hidden", !isUrlStep);
       els.sessionBankModeBtn.classList.toggle("hidden", isUrlStep);
       els.sessionThroneModeBtn.classList.toggle("hidden", isUrlStep);
@@ -6795,6 +6857,29 @@
       return names.some((name) => String(name || "").trim().toLowerCase() === "dusk");
     }
 
+    function renderMenuRules() {
+      if (!els.menuRulesTitle) return;
+      if (isThroneSession()) {
+        els.menuRulesTitle.textContent = "Throne Rules";
+        els.menuRulesPrimaryTitle.textContent = "Throne Amount";
+        els.menuRulesPrimaryText.textContent = `The Throne amount is set here on Game Select and stays at ${money(currentThroneAmount())} until ${state.names.dom || "the dom"} changes it. Games no longer ask for a bet amount in Throne mode.`;
+        els.menuRulesSecondaryTitle.textContent = "Throne Losses";
+        els.menuRulesSecondaryText.textContent = `If ${state.names.sub || "the sub"} loses a Throne game, Tribute Arcade opens the saved Throne page with the nearest $5 tribute amount already attached.`;
+        els.menuRulesTertiaryText.textContent = "The sub returns to the game, sees the kiss splash, then clicks the screen to dismiss it and reset the table for the next amount.";
+        els.menuRulesFinalText.textContent = state.settings.throneReclaimPerks
+          ? "Reclaim win perks are enabled for the dom in Throne games, but the game still stays in Throne mode instead of starting bank reclaim matches."
+          : "Reclaim matches are hidden in Throne mode. The dom can optionally enable reclaim win perks from the Game Select toggle.";
+        return;
+      }
+      els.menuRulesTitle.textContent = "Bet Rules";
+      els.menuRulesPrimaryTitle.textContent = "Standard Bets";
+      els.menuRulesPrimaryText.textContent = "The submissive player must place a bet to start a game. If the submissive player wins, the dominant player's bank remains unchanged. If the submissive player loses, the bet amount is added to the total debt owed to the dominant player once all games are complete.";
+      els.menuRulesSecondaryTitle.textContent = "Reclaims";
+      els.menuRulesSecondaryText.textContent = "Reclaims are high-risk bets that allow the submissive player to recover outstanding debt owed to the dominant player. However, reclaim rounds heavily favor the dominant player and are significantly harder to win.";
+      els.menuRulesTertiaryText.textContent = "Each failed reclaim further increases the dominant player's advantage in future reclaim rounds, causing the odds to become progressively more difficult for the submissive player.";
+      els.menuRulesFinalText.textContent = "If the submissive player loses a reclaim round, the total amount owed to the dominant player is doubled.";
+    }
+
     function renderMenu() {
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
       els.menuDomBank.textContent = money(state.domVault);
@@ -6831,6 +6916,7 @@
         els.throneReclaimPerksInput.checked = Boolean(state.settings.throneReclaimPerks);
         els.throneReclaimPerksInput.disabled = !sessionModeControlsAllowed();
       }
+      renderMenuRules();
       renderSettings();
       renderGameSelectTabs();
       renderControlGlow();

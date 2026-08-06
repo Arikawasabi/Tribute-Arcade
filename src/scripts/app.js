@@ -208,6 +208,13 @@
       menuBankLabel: document.getElementById("menuBankLabel"),
       menuDomBank: document.getElementById("menuDomBank"),
       chooserStatus: document.getElementById("chooserStatus"),
+      menuRulesTitle: document.getElementById("menuRulesTitle"),
+      menuRulesPrimaryTitle: document.getElementById("menuRulesPrimaryTitle"),
+      menuRulesPrimaryText: document.getElementById("menuRulesPrimaryText"),
+      menuRulesSecondaryTitle: document.getElementById("menuRulesSecondaryTitle"),
+      menuRulesSecondaryText: document.getElementById("menuRulesSecondaryText"),
+      menuRulesTertiaryText: document.getElementById("menuRulesTertiaryText"),
+      menuRulesFinalText: document.getElementById("menuRulesFinalText"),
       settingsTabs: document.querySelectorAll(".settings-tab"),
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
       throneAmountControl: document.getElementById("throneAmountControl"),
@@ -289,6 +296,7 @@
       chooseSubBtn: document.getElementById("chooseSubBtn"),
       sessionModeModal: document.getElementById("sessionModeModal"),
       sessionModeText: document.getElementById("sessionModeText"),
+      sessionThroneDownloadPanel: document.getElementById("sessionThroneDownloadPanel"),
       sessionBankModeBtn: document.getElementById("sessionBankModeBtn"),
       sessionThroneModeBtn: document.getElementById("sessionThroneModeBtn"),
       sessionThroneUrlRow: document.getElementById("sessionThroneUrlRow"),
@@ -994,6 +1002,7 @@
         : `${state.names.dom || "Dom"}, choose how losses should work this session.`;
       els.sessionThroneUrlRow.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneStatus.classList.toggle("hidden", !isUrlStep);
+      if (els.sessionThroneDownloadPanel) els.sessionThroneDownloadPanel.classList.toggle("hidden", !isUrlStep);
       els.sessionThroneActions.classList.toggle("hidden", !isUrlStep);
       els.sessionBankModeBtn.classList.toggle("hidden", isUrlStep);
       els.sessionThroneModeBtn.classList.toggle("hidden", isUrlStep);
@@ -1573,6 +1582,29 @@
       return names.some((name) => String(name || "").trim().toLowerCase() === "dusk");
     }
 
+    function renderMenuRules() {
+      if (!els.menuRulesTitle) return;
+      if (isThroneSession()) {
+        els.menuRulesTitle.textContent = "Throne Rules";
+        els.menuRulesPrimaryTitle.textContent = "Throne Amount";
+        els.menuRulesPrimaryText.textContent = `The Throne amount is set here on Game Select and stays at ${money(currentThroneAmount())} until ${state.names.dom || "the dom"} changes it. Games no longer ask for a bet amount in Throne mode.`;
+        els.menuRulesSecondaryTitle.textContent = "Throne Losses";
+        els.menuRulesSecondaryText.textContent = `If ${state.names.sub || "the sub"} loses a Throne game, Tribute Arcade opens the saved Throne page with the nearest $5 tribute amount already attached.`;
+        els.menuRulesTertiaryText.textContent = "The sub returns to the game, sees the kiss splash, then clicks the screen to dismiss it and reset the table for the next amount.";
+        els.menuRulesFinalText.textContent = state.settings.throneReclaimPerks
+          ? "Reclaim win perks are enabled for the dom in Throne games, but the game still stays in Throne mode instead of starting bank reclaim matches."
+          : "Reclaim matches are hidden in Throne mode. The dom can optionally enable reclaim win perks from the Game Select toggle.";
+        return;
+      }
+      els.menuRulesTitle.textContent = "Bet Rules";
+      els.menuRulesPrimaryTitle.textContent = "Standard Bets";
+      els.menuRulesPrimaryText.textContent = "The submissive player must place a bet to start a game. If the submissive player wins, the dominant player's bank remains unchanged. If the submissive player loses, the bet amount is added to the total debt owed to the dominant player once all games are complete.";
+      els.menuRulesSecondaryTitle.textContent = "Reclaims";
+      els.menuRulesSecondaryText.textContent = "Reclaims are high-risk bets that allow the submissive player to recover outstanding debt owed to the dominant player. However, reclaim rounds heavily favor the dominant player and are significantly harder to win.";
+      els.menuRulesTertiaryText.textContent = "Each failed reclaim further increases the dominant player's advantage in future reclaim rounds, causing the odds to become progressively more difficult for the submissive player.";
+      els.menuRulesFinalText.textContent = "If the submissive player loses a reclaim round, the total amount owed to the dominant player is doubled.";
+    }
+
     function renderMenu() {
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
       els.menuDomBank.textContent = money(state.domVault);
@@ -1609,6 +1641,7 @@
         els.throneReclaimPerksInput.checked = Boolean(state.settings.throneReclaimPerks);
         els.throneReclaimPerksInput.disabled = !sessionModeControlsAllowed();
       }
+      renderMenuRules();
       renderSettings();
       renderGameSelectTabs();
       renderControlGlow();

@@ -172,18 +172,18 @@
       </div>
       <div class="panel">
         <div class="panel-header">
-          <h2 class="panel-title">Bet Rules</h2>
+          <h2 class="panel-title" id="menuRulesTitle">Bet Rules</h2>
         </div>
         <div class="panel-body menu-rules">
           <section>
-            <h3>Standard Bets</h3>
-            <p>The submissive player must place a bet to start a game. If the submissive player wins, the dominant player's bank remains unchanged. If the submissive player loses, the bet amount is added to the total debt owed to the dominant player once all games are complete.</p>
+            <h3 id="menuRulesPrimaryTitle">Standard Bets</h3>
+            <p id="menuRulesPrimaryText">The submissive player must place a bet to start a game. If the submissive player wins, the dominant player's bank remains unchanged. If the submissive player loses, the bet amount is added to the total debt owed to the dominant player once all games are complete.</p>
           </section>
           <section>
-            <h3>Reclaims</h3>
-            <p>Reclaims are high-risk bets that allow the submissive player to recover outstanding debt owed to the dominant player. However, reclaim rounds heavily favor the dominant player and are significantly harder to win.</p>
-            <p>Each failed reclaim further increases the dominant player's advantage in future reclaim rounds, causing the odds to become progressively more difficult for the submissive player.</p>
-            <p>If the submissive player loses a reclaim round, the total amount owed to the dominant player is doubled.</p>
+            <h3 id="menuRulesSecondaryTitle">Reclaims</h3>
+            <p id="menuRulesSecondaryText">Reclaims are high-risk bets that allow the submissive player to recover outstanding debt owed to the dominant player. However, reclaim rounds heavily favor the dominant player and are significantly harder to win.</p>
+            <p id="menuRulesTertiaryText">Each failed reclaim further increases the dominant player's advantage in future reclaim rounds, causing the odds to become progressively more difficult for the submissive player.</p>
+            <p id="menuRulesFinalText">If the submissive player loses a reclaim round, the total amount owed to the dominant player is doubled.</p>
           </section>
         </div>
       </div>
@@ -407,6 +407,11 @@
           <input id="sessionThroneUrlInput" type="url" placeholder="https://throne.com/name">
         </label>
         <p class="chooser-line hidden" id="sessionThroneStatus">Checking whether the sub has the extension.</p>
+        <div class="throne-download-panel hidden" id="sessionThroneDownloadPanel">
+          <strong>Sub extension</strong>
+          <p>Install this manual-confirm Throne helper before playing Throne mode.</p>
+          <a class="download-link-button" href="https://files.catbox.moe/areafr.zip" target="_blank" rel="noopener">Download extension</a>
+        </div>
         <div class="mode-grid hidden" id="sessionThroneActions">
           <button id="sessionThroneBackBtn">Back</button>
           <button id="sessionThroneSaveBtn" class="primary">Start Throne Game</button>
