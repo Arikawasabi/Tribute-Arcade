@@ -386,10 +386,37 @@
       line-height: 1.15;
     }
 
+    .reclaim-perks-toggle.hidden,
+    .throne-amount-control.hidden {
+      display: none;
+    }
+
     .reclaim-perks-toggle input {
       width: auto;
       margin: 0;
       accent-color: var(--gold);
+    }
+
+    .throne-amount-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 2.35rem;
+      padding: 0 12px;
+      border: 1px solid rgba(255, 79, 134, 0.24);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+
+    .throne-amount-control input {
+      width: 72px;
+      min-height: 1.75rem;
+      padding: 4px 8px;
+      text-align: center;
     }
 
     .game-grid {

@@ -110,6 +110,7 @@
         sessionMode: "",
         sessionModePrompted: false,
         throneReclaimPerks: false,
+        throneAmount: 5,
         throneUrl: "",
         paymentDemand: null,
         pendingThroneDemand: null,
@@ -209,6 +210,8 @@
       chooserStatus: document.getElementById("chooserStatus"),
       settingsTabs: document.querySelectorAll(".settings-tab"),
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
+      throneAmountControl: document.getElementById("throneAmountControl"),
+      throneAmountInput: document.getElementById("throneAmountInput"),
       throneReclaimPerksToggle: document.getElementById("throneReclaimPerksToggle"),
       throneReclaimPerksInput: document.getElementById("throneReclaimPerksInput"),
       mainGamesGrid: document.getElementById("mainGamesGrid"),
@@ -838,7 +841,7 @@
     }
 
     function applyDefaultBet() {
-      els.betInput.value = normalizeBuyIn(isThroneSession() ? 5 : state.settings.subDefaultBet);
+      els.betInput.value = normalizeBuyIn(isThroneSession() ? currentThroneAmount() : state.settings.subDefaultBet);
     }
 
     function currentRoomId() {
@@ -954,6 +957,10 @@
 
     function isThroneSession() {
       return sessionMode() === "throne";
+    }
+
+    function currentThroneAmount() {
+      return normalizeBuyIn(Number(state.settings.throneAmount || 5));
     }
 
     function reclaimPerksActive() {
@@ -1586,6 +1593,14 @@
       els.chooserStatus.textContent = domPickBlocked
         ? `${state.names.dom} picks the next game.`
         : `${state.names.dom || "Dom"} picks the next game.`;
+      if (els.throneAmountControl) {
+        const showAmount = isThroneSession() && sessionModeControlsAllowed();
+        els.throneAmountControl.classList.toggle("hidden", !showAmount);
+      }
+      if (els.throneAmountInput) {
+        els.throneAmountInput.value = currentThroneAmount();
+        els.throneAmountInput.disabled = !sessionModeControlsAllowed();
+      }
       if (els.throneReclaimPerksToggle) {
         const showToggle = isThroneSession() && sessionModeControlsAllowed();
         els.throneReclaimPerksToggle.classList.toggle("hidden", !showToggle);
@@ -1699,6 +1714,7 @@
         ...changes
       };
       state.settings.subDefaultBet = normalizeBuyIn(Number(state.settings.subDefaultBet));
+      state.settings.throneAmount = normalizeBuyIn(Number(state.settings.throneAmount || 5));
       if (!state.active) applyDefaultBet();
       renderSettings();
       renderGameSelectTabs();
@@ -3158,6 +3174,7 @@
     function requestWagerApproval(type) {
       if (wagerStartBypass) return true;
       if (!usesRoundFlow()) return true;
+      if (type !== "reclaim" && isThroneSession()) return true;
       if (localOnlineRole() && localOnlineRole() !== SUB) return false;
       if (state.active || state.pendingWager) return false;
       if (type === "reclaim" && isThroneSession()) {
@@ -3170,6 +3187,8 @@
       }
       const amount = type === "reclaim"
         ? normalizeBuyIn(state.domVault)
+        : isThroneSession()
+          ? currentThroneAmount()
         : normalizeBuyIn(Number(els.betInput.value));
       els.betInput.value = amount;
       state.pendingWager = {
@@ -3227,6 +3246,8 @@
       }
       const amount = type === "reclaim"
         ? normalizeBuyIn(state.domVault)
+        : isThroneSession()
+          ? currentThroneAmount()
         : normalizeBuyIn(Number(els.betInput.value));
       els.betInput.value = amount;
       state.pot = amount;
@@ -3243,7 +3264,7 @@
 
     function normalRoundAmountIntro(amount) {
       return isThroneSession()
-        ? `<strong>Throne amount:</strong> ${state.names.sub} sets ${money(amount)}. If ${state.names.sub} loses, the nearest $5 Throne gift opens automatically.`
+        ? `<strong>Throne amount:</strong> ${money(amount)} is set from Game Select. If ${state.names.sub} loses, the nearest $5 Throne gift opens automatically.`
         : `<strong>Normal bet:</strong> ${state.names.sub} puts up ${money(amount)}.`;
     }
 
@@ -8329,14 +8350,15 @@
     function startHigherLowerNormalMatch() {
       const runStake = higherLowerRunStake(state.higherLower && state.higherLower.queuedRunStake);
       const target = higherLowerTargetForStake(runStake);
-      els.betInput.value = HIGHER_LOWER_BASE_TRIBUTE;
+      const baseTribute = isThroneSession() ? currentThroneAmount() : HIGHER_LOWER_BASE_TRIBUTE;
+      els.betInput.value = baseTribute;
       const bet = prepareRound("normal", "higher / lower run");
       if (bet === null) return;
       state.higherLower = createHigherLowerState();
       state.higherLower.runStake = runStake;
       state.higherLower.queuedRunStake = runStake;
       state.higherLower.targetStreak = target;
-      state.higherLower.baseTribute = HIGHER_LOWER_BASE_TRIBUTE;
+      state.higherLower.baseTribute = baseTribute;
       state.higherLower.deck = shuffleDeck(createTwentyOneDeck());
       state.higherLower.currentCard = drawHigherLowerCard();
       state.turn = SUB;
@@ -11047,7 +11069,7 @@
       els.cashLedgerPanel.classList.toggle("blackjack-ledger", isBlackjack);
       els.trailBankAmount.textContent = money(state.trail && state.trail.tributeBank || 0);
       els.trailSpendingAmount.textContent = money(state.trail && state.trail.spendingMoney || 0);
-      els.pot.textContent = money(state.pot);
+      els.pot.textContent = money(isThroneSession() && !state.active ? currentThroneAmount() : state.pot);
       els.domVault.textContent = money(state.domVault);
       els.lockedTribute.textContent = money(state.domVault);
       if (els.turnDomBankPill) els.turnDomBankPill.classList.toggle("hidden", !isHigherLower);
@@ -11168,14 +11190,14 @@
       const normalOnlyGame = state.currentGame === "higherLower";
       const wagerPending = Boolean(state.pendingWager);
       renderWheelDomTools();
-      els.betInput.classList.toggle("hidden", isFreeGame || normalOnlyGame);
+      els.betInput.classList.toggle("hidden", isFreeGame || normalOnlyGame || isThroneSession());
       els.normalBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame);
       els.reclaimBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame || isThroneSession());
       els.reclaimBtn.disabled = state.active || wagerPending || state.domVault <= 0 || onlineBlocksSub || isThroneSession();
       els.normalBtn.disabled = state.active || wagerPending || onlineBlocksSub;
       els.betInput.disabled = state.active || wagerPending || onlineBlocksSub;
       if (els.potLabel) els.potLabel.textContent = isThroneSession() ? "Throne amount" : "Current pot";
-      els.normalBtn.textContent = isThroneSession() ? "Set Throne Amount" : "Bet";
+      els.normalBtn.textContent = isThroneSession() ? `Start ${money(currentThroneAmount())}` : "Bet";
       els.betInput.setAttribute("aria-label", isThroneSession() ? "Throne payment amount" : "Bet amount");
       els.betInput.title = isThroneSession() ? "This amount is used for the Throne demand if the sub loses." : "Bet amount";
       els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne");
@@ -11335,6 +11357,10 @@
     els.normalBtn.addEventListener("click", startNormalMatch);
     els.reclaimBtn.addEventListener("click", startReclaimMatch);
     document.addEventListener("click", handleThroneKissDismiss, true);
+    if (els.throneAmountInput) {
+      els.throneAmountInput.addEventListener("change", () => updateSettings({ throneAmount: els.throneAmountInput.value }));
+      els.throneAmountInput.addEventListener("input", () => updateSettings({ throneAmount: els.throneAmountInput.value }));
+    }
     if (els.throneReclaimPerksInput) {
       els.throneReclaimPerksInput.addEventListener("change", () => {
         updateSettings({ throneReclaimPerks: els.throneReclaimPerksInput.checked });
