@@ -4311,6 +4311,11 @@
       background: rgba(8, 6, 7, 0.52);
     }
 
+    .distraction-thumb.selected {
+      border-color: rgba(255, 207, 113, 0.95);
+      box-shadow: 0 0 0 2px rgba(255, 109, 159, 0.38);
+    }
+
     .distraction-thumb img {
       display: block;
       width: 100%;

@@ -2631,6 +2631,7 @@
       state.settings.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration.value);
       if (state.settings.distractionMode === "overlay-sub") {
         const overlayPosition = randomDistractionOverlayPosition();
+        state.settings.distractionUrl = "";
         state.settings.distractionOverlayUrl = url;
         state.settings.distractionOverlayUntil = Date.now() + state.settings.distractionDuration * 1000;
         state.settings.distractionOverlayX = overlayPosition.x;
@@ -2638,13 +2639,13 @@
         state.settings.distractionUntil = state.settings.distractionOverlayUntil;
         els.sideDistractionStatus.textContent = `Overlay posted for ${state.settings.distractionDuration} seconds.`;
       } else {
-        state.settings.distractionUrl = url;
+        state.settings.distractionUrl = "";
         state.settings.distractionBackgroundUrl = url;
         state.settings.distractionBackgroundMode = state.settings.distractionMode;
         state.settings.distractionUntil = 0;
         els.sideDistractionStatus.textContent = "Background posted.";
       }
-      rememberDistractionImage(url, state.settings.distractionMode);
+      rememberDistractionImage(url);
       renderSidePanel();
       publishSettingsState();
     }
@@ -2802,16 +2803,16 @@
         : [];
     }
 
-    function rememberDistractionImage(url, mode) {
+    function rememberDistractionImage(url) {
       const normalized = normalizeDistractionSource(url);
       if (!normalized) return;
+      const isInlineUpload = normalized.startsWith("data:");
       const existing = Array.isArray(state.settings.distractionGallery) ? state.settings.distractionGallery : [];
       const next = [
-        ...existing.filter((item) => item && item.url !== normalized),
+        ...existing.filter((item) => item && item.url !== normalized && (!isInlineUpload || !String(item.url || "").startsWith("data:"))),
         {
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           url: normalized,
-          mode: mode || state.settings.distractionMode || "background-both",
           savedAt: Date.now()
         }
       ];
@@ -2822,20 +2823,21 @@
       if (!els.distractionGallery) return;
       const items = distractionGalleryItems();
       els.distractionGallery.classList.toggle("hidden", !items.length);
+      const selectedUrl = normalizeDistractionSource(els.sideDistractionInput.value);
       els.distractionGallery.innerHTML = items.map((item, index) => `
-        <button type="button" class="distraction-thumb" data-distraction-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Resend image">
+        <button type="button" class="distraction-thumb ${selectedUrl && selectedUrl === normalizeDistractionSource(item.url) ? "selected" : ""}" data-distraction-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Select image">
           <img src="${escapeHtml(item.url)}" alt="Saved distraction ${index + 1}" loading="lazy">
         </button>
       `).join("");
     }
 
-    function resendDistractionFromGallery(index) {
+    function selectDistractionFromGallery(index) {
       if (!domLinkControlsAllowed()) return;
       const item = distractionGalleryItems()[Number(index)];
       if (!item) return;
       els.sideDistractionInput.value = item.url;
-      if (item.mode && els.sideDistractionMode) els.sideDistractionMode.value = item.mode;
-      postDistraction();
+      els.sideDistractionStatus.textContent = "Image selected. Choose the display mode, then Post.";
+      renderDistractionGallery();
     }
 
     function randomDistractionOverlayPosition() {
@@ -11952,7 +11954,7 @@
       els.distractionGallery.addEventListener("click", (event) => {
         const button = event.target.closest("[data-distraction-gallery-index]");
         if (!button || button.disabled) return;
-        resendDistractionFromGallery(button.dataset.distractionGalleryIndex);
+        selectDistractionFromGallery(button.dataset.distractionGalleryIndex);
       });
     }
     els.rulesBtn.addEventListener("click", openRulesModal);
