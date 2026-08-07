@@ -253,6 +253,7 @@
       sideToggleBtn: document.getElementById("sideToggleBtn"),
       sideRestoreTabs: document.querySelectorAll(".side-restore-tab"),
       sideTabs: document.querySelectorAll(".side-tab"),
+      sideToolsTab: document.getElementById("sideToolsTab"),
       sideSettingsTab: document.getElementById("sideSettingsTab"),
       sideChatPane: document.getElementById("sideChatPane"),
       sideLedgerPane: document.getElementById("sideLedgerPane"),
@@ -267,6 +268,7 @@
       declineBrattyWelcomeBtn: document.getElementById("declineBrattyWelcomeBtn"),
       acceptBrattyWelcomeBtn: document.getElementById("acceptBrattyWelcomeBtn"),
       sideSettingsPane: document.getElementById("sideSettingsPane"),
+      sideToolsPane: document.getElementById("sideToolsPane"),
       chatMessages: document.getElementById("chatMessages"),
       chatInput: document.getElementById("chatInput"),
       sendChatBtn: document.getElementById("sendChatBtn"),
@@ -2190,20 +2192,17 @@
           `)
         : `<span class="payment-lock">Only ${escapeHtml(state.names.dom || "the dom")} can edit payment controls.</span>`;
       els.sideLedgerSummary.innerHTML = `
-        <div class="command-card">
+        <div class="command-card wide ledger-bank-card">
           <span>Dom bank</span>
           <strong>${money(state.domVault)}</strong>
+          <p>Net ${money(Math.max(0, totals.paid - totals.drained))} · Biggest ${money(totals.biggest)}</p>
         </div>
-        <div class="command-card">
-          <span>Net session</span>
-          <strong>${money(Math.max(0, totals.paid - totals.drained))}</strong>
-        </div>
+        ${sessionCard}
         <div class="command-card wide payment-card">
           <span>${escapeHtml(paymentLabel)}</span>
           <strong>${throneLabel}</strong>
           ${throneControls}
         </div>
-        ${sessionCard}
         ${extensionCard}
         ${canUsePaymentControls ? `<button class="danger-button ledger-reset-bank" data-ledger-action="reset-bank">Reset Bank</button>` : ""}
         <div class="ledger-stats">
@@ -2462,9 +2461,13 @@
 
     function renderSidePanel() {
       const canOpenSettings = sideSettingsAllowed();
+      const canOpenTools = domLinkControlsAllowed();
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
       if (!canOpenSettings && state.settings.activeSideTab === "settings") {
+        state.settings.activeSideTab = "chat";
+      }
+      if (!canOpenTools && state.settings.activeSideTab === "tools") {
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
@@ -2473,11 +2476,15 @@
       const easterEgg = activeNameEasterEgg();
       els.sidePanelTitle.textContent = activeTab === "ledger"
         ? (easterEgg ? easterEgg.commandTitle : "Command Center")
+        : activeTab === "tools"
+          ? "Tools"
         : (state.online.room ? `Room ${state.online.room}` : "Room");
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
-        const visible = !panelOpen && (tab !== "settings" || canOpenSettings);
+        const visible = !panelOpen
+          && (tab !== "settings" || canOpenSettings)
+          && (tab !== "tools" || canOpenTools);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active-restore", tab === activeTab);
         button.classList.toggle("unread", tab === "chat" && !panelOpen && hasUnreadChat());
@@ -2485,12 +2492,14 @@
       els.sideToggleBtn.textContent = "Hide";
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
-        const visible = button.dataset.sideTab !== "settings" || canOpenSettings;
+        const visible = (button.dataset.sideTab !== "settings" || canOpenSettings)
+          && (button.dataset.sideTab !== "tools" || canOpenTools);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active", button.dataset.sideTab === activeTab);
       });
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
       els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");
+      els.sideToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenTools);
       els.sideSettingsPane.classList.toggle("hidden", activeTab !== "settings" || !canOpenSettings);
       renderLedgerPanel();
       els.chatMessages.innerHTML = (state.chat || []).slice(-80).reverse().map((message) => `
@@ -2733,7 +2742,10 @@
           ? `Image compressed to about ${(dataUrlBytes(result.dataUrl) / 1_000_000).toFixed(1)} MB. Press Post to show it.`
           : "Local image loaded. Press Post to show it.";
       } catch (error) {
-        els.sideDistractionStatus.textContent = error.message || "Could not read that image.";
+        const message = String(error && error.message || "");
+        els.sideDistractionStatus.textContent = /read|permission|requested file/i.test(message)
+          ? "Could not read that gallery image. Try opening it in Photos first so it downloads locally, or take a fresh photo."
+          : (message || "Could not read that image.");
       }
     }
 
@@ -2812,7 +2824,7 @@
       els.distractionGallery.classList.toggle("hidden", !items.length);
       els.distractionGallery.innerHTML = items.map((item, index) => `
         <button type="button" class="distraction-thumb" data-distraction-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Resend image">
-          <span style="background-image: ${safeCssUrl(item.url)}"></span>
+          <img src="${escapeHtml(item.url)}" alt="Saved distraction ${index + 1}" loading="lazy">
         </button>
       `).join("");
     }
@@ -11913,14 +11925,18 @@
         if (!domLinkControlsAllowed()) return;
         els.distractionFileInput.click();
       });
-      els.distractionFileInput.addEventListener("change", () => {
+      els.distractionFileInput.addEventListener("change", async () => {
         const file = imageFileFromItems(els.distractionFileInput.files);
-        els.distractionFileInput.value = "";
         if (!file) {
+          els.distractionFileInput.value = "";
           els.sideDistractionStatus.textContent = "Choose a PNG, JPG, GIF, WebP, or BMP image.";
           return;
         }
-        useLocalDistractionFile(file);
+        try {
+          await useLocalDistractionFile(file);
+        } finally {
+          els.distractionFileInput.value = "";
+        }
       });
     }
     els.sideDistractionInput.addEventListener("paste", handleDistractionPaste);

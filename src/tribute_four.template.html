@@ -657,6 +657,7 @@
     <div class="side-tabs">
       <button class="side-tab active" data-side-tab="chat">Chat</button>
       <button class="side-tab" data-side-tab="ledger">Ledger</button>
+      <button class="side-tab" data-side-tab="tools" id="sideToolsTab">Tools</button>
       <button class="side-tab" data-side-tab="settings" id="sideSettingsTab">Settings</button>
     </div>
     <div class="side-body">
@@ -697,6 +698,25 @@
               <option value="both">Both players</option>
             </select>
           </label>
+        </div>
+        <div class="settings-pane hidden" id="subSettingsPane">
+          <h3 class="panel-title">Sub Settings</h3>
+          <label class="settings-row">
+            Default bet
+            <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
+          </label>
+          <label class="settings-row">
+            Link warning
+            <select id="subLinkWarningMode">
+              <option value="warn">Ask before opening</option>
+              <option value="auto">Open without asking</option>
+            </select>
+          </label>
+        </div>
+      </section>
+      <section class="side-pane hidden" id="sideToolsPane">
+        <div class="settings-pane" id="domToolsPane">
+          <h3 class="panel-title">Dom Tools</h3>
           <label class="field-label">
             Link for sub
             <input id="sideDomLinkInput" type="url" placeholder="https://example.com">
@@ -743,25 +763,12 @@
           <div class="distraction-gallery" id="distractionGallery"></div>
           <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
         </div>
-        <div class="settings-pane hidden" id="subSettingsPane">
-          <h3 class="panel-title">Sub Settings</h3>
-          <label class="settings-row">
-            Default bet
-            <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
-          </label>
-          <label class="settings-row">
-            Link warning
-            <select id="subLinkWarningMode">
-              <option value="warn">Ask before opening</option>
-              <option value="auto">Open without asking</option>
-            </select>
-          </label>
-        </div>
       </section>
     </div>
   </aside>
   <button class="side-restore-tab hidden" data-open-side-tab="chat" title="Open chat panel">Chat</button>
   <button class="side-restore-tab ledger hidden" data-open-side-tab="ledger" title="Open ledger panel">Ledger</button>
+  <button class="side-restore-tab tools hidden" data-open-side-tab="tools" title="Open tools panel">Tools</button>
   <button class="side-restore-tab settings hidden" data-open-side-tab="settings" title="Open settings panel">Settings</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>

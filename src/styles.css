@@ -105,7 +105,7 @@
       z-index: 21;
       pointer-events: none;
       background-position: center;
-      background-size: cover;
+      background-size: contain;
       background-repeat: no-repeat;
       border: 1px solid rgba(239, 199, 94, 0.42);
       border-radius: 8px;
@@ -4021,8 +4021,12 @@
       top: 198px;
     }
 
-    .side-restore-tab.settings {
+    .side-restore-tab.tools {
       top: 300px;
+    }
+
+    .side-restore-tab.settings {
+      top: 402px;
     }
 
     .side-restore-tab.unread {
@@ -4126,6 +4130,10 @@
 
     .payment-card strong {
       overflow-wrap: anywhere;
+    }
+
+    .ledger-bank-card strong {
+      font-size: 1.7rem;
     }
 
     .command-card p {
@@ -4303,13 +4311,13 @@
       background: rgba(8, 6, 7, 0.52);
     }
 
-    .distraction-thumb span {
+    .distraction-thumb img {
       display: block;
       width: 100%;
+      height: 100%;
       aspect-ratio: 1;
-      background-position: center;
-      background-size: cover;
-      background-repeat: no-repeat;
+      object-fit: contain;
+      background: rgba(0, 0, 0, 0.24);
     }
 
     .dom-trigger-panel {
@@ -4434,6 +4442,11 @@
       }
 
       .side-restore-tab.settings {
+        top: auto;
+        bottom: 12px;
+      }
+
+      .side-restore-tab.tools {
         top: auto;
         bottom: 12px;
       }
