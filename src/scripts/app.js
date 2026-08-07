@@ -321,6 +321,7 @@
       joinRoomBtn: document.getElementById("joinRoomBtn"),
       localTestingPanel: document.getElementById("localTestingPanel"),
       playLocalBtn: document.getElementById("playLocalBtn"),
+      soloGamesBtn: document.getElementById("soloGamesBtn"),
       lobbyPlayerList: document.getElementById("lobbyPlayerList"),
       roleModal: document.getElementById("roleModal"),
       roleModalText: document.getElementById("roleModalText"),
@@ -1204,6 +1205,15 @@
       setScreen("setup");
       renderRoles();
       updateOnlineUi();
+    }
+
+    function openSoloGamesMenu() {
+      resetLocalOnlineState();
+      state.settings.activeGameTab = "solo";
+      state.currentGame = "solitaire";
+      clearLocalRoomUrl();
+      setScreen("select");
+      renderMenu();
     }
 
     function clearLocalRoomUrl() {
@@ -12421,6 +12431,7 @@
       }
     });
     els.playLocalBtn.addEventListener("click", playLocally);
+    if (els.soloGamesBtn) els.soloGamesBtn.addEventListener("click", openSoloGamesMenu);
     els.chooseDomBtn.addEventListener("click", () => chooseOnlineRole(DOM));
     els.chooseSubBtn.addEventListener("click", () => chooseOnlineRole(SUB));
     if (els.sessionBankModeBtn) els.sessionBankModeBtn.addEventListener("click", chooseBankSessionMode);
