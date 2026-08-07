@@ -5239,19 +5239,6 @@
             <button id="sideSendDomLinkBtn" class="primary">Open Link</button>
           </div>
           <p class="chooser-line" id="sideDomLinkStatus">Paste a link, then open it for the sub.</p>
-          <div class="dom-trigger-panel" id="domTriggerPanel">
-            <h3 class="panel-title">Dom Trigger Panel</h3>
-            <div class="dom-trigger-grid">
-              <button data-dom-trigger="distract">Distract</button>
-              <button data-dom-trigger="praise">Praise</button>
-              <button data-dom-trigger="humiliate">Humiliate</button>
-              <button data-dom-trigger="freeze">Freeze</button>
-              <button data-dom-trigger="focus">Focus</button>
-              <button data-dom-trigger="timer">Edge Timer</button>
-              <button class="primary" data-dom-trigger="focus-tax">Focus Tax</button>
-            </div>
-            <p class="chooser-line" id="domTriggerStatus">Trigger a sub-side flash or tax their focus on their turn.</p>
-          </div>
           <label class="field-label">
             Distraction image or GIF
             <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
@@ -8181,6 +8168,22 @@
 
     function readFileAsDataUrl(file) {
       return new Promise((resolve, reject) => {
+        if (file && typeof file.arrayBuffer === "function") {
+          file.arrayBuffer()
+            .then((buffer) => {
+              const reader = new FileReader();
+              reader.addEventListener("load", () => resolve(reader.result));
+              reader.addEventListener("error", () => reject(reader.error || new Error("Could not read file")));
+              reader.readAsDataURL(new Blob([buffer], { type: file.type || "application/octet-stream" }));
+            })
+            .catch(() => {
+              const reader = new FileReader();
+              reader.addEventListener("load", () => resolve(reader.result));
+              reader.addEventListener("error", () => reject(reader.error || new Error("Could not read file")));
+              reader.readAsDataURL(file);
+            });
+          return;
+        }
         const reader = new FileReader();
         reader.addEventListener("load", () => resolve(reader.result));
         reader.addEventListener("error", () => reject(reader.error || new Error("Could not read file")));
@@ -8218,8 +8221,8 @@
     }
 
     async function compressImageFile(file) {
-      const targetBytes = 1_800_000;
-      const originalMaxBytes = 2_000_000;
+      const targetBytes = 800_000;
+      const originalMaxBytes = 900_000;
       if (/^image\/gif$/i.test(file.type)) {
         if (file.size > originalMaxBytes) {
           throw new Error("Large GIFs cannot be safely compressed without losing animation. Try a smaller GIF or a PNG/JPG/WebP.");
@@ -8231,8 +8234,8 @@
       }
       const image = await loadImageFromFile(file);
       const mimeType = "image/webp";
-      const dimensions = [1800, 1500, 1200, 960, 760];
-      const qualities = [0.82, 0.72, 0.62, 0.52, 0.42];
+      const dimensions = [1400, 1200, 960, 760, 620];
+      const qualities = [0.78, 0.68, 0.58, 0.48, 0.38];
       let best = "";
       for (const dimension of dimensions) {
         for (const quality of qualities) {
@@ -8243,27 +8246,49 @@
           }
         }
       }
-      if (best && dataUrlBytes(best) <= 2_500_000) {
+      if (best && dataUrlBytes(best) <= 1_100_000) {
         return { dataUrl: best, compressed: true, bytes: dataUrlBytes(best) };
       }
       throw new Error("That image is still too large after compression. Try cropping it or using a smaller file.");
     }
 
+    async function uploadDistractionImageToHost(result, file) {
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dataUrl: result.dataUrl,
+          name: file && file.name ? file.name : "tribute-upload.webp"
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !normalizeDistractionSource(data.url)) {
+        throw new Error(data.error || "Image host upload failed.");
+      }
+      return data.url;
+    }
+
     async function useLocalDistractionFile(file) {
       if (!domLinkControlsAllowed() || !file) return;
       els.sideDistractionStatus.textContent = file.size > 2_000_000
-        ? "Compressing image for room sync..."
+        ? "Compressing image for upload..."
         : "Loading local image...";
       try {
         const result = await compressImageFile(file);
-        els.sideDistractionInput.value = result.dataUrl;
-        els.sideDistractionStatus.textContent = result.compressed
-          ? `Image compressed to about ${(dataUrlBytes(result.dataUrl) / 1_000_000).toFixed(1)} MB. Press Post to show it.`
-          : "Local image loaded. Press Post to show it.";
+        els.sideDistractionStatus.textContent = "Uploading image to Catbox...";
+        try {
+          const hostedUrl = await uploadDistractionImageToHost(result, file);
+          els.sideDistractionInput.value = hostedUrl;
+          els.sideDistractionStatus.textContent = "Image uploaded. Press Post to show it.";
+        } catch (uploadError) {
+          els.sideDistractionInput.value = result.dataUrl;
+          const uploadMessage = String(uploadError && uploadError.message || "Catbox upload failed.");
+          els.sideDistractionStatus.textContent = `Catbox upload failed: ${uploadMessage} Using local fallback. Press Post to show it.`;
+        }
       } catch (error) {
         const message = String(error && error.message || "");
         els.sideDistractionStatus.textContent = /read|permission|requested file/i.test(message)
-          ? "Could not read that gallery image. Try opening it in Photos first so it downloads locally, or take a fresh photo."
+          ? "Could not read that image. On mobile, try opening it in Photos first so it downloads locally, then choose it again."
           : (message || "Could not read that image.");
       }
     }
@@ -8326,8 +8351,13 @@
       if (!normalized) return;
       const isInlineUpload = normalized.startsWith("data:");
       const existing = Array.isArray(state.settings.distractionGallery) ? state.settings.distractionGallery : [];
+      const inlineKept = existing
+        .filter((item) => item && String(item.url || "").startsWith("data:") && item.url !== normalized)
+        .slice(-2);
+      const nonInlineKept = existing
+        .filter((item) => item && item.url !== normalized && !String(item.url || "").startsWith("data:"));
       const next = [
-        ...existing.filter((item) => item && item.url !== normalized && (!isInlineUpload || !String(item.url || "").startsWith("data:"))),
+        ...(isInlineUpload ? nonInlineKept.concat(inlineKept) : existing.filter((item) => item && item.url !== normalized)),
         {
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           url: normalized,

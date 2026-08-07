@@ -1,6 +1,7 @@
 const ROOM_TTL_MS = 1000 * 60 * 60 * 6;
 const ROOM_EMPTY_TTL_MS = 1000 * 60 * 5;
 const ROOM_ID_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const MAX_UPLOAD_IMAGE_BYTES = 1_500_000;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -23,6 +24,55 @@ function roomId() {
 function roomStub(env, id) {
   const objectId = env.ROOMS.idFromName(id.toUpperCase());
   return env.ROOMS.get(objectId);
+}
+
+function imageExtensionForType(type) {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized === "image/jpeg" || normalized === "image/jpg") return "jpg";
+  if (normalized === "image/png") return "png";
+  if (normalized === "image/gif") return "gif";
+  if (normalized === "image/webp") return "webp";
+  if (normalized === "image/bmp") return "bmp";
+  return "";
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64.replace(/\s/g, ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+function imageFromDataUrl(dataUrl) {
+  const match = /^data:(image\/(?:png|jpe?g|gif|webp|bmp));base64,([a-z0-9+/=\s]+)$/i.exec(String(dataUrl || ""));
+  if (!match) throw new Error("Upload must be a PNG, JPG, GIF, WebP, or BMP image.");
+  const type = match[1].toLowerCase();
+  const bytes = base64ToBytes(match[2]);
+  if (!bytes.length) throw new Error("Upload was empty.");
+  if (bytes.byteLength > MAX_UPLOAD_IMAGE_BYTES) throw new Error("Image is too large for upload.");
+  return { type, bytes };
+}
+
+async function uploadImageToCatbox(body, env) {
+  const image = imageFromDataUrl(body && body.dataUrl);
+  const extension = imageExtensionForType(image.type);
+  const safeName = String((body && body.name) || `tribute-upload.${extension}`)
+    .replace(/[^\w.-]+/g, "_")
+    .replace(/^_+/, "")
+    .slice(0, 80) || `tribute-upload.${extension}`;
+  const form = new FormData();
+  form.append("reqtype", "fileupload");
+  if (env && env.CATBOX_USERHASH) form.append("userhash", env.CATBOX_USERHASH);
+  form.append("fileToUpload", new Blob([image.bytes], { type: image.type }), safeName);
+  const response = await fetch("https://catbox.moe/user/api.php", {
+    method: "POST",
+    body: form
+  });
+  const text = (await response.text()).trim();
+  if (!response.ok || !/^https:\/\/files\.catbox\.moe\/[A-Za-z0-9._-]+$/.test(text)) {
+    throw new Error(text || "Catbox upload failed.");
+  }
+  return text;
 }
 
 function roomHasPlayers(snapshot) {
@@ -224,6 +274,12 @@ export default {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ snapshot: body.snapshot })
         }));
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/upload-image") {
+        const body = await request.json();
+        const uploadedUrl = await uploadImageToCatbox(body, env);
+        return json({ url: uploadedUrl });
       }
 
       if (request.method === "GET" && url.pathname === "/api/state") {
