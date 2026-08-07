@@ -180,6 +180,7 @@
       checkers: createCheckersState(),
       reversi: createReversiState(),
       chess: createChessState(),
+      solitaire: createSolitaireState(),
       chat: [],
       ledger: []
     };
@@ -189,6 +190,15 @@
       setupScreen: document.getElementById("setupScreen"),
       gameSelectScreen: document.getElementById("gameSelectScreen"),
       gameScreen: document.getElementById("gameScreen"),
+      solitaireScreen: document.getElementById("solitaireScreen"),
+      solitaireCard: document.getElementById("solitaireCard"),
+      solitaireStatus: document.getElementById("solitaireStatus"),
+      solitaireStock: document.getElementById("solitaireStock"),
+      solitaireWaste: document.getElementById("solitaireWaste"),
+      solitaireTableau: document.getElementById("solitaireTableau"),
+      solitaireTable: document.getElementById("solitaireTable"),
+      newSolitaireBtn: document.getElementById("newSolitaireBtn"),
+      solitaireBackBtn: document.getElementById("solitaireBackBtn"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
       domTriggerOverlay: document.getElementById("domTriggerOverlay"),
@@ -1119,6 +1129,7 @@
       els.lobbyScreen.classList.toggle("hidden", screen !== "lobby");
       els.gameSelectScreen.classList.toggle("hidden", screen !== "select");
       els.gameScreen.classList.toggle("hidden", screen !== "game");
+      if (els.solitaireScreen) els.solitaireScreen.classList.toggle("hidden", screen !== "solitaire");
       renderControlGlow();
       renderMenu();
     }
@@ -1588,6 +1599,18 @@
       publishState();
     }
 
+    function openSolitaire() {
+      state.currentGame = "solitaire";
+      dealSolitaire();
+      setScreen("solitaire");
+      renderSolitaire();
+    }
+
+    function backToMenuFromSolo() {
+      setScreen("select");
+      renderMenu();
+    }
+
     function backToMenu() {
       const role = localOnlineRole();
       if (state.online.room && role !== DOM) return;
@@ -1691,7 +1714,7 @@
         control: "chance"
       };
       const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
-      const tab = ["table", "casino", "chance", "misc", "all"].includes(requestedTab) ? requestedTab : "table";
+      const tab = ["table", "casino", "chance", "solo", "misc", "all"].includes(requestedTab) ? requestedTab : "table";
       state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
         button.classList.toggle("active", button.dataset.gameTab === tab);
@@ -8789,6 +8812,19 @@
       return deck;
     }
 
+    function createSolitaireState() {
+      return {
+        stock: [],
+        waste: [],
+        foundations: [[], [], [], []],
+        tableau: [[], [], [], [], [], [], []],
+        selected: null,
+        moves: 0,
+        started: false,
+        message: "Build all four foundations from Ace to King."
+      };
+    }
+
     function shuffleDeck(deck) {
       const copy = [...deck];
       for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -10908,6 +10944,285 @@
       return panel;
     }
 
+    function solitaireRank(card) {
+      const rank = String(card || "").slice(0, -1);
+      if (rank === "A") return 1;
+      if (rank === "J") return 11;
+      if (rank === "Q") return 12;
+      if (rank === "K") return 13;
+      return Number(rank || 0);
+    }
+
+    function solitaireSuit(card) {
+      return String(card || "").slice(-1);
+    }
+
+    function solitaireColor(card) {
+      const suit = solitaireSuit(card);
+      return suit === "H" || suit === "D" ? "red" : "black";
+    }
+
+    function solitaireFoundationIndex(card) {
+      return ["S", "H", "D", "C"].indexOf(solitaireSuit(card));
+    }
+
+    function dealSolitaire() {
+      const deck = shuffleDeck(createTwentyOneDeck()).map((card) => ({ card, faceUp: false }));
+      const tableau = [[], [], [], [], [], [], []];
+      for (let column = 0; column < 7; column += 1) {
+        for (let count = 0; count <= column; count += 1) {
+          const next = deck.pop();
+          next.faceUp = count === column;
+          tableau[column].push(next);
+        }
+      }
+      state.solitaire = {
+        ...createSolitaireState(),
+        stock: deck.map((entry) => entry.card),
+        tableau,
+        started: true,
+        message: "Draw from the stock or move visible cards onto alternating colors."
+      };
+    }
+
+    function solitaireSelectionKey(selection) {
+      if (!selection) return "";
+      return `${selection.source}:${selection.column ?? ""}:${selection.index ?? ""}:${selection.foundation ?? ""}`;
+    }
+
+    function solitaireSelectedCards(selection = state.solitaire.selected) {
+      const game = state.solitaire || createSolitaireState();
+      if (!selection) return [];
+      if (selection.source === "waste") {
+        const card = game.waste[game.waste.length - 1];
+        return card ? [card] : [];
+      }
+      if (selection.source === "foundation") {
+        const pile = game.foundations[selection.foundation] || [];
+        const card = pile[pile.length - 1];
+        return card ? [card] : [];
+      }
+      if (selection.source === "tableau") {
+        return (game.tableau[selection.column] || []).slice(selection.index).filter((entry) => entry.faceUp).map((entry) => entry.card);
+      }
+      return [];
+    }
+
+    function selectSolitaireSource(selection) {
+      const cards = solitaireSelectedCards(selection);
+      if (!cards.length) return;
+      const current = solitaireSelectionKey(state.solitaire.selected);
+      const next = solitaireSelectionKey(selection);
+      state.solitaire.selected = current === next ? null : selection;
+      state.solitaire.message = state.solitaire.selected
+        ? `${cards.length > 1 ? `${cards.length} cards` : cards[0]} selected. Choose a place to move.`
+        : "Selection cleared.";
+      renderSolitaire();
+    }
+
+    function drawSolitaireStock() {
+      const game = state.solitaire || createSolitaireState();
+      game.selected = null;
+      if (game.stock.length) {
+        game.waste.push(game.stock.pop());
+        game.message = "Card drawn.";
+      } else if (game.waste.length) {
+        game.stock = game.waste.reverse();
+        game.waste = [];
+        game.message = "Waste returned to stock.";
+      } else {
+        game.message = "No cards left in stock.";
+      }
+      renderSolitaire();
+    }
+
+    function canPlaceSolitaireOnTableau(cards, column) {
+      if (!cards.length) return false;
+      const game = state.solitaire || createSolitaireState();
+      const moving = cards[0];
+      const pile = game.tableau[column] || [];
+      const top = pile[pile.length - 1];
+      if (!top) return solitaireRank(moving) === 13;
+      return top.faceUp
+        && solitaireColor(top.card) !== solitaireColor(moving)
+        && solitaireRank(top.card) === solitaireRank(moving) + 1;
+    }
+
+    function canPlaceSolitaireOnFoundation(cards, foundation) {
+      if (cards.length !== 1) return false;
+      const game = state.solitaire || createSolitaireState();
+      const card = cards[0];
+      if (solitaireFoundationIndex(card) !== foundation) return false;
+      const pile = game.foundations[foundation] || [];
+      const top = pile[pile.length - 1];
+      return top ? solitaireRank(card) === solitaireRank(top) + 1 : solitaireRank(card) === 1;
+    }
+
+    function removeSolitaireSelectedCards() {
+      const game = state.solitaire || createSolitaireState();
+      const selection = game.selected;
+      if (!selection) return [];
+      if (selection.source === "waste") {
+        const card = game.waste.pop();
+        return card ? [card] : [];
+      }
+      if (selection.source === "foundation") {
+        const pile = game.foundations[selection.foundation] || [];
+        const card = pile.pop();
+        return card ? [card] : [];
+      }
+      if (selection.source === "tableau") {
+        const pile = game.tableau[selection.column] || [];
+        const moved = pile.splice(selection.index).map((entry) => entry.card);
+        const newTop = pile[pile.length - 1];
+        if (newTop && !newTop.faceUp) newTop.faceUp = true;
+        return moved;
+      }
+      return [];
+    }
+
+    function moveSolitaireToTableau(column) {
+      const game = state.solitaire || createSolitaireState();
+      const cards = solitaireSelectedCards();
+      if (!game.selected || !canPlaceSolitaireOnTableau(cards, column)) {
+        game.message = "That card cannot be placed there.";
+        renderSolitaire();
+        return;
+      }
+      const moved = removeSolitaireSelectedCards();
+      game.tableau[column].push(...moved.map((card) => ({ card, faceUp: true })));
+      game.selected = null;
+      game.moves += 1;
+      game.message = "Moved to tableau.";
+      renderSolitaire();
+    }
+
+    function moveSolitaireToFoundation(foundation) {
+      const game = state.solitaire || createSolitaireState();
+      const cards = solitaireSelectedCards();
+      if (!game.selected || !canPlaceSolitaireOnFoundation(cards, foundation)) {
+        game.message = "That card cannot go to that foundation.";
+        renderSolitaire();
+        return;
+      }
+      const moved = removeSolitaireSelectedCards();
+      game.foundations[foundation].push(moved[0]);
+      game.selected = null;
+      game.moves += 1;
+      game.message = game.foundations.every((pile) => pile.length === 13)
+        ? `Solitaire cleared in ${game.moves} moves.`
+        : "Moved to foundation.";
+      renderSolitaire();
+    }
+
+    function handleSolitaireClick(event) {
+      const action = event.target.closest("[data-solitaire-action]");
+      if (action && action.dataset.solitaireAction === "stock") {
+        drawSolitaireStock();
+        return;
+      }
+      const cardTarget = event.target.closest("[data-solitaire-source]");
+      if (cardTarget) {
+        const source = cardTarget.dataset.solitaireSource;
+        if (source === "waste") {
+          selectSolitaireSource({ source: "waste" });
+          return;
+        }
+        if (source === "foundation") {
+          const foundation = Number(cardTarget.dataset.foundationIndex);
+          if (state.solitaire.selected) moveSolitaireToFoundation(foundation);
+          else selectSolitaireSource({ source: "foundation", foundation });
+          return;
+        }
+        if (source === "tableau") {
+          const column = Number(cardTarget.dataset.tableauColumn);
+          const index = Number(cardTarget.dataset.cardIndex);
+          if (state.solitaire.selected) moveSolitaireToTableau(column);
+          else selectSolitaireSource({ source: "tableau", column, index });
+          return;
+        }
+      }
+      const location = event.target.closest("[data-solitaire-location]");
+      if (!location || !state.solitaire.selected) return;
+      if (location.dataset.solitaireLocation === "foundation") {
+        moveSolitaireToFoundation(Number(location.dataset.foundationIndex));
+      } else if (location.dataset.solitaireLocation === "tableau") {
+        moveSolitaireToTableau(Number(location.dataset.tableauColumn));
+      }
+    }
+
+    function solitaireSlotLabel(text) {
+      const label = document.createElement("span");
+      label.className = "solitaire-slot-label";
+      label.textContent = text;
+      return label;
+    }
+
+    function renderSolitaireCard(card, hidden, attrs = {}) {
+      const element = renderPlayingCard(card, hidden);
+      Object.entries(attrs).forEach(([key, value]) => {
+        element.dataset[key] = String(value);
+      });
+      element.setAttribute("role", "button");
+      element.setAttribute("tabindex", "0");
+      return element;
+    }
+
+    function renderSolitaire() {
+      const game = state.solitaire || createSolitaireState();
+      const selectedKey = solitaireSelectionKey(game.selected);
+      if (els.solitaireStatus) {
+        els.solitaireStatus.textContent = `${game.message || "Build all four foundations from Ace to King."} Moves: ${game.moves || 0}.`;
+      }
+      if (els.solitaireStock) {
+        els.solitaireStock.innerHTML = "";
+        if (game.stock.length) els.solitaireStock.appendChild(renderPlayingCard("AS", true));
+        else els.solitaireStock.appendChild(solitaireSlotLabel(game.waste.length ? "Reset" : "Stock"));
+      }
+      if (els.solitaireWaste) {
+        els.solitaireWaste.innerHTML = "";
+        const card = game.waste[game.waste.length - 1];
+        if (card) {
+          const rendered = renderSolitaireCard(card, false, { solitaireSource: "waste" });
+          if (selectedKey === "waste:::") rendered.classList.add("selected");
+          els.solitaireWaste.appendChild(rendered);
+        } else {
+          els.solitaireWaste.appendChild(solitaireSlotLabel("Waste"));
+        }
+      }
+      document.querySelectorAll(".solitaire-slot.foundation").forEach((slot, index) => {
+        slot.innerHTML = "";
+        const pile = game.foundations[index] || [];
+        const card = pile[pile.length - 1];
+        if (card) {
+          const rendered = renderSolitaireCard(card, false, { solitaireSource: "foundation", foundationIndex: index });
+          if (selectedKey === `foundation:::${index}`) rendered.classList.add("selected");
+          slot.appendChild(rendered);
+        } else {
+          slot.appendChild(solitaireSlotLabel(["S", "H", "D", "C"][index]));
+        }
+      });
+      if (els.solitaireTableau) {
+        els.solitaireTableau.innerHTML = "";
+        game.tableau.forEach((pile, column) => {
+          const columnEl = document.createElement("div");
+          columnEl.className = "solitaire-column";
+          columnEl.dataset.solitaireLocation = "tableau";
+          columnEl.dataset.tableauColumn = String(column);
+          if (!pile.length) columnEl.appendChild(solitaireSlotLabel("K"));
+          pile.forEach((entry, index) => {
+            const rendered = renderSolitaireCard(entry.card, !entry.faceUp, entry.faceUp
+              ? { solitaireSource: "tableau", tableauColumn: column, cardIndex: index }
+              : {});
+            rendered.style.setProperty("--solitaire-card-index", index);
+            if (selectedKey === `tableau:${column}:${index}:`) rendered.classList.add("selected");
+            columnEl.appendChild(rendered);
+          });
+          els.solitaireTableau.appendChild(columnEl);
+        });
+      }
+    }
+
     const PLAYING_CARD_ART = {
       AS: "ace_of_spades_full.webp",
       "2S": "2_of_spades_full.webp",
@@ -10960,9 +11275,10 @@
       "10C": "10_of_clubs_full.webp",
       JC: "jack_of_clubs_full.webp",
       QC: "queen_of_clubs_full.webp",
-      KC: "king_of_clubs_full.webp"
+      KC: "king_of_clubs_full.webp",
+      JOKER: "joker_full.png"
     };
-    const CUSTOM_FULL_PLAYING_CARDS = new Set(["AS", "2S", "3S", "4S", "5S", "6S", "7S", "8S", "9S", "10S", "JS", "QS", "KS", "AH", "2H", "3H", "4H", "5H", "6H", "7H", "8H", "9H", "10H", "JH", "QH", "KH", "AD", "2D", "3D", "4D", "5D", "6D", "7D", "8D", "9D", "10D", "JD", "QD", "KD", "AC", "2C", "3C", "4C", "5C", "6C", "7C", "8C", "9C", "10C", "JC", "QC", "KC"]);
+    const CUSTOM_FULL_PLAYING_CARDS = new Set(["AS", "2S", "3S", "4S", "5S", "6S", "7S", "8S", "9S", "10S", "JS", "QS", "KS", "AH", "2H", "3H", "4H", "5H", "6H", "7H", "8H", "9H", "10H", "JH", "QH", "KH", "AD", "2D", "3D", "4D", "5D", "6D", "7D", "8D", "9D", "10D", "JD", "QD", "KD", "AC", "2C", "3C", "4C", "5C", "6C", "7C", "8C", "9C", "10C", "JC", "QC", "KC", "JOKER"]);
 
     function renderPlayingCard(card, hidden) {
       const element = document.createElement("div");
@@ -10970,6 +11286,17 @@
       if (hidden) {
         element.classList.add("hidden-card");
         element.setAttribute("aria-label", "Face-down card");
+        return element;
+      }
+      if (card === "JOKER") {
+        element.classList.add("custom-full-card");
+        const image = document.createElement("img");
+        image.className = "playing-card-art";
+        image.src = PLAYING_CARD_ART.JOKER;
+        image.alt = "Joker";
+        image.loading = "lazy";
+        image.decoding = "async";
+        element.appendChild(image);
         return element;
       }
       const suit = card.slice(-1);
@@ -12062,6 +12389,23 @@
     if (els.queenPowerMode) els.queenPowerMode.addEventListener("change", () => updateSettings({ queenPowerMode: els.queenPowerMode.value }));
     if (els.queenPowerUsers) els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
     els.backToMenuBtn.addEventListener("click", backToMenu);
+    if (els.solitaireBackBtn) els.solitaireBackBtn.addEventListener("click", backToMenuFromSolo);
+    if (els.newSolitaireBtn) {
+      els.newSolitaireBtn.addEventListener("click", () => {
+        dealSolitaire();
+        renderSolitaire();
+      });
+    }
+    if (els.solitaireTable) {
+      els.solitaireTable.addEventListener("click", handleSolitaireClick);
+      els.solitaireTable.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const target = event.target.closest("[data-solitaire-source], [data-solitaire-location], [data-solitaire-action]");
+        if (!target) return;
+        event.preventDefault();
+        handleSolitaireClick(event);
+      });
+    }
     if (els.continueSetupBtn) els.continueSetupBtn.addEventListener("click", continueToSetup);
     els.confirmLobbyNameBtn.addEventListener("click", confirmLobbyName);
     els.joinRoomBtn.addEventListener("click", joinRoomFromInput);
@@ -12107,6 +12451,7 @@
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
     if (els.higherLowerCard) els.higherLowerCard.addEventListener("click", openHigherLower);
+    if (els.solitaireCard) els.solitaireCard.addEventListener("click", openSolitaire);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
     els.tributeWheelCard.addEventListener("click", openWheelSpin);
     if (els.obedienceOrdersCard) els.obedienceOrdersCard.addEventListener("click", openObedienceOrders);

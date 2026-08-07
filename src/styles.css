@@ -2946,6 +2946,93 @@
       border-color: rgba(255, 239, 194, 0.42);
     }
 
+    .solitaire-screen {
+      width: min(1240px, calc(100vw - 24px));
+      display: grid;
+      gap: 16px;
+    }
+
+    .solitaire-table {
+      display: grid;
+      gap: 16px;
+      padding: 14px;
+      border: 1px solid rgba(241, 201, 101, 0.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(34, 23, 25, 0.88), rgba(12, 9, 10, 0.9)),
+        rgba(18, 12, 14, 0.94);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 20px 60px rgba(0, 0, 0, 0.34);
+    }
+
+    .solitaire-top-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(70px, 92px)) minmax(12px, 1fr) repeat(4, minmax(70px, 92px));
+      gap: 10px;
+      align-items: start;
+    }
+
+    .solitaire-slot,
+    .solitaire-column {
+      min-height: 128px;
+      padding: 6px;
+      border: 1px dashed rgba(239, 199, 94, 0.28);
+      border-radius: 8px;
+      background: rgba(8, 6, 7, 0.38);
+      color: rgba(244, 239, 232, 0.66);
+    }
+
+    .solitaire-slot {
+      display: grid;
+      place-items: center;
+      width: 100%;
+    }
+
+    .solitaire-slot .playing-card,
+    .solitaire-column .playing-card {
+      width: min(92px, 100%);
+      cursor: pointer;
+    }
+
+    .solitaire-table .playing-card.selected {
+      outline: 2px solid rgba(255, 207, 113, 0.95);
+      outline-offset: 3px;
+      box-shadow:
+        0 0 0 5px rgba(255, 79, 134, 0.24),
+        0 14px 34px rgba(0, 0, 0, 0.36);
+    }
+
+    .solitaire-slot-label {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      aspect-ratio: 5 / 7;
+      border-radius: 7px;
+      color: rgba(241, 201, 101, 0.76);
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .solitaire-tableau {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(72px, 1fr));
+      gap: 10px;
+      align-items: start;
+      min-height: 520px;
+    }
+
+    .solitaire-column {
+      position: relative;
+      min-height: 520px;
+      cursor: pointer;
+    }
+
+    .solitaire-column .playing-card {
+      position: absolute;
+      top: calc(var(--solitaire-card-index, 0) * 30px + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
     .chess-board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
@@ -4408,6 +4495,33 @@
 
       .higher-lower-run-options {
         grid-template-columns: 1fr;
+      }
+
+      .solitaire-screen {
+        width: min(100vw - 16px, 680px);
+      }
+
+      .solitaire-table {
+        padding: 8px;
+        gap: 10px;
+        overflow-x: auto;
+      }
+
+      .solitaire-top-row,
+      .solitaire-tableau {
+        min-width: 620px;
+      }
+
+      .solitaire-tableau {
+        min-height: 460px;
+      }
+
+      .solitaire-column {
+        min-height: 460px;
+      }
+
+      .solitaire-column .playing-card {
+        top: calc(var(--solitaire-card-index, 0) * 25px + 6px);
       }
 
       .topbar {

@@ -217,6 +217,7 @@
       <button class="game-select-tab active" data-game-tab="table">Table Duels</button>
       <button class="game-select-tab" data-game-tab="casino">Casino Risk</button>
       <button class="game-select-tab" data-game-tab="chance">Chance / Punishment</button>
+      <button class="game-select-tab" data-game-tab="solo">Solo Games</button>
       <button class="game-select-tab" data-game-tab="misc">Misc / WIP</button>
       <button class="game-select-tab" data-game-tab="all">All</button>
     </div>
@@ -303,6 +304,15 @@
         <strong class="status-pill">Play</strong>
       </button>
 
+      <button class="panel game-card" id="solitaireCard" data-game-categories="solo all">
+        <span>
+          <span class="game-card-tags"><span>Solo</span><span>Cards</span><span>Klondike</span></span>
+          <h2>Solitaire</h2>
+          <p>A relaxed solo card table using the custom Tribute Arcade deck.</p>
+        </span>
+        <strong class="status-pill">Play Solo</strong>
+      </button>
+
       <button class="panel game-card" id="obedienceOrdersCard" data-game-categories="misc all">
         <span>
           <span class="game-card-tags"><span>WIP</span><span>Command</span><span>Memory</span></span>
@@ -326,6 +336,32 @@
     <section class="game-grid hidden" id="testingGamesGrid"></section>
 
     <p class="main-menu-version">Version 1.0.0</p>
+  </main>
+
+  <main class="screen solitaire-screen hidden" id="solitaireScreen">
+    <header class="topbar">
+      <div>
+        <h1>Solitaire</h1>
+        <p class="subtitle" id="solitaireStatus">Build all four foundations from Ace to King.</p>
+      </div>
+      <div class="setup-actions">
+        <button id="newSolitaireBtn" class="primary">New Deal</button>
+        <button id="solitaireBackBtn">Games</button>
+      </div>
+    </header>
+
+    <section class="solitaire-table" id="solitaireTable">
+      <div class="solitaire-top-row">
+        <button class="solitaire-slot stock" id="solitaireStock" data-solitaire-action="stock" aria-label="Draw from stock"></button>
+        <button class="solitaire-slot waste" id="solitaireWaste" data-solitaire-location="waste" aria-label="Waste pile"></button>
+        <div class="solitaire-spacer"></div>
+        <button class="solitaire-slot foundation" data-solitaire-location="foundation" data-foundation-index="0" aria-label="Spades foundation"></button>
+        <button class="solitaire-slot foundation" data-solitaire-location="foundation" data-foundation-index="1" aria-label="Hearts foundation"></button>
+        <button class="solitaire-slot foundation" data-solitaire-location="foundation" data-foundation-index="2" aria-label="Diamonds foundation"></button>
+        <button class="solitaire-slot foundation" data-solitaire-location="foundation" data-foundation-index="3" aria-label="Clubs foundation"></button>
+      </div>
+      <div class="solitaire-tableau" id="solitaireTableau"></div>
+    </section>
   </main>
 
   <main class="screen app hidden" id="gameScreen">
