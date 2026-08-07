@@ -287,7 +287,7 @@
       border-radius: 8px;
       opacity: 0;
       filter: saturate(1.08) contrast(1.04) drop-shadow(0 26px 54px rgba(0, 0, 0, 0.64));
-      animation: chessCaptureBannerPulse 2200ms ease-out both;
+      animation: chessCaptureBannerPulse 5800ms ease-out both;
     }
 
     @keyframes chessCaptureBannerPulse {
@@ -299,8 +299,9 @@
         opacity: 0.72;
         transform: translateY(0) scale(1);
       }
-      72% {
-        opacity: 0.58;
+      84% {
+        opacity: 0.72;
+        transform: translateY(0) scale(1);
       }
       100% {
         opacity: 0;

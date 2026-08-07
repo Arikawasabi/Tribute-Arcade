@@ -294,7 +294,7 @@
       border-radius: 8px;
       opacity: 0;
       filter: saturate(1.08) contrast(1.04) drop-shadow(0 26px 54px rgba(0, 0, 0, 0.64));
-      animation: chessCaptureBannerPulse 2200ms ease-out both;
+      animation: chessCaptureBannerPulse 5800ms ease-out both;
     }
 
     @keyframes chessCaptureBannerPulse {
@@ -306,8 +306,9 @@
         opacity: 0.72;
         transform: translateY(0) scale(1);
       }
-      72% {
-        opacity: 0.58;
+      84% {
+        opacity: 0.72;
+        transform: translateY(0) scale(1);
       }
       100% {
         opacity: 0;
@@ -13966,6 +13967,7 @@
       "https://files.catbox.moe/yi2peq.png",
       "https://files.catbox.moe/c49iie.png"
     ];
+    const CHESS_CAPTURE_BANNER_MS = 5800;
 
     function randomChessCaptureBannerImage() {
       return CHESS_CAPTURE_BANNER_IMAGES[Math.floor(Math.random() * CHESS_CAPTURE_BANNER_IMAGES.length)] || "";
@@ -13977,7 +13979,7 @@
       state.chess.captureBanner = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url,
-        until: Date.now() + 2200
+        until: Date.now() + CHESS_CAPTURE_BANNER_MS
       };
     }
 
@@ -14272,7 +14274,7 @@
       }
       const fromSquare = state.chess.selected;
       const movingPiece = game.get(fromSquare);
-      const capturedPiece = game.get(square);
+      const capturedPiece = move.manualCastle ? null : game.get(move.to);
       const gazeTriggered = movingRole === SUB && !commandMove && isQueenGazedSquare(game, fromSquare, movingPiece);
       const titheTriggered = movingRole === DOM
         && chessQueenStancesActive()
@@ -14280,7 +14282,9 @@
         && movingPiece
         && movingPiece.type === "q"
         && isQueenAffectedPiece(capturedPiece);
-      const result = game.move({ from: fromSquare, to: square, promotion: "q" });
+      const result = move.manualCastle
+        ? applyManualChessCastle(game, move)
+        : game.move({ from: fromSquare, to: move.to, promotion: "q" });
       if (!result) return;
       const movedRole = movingRole;
       const capturedRole = capturedPiece
@@ -14324,12 +14328,122 @@
       return `${flags.includes("k") ? "h" : "a"}${rank}`;
     }
 
+    function chessSquareAttackedBy(game, square, byColor) {
+      const target = squareCoords(square);
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      const enemyPawnRank = byColor === "w" ? target.rank - 1 : target.rank + 1;
+      for (const fileOffset of [-1, 1]) {
+        const pawnFile = target.file + fileOffset;
+        if (pawnFile >= 0 && pawnFile < 8 && enemyPawnRank >= 0 && enemyPawnRank < 8) {
+          const pawn = game.get(coordsSquare(pawnFile, enemyPawnRank));
+          if (pawn && pawn.color === byColor && pawn.type === "p") return true;
+        }
+      }
+      const jumps = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]];
+      for (const [df, dr] of jumps) {
+        const file = target.file + df;
+        const rank = target.rank + dr;
+        if (file < 0 || file >= 8 || rank < 0 || rank >= 8) continue;
+        const piece = game.get(coordsSquare(file, rank));
+        if (piece && piece.color === byColor && piece.type === "n") return true;
+      }
+      for (const df of [-1, 0, 1]) {
+        for (const dr of [-1, 0, 1]) {
+          if (!df && !dr) continue;
+          const file = target.file + df;
+          const rank = target.rank + dr;
+          if (file < 0 || file >= 8 || rank < 0 || rank >= 8) continue;
+          const piece = game.get(coordsSquare(file, rank));
+          if (piece && piece.color === byColor && piece.type === "k") return true;
+        }
+      }
+      const rays = [
+        [1, 0, "rq"], [-1, 0, "rq"], [0, 1, "rq"], [0, -1, "rq"],
+        [1, 1, "bq"], [1, -1, "bq"], [-1, 1, "bq"], [-1, -1, "bq"]
+      ];
+      for (const [df, dr, attackers] of rays) {
+        let file = target.file + df;
+        let rank = target.rank + dr;
+        while (file >= 0 && file < 8 && rank >= 0 && rank < 8) {
+          const piece = game.get(coordsSquare(file, rank));
+          if (piece) {
+            if (piece.color === byColor && attackers.includes(piece.type)) return true;
+            break;
+          }
+          file += df;
+          rank += dr;
+        }
+      }
+      return false;
+    }
+
+    function manualChessCastleMove(game, square, side) {
+      const color = game.turn();
+      const rank = color === "w" ? "1" : "8";
+      const kingSquare = `e${rank}`;
+      if (square !== kingSquare) return null;
+      const king = game.get(kingSquare);
+      if (!king || king.color !== color || king.type !== "k") return null;
+      const rookSquare = `${side === "k" ? "h" : "a"}${rank}`;
+      const rook = game.get(rookSquare);
+      if (!rook || rook.color !== color || rook.type !== "r") return null;
+      const between = side === "k" ? [`f${rank}`, `g${rank}`] : [`d${rank}`, `c${rank}`, `b${rank}`];
+      if (between.some((pathSquare) => game.get(pathSquare))) return null;
+      const enemy = color === "w" ? "b" : "w";
+      const safeSquares = side === "k" ? [kingSquare, `f${rank}`, `g${rank}`] : [kingSquare, `d${rank}`, `c${rank}`];
+      if (safeSquares.some((safeSquare) => chessSquareAttackedBy(game, safeSquare, enemy))) return null;
+      return {
+        from: kingSquare,
+        to: `${side === "k" ? "g" : "c"}${rank}`,
+        flags: side,
+        piece: "k",
+        color,
+        manualCastle: true
+      };
+    }
+
+    function manualChessCastleMoves(game, square) {
+      return ["k", "q"].map((side) => manualChessCastleMove(game, square, side)).filter(Boolean);
+    }
+
+    function applyManualChessCastle(game, move) {
+      const parts = game.fen().split(" ");
+      const rows = expandFenBoard(parts[0]);
+      const color = move.color || game.turn();
+      const rank = color === "w" ? "1" : "8";
+      const row = color === "w" ? 7 : 0;
+      const kingside = String(move.flags || "").includes("k");
+      rows[row][4] = "";
+      rows[row][kingside ? 6 : 2] = color === "w" ? "K" : "k";
+      rows[row][kingside ? 7 : 0] = "";
+      rows[row][kingside ? 5 : 3] = color === "w" ? "R" : "r";
+      parts[0] = compressFenBoard(rows);
+      parts[1] = color === "w" ? "b" : "w";
+      parts[2] = String(parts[2] || "-").replace(color === "w" ? /[KQ]/g : /[kq]/g, "") || "-";
+      parts[3] = "-";
+      parts[4] = String(Number(parts[4] || 0) + 1);
+      if (color === "b") parts[5] = String(Number(parts[5] || 1) + 1);
+      const fen = parts.join(" ");
+      if (typeof game.load === "function") game.load(fen);
+      return {
+        color,
+        from: move.from,
+        to: move.to,
+        flags: move.flags,
+        piece: "k",
+        san: kingside ? "O-O" : "O-O-O",
+        fen
+      };
+    }
+
     function legalChessMoves(game, square, commandMove) {
       const moves = game.moves({ square, verbose: true });
       const movingRole = roleForChessColor(game.turn());
       if (!commandMove && square === state.chess.freezeSquare && movingRole === SUB) return [];
       const piece = game.get(square);
-      let legalMoves = moves;
+      let legalMoves = piece && piece.type === "k"
+        ? [...moves, ...manualChessCastleMoves(game, square).filter((manualMove) => !moves.some((move) => move.to === manualMove.to))]
+        : moves;
       if (!commandMove && movingRole === SUB && state.chess.queenShield && piece && piece.type === "p") {
         const queenSquare = findDomQueenSquare(game);
         legalMoves = legalMoves.filter((move) => move.to !== queenSquare);
