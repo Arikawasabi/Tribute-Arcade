@@ -11,6 +11,14 @@
 <body>
   <div class="distraction-backdrop" id="distractionBackdrop"></div>
   <div class="distraction-overlay" id="distractionOverlay"></div>
+  <div class="dom-trigger-overlay hidden" id="domTriggerOverlay">
+    <div class="dom-trigger-card" id="domTriggerCard">
+      <span id="domTriggerKicker">Dom Trigger</span>
+      <strong id="domTriggerTitle">Focus</strong>
+      <p id="domTriggerText">Stay sharp.</p>
+      <div class="dom-trigger-timer hidden" id="domTriggerTimer"></div>
+    </div>
+  </div>
   <div class="throne-kiss-splash hidden" id="throneKissSplash" aria-hidden="true">💋</div>
   <div class="checkers-queen-splash" id="checkersQueenSplash"><span id="checkersQueenSplashText"></span></div>
   <div class="outcome-splash hidden" id="outcomeSplash">
@@ -19,6 +27,20 @@
       <strong id="outcomeTitle">Tribute Accepted</strong>
       <span id="outcomeDetail">The ledger has been updated.</span>
     </div>
+  </div>
+  <div class="modal-backdrop normal-replay-modal hidden" id="normalReplayModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Next Round</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="normalReplayText">Replay or change bet?</p>
+        <div class="role-row">
+          <button id="normalReplayBtn" class="primary">Replay</button>
+          <button id="normalChangeBetBtn">Change Bet</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <main class="screen splash" id="lobbyScreen">
@@ -683,6 +705,19 @@
             <button id="sideSendDomLinkBtn" class="primary">Open Link</button>
           </div>
           <p class="chooser-line" id="sideDomLinkStatus">Paste a link, then open it for the sub.</p>
+          <div class="dom-trigger-panel" id="domTriggerPanel">
+            <h3 class="panel-title">Dom Trigger Panel</h3>
+            <div class="dom-trigger-grid">
+              <button data-dom-trigger="distract">Distract</button>
+              <button data-dom-trigger="praise">Praise</button>
+              <button data-dom-trigger="humiliate">Humiliate</button>
+              <button data-dom-trigger="freeze">Freeze</button>
+              <button data-dom-trigger="focus">Focus</button>
+              <button data-dom-trigger="timer">Edge Timer</button>
+              <button class="primary" data-dom-trigger="focus-tax">Focus Tax</button>
+            </div>
+            <p class="chooser-line" id="domTriggerStatus">Trigger a sub-side flash or tax their focus on their turn.</p>
+          </div>
           <label class="field-label">
             Distraction image or GIF
             <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
@@ -700,9 +735,12 @@
             <input id="sideDistractionDuration" type="number" min="1" max="60" step="1" value="15">
           </label>
           <div class="mode-grid">
+            <button id="uploadDistractionBtn">Upload Image</button>
             <button id="postDistractionBtn" class="primary">Post</button>
             <button id="clearDistractionBtn">Clear</button>
           </div>
+          <input id="distractionFileInput" class="hidden-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/*">
+          <div class="distraction-gallery" id="distractionGallery"></div>
           <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
         </div>
         <div class="settings-pane hidden" id="subSettingsPane">

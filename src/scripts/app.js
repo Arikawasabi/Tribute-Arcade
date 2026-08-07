@@ -105,6 +105,7 @@
         distractionOverlayUntil: 0,
         distractionOverlayX: 50,
         distractionOverlayY: 18,
+        distractionGallery: [],
         leaveNotice: null,
         linkRequest: null,
         sessionMode: "",
@@ -112,6 +113,8 @@
         throneReclaimPerks: false,
         throneAmount: 5,
         throneUrl: "",
+        domTriggerEffect: null,
+        focusTax: null,
         paymentDemand: null,
         pendingThroneDemand: null,
         throneExtensionStatus: null,
@@ -120,6 +123,7 @@
         queenPowerUsers: "dom"
       },
       pendingWager: null,
+      normalReplayPrompt: null,
       online: {
         room: null,
         seat: null,
@@ -187,6 +191,12 @@
       gameScreen: document.getElementById("gameScreen"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
+      domTriggerOverlay: document.getElementById("domTriggerOverlay"),
+      domTriggerCard: document.getElementById("domTriggerCard"),
+      domTriggerKicker: document.getElementById("domTriggerKicker"),
+      domTriggerTitle: document.getElementById("domTriggerTitle"),
+      domTriggerText: document.getElementById("domTriggerText"),
+      domTriggerTimer: document.getElementById("domTriggerTimer"),
       throneKissSplash: document.getElementById("throneKissSplash"),
       checkersQueenSplash: document.getElementById("checkersQueenSplash"),
       checkersQueenSplashText: document.getElementById("checkersQueenSplashText"),
@@ -195,6 +205,10 @@
       outcomeKicker: document.getElementById("outcomeKicker"),
       outcomeTitle: document.getElementById("outcomeTitle"),
       outcomeDetail: document.getElementById("outcomeDetail"),
+      normalReplayModal: document.getElementById("normalReplayModal"),
+      normalReplayText: document.getElementById("normalReplayText"),
+      normalReplayBtn: document.getElementById("normalReplayBtn"),
+      normalChangeBetBtn: document.getElementById("normalChangeBetBtn"),
       playerOneName: document.getElementById("playerOneName"),
       playerTwoName: document.getElementById("playerTwoName"),
       continueSetupBtn: document.getElementById("continueSetupBtn"),
@@ -259,12 +273,17 @@
       sideDomLinkInput: document.getElementById("sideDomLinkInput"),
       sideSendDomLinkBtn: document.getElementById("sideSendDomLinkBtn"),
       sideDomLinkStatus: document.getElementById("sideDomLinkStatus"),
+      domTriggerPanel: document.getElementById("domTriggerPanel"),
+      domTriggerStatus: document.getElementById("domTriggerStatus"),
       sideDistractionInput: document.getElementById("sideDistractionInput"),
       sideDistractionMode: document.getElementById("sideDistractionMode"),
       sideDistractionDuration: document.getElementById("sideDistractionDuration"),
       sideDistractionDurationRow: document.getElementById("sideDistractionDurationRow"),
+      uploadDistractionBtn: document.getElementById("uploadDistractionBtn"),
+      distractionFileInput: document.getElementById("distractionFileInput"),
       postDistractionBtn: document.getElementById("postDistractionBtn"),
       clearDistractionBtn: document.getElementById("clearDistractionBtn"),
+      distractionGallery: document.getElementById("distractionGallery"),
       sideDistractionStatus: document.getElementById("sideDistractionStatus"),
       queenPowerMode: document.getElementById("queenPowerMode"),
       queenPowerUsers: document.getElementById("queenPowerUsers"),
@@ -1596,10 +1615,10 @@
         els.menuRulesPrimaryText.textContent = `The Throne amount is set here on Game Select and stays at ${money(currentThroneAmount())} until ${state.names.dom || "the dom"} changes it. Games no longer ask for a bet amount in Throne mode.`;
         els.menuRulesSecondaryTitle.textContent = "Throne Losses";
         els.menuRulesSecondaryText.textContent = `If ${state.names.sub || "the sub"} loses a Throne game, Tribute Arcade opens the saved Throne page with the nearest $5 tribute amount already attached.`;
-        els.menuRulesTertiaryText.textContent = "The sub returns to the game, sees the kiss splash, then clicks the screen to dismiss it and reset the table for the next amount.";
+        els.menuRulesTertiaryText.textContent = "Throne mode requires the sub to play on a PC browser with the Throne helper extension installed. Mobile browsers cannot run the helper.";
         els.menuRulesFinalText.textContent = state.settings.throneReclaimPerks
-          ? "Reclaim win perks are enabled for the dom in Throne games, but the game still stays in Throne mode instead of starting bank reclaim matches."
-          : "Reclaim matches are hidden in Throne mode. The dom can optionally enable reclaim win perks from the Game Select toggle.";
+          ? "Reclaim win perks are enabled for the dom in Throne games, but the game still stays in Throne mode instead of starting bank reclaim matches. After a loss, the sub returns to the game and clicks the kiss splash to reset the table."
+          : "Reclaim matches are hidden in Throne mode. The dom can optionally enable reclaim win perks from the Game Select toggle. After a loss, the sub returns to the game and clicks the kiss splash to reset the table.";
         return;
       }
       els.menuRulesTitle.textContent = "Bet Rules";
@@ -1741,6 +1760,48 @@
       return !state.online.room || !role || role === SUB;
     }
 
+    function domTriggerControlsAllowed() {
+      const role = localOnlineRole();
+      return !state.online.room || role === DOM;
+    }
+
+    function subTriggerEffectsVisible() {
+      const role = localOnlineRole();
+      return !state.online.room || !role || role === SUB;
+    }
+
+    function domTriggerDefinition(type) {
+      const domName = state.names.dom || "Dom";
+      const subName = state.names.sub || "sub";
+      const map = {
+        distract: { tone: "distract", title: "Distract", text: `${domName} wants your eyes off balance.`, duration: 6500 },
+        praise: { tone: "praise", title: "Good Sub", text: `${domName} approves. Keep earning it.`, duration: 5200 },
+        humiliate: { tone: "humiliate", title: "Pathetic Focus", text: `Try not to fold for ${domName}.`, duration: 5600 },
+        freeze: { tone: "freeze", title: "Freeze", text: `${subName}, stop and wait for her signal.`, duration: 6500 },
+        focus: { tone: "focus", title: "Focus", text: `Eyes on the board. Move clean.`, duration: 5200 },
+        timer: { tone: "timer", title: "Edge Timer", text: `${domName} put you on a timer.`, duration: 15000, timer: true }
+      };
+      return map[type] || map.focus;
+    }
+
+    function focusTaxPenalty() {
+      if (isThroneSession()) return 5;
+      return state.mode === "reclaim" ? 2 : 1;
+    }
+
+    function focusTaxMaxUses() {
+      return state.mode === "reclaim" ? 3 : 2;
+    }
+
+    function focusTaxUses() {
+      return Number((state.settings.focusTax && state.settings.focusTax.uses) || 0);
+    }
+
+    function focusTaxActive() {
+      const tax = state.settings.focusTax;
+      return Boolean(tax && tax.active && Number(tax.expiresAt || 0) > Date.now());
+    }
+
     function renderSettings() {
       const role = localOnlineRole();
       const showDomSettings = !state.online.room || !role || role === DOM;
@@ -1753,6 +1814,198 @@
       if (els.sendDomLinkBtn) els.sendDomLinkBtn.disabled = !domLinkControlsAllowed();
       if (els.queenPowerMode) els.queenPowerMode.value = state.settings.queenPowerMode;
       if (els.queenPowerUsers) els.queenPowerUsers.value = state.settings.queenPowerUsers;
+      renderDomTriggerPanel();
+    }
+
+    function renderDomTriggerPanel() {
+      if (!els.domTriggerPanel) return;
+      const canUse = domTriggerControlsAllowed();
+      const activeTax = focusTaxActive();
+      const uses = focusTaxUses();
+      const maxUses = focusTaxMaxUses();
+      const canTax = canUse && state.screen === "game" && state.active && state.turn === SUB && !activeTax && uses < maxUses;
+      els.domTriggerPanel.querySelectorAll("[data-dom-trigger]").forEach((button) => {
+        const action = button.dataset.domTrigger;
+        button.disabled = !canUse || (action === "focus-tax" && !canTax);
+      });
+      if (els.domTriggerStatus) {
+        if (!canUse) {
+          els.domTriggerStatus.textContent = "Only the dom can use triggers.";
+        } else if (activeTax) {
+          const seconds = Math.max(0, Math.ceil((Number(state.settings.focusTax.expiresAt || 0) - Date.now()) / 1000));
+          els.domTriggerStatus.textContent = `Focus Tax active: ${seconds}s left.`;
+        } else {
+          els.domTriggerStatus.textContent = `Focus Tax ${uses}/${maxUses} used. Trigger a sub-side flash any time.`;
+        }
+      }
+    }
+
+    function triggerDomEffect(type) {
+      if (!domTriggerControlsAllowed()) return;
+      if (type === "focus-tax") {
+        startFocusTax();
+        return;
+      }
+      const def = domTriggerDefinition(type);
+      state.settings.domTriggerEffect = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type,
+        tone: def.tone,
+        title: def.title,
+        text: def.text,
+        timer: Boolean(def.timer),
+        createdAt: Date.now(),
+        until: Date.now() + def.duration
+      };
+      addLog(`<strong>${state.names.dom || "Dom"} triggers ${escapeHtml(def.title)}.</strong>`);
+      render();
+      publishState();
+    }
+
+    function startFocusTax() {
+      if (!domTriggerControlsAllowed()) return;
+      if (state.screen !== "game" || !state.active || state.turn !== SUB || focusTaxActive()) return;
+      const uses = focusTaxUses();
+      const maxUses = focusTaxMaxUses();
+      if (uses >= maxUses) return;
+      const penalty = focusTaxPenalty();
+      state.settings.focusTax = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        active: true,
+        uses: uses + 1,
+        expiresAt: Date.now() + 10000,
+        penalty,
+        mode: state.mode,
+        game: state.currentGame,
+        createdAt: Date.now()
+      };
+      state.settings.domTriggerEffect = {
+        id: state.settings.focusTax.id,
+        type: "focus-tax",
+        tone: "tax",
+        title: "Focus Tax",
+        text: `${state.names.sub || "Sub"} has 10 seconds to act.`,
+        timer: true,
+        createdAt: Date.now(),
+        until: state.settings.focusTax.expiresAt
+      };
+      addLog(`<strong>Focus Tax armed.</strong> ${state.names.sub || "Sub"} has 10 seconds to make a move.`);
+      render();
+      publishState();
+    }
+
+    function resolveFocusTaxSuccess() {
+      const tax = state.settings.focusTax;
+      if (!tax || !tax.active) return;
+      state.settings.focusTax = { ...tax, active: false, resolvedAt: Date.now(), result: "cleared" };
+      state.settings.domTriggerEffect = {
+        id: `${tax.id}-cleared`,
+        type: "focus-tax-clear",
+        tone: "focus",
+        title: "Tax Cleared",
+        text: `${state.names.sub || "Sub"} moved in time.`,
+        timer: false,
+        createdAt: Date.now(),
+        until: Date.now() + 2800
+      };
+    }
+
+    function skipSubTurnForFocusTax() {
+      if (!state.active || state.turn !== SUB) return false;
+      if (state.currentGame === "tributeTrail") {
+        passTrailTurn(DOM);
+        return true;
+      }
+      if (state.currentGame === "tributeCheckers") {
+        passCheckersTurn();
+        return true;
+      }
+      if (state.currentGame === "obedienceOrders" && state.obedience) {
+        state.obedience.phase = "building";
+        state.obedience.input = [];
+        state.obedience.revealedIndex = null;
+        state.obedience.message = `${state.names.sub || "Sub"} lost focus. ${state.names.dom || "Dom"} takes control.`;
+        state.active = false;
+        state.turn = DOM;
+        return true;
+      }
+      if (state.currentGame === "tributeTwentyOne" && state.twentyOne) {
+        state.twentyOne.stood = true;
+        state.turn = DOM;
+        state.twentyOne.dealerTurn = true;
+        return true;
+      }
+      if (state.currentGame === "tributeChess") {
+        setChessFenTurn(colorForChessRole(DOM));
+        state.turn = DOM;
+        state.chess.selected = null;
+        state.chess.legalMoves = [];
+        state.chess.postDomPowerWindow = false;
+        return true;
+      }
+      state.turn = DOM;
+      return true;
+    }
+
+    function resolveFocusTaxTimeout() {
+      const tax = state.settings.focusTax;
+      if (!tax || !tax.active || Number(tax.expiresAt || 0) > Date.now()) return false;
+      if (state.online.room && localOnlineRole() !== DOM) return false;
+      const penalty = Number(tax.penalty || focusTaxPenalty());
+      let throneSkip = false;
+      if (isThroneSession()) {
+        throneSkip = skipSubTurnForFocusTax();
+        addLog(`<strong>Focus Tax failed.</strong> ${state.names.sub || "Sub"} timed out; ${throneSkip ? `${state.names.dom || "Dom"} takes the turn.` : "no Throne amount was added."}`);
+      } else {
+        const before = state.domVault;
+        state.domVault += penalty;
+        state.lockedTribute = state.domVault;
+        recordLedgerEvent({
+          type: "tribute",
+          label: "Focus Tax",
+          detail: `${state.names.sub || "Sub"} timed out under ${state.names.dom || "the dom"}'s Focus Tax.`,
+          delta: state.domVault - before,
+          before,
+          after: state.domVault
+        });
+        addLog(`<strong>Focus Tax collected.</strong> ${money(penalty)} added to ${state.names.dom || "the dom"}'s bank.`);
+      }
+      state.settings.focusTax = { ...tax, active: false, resolvedAt: Date.now(), result: "taxed" };
+      state.settings.domTriggerEffect = {
+        id: `${tax.id}-taxed`,
+        type: "focus-tax-taxed",
+        tone: "tax",
+        title: isThroneSession() ? "Turn Skipped" : "Focus Tax Collected",
+        text: isThroneSession()
+          ? `${state.names.dom || "Dom"} takes control.`
+          : `${state.names.dom || "Dom"} collects +${money(penalty)}.`,
+        timer: false,
+        createdAt: Date.now(),
+        until: Date.now() + 3600
+      };
+      render();
+      publishState();
+      return true;
+    }
+
+    function renderDomTriggerOverlay() {
+      if (!els.domTriggerOverlay) return;
+      const effect = state.settings.domTriggerEffect;
+      const show = Boolean(effect && Number(effect.until || 0) > Date.now() && subTriggerEffectsVisible());
+      els.domTriggerOverlay.classList.toggle("hidden", !show);
+      document.body.classList.toggle("trigger-distracted", show && (effect.tone === "distract" || effect.tone === "tax"));
+      if (!show) return;
+      els.domTriggerCard.className = `dom-trigger-card ${effect.tone || "focus"}`;
+      els.domTriggerKicker.textContent = effect.type === "focus-tax" ? "Focus Tax" : "Dom Trigger";
+      els.domTriggerTitle.textContent = effect.title || "Focus";
+      els.domTriggerText.textContent = effect.text || "";
+      if (effect.timer) {
+        const seconds = Math.max(0, Math.ceil((Number(effect.until || 0) - Date.now()) / 1000));
+        els.domTriggerTimer.textContent = seconds;
+        els.domTriggerTimer.classList.remove("hidden");
+      } else {
+        els.domTriggerTimer.classList.add("hidden");
+      }
     }
 
     function updateSettings(changes) {
@@ -2226,6 +2479,7 @@
         const tab = button.dataset.openSideTab || "chat";
         const visible = !panelOpen && (tab !== "settings" || canOpenSettings);
         button.classList.toggle("hidden", !visible);
+        button.classList.toggle("active-restore", tab === activeTab);
         button.classList.toggle("unread", tab === "chat" && !panelOpen && hasUnreadChat());
       });
       els.sideToggleBtn.textContent = "Hide";
@@ -2253,6 +2507,7 @@
       els.sideDistractionInput.disabled = !canUseDomSettings;
       els.sideDistractionMode.disabled = !canUseDomSettings;
       els.sideDistractionDuration.disabled = !canUseDomSettings;
+      if (els.uploadDistractionBtn) els.uploadDistractionBtn.disabled = !canUseDomSettings;
       els.postDistractionBtn.disabled = !canUseDomSettings;
       els.clearDistractionBtn.disabled = !canUseDomSettings || !hasDistraction();
       if (els.domAdvantageMode) els.domAdvantageMode.disabled = !canUseDomSettings;
@@ -2272,6 +2527,7 @@
       els.sideDistractionMode.value = state.settings.distractionMode || "background-both";
       els.sideDistractionDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
       els.sideDistractionDurationRow.classList.toggle("hidden", els.sideDistractionMode.value !== "overlay-sub");
+      renderDistractionGallery();
       renderDistractionBackground();
     }
 
@@ -2379,6 +2635,7 @@
         state.settings.distractionUntil = 0;
         els.sideDistractionStatus.textContent = "Background posted.";
       }
+      rememberDistractionImage(url, state.settings.distractionMode);
       renderSidePanel();
       publishSettingsState();
     }
@@ -2525,6 +2782,48 @@
       const seconds = Math.round(Number(value));
       if (!Number.isFinite(seconds)) return 15;
       return Math.min(60, Math.max(1, seconds));
+    }
+
+    function distractionGalleryItems() {
+      return Array.isArray(state.settings.distractionGallery)
+        ? state.settings.distractionGallery.filter((item) => item && normalizeDistractionSource(item.url)).slice(-6).reverse()
+        : [];
+    }
+
+    function rememberDistractionImage(url, mode) {
+      const normalized = normalizeDistractionSource(url);
+      if (!normalized) return;
+      const existing = Array.isArray(state.settings.distractionGallery) ? state.settings.distractionGallery : [];
+      const next = [
+        ...existing.filter((item) => item && item.url !== normalized),
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          url: normalized,
+          mode: mode || state.settings.distractionMode || "background-both",
+          savedAt: Date.now()
+        }
+      ];
+      state.settings.distractionGallery = next.slice(-6);
+    }
+
+    function renderDistractionGallery() {
+      if (!els.distractionGallery) return;
+      const items = distractionGalleryItems();
+      els.distractionGallery.classList.toggle("hidden", !items.length);
+      els.distractionGallery.innerHTML = items.map((item, index) => `
+        <button type="button" class="distraction-thumb" data-distraction-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Resend image">
+          <span style="background-image: ${safeCssUrl(item.url)}"></span>
+        </button>
+      `).join("");
+    }
+
+    function resendDistractionFromGallery(index) {
+      if (!domLinkControlsAllowed()) return;
+      const item = distractionGalleryItems()[Number(index)];
+      if (!item) return;
+      els.sideDistractionInput.value = item.url;
+      if (item.mode && els.sideDistractionMode) els.sideDistractionMode.value = item.mode;
+      postDistraction();
     }
 
     function randomDistractionOverlayPosition() {
@@ -3300,6 +3599,8 @@
       state.pot = amount;
       state.mode = type;
       state.winningCells = [];
+      state.normalReplayPrompt = null;
+      state.settings.focusTax = { active: false, uses: 0 };
       return amount;
     }
 
@@ -3333,10 +3634,12 @@
           });
           const result = { outcome: "subReclaim", amount };
           showRoundOutcomeSplash(result);
+          queueBankReplayPrompt(result);
           return result;
         }
         const result = { outcome: "subNormal", amount: 0 };
         showRoundOutcomeSplash(result);
+        queueBankReplayPrompt(result);
         return result;
       }
       if (winner === DOM) {
@@ -3376,15 +3679,32 @@
           state.tiltLevel += 1;
           const result = { outcome: "domReclaim", amount };
           showRoundOutcomeSplash(result);
+          queueBankReplayPrompt(result);
           return result;
         }
         const result = { outcome: "domNormal", amount };
         showRoundOutcomeSplash(result);
+        queueBankReplayPrompt(result);
         return result;
       }
       const result = { outcome: "draw", amount: 0 };
       showRoundOutcomeSplash(result);
+      queueBankReplayPrompt(result);
       return result;
+    }
+
+    function queueBankReplayPrompt(result) {
+      if (!result || isThroneSession()) return;
+      if (state.mode !== "normal" && state.mode !== "reclaim") return;
+      state.normalReplayPrompt = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        game: state.currentGame,
+        mode: state.mode,
+        amount: normalizeBuyIn(state.pot || els.betInput.value || 0),
+        outcome: result.outcome,
+        winner: result.outcome.startsWith("dom") ? DOM : (result.outcome.startsWith("sub") ? SUB : null),
+        createdAt: Date.now()
+      };
     }
 
     function showRoundOutcomeSplash(result) {
@@ -3432,6 +3752,59 @@
           detail: "No tribute changes hands."
         });
       }
+    }
+
+    function normalReplayControlsAllowed() {
+      const role = localOnlineRole();
+      if (role === SPECTATOR) return false;
+      return !state.online.room || role === SUB;
+    }
+
+    function renderNormalReplayModal() {
+      if (!els.normalReplayModal) return;
+      const prompt = state.normalReplayPrompt;
+      const show = Boolean(prompt && state.screen === "game" && normalReplayControlsAllowed());
+      els.normalReplayModal.classList.toggle("hidden", !show);
+      if (!show) return;
+      const isReclaim = prompt.mode === "reclaim";
+      const canReplay = !isReclaim || state.domVault > 0;
+      const winnerText = prompt.winner
+        ? `${labelFor(prompt.winner)} won.`
+        : "Draw.";
+      els.normalReplayText.textContent = canReplay
+        ? `${winnerText} Replay or change bet?`
+        : `${winnerText} Bank reclaimed. Change bet?`;
+      els.normalReplayBtn.disabled = !canReplay;
+      els.normalChangeBetBtn.disabled = false;
+    }
+
+    function replayNormalRound() {
+      const prompt = state.normalReplayPrompt;
+      if (!prompt || !normalReplayControlsAllowed()) return;
+      const replayMode = prompt.mode === "reclaim" ? "reclaim" : "normal";
+      if (replayMode === "reclaim" && state.domVault <= 0) return;
+      state.normalReplayPrompt = null;
+      hideOutcomeSplash();
+      els.betInput.value = normalizeBuyIn(prompt.amount || state.pot || els.betInput.value || 0);
+      wagerStartBypass = true;
+      try {
+        if (replayMode === "reclaim") {
+          startReclaimMatch();
+        } else {
+          startNormalMatch();
+        }
+      } finally {
+        wagerStartBypass = false;
+      }
+      render();
+      publishState();
+    }
+
+    function changeNormalRoundBet() {
+      if (!state.normalReplayPrompt || !normalReplayControlsAllowed()) return;
+      state.normalReplayPrompt = null;
+      hideOutcomeSplash();
+      resetCurrentGameToAmountChoice(`<strong>Ready for the next bet.</strong>`);
     }
 
     function updatePendingWager(changes, publish = true) {
@@ -4001,6 +4374,7 @@
       if (!obedience || obedience.phase !== "recall" || !obedienceControlsAllowed(SUB)) return;
       const cell = Number(index);
       if (!Number.isInteger(cell) || cell < 0 || cell >= OBEDIENCE_GRID_SIZE) return;
+      resolveFocusTaxSuccess();
       const expected = obedience.order[obedience.input.length];
       if (cell !== expected) {
         const before = state.domVault;
@@ -4239,6 +4613,7 @@
       flips.forEach(([r, c]) => {
         board[r][c] = player;
       });
+      if (player === SUB && !commanded) resolveFocusTaxSuccess();
       state.reversi.lastMove = { row, col, player, flips };
       state.reversi.passes = 0;
       if (player === SUB) {
@@ -4469,6 +4844,7 @@
 
       const movingPlayer = state.turn;
       state.board[row][col] = movingPlayer;
+      if (movingPlayer === SUB) resolveFocusTaxSuccess();
       const result = evaluateBoard(row, col);
 
       if (result.winner) {
@@ -5154,6 +5530,7 @@
       if (!trailRollAllowed()) return;
       if (state.trail && state.trail.pendingCardActivation) return;
       const player = state.turn;
+      if (player === SUB) resolveFocusTaxSuccess();
       const pendingPanel = state.trail.pendingPanelActivation ? state.trail.pendingPanelActivation[player] : null;
       if (pendingPanel !== null && pendingPanel !== undefined) {
         delete state.trail.pendingPanelActivation[player];
@@ -6562,8 +6939,9 @@
       publishState();
     }
 
-    function resetCurrentGameToAmountChoice() {
+    function resetCurrentGameToAmountChoice(message = `<strong>Ready for the next Throne amount.</strong>`) {
       state.pendingWager = null;
+      state.normalReplayPrompt = null;
       if (state.currentGame === "tributeChess") {
         resetTributeChessBoard();
       } else if (state.currentGame === "tributeCheckers") {
@@ -6591,7 +6969,7 @@
       state.mode = "normal";
       state.pot = 0;
       applyDefaultBet();
-      addLog(`<strong>Ready for the next Throne amount.</strong>`);
+      addLog(message);
       render();
       publishState();
     }
@@ -7008,6 +7386,7 @@
       const piece = board[fromRow][fromCol];
       board[fromRow][fromCol] = null;
       board[toRow][toCol] = piece;
+      if (piece && piece.role === SUB) resolveFocusTaxSuccess();
       if (checkersCoordMatches(state.checkers.marked, fromRow, fromCol)) state.checkers.marked = { row: toRow, col: toCol };
       if (move.capture) {
         const capturedPiece = board[move.capture[0]][move.capture[1]];
@@ -7160,6 +7539,7 @@
         return;
       }
       const resultIndex = Math.floor(Math.random() * 36);
+      resolveFocusTaxSuccess();
       const sliceAngle = Math.PI * 2 / 36;
       const rotations = 8 + Math.floor(Math.random() * 4);
       const startAngle = Number(state.wheel.angle || 0);
@@ -7614,6 +7994,7 @@
       if (state.board[row][col]) return;
       const player = state.turn;
       state.board[row][col] = player;
+      if (player === SUB) resolveFocusTaxSuccess();
       const result = evaluateTicTacToe();
       if (result.winner) {
         endMatch(result.winner, result.cells);
@@ -7981,6 +8362,7 @@
       const result = game.move({ from: fromSquare, to: square, promotion: "q" });
       if (!result) return;
       const movedRole = movingRole;
+      if (movedRole === SUB && !commandMove) resolveFocusTaxSuccess();
       state.chess.fen = game.fen();
       if (state.chess.freezeSquare === fromSquare) {
         state.chess.freezeSquare = square;
@@ -8430,6 +8812,7 @@
     function higherLowerGuess(direction) {
       if (state.currentGame !== "higherLower" || !state.active || !state.higherLower.currentCard) return;
       if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      resolveFocusTaxSuccess();
       const previous = state.higherLower.currentCard;
       const next = drawHigherLowerCard();
       const previousValue = higherLowerCardValue(previous);
@@ -8586,6 +8969,7 @@
       if (state.currentGame !== "tributeTwentyOne" || !state.active) return;
       if (state.turn === SUB) {
         if (localOnlineRole() && localOnlineRole() !== SUB) return;
+        resolveFocusTaxSuccess();
         state.twentyOne.hands.sub.push(drawTwentyOneCard());
         addLog(`<strong>${state.names.sub} hits.</strong>`);
         if (twentyOneScore(state.twentyOne.hands.sub).bust) {
@@ -8621,6 +9005,7 @@
       if (state.currentGame !== "tributeTwentyOne" || !state.active) return;
       if (state.turn === SUB) {
         if (localOnlineRole() && localOnlineRole() !== SUB) return;
+        resolveFocusTaxSuccess();
         state.twentyOne.stood = true;
         state.turn = DOM;
         if (canOfferTwentyOnePushLuck()) {
@@ -9011,6 +9396,7 @@
       if (state.fleet.shots[attacker][row][col]) return;
       const hit = state.fleet.boards[target][row][col];
       state.fleet.shots[attacker][row][col] = hit ? "hit" : "miss";
+      if (attacker === SUB) resolveFocusTaxSuccess();
       addLog(hit
         ? `<strong>${labelFor(attacker)} scores a hit.</strong>`
         : `<strong>${labelFor(attacker)} misses.</strong>`);
@@ -11398,12 +11784,23 @@
       renderHigherLowerMercyModal();
       renderCheckersQueenModal();
       renderCheckersQueenSplash();
+      renderNormalReplayModal();
+      renderDomTriggerOverlay();
       renderBrattyWelcomeModal();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
     els.reclaimBtn.addEventListener("click", startReclaimMatch);
+    if (els.normalReplayBtn) els.normalReplayBtn.addEventListener("click", replayNormalRound);
+    if (els.normalChangeBetBtn) els.normalChangeBetBtn.addEventListener("click", changeNormalRoundBet);
     document.addEventListener("click", handleThroneKissDismiss, true);
+    if (els.domTriggerPanel) {
+      els.domTriggerPanel.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-dom-trigger]");
+        if (!button || button.disabled) return;
+        triggerDomEffect(button.dataset.domTrigger);
+      });
+    }
     if (els.throneAmountInput) {
       els.throneAmountInput.addEventListener("change", () => updateSettings({ throneAmount: els.throneAmountInput.value }));
       els.throneAmountInput.addEventListener("input", () => updateSettings({ throneAmount: els.throneAmountInput.value }));
@@ -11511,6 +11908,21 @@
     els.sideDistractionInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") postDistraction();
     });
+    if (els.uploadDistractionBtn && els.distractionFileInput) {
+      els.uploadDistractionBtn.addEventListener("click", () => {
+        if (!domLinkControlsAllowed()) return;
+        els.distractionFileInput.click();
+      });
+      els.distractionFileInput.addEventListener("change", () => {
+        const file = imageFileFromItems(els.distractionFileInput.files);
+        els.distractionFileInput.value = "";
+        if (!file) {
+          els.sideDistractionStatus.textContent = "Choose a PNG, JPG, GIF, WebP, or BMP image.";
+          return;
+        }
+        useLocalDistractionFile(file);
+      });
+    }
     els.sideDistractionInput.addEventListener("paste", handleDistractionPaste);
     els.sideDistractionInput.addEventListener("dragover", (event) => {
       event.preventDefault();
@@ -11520,12 +11932,24 @@
       els.sideDistractionInput.classList.remove("drop-ready");
     });
     els.sideDistractionInput.addEventListener("drop", handleDistractionDrop);
+    if (els.distractionGallery) {
+      els.distractionGallery.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-distraction-gallery-index]");
+        if (!button || button.disabled) return;
+        resendDistractionFromGallery(button.dataset.distractionGalleryIndex);
+      });
+    }
     els.rulesBtn.addEventListener("click", openRulesModal);
     els.closeRulesBtn.addEventListener("click", closeRulesModal);
     els.rulesModal.addEventListener("click", (event) => {
       if (event.target === els.rulesModal) closeRulesModal();
     });
     if (els.outcomeSplash) els.outcomeSplash.addEventListener("click", hideOutcomeSplash);
+    window.setInterval(() => {
+      if (resolveFocusTaxTimeout()) return;
+      renderDomTriggerOverlay();
+      renderDomTriggerPanel();
+    }, 400);
     els.tributeFourPowerOptions.addEventListener("click", (event) => {
       const button = event.target.closest("[data-tribute-four-power], [data-fleet-power], [data-chess-power], [data-checkers-power], [data-twenty-one-power]");
       if (!button || button.disabled) return;
