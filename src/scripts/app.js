@@ -3762,6 +3762,7 @@
           demandPayment({ automatic: true });
           const result = { outcome: "domThrone", amount };
           showRoundOutcomeSplash(result);
+          queueBankReplayPrompt(result);
           return result;
         }
         const before = state.domVault;
@@ -3794,7 +3795,7 @@
     }
 
     function queueBankReplayPrompt(result) {
-      if (!result || isThroneSession()) return;
+      if (!result) return;
       if (state.mode !== "normal" && state.mode !== "reclaim") return;
       state.normalReplayPrompt = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -3857,6 +3858,7 @@
     function normalReplayControlsAllowed() {
       const role = localOnlineRole();
       if (role === SPECTATOR) return false;
+      if (isThroneSession()) return !state.online.room || role === DOM || role === SUB;
       return !state.online.room || role === SUB;
     }
 
@@ -3871,9 +3873,10 @@
       const winnerText = prompt.winner
         ? `${labelFor(prompt.winner)} won.`
         : "Draw.";
+      const changeLabel = isThroneSession() ? "amount" : "bet";
       els.normalReplayText.textContent = canReplay
-        ? `${winnerText} Replay or change bet?`
-        : `${winnerText} Bank reclaimed. Change bet?`;
+        ? `${winnerText} Replay or change ${changeLabel}?`
+        : `${winnerText} Bank reclaimed. Change ${changeLabel}?`;
       els.normalReplayBtn.disabled = !canReplay;
       els.normalChangeBetBtn.disabled = false;
     }
@@ -3904,6 +3907,10 @@
       if (!state.normalReplayPrompt || !normalReplayControlsAllowed()) return;
       state.normalReplayPrompt = null;
       hideOutcomeSplash();
+      if (isThroneSession() && (!state.online.room || localOnlineRole() === DOM)) {
+        backToMenu();
+        return;
+      }
       resetCurrentGameToAmountChoice(`<strong>Ready for the next bet.</strong>`);
     }
 
@@ -8442,7 +8449,8 @@
         return;
       }
 
-      const move = state.chess.legalMoves.find((candidate) => candidate.to === square);
+      const move = state.chess.legalMoves.find((candidate) => candidate.to === square)
+        || state.chess.legalMoves.find((candidate) => chessCastleRookSquare(candidate) === square);
       if (!move) {
         state.chess.selected = null;
         state.chess.legalMoves = [];
@@ -8489,6 +8497,14 @@
         ? `<strong>Command Move.</strong> ${state.names.dom} moves ${state.names.sub}'s piece.`
         : `<strong>${labelFor(movedRole)} moves.</strong>`);
       resolveChessAfterMove(game, movedRole);
+    }
+
+    function chessCastleRookSquare(move) {
+      const flags = String(move && move.flags || "");
+      if (!flags.includes("k") && !flags.includes("q")) return "";
+      const rank = String(move.from || "").slice(1);
+      if (!rank) return "";
+      return `${flags.includes("k") ? "h" : "a"}${rank}`;
     }
 
     function legalChessMoves(game, square, commandMove) {
@@ -10628,9 +10644,14 @@
         els.board.innerHTML = `<div class="entry">Chess engine unavailable. Check the chess.js script connection.</div>`;
         return;
       }
-      const legalTargets = new Set((state.chess.legalMoves || []).map((move) => move.to));
+      const legalTargets = new Set((state.chess.legalMoves || []).flatMap((move) => {
+        const castleRook = chessCastleRookSquare(move);
+        return castleRook ? [move.to, castleRook] : [move.to];
+      }));
       const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
       const localRole = localOnlineRole();
+      const isLocalTurn = state.active && (!localRole || localRole === roleForChessColor(game.turn()));
+      els.board.classList.add(isLocalTurn ? "your-turn" : "waiting-turn");
       const localColor = localRole && localRole !== SPECTATOR ? colorForChessRole(localRole) : "w";
       const ranks = localColor === "b" ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
       const fileIndexes = localColor === "b" ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
