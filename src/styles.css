@@ -272,7 +272,7 @@
       z-index: 33;
       display: grid;
       place-items: start center;
-      padding: clamp(72px, 12vh, 132px) 16px 16px;
+      padding: clamp(62px, 10vh, 110px) 0 0;
       pointer-events: none;
     }
 
@@ -281,10 +281,11 @@
     }
 
     .chess-capture-banner img {
-      width: min(920px, 94vw);
-      max-height: min(34vh, 310px);
+      width: 100vw;
+      max-width: none;
+      height: min(42vh, 420px);
       object-fit: cover;
-      border-radius: 8px;
+      border-radius: 0;
       opacity: 0;
       filter: saturate(1.08) contrast(1.04) drop-shadow(0 26px 54px rgba(0, 0, 0, 0.64));
       animation: chessCaptureBannerPulse 5800ms ease-out both;
@@ -296,11 +297,11 @@
         transform: translateY(-10px) scale(0.98);
       }
       16% {
-        opacity: 0.72;
+        opacity: 0.92;
         transform: translateY(0) scale(1);
       }
       84% {
-        opacity: 0.72;
+        opacity: 0.86;
         transform: translateY(0) scale(1);
       }
       100% {
