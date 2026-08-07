@@ -3017,18 +3017,18 @@
       grid-template-columns: repeat(7, minmax(122px, 1fr));
       gap: 16px;
       align-items: start;
-      min-height: 760px;
+      min-height: 640px;
     }
 
     .solitaire-column {
       position: relative;
-      min-height: 760px;
+      min-height: 640px;
       cursor: pointer;
     }
 
     .solitaire-column .playing-card {
       position: absolute;
-      top: calc(var(--solitaire-card-index, 0) * 45px + 8px);
+      top: calc(var(--solitaire-card-index, 0) * 34px + 8px);
       left: 50%;
       transform: translateX(-50%);
     }
@@ -4513,15 +4513,15 @@
       }
 
       .solitaire-tableau {
-        min-height: 700px;
+        min-height: 580px;
       }
 
       .solitaire-column {
-        min-height: 700px;
+        min-height: 580px;
       }
 
       .solitaire-column .playing-card {
-        top: calc(var(--solitaire-card-index, 0) * 39px + 8px);
+        top: calc(var(--solitaire-card-index, 0) * 30px + 8px);
       }
 
       .topbar {
