@@ -107,16 +107,16 @@
       position: fixed;
       top: var(--distraction-overlay-top, 18%);
       left: var(--distraction-overlay-left, 50%);
-      width: min(420px, calc(100vw - 36px));
-      height: min(360px, 46vh);
+      width: min(620px, calc(100vw - 32px));
+      height: min(520px, 62vh);
       z-index: 21;
       pointer-events: none;
       background-position: center;
       background-size: contain;
       background-repeat: no-repeat;
-      border: 1px solid rgba(239, 199, 94, 0.42);
-      border-radius: 8px;
-      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+      border: 0;
+      border-radius: 0;
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
       opacity: 0;
       transform: translate(-50%, 10px);
       transition: opacity 180ms ease, transform 180ms ease;
@@ -4444,7 +4444,7 @@
         min-height: 104px;
       }
 
-      .side-restore-tab:not(.active-restore) {
+      .side-restore-tab:not(.active-restore):not([data-open-side-tab="chat"]) {
         display: none;
       }
 
@@ -4463,9 +4463,18 @@
         bottom: 12px;
       }
 
+      .side-restore-tab[data-open-side-tab="chat"] {
+        top: auto;
+        bottom: 124px;
+      }
+
+      .side-restore-tab[data-open-side-tab="chat"].active-restore {
+        bottom: 12px;
+      }
+
       .distraction-overlay {
-        width: min(360px, calc(100vw - 24px));
-        height: min(280px, 38vh);
+        width: min(520px, calc(100vw - 18px));
+        height: min(430px, 58vh);
       }
 
       .status-pill {
