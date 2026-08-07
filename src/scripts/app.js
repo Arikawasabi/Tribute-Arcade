@@ -11221,7 +11221,7 @@
           if (selectedKey === `foundation:::${index}`) rendered.classList.add("selected");
           slot.appendChild(rendered);
         } else {
-          slot.appendChild(solitaireSlotLabel(["S", "H", "D", "C"][index]));
+          slot.appendChild(solitaireSlotLabel(["♠", "♡", "♣", "♢"][index]));
         }
       });
       if (els.solitaireTableau) {
