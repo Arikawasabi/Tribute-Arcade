@@ -11142,6 +11142,12 @@
       return top ? solitaireRank(card) === solitaireRank(top) + 1 : solitaireRank(card) === 1;
     }
 
+    function solitaireFoundationTarget(cards, fallbackFoundation) {
+      if (cards.length !== 1) return fallbackFoundation;
+      const suitFoundation = solitaireFoundationIndex(cards[0]);
+      return suitFoundation >= 0 ? suitFoundation : fallbackFoundation;
+    }
+
     function removeSolitaireSelectedCards() {
       const game = state.solitaire || createSolitaireState();
       const selection = game.selected;
@@ -11217,7 +11223,7 @@
           const foundation = Number(cardTarget.dataset.foundationIndex);
           const selection = { source: "foundation", foundation };
           if (solitaireSelectionKey(state.solitaire.selected) === solitaireSelectionKey(selection)) selectSolitaireSource(selection);
-          else if (state.solitaire.selected) moveSolitaireToFoundation(foundation);
+          else if (state.solitaire.selected) moveSolitaireToFoundation(solitaireFoundationTarget(solitaireSelectedCards(), foundation));
           else selectSolitaireSource(selection);
           return;
         }
@@ -11234,15 +11240,16 @@
       const location = event.target.closest("[data-solitaire-location]");
       if (!location || !state.solitaire.selected) return;
       if (location.dataset.solitaireLocation === "foundation") {
-        moveSolitaireToFoundation(Number(location.dataset.foundationIndex));
+        const foundation = Number(location.dataset.foundationIndex);
+        moveSolitaireToFoundation(solitaireFoundationTarget(solitaireSelectedCards(), foundation));
       } else if (location.dataset.solitaireLocation === "tableau") {
         moveSolitaireToTableau(Number(location.dataset.tableauColumn));
       }
     }
 
-    function solitaireSlotLabel(text) {
+    function solitaireSlotLabel(text, className = "") {
       const label = document.createElement("span");
-      label.className = "solitaire-slot-label";
+      label.className = `solitaire-slot-label ${className}`.trim();
       label.textContent = text;
       return label;
     }
@@ -11289,7 +11296,7 @@
           if (selectedKey === `foundation:::${index}`) rendered.classList.add("selected");
           slot.appendChild(rendered);
         } else {
-          slot.appendChild(solitaireSlotLabel(SOLITAIRE_FOUNDATION_LABELS[index]));
+          slot.appendChild(solitaireSlotLabel(SOLITAIRE_FOUNDATION_LABELS[index], "suit-placeholder"));
         }
       });
       if (els.solitaireTableau) {

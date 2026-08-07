@@ -3041,10 +3041,16 @@
       aspect-ratio: 5 / 7;
       border-radius: 7px;
       color: rgba(241, 201, 101, 0.76);
-      font-size: clamp(2.4rem, 5vw, 4.5rem);
+      font-size: clamp(0.78rem, 1.2vw, 1rem);
       font-weight: 900;
       letter-spacing: 0;
       line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .solitaire-slot-label.suit-placeholder {
+      font-size: clamp(2.4rem, 5vw, 4.5rem);
+      text-transform: none;
     }
 
     .solitaire-tableau {
