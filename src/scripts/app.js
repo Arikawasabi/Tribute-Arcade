@@ -198,6 +198,7 @@
       solitaireTableau: document.getElementById("solitaireTableau"),
       solitaireTable: document.getElementById("solitaireTable"),
       solitaireCardPreview: document.getElementById("solitaireCardPreview"),
+      chessCaptureBanner: document.getElementById("chessCaptureBanner"),
       newSolitaireBtn: document.getElementById("newSolitaireBtn"),
       solitaireBackBtn: document.getElementById("solitaireBackBtn"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
@@ -817,6 +818,7 @@
         queenShield: false,
         queenStance: "none",
         queenTriggerUsed: false,
+        captureBanner: null,
         charges: 0,
         outcome: ""
       };
@@ -8188,6 +8190,53 @@
       return state.tiltLevel >= 1;
     }
 
+    const CHESS_CAPTURE_BANNER_IMAGES = [
+      "https://files.catbox.moe/7bvb39.png",
+      "https://files.catbox.moe/0ocegf.png",
+      "https://files.catbox.moe/kxk7wg.png",
+      "https://files.catbox.moe/fyo046.png",
+      "https://files.catbox.moe/33hapd.png",
+      "https://files.catbox.moe/33t824.png",
+      "https://files.catbox.moe/ngiqcy.png",
+      "https://files.catbox.moe/7we9vn.png",
+      "https://files.catbox.moe/yi2peq.png",
+      "https://files.catbox.moe/c49iie.png"
+    ];
+
+    function randomChessCaptureBannerImage() {
+      return CHESS_CAPTURE_BANNER_IMAGES[Math.floor(Math.random() * CHESS_CAPTURE_BANNER_IMAGES.length)] || "";
+    }
+
+    function showChessCaptureBanner() {
+      const url = randomChessCaptureBannerImage();
+      if (!url) return;
+      state.chess.captureBanner = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url,
+        until: Date.now() + 2200
+      };
+    }
+
+    function renderChessCaptureBanner() {
+      if (!els.chessCaptureBanner) return;
+      const banner = state.chess && state.chess.captureBanner;
+      const show = Boolean(
+        state.currentGame === "tributeChess"
+        && state.screen === "game"
+        && banner
+        && banner.url
+        && Number(banner.until || 0) > Date.now()
+      );
+      els.chessCaptureBanner.classList.toggle("hidden", !show);
+      if (!show) {
+        els.chessCaptureBanner.innerHTML = "";
+        return;
+      }
+      els.chessCaptureBanner.innerHTML = `<img src="${escapeHtml(banner.url)}" alt="" aria-hidden="true">`;
+      window.clearTimeout(renderChessCaptureBanner.timer);
+      renderChessCaptureBanner.timer = window.setTimeout(renderChessCaptureBanner, Math.max(80, Number(banner.until || 0) - Date.now() + 40));
+    }
+
     function queenAffectedTypes() {
       if (state.tiltLevel >= 5) return ["p", "n", "b", "r", "q"];
       if (state.tiltLevel >= 4) return ["p", "n", "b", "r"];
@@ -8470,6 +8519,10 @@
       const result = game.move({ from: fromSquare, to: square, promotion: "q" });
       if (!result) return;
       const movedRole = movingRole;
+      const capturedRole = capturedPiece
+        ? roleForChessColor(capturedPiece.color)
+        : (result.captured ? (movedRole === DOM ? SUB : DOM) : null);
+      if (capturedRole === SUB) showChessCaptureBanner();
       if (movedRole === SUB && !commandMove) resolveFocusTaxSuccess();
       state.chess.fen = game.fen();
       if (state.chess.freezeSquare === fromSquare) {
@@ -12286,6 +12339,7 @@
       renderHigherLowerMercyModal();
       renderCheckersQueenModal();
       renderCheckersQueenSplash();
+      renderChessCaptureBanner();
       renderNormalReplayModal();
       renderDomTriggerOverlay();
       renderBrattyWelcomeModal();
