@@ -2493,6 +2493,14 @@
     }
 
     function renderSidePanel() {
+      const soloMode = state.screen === "solitaire";
+      if (soloMode) {
+        els.sidePopout.classList.add("hidden");
+        els.sideRestoreTabs.forEach((button) => button.classList.add("hidden"));
+        renderDistractionBackground();
+        return;
+      }
+      els.sidePopout.classList.remove("hidden");
       const canOpenSettings = sideSettingsAllowed();
       const canOpenTools = domLinkControlsAllowed();
       const canUseDomSettings = domLinkControlsAllowed();
@@ -11140,15 +11148,19 @@
         }
         if (source === "foundation") {
           const foundation = Number(cardTarget.dataset.foundationIndex);
-          if (state.solitaire.selected) moveSolitaireToFoundation(foundation);
-          else selectSolitaireSource({ source: "foundation", foundation });
+          const selection = { source: "foundation", foundation };
+          if (solitaireSelectionKey(state.solitaire.selected) === solitaireSelectionKey(selection)) selectSolitaireSource(selection);
+          else if (state.solitaire.selected) moveSolitaireToFoundation(foundation);
+          else selectSolitaireSource(selection);
           return;
         }
         if (source === "tableau") {
           const column = Number(cardTarget.dataset.tableauColumn);
           const index = Number(cardTarget.dataset.cardIndex);
-          if (state.solitaire.selected) moveSolitaireToTableau(column);
-          else selectSolitaireSource({ source: "tableau", column, index });
+          const selection = { source: "tableau", column, index };
+          if (solitaireSelectionKey(state.solitaire.selected) === solitaireSelectionKey(selection)) selectSolitaireSource(selection);
+          else if (state.solitaire.selected) moveSolitaireToTableau(column);
+          else selectSolitaireSource(selection);
           return;
         }
       }
