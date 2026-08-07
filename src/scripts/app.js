@@ -197,6 +197,7 @@
       solitaireWaste: document.getElementById("solitaireWaste"),
       solitaireTableau: document.getElementById("solitaireTableau"),
       solitaireTable: document.getElementById("solitaireTable"),
+      solitaireCardPreview: document.getElementById("solitaireCardPreview"),
       newSolitaireBtn: document.getElementById("newSolitaireBtn"),
       solitaireBackBtn: document.getElementById("solitaireBackBtn"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
@@ -1126,6 +1127,7 @@
 
     function setScreen(screen) {
       state.screen = screen;
+      if (screen !== "solitaire") hideSolitaireCardPreview();
       els.setupScreen.classList.toggle("hidden", screen !== "setup");
       els.lobbyScreen.classList.toggle("hidden", screen !== "lobby");
       els.gameSelectScreen.classList.toggle("hidden", screen !== "select");
@@ -10962,6 +10964,70 @@
       return panel;
     }
 
+    const SOLITAIRE_FOUNDATION_SUITS = ["S", "H", "C", "D"];
+    const SOLITAIRE_FOUNDATION_LABELS = ["♠", "♡", "♣", "♢"];
+    const SOLITAIRE_PREVIEW_DELAY_MS = 1000;
+    const SOLITAIRE_PREVIEW_STILL_RADIUS = 4;
+    let solitairePreviewTimer = null;
+    let solitairePreviewTarget = null;
+    let solitairePreviewCard = "";
+    let solitairePreviewX = 0;
+    let solitairePreviewY = 0;
+
+    function hideSolitaireCardPreview() {
+      window.clearTimeout(solitairePreviewTimer);
+      solitairePreviewTimer = null;
+      solitairePreviewTarget = null;
+      solitairePreviewCard = "";
+      if (!els.solitaireCardPreview) return;
+      els.solitaireCardPreview.classList.add("hidden");
+      els.solitaireCardPreview.innerHTML = "";
+    }
+
+    function showSolitaireCardPreview() {
+      if (!els.solitaireCardPreview || state.screen !== "solitaire" || !solitairePreviewTarget || !solitairePreviewCard) return;
+      if (!document.body.contains(solitairePreviewTarget)) {
+        hideSolitaireCardPreview();
+        return;
+      }
+      els.solitaireCardPreview.innerHTML = "";
+      els.solitaireCardPreview.appendChild(renderPlayingCard(solitairePreviewCard, false));
+      els.solitaireCardPreview.classList.remove("hidden");
+    }
+
+    function scheduleSolitaireCardPreview(card, target, event) {
+      if (!card || !target || state.screen !== "solitaire") return;
+      window.clearTimeout(solitairePreviewTimer);
+      solitairePreviewTarget = target;
+      solitairePreviewCard = card;
+      solitairePreviewX = event.clientX;
+      solitairePreviewY = event.clientY;
+      solitairePreviewTimer = window.setTimeout(showSolitaireCardPreview, SOLITAIRE_PREVIEW_DELAY_MS);
+    }
+
+    function handleSolitairePreviewPointerOver(event) {
+      const target = event.target.closest("[data-solitaire-preview-card]");
+      if (!target || !els.solitaireTable || !els.solitaireTable.contains(target)) return;
+      if (target === solitairePreviewTarget) return;
+      scheduleSolitaireCardPreview(target.dataset.solitairePreviewCard, target, event);
+    }
+
+    function handleSolitairePreviewPointerMove(event) {
+      const target = event.target.closest("[data-solitaire-preview-card]");
+      if (!target || target !== solitairePreviewTarget) return;
+      const moved = Math.hypot(event.clientX - solitairePreviewX, event.clientY - solitairePreviewY) > SOLITAIRE_PREVIEW_STILL_RADIUS;
+      if (moved) scheduleSolitaireCardPreview(target.dataset.solitairePreviewCard, target, event);
+    }
+
+    function handleSolitairePreviewPointerOut(event) {
+      const target = event.target.closest("[data-solitaire-preview-card]");
+      if (!target || target !== solitairePreviewTarget) return;
+      const nextTarget = event.relatedTarget && event.relatedTarget.closest
+        ? event.relatedTarget.closest("[data-solitaire-preview-card]")
+        : null;
+      if (nextTarget !== target) hideSolitaireCardPreview();
+    }
+
     function solitaireRank(card) {
       const rank = String(card || "").slice(0, -1);
       if (rank === "A") return 1;
@@ -10981,7 +11047,7 @@
     }
 
     function solitaireFoundationIndex(card) {
-      return ["S", "H", "D", "C"].indexOf(solitaireSuit(card));
+      return SOLITAIRE_FOUNDATION_SUITS.indexOf(solitaireSuit(card));
     }
 
     function dealSolitaire() {
@@ -11134,6 +11200,7 @@
     }
 
     function handleSolitaireClick(event) {
+      hideSolitaireCardPreview();
       const action = event.target.closest("[data-solitaire-action]");
       if (action && action.dataset.solitaireAction === "stock") {
         drawSolitaireStock();
@@ -11185,6 +11252,7 @@
       Object.entries(attrs).forEach(([key, value]) => {
         element.dataset[key] = String(value);
       });
+      if (!hidden) element.dataset.solitairePreviewCard = card;
       element.setAttribute("role", "button");
       element.setAttribute("tabindex", "0");
       return element;
@@ -11221,7 +11289,7 @@
           if (selectedKey === `foundation:::${index}`) rendered.classList.add("selected");
           slot.appendChild(rendered);
         } else {
-          slot.appendChild(solitaireSlotLabel(["♠", "♡", "♣", "♢"][index]));
+          slot.appendChild(solitaireSlotLabel(SOLITAIRE_FOUNDATION_LABELS[index]));
         }
       });
       if (els.solitaireTableau) {
@@ -12414,12 +12482,16 @@
     if (els.solitaireBackBtn) els.solitaireBackBtn.addEventListener("click", backToMenuFromSolo);
     if (els.newSolitaireBtn) {
       els.newSolitaireBtn.addEventListener("click", () => {
+        hideSolitaireCardPreview();
         dealSolitaire();
         renderSolitaire();
       });
     }
     if (els.solitaireTable) {
       els.solitaireTable.addEventListener("click", handleSolitaireClick);
+      els.solitaireTable.addEventListener("pointerover", handleSolitairePreviewPointerOver);
+      els.solitaireTable.addEventListener("pointermove", handleSolitairePreviewPointerMove);
+      els.solitaireTable.addEventListener("pointerout", handleSolitairePreviewPointerOut);
       els.solitaireTable.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
         const target = event.target.closest("[data-solitaire-source], [data-solitaire-location], [data-solitaire-action]");

@@ -3001,6 +3001,39 @@
         0 14px 34px rgba(0, 0, 0, 0.36);
     }
 
+    .solitaire-card-preview {
+      position: fixed;
+      inset: 0;
+      z-index: 38;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      background: rgba(8, 5, 7, 0.16);
+      backdrop-filter: blur(1px);
+    }
+
+    .solitaire-card-preview.hidden {
+      display: none;
+    }
+
+    .solitaire-card-preview .playing-card {
+      width: min(300px, 42vw, 58vh);
+      max-height: 82vh;
+      filter: drop-shadow(0 28px 58px rgba(0, 0, 0, 0.62));
+      animation: solitairePreviewIn 150ms ease-out both;
+    }
+
+    @keyframes solitairePreviewIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
     .solitaire-slot-label {
       display: grid;
       place-items: center;
