@@ -283,8 +283,9 @@
     .chess-capture-banner img {
       width: 100vw;
       max-width: none;
-      height: min(42vh, 420px);
-      object-fit: cover;
+      height: auto;
+      max-height: min(58vh, 620px);
+      object-fit: contain;
       border-radius: 0;
       opacity: 0;
       filter: saturate(1.08) contrast(1.04) drop-shadow(0 26px 54px rgba(0, 0, 0, 0.64));
