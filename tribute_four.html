@@ -2468,7 +2468,7 @@
     .higher-lower-actions {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
       gap: 10px;
     }
 
@@ -2478,11 +2478,178 @@
       font-weight: 900;
     }
 
+    .higher-lower-dom-preview,
+    .higher-lower-power-menu,
+    .higher-lower-give-up {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(239, 199, 94, 0.22);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .higher-lower-dom-preview > strong,
+    .higher-lower-power-menu strong,
+    .higher-lower-give-up strong {
+      color: var(--gold);
+      font-size: 0.92rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .higher-lower-dom-preview > span,
+    .higher-lower-power-menu span,
+    .higher-lower-give-up span,
+    .higher-lower-give-up p {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .higher-lower-give-up {
+      grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.2fr) auto;
+      align-items: center;
+    }
+
+    .higher-lower-give-up p {
+      margin: 0;
+      line-height: 1.35;
+    }
+
+    .higher-lower-give-up label {
+      display: grid;
+      gap: 5px;
+    }
+
+    .higher-lower-give-up input {
+      min-width: 0;
+      border: 1px solid rgba(239, 199, 94, 0.24);
+      border-radius: 6px;
+      background: rgba(13, 8, 10, 0.92);
+      color: var(--text);
+      font: inherit;
+      padding: 9px 10px;
+    }
+
+    .higher-lower-give-up button {
+      min-height: 44px;
+      border-radius: 8px;
+      font-weight: 900;
+    }
+
+    .higher-lower-give-up-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: end;
+    }
+
+    .higher-lower-preview-cards {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      overflow: visible;
+    }
+
+    .higher-lower-preview-cards .playing-card {
+      width: clamp(64px, 8vw, 92px);
+      pointer-events: none;
+    }
+
+    .higher-lower-power-menu {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: stretch;
+    }
+
+    .higher-lower-power-menu > div:first-child {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .higher-lower-power-menu button,
+    .higher-lower-fix-card {
+      min-height: 74px;
+      border-radius: 8px;
+    }
+
+    .higher-lower-power-menu button {
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      font-weight: 900;
+    }
+
+    .higher-lower-fix-card {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid rgba(239, 199, 94, 0.18);
+      background: rgba(0, 0, 0, 0.14);
+    }
+
+    .higher-lower-fix-card label {
+      display: grid;
+      grid-template-columns: 44px 1fr 1fr;
+      gap: 6px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .higher-lower-fix-card select {
+      min-width: 0;
+      border: 1px solid rgba(239, 199, 94, 0.24);
+      border-radius: 6px;
+      background: rgba(13, 8, 10, 0.92);
+      color: var(--text);
+      font: inherit;
+      padding: 6px;
+    }
+
     .higher-lower-run-options {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(260px, 1fr) minmax(180px, 0.45fr);
+      align-items: stretch;
       gap: 12px;
+    }
+
+    .higher-lower-slider {
+      min-height: 74px;
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(239, 199, 94, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .higher-lower-slider span {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .higher-lower-slider b {
+      color: var(--gold);
+      font-size: 1.08rem;
+    }
+
+    .higher-lower-slider input {
+      width: 100%;
+      accent-color: var(--gold);
     }
 
     .higher-lower-run-options button {
@@ -4641,6 +4808,30 @@
         grid-template-columns: 1fr 1fr;
       }
 
+      .higher-lower-power-menu {
+        grid-template-columns: 1fr;
+      }
+
+      .higher-lower-give-up {
+        grid-template-columns: 1fr;
+      }
+
+      .higher-lower-give-up-actions {
+        justify-content: stretch;
+      }
+
+      .higher-lower-give-up-actions button {
+        flex: 1 1 140px;
+      }
+
+      .higher-lower-power-menu > div:first-child {
+        display: grid;
+      }
+
+      .higher-lower-preview-cards .playing-card {
+        width: clamp(56px, 18vw, 78px);
+      }
+
       .higher-lower-run-options {
         grid-template-columns: 1fr;
       }
@@ -5080,7 +5271,7 @@
         <span>
           <span class="game-card-tags"><span>Chance</span><span>Cards</span><span>Streak</span></span>
           <h2>Higher / Lower</h2>
-          <p>A fast card streak game. Guess the next card, cash out while ahead, or miss and pay the dom.</p>
+          <p>A dom-set card endurance run. Build the streak to cash out before wrong calls make the owed counter worth collecting.</p>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
@@ -6587,12 +6778,25 @@
         deck: [],
         currentCard: null,
         lastCard: null,
-        queuedRunStake: 25,
-        runStake: 25,
-        targetStreak: 4,
-        baseTribute: 25,
+        queuedTargetStreak: 15,
+        targetStreak: 15,
+        baseTribute: 0,
         wrongStreak: 0,
-        domRunBonus: 0,
+        wrongPenalty: 1,
+        pendingOwed: 0,
+        totalWrongs: 0,
+        powerCharges: 0,
+        lastPowerMilestone: 0,
+        powerMenuOpen: false,
+        hideNextCard: false,
+        hideCurrentCard: false,
+        suitCallPending: false,
+        pulseActive: false,
+        pulseStartedAt: 0,
+        pulseAdded: 0,
+        giveUpDraftAmount: 5,
+        giveUpOffer: null,
+        fateMessage: "",
         mercyPending: false,
         mercyBonus: 0,
         streak: 0,
@@ -7328,7 +7532,7 @@
       resetHigherLowerBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
-      addLog(`<strong>Higher / Lower opened.</strong> ${state.names.sub} guesses the next card and cashes out before the streak snaps.`);
+      addLog(`<strong>Higher / Lower opened.</strong> ${state.names.dom} sets the cash-out streak, then ${state.names.sub} has to survive the card calls.`);
       render();
       publishState();
     }
@@ -9468,14 +9672,14 @@
       return false;
     }
 
-    function requestHigherLowerRun(stake) {
-      if (localOnlineRole() && localOnlineRole() !== SUB) return false;
+    function requestHigherLowerRun(targetStreak) {
+      if (!higherLowerDomControlsAllowed()) return false;
       if (state.active || state.pendingWager) return false;
-      const runStake = higherLowerRunStake(stake);
+      const target = higherLowerTarget(targetStreak);
       state.higherLower = {
         ...createHigherLowerState(),
         ...(state.higherLower || {}),
-        queuedRunStake: runStake
+        queuedTargetStreak: target
       };
       startHigherLowerNormalMatch();
       return true;
@@ -9688,11 +9892,16 @@
       const winnerText = prompt.winner
         ? `${labelFor(prompt.winner)} won.`
         : "Draw.";
-      const changeLabel = isThroneSession() ? "amount" : "bet";
+      const changeLabel = prompt.game === "higherLower"
+        ? "run"
+        : (isThroneSession() ? "amount" : "bet");
       els.normalReplayText.textContent = canReplay
         ? `${winnerText} Replay or change ${changeLabel}?`
         : `${winnerText} Bank reclaimed. Change ${changeLabel}?`;
       els.normalReplayBtn.disabled = !canReplay;
+      els.normalChangeBetBtn.textContent = prompt.game === "higherLower"
+        ? "Change Run"
+        : `Change ${changeLabel[0].toUpperCase()}${changeLabel.slice(1)}`;
       els.normalChangeBetBtn.disabled = false;
     }
 
@@ -9726,7 +9935,9 @@
         backToMenu();
         return;
       }
-      resetCurrentGameToAmountChoice(`<strong>Ready for the next bet.</strong>`);
+      resetCurrentGameToAmountChoice(state.currentGame === "higherLower"
+        ? `<strong>Ready for the next Higher / Lower run.</strong>`
+        : `<strong>Ready for the next bet.</strong>`);
     }
 
     function updatePendingWager(changes, publish = true) {
@@ -14871,53 +15082,191 @@
       return state.twentyOne.deck.pop();
     }
 
-    const HIGHER_LOWER_BASE_TRIBUTE = 25;
-    const HIGHER_LOWER_DOM_STREAK_BONUS = 5;
-    const HIGHER_LOWER_MERCY_THRESHOLD = 4;
-    const HIGHER_LOWER_FORCE_COLLECT_WRONGS = 10;
-    const HIGHER_LOWER_MERCY_BONUSES = [5, 10, 15, 20, 25];
+    const HIGHER_LOWER_DEFAULT_TARGET = 15;
+    const HIGHER_LOWER_MIN_TARGET = 1;
+    const HIGHER_LOWER_MAX_TARGET = 50;
+    const HIGHER_LOWER_WRONG_STEP = 5;
+    const HIGHER_LOWER_PULSE_SECONDS = 10;
 
-    function higherLowerRunStake(stake) {
-      return Number(stake) === 50 ? 50 : 25;
-    }
-
-    function higherLowerTargetForStake(stake) {
-      return higherLowerRunStake(stake) === 50 ? 6 : 4;
-    }
-
-    function higherLowerExtraPayoutForStake(stake) {
-      return higherLowerRunStake(stake) === 50 ? 10 : 5;
+    function higherLowerTarget(value) {
+      const target = Math.round(Number(value || HIGHER_LOWER_DEFAULT_TARGET));
+      return Math.max(HIGHER_LOWER_MIN_TARGET, Math.min(HIGHER_LOWER_MAX_TARGET, target));
     }
 
     function higherLowerCashOutPayout(game = state.higherLower) {
-      const runStake = higherLowerRunStake(game && game.runStake);
-      const target = Number(game && game.targetStreak || 4);
       const streak = Number(game && game.streak || 0);
-      if (streak < target) return 0;
-      return runStake + Math.max(0, streak - target) * higherLowerExtraPayoutForStake(runStake);
+      const target = higherLowerTarget(game && game.targetStreak);
+      return streak >= target ? Number(game && game.pendingOwed || 0) : 0;
     }
 
     function higherLowerDomPossibleWin(game = state.higherLower) {
-      return Number(game && game.baseTribute || HIGHER_LOWER_BASE_TRIBUTE) + Number(game && game.domRunBonus || 0);
+      return Number(game && game.pendingOwed || 0);
+    }
+
+    function higherLowerEndAmount(overrideAmount = null) {
+      if (overrideAmount !== null && overrideAmount !== undefined) return normalizeBuyIn(Number(overrideAmount));
+      return Math.max(0, Math.round(higherLowerDomPossibleWin()));
+    }
+
+    function settleHigherLowerPulse(publish = false) {
+      const game = state.higherLower;
+      if (!game || !game.pulseActive || !game.pulseStartedAt) return 0;
+      const elapsed = Math.min(HIGHER_LOWER_PULSE_SECONDS, Math.max(0, Math.floor((Date.now() - Number(game.pulseStartedAt || 0)) / 1000)));
+      const alreadyAdded = Number(game.pulseAdded || 0);
+      const add = Math.max(0, elapsed - alreadyAdded);
+      if (add > 0) {
+        game.pendingOwed = Number(game.pendingOwed || 0) + add;
+        game.pulseAdded = alreadyAdded + add;
+      }
+      if (game.pulseAdded >= HIGHER_LOWER_PULSE_SECONDS) game.pulseActive = false;
+      if (add > 0 && publish) {
+        render();
+        publishState();
+      }
+      return add;
+    }
+
+    function higherLowerDomControlsAllowed(role = localOnlineRole()) {
+      if (role === SPECTATOR) return false;
+      return !role || role === DOM;
+    }
+
+    function higherLowerCanSubAct() {
+      return state.active
+        && !state.higherLower.powerMenuOpen
+        && (!localOnlineRole() || localOnlineRole() === SUB);
+    }
+
+    function higherLowerUpcomingCards(count = 3) {
+      const deck = state.higherLower && state.higherLower.deck || [];
+      const cards = [];
+      for (let i = 1; i <= count; i += 1) {
+        const card = deck[deck.length - i];
+        if (card) cards.push(card);
+      }
+      return cards;
+    }
+
+    function higherLowerSetUpcomingCards(cards) {
+      if (!state.higherLower.deck.length) state.higherLower.deck = shuffleDeck(createTwentyOneDeck());
+      cards.forEach((card, index) => {
+        const position = state.higherLower.deck.length - 1 - index;
+        if (position >= 0) state.higherLower.deck[position] = card;
+      });
+    }
+
+    function higherLowerCardFromParts(rank, suit) {
+      const safeRank = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].includes(rank) ? rank : "A";
+      const safeSuit = ["S", "H", "D", "C"].includes(suit) ? suit : "S";
+      return `${safeRank}${safeSuit}`;
+    }
+
+    function toggleHigherLowerPowerMenu(forceOpen = null) {
+      if (state.currentGame !== "higherLower" || !state.active) return;
+      if (!higherLowerDomControlsAllowed()) return;
+      if (Number(state.higherLower.powerCharges || 0) <= 0 && forceOpen !== false) return;
+      state.higherLower.powerMenuOpen = forceOpen === null ? !state.higherLower.powerMenuOpen : Boolean(forceOpen);
+      state.higherLower.fateMessage = state.higherLower.powerMenuOpen
+        ? `${state.names.dom} is choosing their fate.`
+        : "";
+      render();
+      publishState();
+    }
+
+    function consumeHigherLowerPower() {
+      if (!state.higherLower || Number(state.higherLower.powerCharges || 0) <= 0) return false;
+      state.higherLower.powerCharges = Math.max(0, Number(state.higherLower.powerCharges || 0) - 1);
+      state.higherLower.powerMenuOpen = false;
+      return true;
+    }
+
+    function useHigherLowerPower(power, options = {}) {
+      if (state.currentGame !== "higherLower" || !state.active) return;
+      if (!higherLowerDomControlsAllowed()) return;
+      if (!consumeHigherLowerPower()) return;
+      if (power === "hide") {
+        state.higherLower.hideNextCard = true;
+        state.higherLower.fateMessage = "The next card will be hidden. Good luck loser~";
+        addLog(`<strong>${state.names.dom} hides the next card.</strong> Good luck loser~`);
+      } else if (power === "fix") {
+        const first = higherLowerCardFromParts(options.rank1, options.suit1);
+        const second = higherLowerCardFromParts(options.rank2, options.suit2);
+        higherLowerSetUpcomingCards([first, second]);
+        state.higherLower.fateMessage = `${state.names.dom} stacks the next two cards.`;
+        addLog(`<strong>${state.names.dom} fixes fate.</strong> The next two cards are chosen.`);
+      } else if (power === "suit") {
+        state.higherLower.suitCallPending = true;
+        state.higherLower.fateMessage = `${state.names.sub} must call the next suit.`;
+        addLog(`<strong>${state.names.dom} changes the call.</strong> ${state.names.sub} must pick the next suit.`);
+      } else if (power === "pulse") {
+        state.higherLower.pulseActive = true;
+        state.higherLower.pulseStartedAt = Date.now();
+        state.higherLower.pulseAdded = 0;
+        state.higherLower.fateMessage = "Tribute Pulse is ticking. Every second adds to owed.";
+        addLog(`<strong>${state.names.dom} starts Tribute Pulse.</strong> Every second adds ${money(1)} to the owed counter.`);
+      }
+      render();
+      publishState();
+    }
+
+    function setHigherLowerGiveUpDraft(amount) {
+      if (!state.higherLower) return;
+      state.higherLower.giveUpDraftAmount = normalizeBuyIn(Number(amount));
+      render();
+    }
+
+    function offerHigherLowerGiveUp(amount) {
+      if (state.currentGame !== "higherLower" || !state.active) return;
+      if (!higherLowerDomControlsAllowed()) return;
+      settleHigherLowerPulse(false);
+      const offerAmount = normalizeBuyIn(Number(amount || state.higherLower.giveUpDraftAmount || higherLowerDomPossibleWin() || 5));
+      state.higherLower.giveUpDraftAmount = offerAmount;
+      state.higherLower.giveUpOffer = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        amount: offerAmount,
+        createdAt: Date.now()
+      };
+      state.higherLower.fateMessage = `${state.names.dom} offers to let ${state.names.sub} give up for ${money(offerAmount)}.`;
+      addLog(`<strong>${state.names.dom} offers give up.</strong> ${state.names.sub} can end the run for ${money(offerAmount)}.`);
+      render();
+      publishState();
+    }
+
+    function cancelHigherLowerGiveUp() {
+      if (state.currentGame !== "higherLower" || !state.higherLower) return;
+      const role = localOnlineRole();
+      if (role === SPECTATOR) return;
+      state.higherLower.giveUpOffer = null;
+      state.higherLower.fateMessage = "";
+      addLog(`<strong>Give up offer closed.</strong> The Higher / Lower run continues.`);
+      render();
+      publishState();
+    }
+
+    function acceptHigherLowerGiveUp() {
+      if (state.currentGame !== "higherLower" || !state.active || !state.higherLower.giveUpOffer) return;
+      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const amount = normalizeBuyIn(Number(state.higherLower.giveUpOffer.amount || 1));
+      state.higherLower.giveUpOffer = null;
+      endHigherLower(DOM, `${state.names.sub} gives up for ${money(amount)}.`, amount);
     }
 
     function startHigherLowerNormalMatch() {
-      const runStake = higherLowerRunStake(state.higherLower && state.higherLower.queuedRunStake);
-      const target = higherLowerTargetForStake(runStake);
-      const baseTribute = isThroneSession() ? currentThroneAmount() : HIGHER_LOWER_BASE_TRIBUTE;
-      els.betInput.value = baseTribute;
-      const bet = prepareRound("normal", "higher / lower run");
-      if (bet === null) return;
+      const target = higherLowerTarget(state.higherLower && state.higherLower.queuedTargetStreak);
+      state.pot = 0;
+      state.mode = "normal";
+      state.winningCells = [];
+      state.normalReplayPrompt = null;
+      state.settings.focusTax = { active: false, uses: 0 };
       state.higherLower = createHigherLowerState();
-      state.higherLower.runStake = runStake;
-      state.higherLower.queuedRunStake = runStake;
+      state.higherLower.queuedTargetStreak = target;
       state.higherLower.targetStreak = target;
-      state.higherLower.baseTribute = baseTribute;
+      state.higherLower.baseTribute = 0;
       state.higherLower.deck = shuffleDeck(createTwentyOneDeck());
       state.higherLower.currentCard = drawHigherLowerCard();
       state.turn = SUB;
       state.active = true;
-      finishRoundStart(`<strong>${money(runStake)} run:</strong> ${state.names.sub} must reach streak ${target} to cash out. ${state.names.dom}'s base tribute is ${money(bet)} either way.`, false);
+      finishRoundStart(`<strong>Higher / Lower started.</strong> ${state.names.sub} must call ${target} cards right in a row to cash out. Wrong calls start at ${money(1)} owed.`);
     }
 
     function drawHigherLowerCard() {
@@ -14936,40 +15285,72 @@
 
     function higherLowerGuess(direction) {
       if (state.currentGame !== "higherLower" || !state.active || !state.higherLower.currentCard) return;
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      if (!higherLowerCanSubAct()) return;
+      const pulseAdded = settleHigherLowerPulse(false);
       resolveFocusTaxSuccess();
       const previous = state.higherLower.currentCard;
+      const shouldHideDrawnCard = Boolean(state.higherLower.hideNextCard);
       const next = drawHigherLowerCard();
       const previousValue = higherLowerCardValue(previous);
       const nextValue = higherLowerCardValue(next);
-      const actual = nextValue > previousValue ? "higher" : (nextValue < previousValue ? "lower" : "same");
+      const suitCall = Boolean(state.higherLower.suitCallPending);
+      const actual = suitCall
+        ? next.slice(-1)
+        : (nextValue > previousValue ? "higher" : (nextValue < previousValue ? "lower" : "same"));
       state.higherLower.lastCard = previous;
       state.higherLower.currentCard = next;
+      state.higherLower.hideCurrentCard = shouldHideDrawnCard;
+      state.higherLower.hideNextCard = false;
+      state.higherLower.suitCallPending = false;
+      state.higherLower.fateMessage = shouldHideDrawnCard
+        ? "Good luck loser~"
+        : "";
       if (direction === actual) {
-        const gain = direction === "same" ? 2 : 1;
+        const gain = !suitCall && direction === "same" ? 2 : 1;
         state.higherLower.wrongStreak = 0;
         state.higherLower.streak += gain;
         state.higherLower.bestStreak = Math.max(state.higherLower.bestStreak, state.higherLower.streak);
-        const cashOutPayout = higherLowerCashOutPayout();
-        const target = Number(state.higherLower.targetStreak || 4);
-        state.higherLower.result = `${rankName(next.slice(0, -1))} was ${actual}. Streak ${state.higherLower.streak}. ${state.higherLower.streak >= target ? `Cash out is worth ${money(cashOutPayout)}.` : `Cash out unlocks at ${target}.`}`;
-        addLog(`<strong>Correct.</strong> ${state.names.sub} called ${direction}. Streak ${state.higherLower.streak}.`);
+        const target = higherLowerTarget(state.higherLower.targetStreak);
+        const milestone = Math.floor(Number(state.higherLower.streak || 0) / 5);
+        const previousMilestone = Number(state.higherLower.lastPowerMilestone || 0);
+        if (milestone > previousMilestone) {
+          const gained = milestone - previousMilestone;
+          state.higherLower.powerCharges = Number(state.higherLower.powerCharges || 0) + gained;
+          state.higherLower.lastPowerMilestone = milestone;
+          addLog(`<strong>${state.names.dom} gains ${gained === 1 ? "a power" : `${gained} powers`}.</strong> ${state.names.sub} reached a ${state.higherLower.streak}-card streak.`);
+        }
+        const actualText = suitCall ? suitName(actual) : actual;
+        const pulseText = pulseAdded ? ` Tribute Pulse added ${money(pulseAdded)}.` : "";
+        state.higherLower.result = shouldHideDrawnCard
+          ? `The hidden card was ${suitCall ? `a ${actualText}` : actualText}. Streak ${state.higherLower.streak}. ${state.higherLower.streak >= target ? "Cash out reached." : `Cash out unlocks at ${target}.`}`
+          : (suitCall
+            ? `${rankName(next.slice(0, -1))} of ${suitName(actual)} was the next card. Streak ${state.higherLower.streak}. ${state.higherLower.streak >= target ? "Cash out reached." : `Cash out unlocks at ${target}.`}`
+            : `${rankName(next.slice(0, -1))} was ${actualText}. Streak ${state.higherLower.streak}. ${state.higherLower.streak >= target ? "Cash out reached." : `Cash out unlocks at ${target}.`}`);
+        state.higherLower.result += pulseText;
+        addLog(`<strong>Correct.</strong> ${state.names.sub} called ${suitCall ? suitName(direction) : direction}. Streak ${state.higherLower.streak}.`);
+        if (state.higherLower.streak >= target) {
+          endHigherLower(SUB, `${state.names.sub} reaches the ${target}-card cash-out streak.`);
+          return;
+        }
         render();
         publishState();
         return;
       }
       state.higherLower.streak = 0;
+      state.higherLower.lastPowerMilestone = 0;
       state.higherLower.wrongStreak = Number(state.higherLower.wrongStreak || 0) + 1;
-      if (state.higherLower.wrongStreak >= 2) {
-        state.higherLower.domRunBonus = Number(state.higherLower.domRunBonus || 0) + HIGHER_LOWER_DOM_STREAK_BONUS;
+      state.higherLower.totalWrongs = Number(state.higherLower.totalWrongs || 0) + 1;
+      const penalty = Number(state.higherLower.wrongPenalty || 1);
+      state.higherLower.pendingOwed = Number(state.higherLower.pendingOwed || 0) + penalty;
+      const leveledUp = state.higherLower.wrongStreak % HIGHER_LOWER_WRONG_STEP === 0;
+      if (leveledUp) {
+        state.higherLower.wrongPenalty = penalty + 1;
       }
-      const possible = higherLowerDomPossibleWin();
-      state.higherLower.result = `${rankName(next.slice(0, -1))} was ${actual}. Wrong streak ${state.higherLower.wrongStreak}. ${state.names.dom}'s possible win is ${money(possible)}.`;
-      addLog(`<strong>Wrong.</strong> ${state.names.sub} called ${direction}, but the card was ${actual}. ${state.higherLower.wrongStreak >= 2 ? `${state.names.dom}'s possible win gains ${money(HIGHER_LOWER_DOM_STREAK_BONUS)}.` : "One mistake is only a warning."}`);
-      if (state.higherLower.wrongStreak >= HIGHER_LOWER_FORCE_COLLECT_WRONGS) {
-        endHigherLower(DOM, `${state.names.sub} hit ${state.higherLower.wrongStreak} wrong calls in a row. ${state.names.dom} drains them dry.`);
-        return;
-      }
+      const owed = higherLowerDomPossibleWin();
+      const wrongActual = suitCall ? suitName(actual) : actual;
+      const pulseText = pulseAdded ? ` Tribute Pulse added ${money(pulseAdded)}.` : "";
+      state.higherLower.result = `${shouldHideDrawnCard ? "The hidden card" : rankName(next.slice(0, -1))} was ${suitCall ? `a ${wrongActual}` : wrongActual}. Wrong streak ${state.higherLower.wrongStreak}. ${money(penalty)} added to the owed counter${leveledUp ? `, and wrong calls now add ${money(state.higherLower.wrongPenalty)}.` : "."}${pulseText}`;
+      addLog(`<strong>Wrong.</strong> ${state.names.sub} called ${suitCall ? suitName(direction) : direction}, but the card was ${suitCall ? wrongActual : actual}. Pending owed rises to ${money(owed)}${leveledUp ? `; wrong calls now add ${money(state.higherLower.wrongPenalty)}.` : "."}${pulseText}`);
       render();
       publishState();
     }
@@ -14977,59 +15358,41 @@
     function cashOutHigherLower() {
       if (state.currentGame !== "higherLower" || !state.active) return;
       if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (Number(state.higherLower.streak || 0) < Number(state.higherLower.targetStreak || 4)) return;
+      if (Number(state.higherLower.streak || 0) < higherLowerTarget(state.higherLower.targetStreak)) return;
       endHigherLower(SUB, `${state.names.sub} cashes out at streak ${state.higherLower.streak}.`);
     }
 
     function collectHigherLowerDomWin() {
       if (state.currentGame !== "higherLower" || !state.active) return;
-      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
-      if (Number(state.higherLower.domRunBonus || 0) <= 0) return;
-      endHigherLower(DOM, `${state.names.dom} collects after ${state.names.sub}'s mistake streak.`);
+      if (!higherLowerDomControlsAllowed()) return;
+      settleHigherLowerPulse(false);
+      if (Number(state.higherLower.pendingOwed || 0) <= 0) return;
+      endHigherLower(DOM, `${state.names.dom} collects the pending owed counter.`);
     }
 
     function begHigherLowerMercy() {
-      if (state.currentGame !== "higherLower" || !state.active) return;
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (Number(state.higherLower.wrongStreak || 0) < HIGHER_LOWER_MERCY_THRESHOLD || state.higherLower.mercyPending) return;
-      state.higherLower.mercyPending = true;
-      state.higherLower.result = `${state.names.sub} begs for mercy. Waiting for ${state.names.dom}'s decision.`;
-      addLog(`<strong>Mercy begged.</strong> ${state.names.sub} asks ${state.names.dom} to cash out instead of letting the run get worse.`);
-      render();
-      publishState();
+      return false;
     }
 
     function decideHigherLowerMercy(choice) {
-      if (state.currentGame !== "higherLower" || !state.active || !state.higherLower.mercyPending) return;
-      if (!domAdvantageControlsAllowed(localOnlineRole())) return;
-      if (choice === "collect") {
-        state.higherLower.mercyPending = false;
-        endHigherLower(DOM, `${state.names.dom} accepts the mercy beg and collects.`);
-        return;
-      }
-      if (choice === "punish") {
-        const bonus = HIGHER_LOWER_MERCY_BONUSES[Math.floor(Math.random() * HIGHER_LOWER_MERCY_BONUSES.length)];
-        state.higherLower.domRunBonus = Number(state.higherLower.domRunBonus || 0) + bonus;
-        state.higherLower.mercyBonus = bonus;
-        state.higherLower.mercyPending = false;
-        state.higherLower.result = `${state.names.dom} denies mercy and adds ${money(bonus)} to the possible win. Don't be such a begging loser.`;
-        addLog(`<strong>Mercy denied.</strong> ${state.names.dom} adds ${money(bonus)} to the possible win for begging.`);
-      } else {
-        state.higherLower.mercyPending = false;
-        state.higherLower.result = `${state.names.dom} denies mercy. Keep playing.`;
-        addLog(`<strong>Mercy denied.</strong> ${state.names.dom} refuses the beg and makes the run continue.`);
-      }
-      render();
-      publishState();
+      return false;
     }
 
-    function endHigherLower(winner, reason) {
+    function queueHigherLowerReplayPrompt(winner, amount = 0) {
+      const outcome = winner === DOM
+        ? (isThroneSession() ? "domThrone" : "domNormal")
+        : (winner === SUB ? "subNormal" : "draw");
+      queueBankReplayPrompt({ outcome, amount });
+    }
+
+    function endHigherLower(winner, reason, amountOverride = null) {
       state.higherLower.winner = winner;
       state.active = false;
+      state.higherLower.pulseActive = false;
+      state.higherLower.powerMenuOpen = false;
       if (winner === DOM) {
-        const tribute = Number(state.higherLower.baseTribute || HIGHER_LOWER_BASE_TRIBUTE);
-        const bonus = Number(state.higherLower.domRunBonus || 0);
-        const amount = higherLowerDomPossibleWin();
+        const amount = higherLowerEndAmount(amountOverride);
+        const usedOffer = amountOverride !== null && amountOverride !== undefined;
         if (isThroneSession()) {
           const before = state.domVault;
           state.settings.pendingThroneDemand = {
@@ -15041,14 +15404,15 @@
           recordLedgerEvent({
             type: "demand",
             label: "Higher / Lower Throne Opened",
-            detail: `${state.names.sub} loses the card run. The Throne page opens automatically.`,
+            detail: `${state.names.dom} ${usedOffer ? "accepts the give-up price" : "collects the Higher / Lower owed counter"}. The Throne page opens automatically.`,
             delta: 0,
             before,
             after: state.domVault
           });
           demandPayment({ automatic: true });
-          addLog(`<strong>${state.names.sub} loses the run.</strong> ${reason}`);
+          addLog(`<strong>${state.names.dom} collects Higher / Lower.</strong> ${reason}`);
           showOutcomeSplash({ tone: "dom", kicker: "Throne Opened", title: `${state.names.dom} gets paid`, detail: `${state.names.sub}'s Throne page opens for ${money(roundThroneTributeAmount(amount))}.` });
+          queueHigherLowerReplayPrompt(winner, amount);
           state.pot = 0;
           render();
           publishState();
@@ -15060,31 +15424,30 @@
         recordLedgerEvent({
           type: "tribute",
           label: "Higher / Lower Break",
-          detail: `${state.names.dom} collects the card run. Base ${money(tribute)}, mistake bonus ${money(bonus)}.`,
+          detail: `${state.names.dom} ${usedOffer ? "accepts the give-up price" : "collects the Higher / Lower owed counter"}.`,
           delta: state.domVault - before,
           before,
           after: state.domVault
         });
-        addLog(`<strong>${state.names.dom} collects the run.</strong> ${reason} ${money(tribute)} tribute${bonus ? ` plus ${money(bonus)} mistake bonus` : ""} moves into her bank.`);
+        addLog(`<strong>${state.names.dom} collects the run.</strong> ${reason} ${money(amount)} moves into her bank.`);
         showOutcomeSplash({ tone: "dom", kicker: "Collected", title: `${state.names.dom} collects`, detail: `${money(amount)} added to her bank.` });
       } else if (winner === SUB) {
-        const payout = higherLowerCashOutPayout();
         const before = state.domVault;
-        state.domVault = Math.max(0, state.domVault - payout);
         state.lockedTribute = state.domVault;
         recordLedgerEvent({
           type: "reclaim",
           label: "Higher / Lower Cash Out",
-          detail: `${state.names.sub} cashes out a ${money(payout)} Higher / Lower payout.`,
+          detail: `${state.names.sub} reaches the target streak and escapes the pending owed counter.`,
           delta: state.domVault - before,
           before,
           after: state.domVault
         });
-        addLog(`<strong>${state.names.sub} cashes out.</strong> ${reason} ${money(payout)} is paid back from ${state.names.dom}'s bank.`);
-        showOutcomeSplash({ tone: "sub", kicker: "Cashed Out", title: `${state.names.sub} gets paid back`, detail: `${money(Math.min(payout, before))} removed from the dom bank.` });
+        addLog(`<strong>${state.names.sub} cashes out.</strong> ${reason} Pending owed is wiped before ${state.names.dom} can collect.`);
+        showOutcomeSplash({ tone: "sub", kicker: "Cashed Out", title: `${state.names.sub} escapes`, detail: `${state.names.dom}'s bank stays unchanged.` });
       } else {
         addLog(`<strong>Higher / Lower ends.</strong> ${reason}`);
       }
+      queueHigherLowerReplayPrompt(winner);
       state.pot = 0;
       render();
       publishState();
@@ -16679,7 +17042,10 @@
 
     function renderHigherLowerBoard() {
       const game = state.higherLower || createHigherLowerState();
-      const canAct = state.active && !game.mercyPending && (!localOnlineRole() || localOnlineRole() === SUB);
+      if (state.currentGame === "higherLower") settleHigherLowerPulse(false);
+      const role = localOnlineRole();
+      const canAct = higherLowerCanSubAct();
+      const domCanAct = higherLowerDomControlsAllowed(role);
       els.board.className = "higher-lower-table";
       els.board.innerHTML = "";
 
@@ -16695,36 +17061,56 @@
       const currentWrap = document.createElement("div");
       currentWrap.className = "higher-lower-card-slot current";
       currentWrap.innerHTML = `<span>Current</span>`;
-      currentWrap.appendChild(game.currentCard ? renderPlayingCard(game.currentCard, false) : renderPlayingCard("AS", true));
+      const hideCurrentFromView = Boolean(game.hideCurrentCard && role !== DOM);
+      currentWrap.appendChild(game.currentCard
+        ? renderPlayingCard(hideCurrentFromView ? "HIDDEN_POWER" : game.currentCard, false)
+        : renderPlayingCard("AS", true));
       cards.appendChild(previousWrap);
       cards.appendChild(currentWrap);
 
       const status = document.createElement("div");
       status.className = "higher-lower-status";
-      const target = Number(game.targetStreak || higherLowerTargetForStake(game.runStake || 25));
-      const cashOutPayout = higherLowerCashOutPayout(game);
-      const extraPayout = higherLowerExtraPayoutForStake(game.runStake || 25);
+      const target = higherLowerTarget(game.targetStreak || game.queuedTargetStreak);
       const wrongStreak = Number(game.wrongStreak || 0);
+      const wrongPenalty = Number(game.wrongPenalty || 1);
+      const totalWrongs = Number(game.totalWrongs || 0);
       const domPossible = higherLowerDomPossibleWin(game);
+      const pulseRemaining = game.pulseActive
+        ? Math.max(0, HIGHER_LOWER_PULSE_SECONDS - Number(game.pulseAdded || 0))
+        : 0;
       status.innerHTML = `
         <strong>${state.active ? "Call The Next Card" : "Ready For A Run"}</strong>
-        <p>${escapeHtml(game.result || (state.active ? `Reach streak ${target} to unlock cash out. Each correct call after that adds ${money(extraPayout)} to the payback. Two wrong in a row starts feeding ${state.names.dom}'s possible win.` : "Choose a preset run. The higher stake makes the cash-out target harder and pays back more if the sub survives."))}</p>
+        <p>${escapeHtml(game.powerMenuOpen && role !== DOM ? `${state.names.dom} is choosing your fate.` : (game.fateMessage || game.result || (state.active ? `Reach ${target} correct calls in a row to cash out. Wrong calls add ${money(wrongPenalty)} to the pending owed counter; every ${HIGHER_LOWER_WRONG_STEP} wrong in a row raises that by ${money(1)}.` : `${state.names.dom} chooses the cash-out streak. ${state.names.sub} has to hit it without a mistake resetting the streak.`)))}</p>
         <div class="higher-lower-meter">
           <span>Streak <b>${Number(game.streak || 0)}</b></span>
           <span>Target <b>${target}</b></span>
-          <span>Cash Out <b>${money(cashOutPayout)}</b></span>
+          <span>Owed <b>${money(domPossible)}</b></span>
+          <span>Wrong Adds <b>${money(wrongPenalty)}</b></span>
           <span>Wrong <b>${wrongStreak}</b></span>
-          <span>Dom Win <b>${money(domPossible)}</b></span>
+          <span>Total Misses <b>${totalWrongs}</b></span>
+          <span>Powers <b>${Number(game.powerCharges || 0)}</b></span>
+          ${game.pulseActive ? `<span>Pulse <b>${pulseRemaining}s</b></span>` : ""}
         </div>
       `;
 
+      const preview = document.createElement("div");
+      preview.className = "higher-lower-dom-preview";
+      if (state.active && domCanAct) {
+        const upcoming = higherLowerUpcomingCards(3);
+        preview.innerHTML = `<strong>Dom Preview</strong><span>Next card, then the following two.</span>`;
+        const previewCards = document.createElement("div");
+        previewCards.className = "higher-lower-preview-cards";
+        upcoming.forEach((card) => previewCards.appendChild(renderPlayingCard(card, false)));
+        while (previewCards.children.length < 3) previewCards.appendChild(renderPlayingCard("AS", true));
+        preview.appendChild(previewCards);
+      }
+
       const actions = document.createElement("div");
       actions.className = "higher-lower-actions";
-      [
-        ["lower", "Lower"],
-        ["same", "Same"],
-        ["higher", "Higher"]
-      ].forEach(([guess, label]) => {
+      const guessOptions = game.suitCallPending
+        ? [["S", "Spades"], ["H", "Hearts"], ["D", "Diamonds"], ["C", "Clubs"]]
+        : [["lower", "Lower"], ["same", "Even"], ["higher", "Higher"]];
+      guessOptions.forEach(([guess, label]) => {
         const button = document.createElement("button");
         button.type = "button";
         button.textContent = label;
@@ -16744,37 +17130,134 @@
       collect.type = "button";
       collect.className = "danger-button";
       collect.textContent = "Collect";
-      collect.disabled = !state.active || Number(game.domRunBonus || 0) <= 0 || !domAdvantageControlsAllowed(localOnlineRole());
+      collect.disabled = !state.active || Number(game.pendingOwed || 0) <= 0 || !higherLowerDomControlsAllowed();
       collect.addEventListener("click", collectHigherLowerDomWin);
       actions.appendChild(collect);
 
-      const beg = document.createElement("button");
-      beg.type = "button";
-      beg.textContent = "Beg Mercy";
-      beg.disabled = !canAct
-        || Number(game.wrongStreak || 0) < HIGHER_LOWER_MERCY_THRESHOLD
-        || Boolean(game.mercyPending);
-      beg.addEventListener("click", begHigherLowerMercy);
-      actions.appendChild(beg);
+      const powers = document.createElement("button");
+      powers.type = "button";
+      powers.textContent = game.powerMenuOpen ? "Close Powers" : `Powers (${Number(game.powerCharges || 0)})`;
+      powers.disabled = !state.active || !domCanAct || Number(game.powerCharges || 0) <= 0;
+      powers.addEventListener("click", () => toggleHigherLowerPowerMenu());
+      actions.appendChild(powers);
+
+      const giveUpButton = document.createElement("button");
+      giveUpButton.type = "button";
+      giveUpButton.textContent = "Offer Give Up";
+      giveUpButton.disabled = !state.active || !domCanAct;
+      giveUpButton.addEventListener("click", () => {
+        const defaultAmount = normalizeBuyIn(Number(game.giveUpDraftAmount || higherLowerDomPossibleWin(game) || 5));
+        offerHigherLowerGiveUp(defaultAmount);
+      });
+      actions.appendChild(giveUpButton);
 
       const setup = document.createElement("div");
       setup.className = "higher-lower-run-options";
-      [
-        [25, "Streak 4"],
-        [50, "Streak 6"]
-      ].forEach(([stake, label]) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.innerHTML = `<strong>${money(stake)} Run</strong><span>${label}</span>`;
-        button.disabled = state.active || Boolean(state.pendingWager) || Boolean(localOnlineRole() && localOnlineRole() !== SUB);
-        button.addEventListener("click", () => requestHigherLowerRun(stake));
-        setup.appendChild(button);
+      const setupTarget = higherLowerTarget(game.queuedTargetStreak || game.targetStreak);
+      setup.innerHTML = `
+        <label class="higher-lower-slider">
+          <span>Cash-out streak <b>${setupTarget}</b></span>
+          <input type="range" min="${HIGHER_LOWER_MIN_TARGET}" max="${HIGHER_LOWER_MAX_TARGET}" value="${setupTarget}" />
+        </label>
+        <button type="button" class="primary"><strong>Start Run</strong><span>${state.names.sub} needs ${setupTarget} right in a row</span></button>
+      `;
+      const slider = setup.querySelector("input");
+      const sliderValue = setup.querySelector("b");
+      const startButton = setup.querySelector("button");
+      const setupLabel = startButton.querySelector("span");
+      const canConfigure = !state.active && !state.pendingWager && higherLowerDomControlsAllowed();
+      slider.disabled = !canConfigure;
+      startButton.disabled = !canConfigure;
+      slider.addEventListener("input", () => {
+        const value = higherLowerTarget(slider.value);
+        sliderValue.textContent = value;
+        setupLabel.textContent = `${state.names.sub} needs ${value} right in a row`;
       });
+      startButton.addEventListener("click", () => requestHigherLowerRun(slider.value));
 
       panel.appendChild(cards);
       panel.appendChild(status);
+      if (preview.childNodes.length) panel.appendChild(preview);
       panel.appendChild(state.active ? actions : setup);
+      if (state.active) panel.appendChild(renderHigherLowerGiveUpPanel(game, domCanAct, role));
+      if (state.active && game.powerMenuOpen && domCanAct) panel.appendChild(renderHigherLowerPowerMenu());
       els.board.appendChild(panel);
+    }
+
+    function renderHigherLowerGiveUpPanel(game, domCanAct, role) {
+      const panel = document.createElement("div");
+      panel.className = "higher-lower-give-up";
+      const offer = game && game.giveUpOffer;
+      const draft = normalizeBuyIn(Number(game && game.giveUpDraftAmount || higherLowerDomPossibleWin(game) || 5));
+      if (offer) {
+        const amount = normalizeBuyIn(Number(offer.amount || 1));
+        panel.innerHTML = `
+          <strong>Give Up Offer</strong>
+          <p>${escapeHtml(state.names.dom)} will let ${escapeHtml(state.names.sub)} give up for ${money(amount)}.</p>
+          <div class="higher-lower-give-up-actions">
+            <button type="button" class="danger-button" data-hl-give-up="accept">Give Up For ${money(amount)}</button>
+            <button type="button" data-hl-give-up="cancel">${domCanAct ? "Cancel Offer" : "Keep Playing"}</button>
+          </div>
+        `;
+        const accept = panel.querySelector("[data-hl-give-up='accept']");
+        const cancel = panel.querySelector("[data-hl-give-up='cancel']");
+        accept.disabled = Boolean(role && role !== SUB);
+        accept.addEventListener("click", acceptHigherLowerGiveUp);
+        cancel.disabled = Boolean(role && role !== DOM && role !== SUB);
+        cancel.addEventListener("click", cancelHigherLowerGiveUp);
+        return panel;
+      }
+      panel.innerHTML = `
+        <strong>Give Up Price</strong>
+        <label>
+          <span>Cost to quit</span>
+          <input type="number" min="1" step="1" value="${draft}" ${domCanAct ? "" : "disabled"} />
+        </label>
+        <button type="button" ${domCanAct ? "" : "disabled"}>Send Offer</button>
+      `;
+      const input = panel.querySelector("input");
+      const button = panel.querySelector("button");
+      input.addEventListener("change", () => setHigherLowerGiveUpDraft(input.value));
+      button.addEventListener("click", () => offerHigherLowerGiveUp(input.value));
+      return panel;
+    }
+
+    function renderHigherLowerPowerMenu() {
+      const menu = document.createElement("div");
+      menu.className = "higher-lower-power-menu";
+      const rankOptions = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+        .map((rank) => `<option value="${rank}">${rank}</option>`)
+        .join("");
+      const suitOptions = [
+        ["S", "Spades"],
+        ["H", "Hearts"],
+        ["D", "Diamonds"],
+        ["C", "Clubs"]
+      ].map(([suit, label]) => `<option value="${suit}">${label}</option>`).join("");
+      menu.innerHTML = `
+        <div>
+          <strong>Choose Their Fate</strong>
+          <span>${Number(state.higherLower.powerCharges || 0)} power${Number(state.higherLower.powerCharges || 0) === 1 ? "" : "s"} ready</span>
+        </div>
+        <button type="button" data-hl-power="hide">Hide Next Card<span>Good luck loser~</span></button>
+        <button type="button" data-hl-power="suit">Suit Call<span>They must pick the next suit.</span></button>
+        <button type="button" data-hl-power="pulse">Tribute Pulse<span>${money(1)} per second for ${HIGHER_LOWER_PULSE_SECONDS}s.</span></button>
+        <div class="higher-lower-fix-card">
+          <label>Next <select data-hl-rank="1">${rankOptions}</select><select data-hl-suit="1">${suitOptions}</select></label>
+          <label>Then <select data-hl-rank="2">${rankOptions}</select><select data-hl-suit="2">${suitOptions}</select></label>
+          <button type="button" data-hl-power="fix">Set Next Two Cards</button>
+        </div>
+      `;
+      menu.querySelector("[data-hl-power='hide']").addEventListener("click", () => useHigherLowerPower("hide"));
+      menu.querySelector("[data-hl-power='suit']").addEventListener("click", () => useHigherLowerPower("suit"));
+      menu.querySelector("[data-hl-power='pulse']").addEventListener("click", () => useHigherLowerPower("pulse"));
+      menu.querySelector("[data-hl-power='fix']").addEventListener("click", () => useHigherLowerPower("fix", {
+        rank1: menu.querySelector("[data-hl-rank='1']").value,
+        suit1: menu.querySelector("[data-hl-suit='1']").value,
+        rank2: menu.querySelector("[data-hl-rank='2']").value,
+        suit2: menu.querySelector("[data-hl-suit='2']").value
+      }));
+      return menu;
     }
 
     function chessPieceGlyph(piece) {
@@ -17392,7 +17875,8 @@
       JC: "jack_of_clubs_full.webp",
       QC: "queen_of_clubs_full.webp",
       KC: "king_of_clubs_full.webp",
-      JOKER: "joker_full.png"
+      JOKER: "joker_full.png",
+      HIDDEN_POWER: "hidden_card_full.png"
     };
     const CUSTOM_FULL_PLAYING_CARDS = new Set(["AS", "2S", "3S", "4S", "5S", "6S", "7S", "8S", "9S", "10S", "JS", "QS", "KS", "AH", "2H", "3H", "4H", "5H", "6H", "7H", "8H", "9H", "10H", "JH", "QH", "KH", "AD", "2D", "3D", "4D", "5D", "6D", "7D", "8D", "9D", "10D", "JD", "QD", "KD", "AC", "2C", "3C", "4C", "5C", "6C", "7C", "8C", "9C", "10C", "JC", "QC", "KC", "JOKER"]);
 
@@ -17402,6 +17886,17 @@
       if (hidden) {
         element.classList.add("hidden-card");
         element.setAttribute("aria-label", "Face-down card");
+        return element;
+      }
+      if (card === "HIDDEN_POWER") {
+        element.classList.add("custom-full-card", "higher-lower-hidden-power-card");
+        const image = document.createElement("img");
+        image.className = "playing-card-art";
+        image.src = PLAYING_CARD_ART.HIDDEN_POWER;
+        image.alt = "Hidden card";
+        image.loading = "lazy";
+        image.decoding = "async";
+        element.appendChild(image);
         return element;
       }
       if (card === "JOKER") {
@@ -17976,15 +18471,19 @@
     function renderHigherLowerRules() {
       const rules = [
         `<strong>Goal:</strong> ${state.names.sub} guesses whether the next card is higher, lower, or the same rank as the current card.`,
-        `<strong>Card order:</strong> 2 is low, ace is high. Matching ranks are only won by calling Same.`,
-        `<strong>Run stakes:</strong> ${money(25)} runs unlock cash out at streak 4 and pay back ${money(25)}. ${money(50)} runs unlock cash out at streak 6 and pay back ${money(50)}.`,
+        `<strong>Card order:</strong> 2 is low, ace is high. Matching ranks are only won by calling Even.`,
+        `<strong>Dom setup:</strong> ${state.names.dom} sets the cash-out streak from ${HIGHER_LOWER_MIN_TARGET} to ${HIGHER_LOWER_MAX_TARGET}. The default is ${HIGHER_LOWER_DEFAULT_TARGET}.`,
         `<strong>Correct guess:</strong> the streak rises by 1. Calling Same correctly adds 2 because it is much rarer.`,
-        `<strong>Cash out:</strong> ${state.names.sub} can only cash out after reaching the run target. Extra wins after the target add ${money(5)} on a ${money(25)} run or ${money(10)} on a ${money(50)} run.`,
-        `<strong>Wrong guess:</strong> one wrong call breaks ${state.names.sub}'s current streak but does not end the run.`,
-        `<strong>Dom win build-up:</strong> two wrong guesses in a row adds ${money(HIGHER_LOWER_DOM_STREAK_BONUS)} to ${state.names.dom}'s possible win. Every further consecutive wrong guess adds another ${money(HIGHER_LOWER_DOM_STREAK_BONUS)}.`,
-        `<strong>Beg mercy:</strong> after ${HIGHER_LOWER_MERCY_THRESHOLD} wrong guesses in a row, ${state.names.sub} can beg ${state.names.dom} to collect instead of letting the run get worse.`,
-        `<strong>Drained dry:</strong> at ${HIGHER_LOWER_FORCE_COLLECT_WRONGS} wrong guesses in a row, ${state.names.dom} is forced to collect the current dom win.`,
-        `<strong>Collect:</strong> once a mistake bonus exists, ${state.names.dom} can collect the current dom win instead of letting ${state.names.sub} keep playing.`,
+        `<strong>Cash out:</strong> ${state.names.sub} can only cash out after reaching the target streak in a row.`,
+        `<strong>Wrong guess:</strong> one wrong call resets ${state.names.sub}'s correct streak and adds the current wrong-call amount to the pending owed counter.`,
+        `<strong>Wrong-call ramp:</strong> wrong calls start at ${money(1)}. Every ${HIGHER_LOWER_WRONG_STEP} wrong guesses in a row increases future wrong calls by ${money(1)}. Correct guesses do not lower it.`,
+        `<strong>Collect:</strong> ${state.names.dom} can collect the pending owed counter before ${state.names.sub} cashes out. Until then, it is not in the bank.`,
+        `<strong>Give up offer:</strong> ${state.names.dom} can offer a custom price for ${state.names.sub} to give up. If accepted, that price ends the run instead of the owed counter.`,
+        `<strong>Dom preview:</strong> ${state.names.dom} can see the next card plus the following two cards while the run is active.`,
+        `<strong>Dom powers:</strong> every 5 correct calls in a row gives ${state.names.dom} a power. Opening the power menu pauses ${state.names.sub}'s buttons while ${state.names.dom} chooses their fate.`,
+        `<strong>Power options:</strong> ${state.names.dom} can hide the next card, set the next two cards, force ${state.names.sub} to guess the next card's suit, or start Tribute Pulse.`,
+        `<strong>Tribute Pulse:</strong> each second adds ${money(1)} to the pending owed counter for ${HIGHER_LOWER_PULSE_SECONDS} seconds. It stays added whether the next guess is right or wrong.`,
+        `<strong>Throne mode:</strong> Higher / Lower uses the final collected or accepted give-up value for the Throne payment.`,
         `<strong>Reclaim:</strong> Higher / Lower does not use reclaim yet. It is a quick normal-bet punishment game for now.`
       ];
       setRuleList(rules);
@@ -18058,12 +18557,18 @@
       } else if (state.currentGame === "higherLower") {
         const streak = Number(state.higherLower && state.higherLower.streak || 0);
         if (state.active) {
-          const target = Number(state.higherLower && state.higherLower.targetStreak || 4);
-          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> guesses the next card. Streak ${streak}/${target}.`;
+          const target = higherLowerTarget(state.higherLower && state.higherLower.targetStreak);
+          if (state.higherLower && state.higherLower.powerMenuOpen) {
+            els.turnText.innerHTML = `<strong>${state.names.dom}</strong> is choosing ${state.names.sub}'s fate.`;
+          } else if (state.higherLower && state.higherLower.suitCallPending) {
+            els.turnText.innerHTML = `<strong>${state.names.sub}</strong> must guess the next suit. Streak ${streak}/${target}.`;
+          } else {
+            els.turnText.innerHTML = `<strong>${state.names.sub}</strong> guesses the next card. Streak ${streak}/${target}.`;
+          }
         } else if (state.higherLower && state.higherLower.winner) {
           els.turnText.innerHTML = `<strong>${labelFor(state.higherLower.winner)}</strong> wins the Higher / Lower run.`;
         } else {
-          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses a preset Higher / Lower run.`;
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> sets the Higher / Lower cash-out streak.`;
         }
       } else if (state.currentGame === "tributeReversi") {
         const score = reversiScore();
@@ -18234,7 +18739,7 @@
       }
       if (state.currentGame === "higherLower") {
         els.gameTitle.textContent = "Higher / Lower";
-        els.gameSubtitle.textContent = "A quick card streak. The sub pushes for a cash-out target while wrong calls build a dom collect value inside the run.";
+        els.gameSubtitle.textContent = "A dom-set card endurance run. The sub chases the cash-out streak while wrong calls build a pending owed counter.";
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -18452,6 +18957,9 @@
     if (els.outcomeSplash) els.outcomeSplash.addEventListener("click", hideOutcomeSplash);
     window.setInterval(() => {
       if (resolveFocusTaxTimeout()) return;
+      if (state.currentGame === "higherLower" && state.active && state.higherLower && state.higherLower.pulseActive) {
+        settleHigherLowerPulse(true);
+      }
       renderDomTriggerOverlay();
       renderDomTriggerPanel();
     }, 400);

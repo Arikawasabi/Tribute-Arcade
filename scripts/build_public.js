@@ -87,6 +87,22 @@ function copyStaticAssets() {
   console.log("Copied static assets.");
 }
 
+function copyReferencedRootAssets() {
+  const refs = parseReferencedAssetNames();
+  const targets = [cloudflareDir, renderDir];
+  let copied = 0;
+  for (const name of refs) {
+    const source = path.join(root, name);
+    if (!fs.existsSync(source) || !fs.statSync(source).isFile()) continue;
+    for (const target of targets) {
+      ensureDir(target);
+      fs.copyFileSync(source, path.join(target, name));
+      copied += 1;
+    }
+  }
+  console.log(`Copied ${copied} referenced root asset${copied === 1 ? "" : "s"}.`);
+}
+
 function parseReferencedAssetNames() {
   const files = [
     outputHtmlPath,
@@ -162,5 +178,6 @@ if (args.has("--prune")) pruneUnusedDeployAssets();
 if (!args.has("--extract") || args.has("--build")) {
   buildHtml();
   copyStaticAssets();
+  copyReferencedRootAssets();
   rebuildZip();
 }
