@@ -3133,10 +3133,15 @@
       aspect-ratio: 1;
       max-height: min(72vh, 720px);
       margin: 0 auto;
-      border: 1px solid rgba(244, 239, 232, 0.14);
+      border: 1px solid rgba(239, 199, 94, 0.24);
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+      background:
+        linear-gradient(135deg, rgba(141, 21, 52, 0.18), rgba(239, 199, 94, 0.08)),
+        rgba(11, 7, 9, 0.82);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 239, 194, 0.04),
+        0 18px 45px rgba(0, 0, 0, 0.26);
       transition: border-color 180ms ease, box-shadow 180ms ease, filter 180ms ease;
     }
 
@@ -3163,17 +3168,23 @@
       padding: 0;
       font-size: clamp(1.6rem, 6vw, 3.5rem);
       line-height: 1;
+      position: relative;
       box-shadow: none;
+      transition: background 160ms ease, box-shadow 160ms ease, filter 160ms ease;
     }
 
     .chess-square.light {
-      background: rgba(205, 191, 158, 0.88);
-      color: #17120f;
+      background:
+        radial-gradient(circle at 30% 24%, rgba(255, 239, 194, 0.34), transparent 36%),
+        linear-gradient(135deg, rgba(244, 211, 171, 0.96), rgba(188, 149, 135, 0.92));
+      color: #1a1113;
     }
 
     .chess-square.dark {
-      background: rgba(90, 107, 88, 0.88);
-      color: #17120f;
+      background:
+        radial-gradient(circle at 70% 76%, rgba(239, 199, 94, 0.12), transparent 38%),
+        linear-gradient(135deg, rgba(74, 31, 43, 0.96), rgba(41, 67, 53, 0.94));
+      color: #f7efe3;
     }
 
     .chess-square.selected {
@@ -3182,7 +3193,9 @@
     }
 
     .chess-square.legal {
-      box-shadow: inset 0 0 0 999px rgba(101, 210, 143, 0.22);
+      box-shadow:
+        inset 0 0 0 999px rgba(255, 207, 113, 0.18),
+        inset 0 0 0 4px rgba(239, 199, 94, 0.58);
     }
 
     .chess-square.frozen {
@@ -3204,14 +3217,42 @@
       outline-offset: -6px;
     }
 
+    .chess-square.in-check {
+      box-shadow:
+        inset 0 0 0 999px rgba(202, 26, 61, 0.34),
+        inset 0 0 0 5px rgba(255, 64, 93, 0.94),
+        0 0 28px rgba(255, 64, 93, 0.74);
+      filter: saturate(1.2) contrast(1.08);
+      animation: chessKingCheckPulse 900ms ease-in-out infinite alternate;
+    }
+
+    @keyframes chessKingCheckPulse {
+      from {
+        box-shadow:
+          inset 0 0 0 999px rgba(202, 26, 61, 0.28),
+          inset 0 0 0 5px rgba(255, 64, 93, 0.82),
+          0 0 20px rgba(255, 64, 93, 0.58);
+      }
+      to {
+        box-shadow:
+          inset 0 0 0 999px rgba(202, 26, 61, 0.44),
+          inset 0 0 0 5px rgba(255, 112, 136, 1),
+          0 0 36px rgba(255, 64, 93, 0.88);
+      }
+    }
+
     .chess-square.dom-piece {
-      color: #8d1534;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+      color: #ff4f86;
+      text-shadow:
+        0 1px 0 rgba(255, 239, 194, 0.24),
+        0 0 18px rgba(255, 79, 134, 0.54);
     }
 
     .chess-square.sub-piece {
-      color: #134f79;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+      color: #5fb9ff;
+      text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.22),
+        0 0 14px rgba(86, 181, 255, 0.44);
     }
 
     .checkers-board {
@@ -5053,7 +5094,7 @@
         <strong class="status-pill">Play Solo</strong>
       </button>
 
-      <button class="panel game-card" id="obedienceOrdersCard" data-game-categories="misc all">
+      <button class="panel game-card" id="obedienceOrdersCard" data-game-categories="misc all" data-game-hidden="true">
         <span>
           <span class="game-card-tags"><span>WIP</span><span>Command</span><span>Memory</span></span>
           <h2>Obedience Orders</h2>
@@ -5062,7 +5103,7 @@
         <strong class="status-pill">WIP</strong>
       </button>
 
-      <button class="panel game-card" id="tributeTrailCard" data-game-categories="misc all">
+      <button class="panel game-card" id="tributeTrailCard" data-game-categories="misc all" data-game-hidden="true">
         <span>
           <span class="game-card-tags"><span>WIP</span><span>Race</span><span>Cards</span></span>
           <h2>Tribute Trail</h2>
@@ -7410,7 +7451,7 @@
         state.online.playerNames.two,
         ...Object.values(state.online.spectators || {})
       ];
-      return names.some((name) => String(name || "").trim().toLowerCase() === "dusk");
+      return names.some((name) => String(name || "").trim().toLowerCase() === "testing");
     }
 
     function renderMenuRules() {
@@ -7503,7 +7544,12 @@
       els.mainGamesGrid.classList.remove("hidden");
       els.miniGamesGrid.classList.add("hidden");
       els.testingGamesGrid.classList.add("hidden");
+      const showHiddenGames = testingGamesUnlocked();
       document.querySelectorAll(".game-card[data-game-categories]").forEach((card) => {
+        if (card.dataset.gameHidden === "true" && !showHiddenGames) {
+          card.classList.add("hidden");
+          return;
+        }
         const categories = (card.dataset.gameCategories || "").split(/\s+/);
         card.classList.toggle("hidden", !categories.includes(tab));
       });
@@ -14379,6 +14425,23 @@
       return false;
     }
 
+    function checkedChessKingSquare(game) {
+      if (!game) return "";
+      const color = game.turn();
+      const enemy = color === "w" ? "b" : "w";
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      for (let rank = 1; rank <= 8; rank += 1) {
+        for (const file of files) {
+          const square = `${file}${rank}`;
+          const piece = game.get(square);
+          if (piece && piece.color === color && piece.type === "k") {
+            return chessSquareAttackedBy(game, square, enemy) ? square : "";
+          }
+        }
+      }
+      return "";
+    }
+
     function manualChessCastleMove(game, square, side) {
       const color = game.turn();
       const rank = color === "w" ? "1" : "8";
@@ -16589,6 +16652,7 @@
       const ranks = localColor === "b" ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
       const fileIndexes = localColor === "b" ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
       const shieldedQueenSquare = state.chess.queenShield ? findDomQueenSquare(game) : null;
+      const checkedKingSquare = checkedChessKingSquare(game);
       for (const rank of ranks) {
         for (const fileIndex of fileIndexes) {
           const square = `${files[fileIndex]}${rank}`;
@@ -16598,6 +16662,7 @@
           if (state.chess.selected === square) cell.classList.add("selected");
           if (legalTargets.has(square)) cell.classList.add("legal");
           if (state.chess.freezeSquare === square) cell.classList.add("frozen");
+          if (checkedKingSquare === square) cell.classList.add("in-check");
           if (shieldedQueenSquare === square) cell.classList.add("queen-shielded");
           if (piece && (isQueenGazedSquare(game, square, piece) || isQueenLeashedSquare(game, square, piece))) {
             cell.classList.add("queen-affected");

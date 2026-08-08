@@ -1643,7 +1643,7 @@
         state.online.playerNames.two,
         ...Object.values(state.online.spectators || {})
       ];
-      return names.some((name) => String(name || "").trim().toLowerCase() === "dusk");
+      return names.some((name) => String(name || "").trim().toLowerCase() === "testing");
     }
 
     function renderMenuRules() {
@@ -1736,7 +1736,12 @@
       els.mainGamesGrid.classList.remove("hidden");
       els.miniGamesGrid.classList.add("hidden");
       els.testingGamesGrid.classList.add("hidden");
+      const showHiddenGames = testingGamesUnlocked();
       document.querySelectorAll(".game-card[data-game-categories]").forEach((card) => {
+        if (card.dataset.gameHidden === "true" && !showHiddenGames) {
+          card.classList.add("hidden");
+          return;
+        }
         const categories = (card.dataset.gameCategories || "").split(/\s+/);
         card.classList.toggle("hidden", !categories.includes(tab));
       });
@@ -8612,6 +8617,23 @@
       return false;
     }
 
+    function checkedChessKingSquare(game) {
+      if (!game) return "";
+      const color = game.turn();
+      const enemy = color === "w" ? "b" : "w";
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      for (let rank = 1; rank <= 8; rank += 1) {
+        for (const file of files) {
+          const square = `${file}${rank}`;
+          const piece = game.get(square);
+          if (piece && piece.color === color && piece.type === "k") {
+            return chessSquareAttackedBy(game, square, enemy) ? square : "";
+          }
+        }
+      }
+      return "";
+    }
+
     function manualChessCastleMove(game, square, side) {
       const color = game.turn();
       const rank = color === "w" ? "1" : "8";
@@ -10822,6 +10844,7 @@
       const ranks = localColor === "b" ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
       const fileIndexes = localColor === "b" ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
       const shieldedQueenSquare = state.chess.queenShield ? findDomQueenSquare(game) : null;
+      const checkedKingSquare = checkedChessKingSquare(game);
       for (const rank of ranks) {
         for (const fileIndex of fileIndexes) {
           const square = `${files[fileIndex]}${rank}`;
@@ -10831,6 +10854,7 @@
           if (state.chess.selected === square) cell.classList.add("selected");
           if (legalTargets.has(square)) cell.classList.add("legal");
           if (state.chess.freezeSquare === square) cell.classList.add("frozen");
+          if (checkedKingSquare === square) cell.classList.add("in-check");
           if (shieldedQueenSquare === square) cell.classList.add("queen-shielded");
           if (piece && (isQueenGazedSquare(game, square, piece) || isQueenLeashedSquare(game, square, piece))) {
             cell.classList.add("queen-affected");
