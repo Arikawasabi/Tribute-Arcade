@@ -2371,7 +2371,7 @@
       display: flex;
       justify-content: center;
       align-items: end;
-      gap: clamp(18px, 3vw, 36px);
+      gap: clamp(10px, 2.4vw, 26px);
       overflow: visible;
     }
 
@@ -2392,6 +2392,33 @@
       font-size: 0.74rem;
       font-weight: 900;
       text-transform: uppercase;
+    }
+
+    .higher-lower-future-slot {
+      display: grid;
+      justify-items: start;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      transform: translateY(-6px);
+    }
+
+    .higher-lower-future-pile {
+      position: relative;
+      width: clamp(118px, 12vw, 172px);
+      height: clamp(168px, 17vw, 244px);
+      overflow: visible;
+    }
+
+    .higher-lower-future-pile .playing-card {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: clamp(92px, 9.8vw, 136px);
+      transform: translate(calc(var(--future-card-index) * 18px), calc(var(--future-card-index) * 9px)) rotate(calc((var(--future-card-index) - 1) * 3deg));
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
+      pointer-events: none;
     }
 
     .higher-lower-card-slot.current .playing-card {
@@ -2471,7 +2498,6 @@
       font-weight: 900;
     }
 
-    .higher-lower-dom-preview,
     .higher-lower-power-menu,
     .higher-lower-give-up {
       grid-column: 1 / -1;
@@ -2483,7 +2509,6 @@
       background: rgba(255, 255, 255, 0.045);
     }
 
-    .higher-lower-dom-preview > strong,
     .higher-lower-power-menu strong,
     .higher-lower-give-up strong {
       color: var(--gold);
@@ -2492,7 +2517,6 @@
       text-transform: uppercase;
     }
 
-    .higher-lower-dom-preview > span,
     .higher-lower-power-menu span,
     .higher-lower-give-up span,
     .higher-lower-give-up p {
@@ -2537,18 +2561,6 @@
       flex-wrap: wrap;
       gap: 8px;
       justify-content: end;
-    }
-
-    .higher-lower-preview-cards {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      overflow: visible;
-    }
-
-    .higher-lower-preview-cards .playing-card {
-      width: clamp(64px, 8vw, 92px);
-      pointer-events: none;
     }
 
     .higher-lower-power-menu {
@@ -4821,8 +4833,14 @@
         display: grid;
       }
 
-      .higher-lower-preview-cards .playing-card {
-        width: clamp(56px, 18vw, 78px);
+      .higher-lower-future-pile {
+        width: clamp(96px, 30vw, 132px);
+        height: clamp(138px, 42vw, 190px);
+      }
+
+      .higher-lower-future-pile .playing-card {
+        width: clamp(72px, 23vw, 102px);
+        transform: translate(calc(var(--future-card-index) * 13px), calc(var(--future-card-index) * 7px)) rotate(calc((var(--future-card-index) - 1) * 3deg));
       }
 
       .higher-lower-run-options {

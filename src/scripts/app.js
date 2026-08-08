@@ -11047,6 +11047,8 @@
       const role = localOnlineRole();
       const canAct = higherLowerCanSubAct();
       const domCanAct = higherLowerDomControlsAllowed(role);
+      const showSubControls = !role || role === SUB;
+      const showDomControls = !role || role === DOM;
       els.board.className = "higher-lower-table";
       els.board.innerHTML = "";
 
@@ -11055,10 +11057,6 @@
 
       const cards = document.createElement("div");
       cards.className = "higher-lower-cards";
-      const previousWrap = document.createElement("div");
-      previousWrap.className = "higher-lower-card-slot";
-      previousWrap.innerHTML = `<span>Previous</span>`;
-      previousWrap.appendChild(game.lastCard ? renderPlayingCard(game.lastCard, false) : renderPlayingCard("AS", true));
       const currentWrap = document.createElement("div");
       currentWrap.className = "higher-lower-card-slot current";
       currentWrap.innerHTML = `<span>Current</span>`;
@@ -11066,8 +11064,24 @@
       currentWrap.appendChild(game.currentCard
         ? renderPlayingCard(hideCurrentFromView ? "HIDDEN_POWER" : game.currentCard, false)
         : renderPlayingCard("AS", true));
-      cards.appendChild(previousWrap);
       cards.appendChild(currentWrap);
+      const futureWrap = document.createElement("div");
+      futureWrap.className = "higher-lower-future-slot";
+      futureWrap.innerHTML = `<span>Next</span>`;
+      const futurePile = document.createElement("div");
+      futurePile.className = "higher-lower-future-pile";
+      const upcomingCards = state.active ? higherLowerUpcomingCards(3) : [];
+      for (let index = 0; index < 3; index += 1) {
+        const card = upcomingCards[index];
+        const visibleToDom = Boolean(card && domCanAct);
+        const rendered = card
+          ? renderPlayingCard(visibleToDom ? card : "AS", !visibleToDom)
+          : renderPlayingCard("AS", true);
+        rendered.style.setProperty("--future-card-index", index);
+        futurePile.appendChild(rendered);
+      }
+      futureWrap.appendChild(futurePile);
+      cards.appendChild(futureWrap);
 
       const status = document.createElement("div");
       status.className = "higher-lower-status";
@@ -11094,63 +11108,30 @@
         </div>
       `;
 
-      const preview = document.createElement("div");
-      preview.className = "higher-lower-dom-preview";
-      if (state.active && domCanAct) {
-        const upcoming = higherLowerUpcomingCards(3);
-        preview.innerHTML = `<strong>Dom Preview</strong><span>Next card, then the following two.</span>`;
-        const previewCards = document.createElement("div");
-        previewCards.className = "higher-lower-preview-cards";
-        upcoming.forEach((card) => previewCards.appendChild(renderPlayingCard(card, false)));
-        while (previewCards.children.length < 3) previewCards.appendChild(renderPlayingCard("AS", true));
-        preview.appendChild(previewCards);
-      }
-
       const actions = document.createElement("div");
       actions.className = "higher-lower-actions";
-      const guessOptions = game.suitCallPending
-        ? [["S", "Spades"], ["H", "Hearts"], ["D", "Diamonds"], ["C", "Clubs"]]
-        : [["lower", "Lower"], ["same", "Even"], ["higher", "Higher"]];
-      guessOptions.forEach(([guess, label]) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = label;
-        button.disabled = !canAct;
-        button.addEventListener("click", () => higherLowerGuess(guess));
-        actions.appendChild(button);
-      });
-      const cashOut = document.createElement("button");
-      cashOut.type = "button";
-      cashOut.className = "primary";
-      cashOut.textContent = "Cash Out";
-      cashOut.disabled = !canAct || Number(game.streak || 0) < target;
-      cashOut.addEventListener("click", cashOutHigherLower);
-      actions.appendChild(cashOut);
+      if (showSubControls) {
+        const guessOptions = game.suitCallPending
+          ? [["S", "Spades"], ["H", "Hearts"], ["D", "Diamonds"], ["C", "Clubs"]]
+          : [["lower", "Lower"], ["same", "Even"], ["higher", "Higher"]];
+        guessOptions.forEach(([guess, label]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label;
+          button.disabled = !canAct;
+          button.addEventListener("click", () => higherLowerGuess(guess));
+          actions.appendChild(button);
+        });
+      }
 
-      const collect = document.createElement("button");
-      collect.type = "button";
-      collect.className = "danger-button";
-      collect.textContent = "Collect";
-      collect.disabled = !state.active || Number(game.pendingOwed || 0) <= 0 || !higherLowerDomControlsAllowed();
-      collect.addEventListener("click", collectHigherLowerDomWin);
-      actions.appendChild(collect);
-
-      const powers = document.createElement("button");
-      powers.type = "button";
-      powers.textContent = game.powerMenuOpen ? "Close Powers" : `Powers (${Number(game.powerCharges || 0)})`;
-      powers.disabled = !state.active || !domCanAct || Number(game.powerCharges || 0) <= 0;
-      powers.addEventListener("click", () => toggleHigherLowerPowerMenu());
-      actions.appendChild(powers);
-
-      const giveUpButton = document.createElement("button");
-      giveUpButton.type = "button";
-      giveUpButton.textContent = "Offer Give Up";
-      giveUpButton.disabled = !state.active || !domCanAct;
-      giveUpButton.addEventListener("click", () => {
-        const defaultAmount = normalizeBuyIn(Number(game.giveUpDraftAmount || higherLowerDomPossibleWin(game) || 5));
-        offerHigherLowerGiveUp(defaultAmount);
-      });
-      actions.appendChild(giveUpButton);
+      if (showDomControls) {
+        const powers = document.createElement("button");
+        powers.type = "button";
+        powers.textContent = game.powerMenuOpen ? "Close Powers" : `Powers (${Number(game.powerCharges || 0)})`;
+        powers.disabled = !state.active || !domCanAct || Number(game.powerCharges || 0) <= 0;
+        powers.addEventListener("click", () => toggleHigherLowerPowerMenu());
+        actions.appendChild(powers);
+      }
 
       const setup = document.createElement("div");
       setup.className = "higher-lower-run-options";
@@ -11178,14 +11159,16 @@
 
       panel.appendChild(cards);
       panel.appendChild(status);
-      if (preview.childNodes.length) panel.appendChild(preview);
-      panel.appendChild(state.active ? actions : setup);
-      if (state.active) panel.appendChild(renderHigherLowerGiveUpPanel(game, domCanAct, role));
+      if (state.active && actions.childNodes.length) panel.appendChild(actions);
+      if (!state.active) panel.appendChild(setup);
+      const giveUpPanel = state.active ? renderHigherLowerGiveUpPanel(game, domCanAct, role) : null;
+      if (giveUpPanel) panel.appendChild(giveUpPanel);
       if (state.active && game.powerMenuOpen && domCanAct) panel.appendChild(renderHigherLowerPowerMenu());
       els.board.appendChild(panel);
     }
 
     function renderHigherLowerGiveUpPanel(game, domCanAct, role) {
+      if (!game || (!game.giveUpOffer && role === SUB)) return null;
       const panel = document.createElement("div");
       panel.className = "higher-lower-give-up";
       const offer = game && game.giveUpOffer;
