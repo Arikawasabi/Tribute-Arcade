@@ -1978,6 +1978,16 @@
       font-size: 1rem;
     }
 
+    .turn-owed-pill {
+      margin-left: 0;
+      border-color: rgba(240, 78, 120, 0.34);
+      background: rgba(240, 78, 120, 0.11);
+    }
+
+    .turn-owed-pill strong {
+      color: #ff8caf;
+    }
+
     .queen-charge-tray {
       display: flex;
       align-items: stretch;
@@ -2419,6 +2429,7 @@
       transform: translate(calc(var(--future-card-index) * 18px), calc(var(--future-card-index) * 9px)) rotate(calc((var(--future-card-index) - 1) * 3deg));
       box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
       pointer-events: none;
+      z-index: var(--future-card-z);
     }
 
     .higher-lower-card-slot.current .playing-card {
@@ -2464,25 +2475,51 @@
     }
 
     .higher-lower-meter {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
     }
 
     .higher-lower-meter span {
-      min-width: 86px;
-      padding: 7px 10px;
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+      padding: 8px 10px;
       border: 1px solid rgba(239, 199, 94, 0.2);
-      border-radius: 999px;
+      border-radius: 8px;
       background: rgba(255, 255, 255, 0.05);
       color: var(--muted);
-      font-size: 0.78rem;
+      font-size: 0.68rem;
       font-weight: 800;
+      line-height: 1.15;
       text-transform: uppercase;
+    }
+
+    .higher-lower-meter span.primary {
+      background: rgba(239, 199, 94, 0.1);
+      border-color: rgba(239, 199, 94, 0.34);
+    }
+
+    .higher-lower-meter span.countdown {
+      grid-row: span 2;
+      align-content: center;
+      text-align: center;
+    }
+
+    .higher-lower-meter span.pulse {
+      background: rgba(240, 78, 120, 0.15);
+      border-color: rgba(240, 78, 120, 0.38);
     }
 
     .higher-lower-meter b {
       color: var(--text);
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .higher-lower-meter span.countdown b {
+      color: var(--gold);
+      font-size: clamp(2rem, 4.5vw, 3.4rem);
     }
 
     .higher-lower-actions {
@@ -4811,6 +4848,10 @@
 
       .higher-lower-actions {
         grid-template-columns: 1fr 1fr;
+      }
+
+      .higher-lower-meter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .higher-lower-power-menu {

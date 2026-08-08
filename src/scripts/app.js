@@ -406,6 +406,8 @@
       turnText: document.getElementById("turnText"),
       turnDomBankPill: document.getElementById("turnDomBankPill"),
       turnDomBank: document.getElementById("turnDomBank"),
+      turnOwedPill: document.getElementById("turnOwedPill"),
+      turnOwed: document.getElementById("turnOwed"),
       modeLabel: document.getElementById("modeLabel"),
       potLabel: document.getElementById("potLabel"),
       pot: document.getElementById("pot"),
@@ -9307,7 +9309,7 @@
         ? "Good luck loser~"
         : "";
       if (direction === actual) {
-        const gain = !suitCall && direction === "same" ? 2 : 1;
+        const gain = 1;
         state.higherLower.wrongStreak = 0;
         state.higherLower.streak += gain;
         state.higherLower.bestStreak = Math.max(state.higherLower.bestStreak, state.higherLower.streak);
@@ -11078,6 +11080,7 @@
           ? renderPlayingCard(visibleToDom ? card : "AS", !visibleToDom)
           : renderPlayingCard("AS", true);
         rendered.style.setProperty("--future-card-index", index);
+        rendered.style.setProperty("--future-card-z", 3 - index);
         futurePile.appendChild(rendered);
       }
       futureWrap.appendChild(futurePile);
@@ -11089,7 +11092,12 @@
       const wrongStreak = Number(game.wrongStreak || 0);
       const wrongPenalty = Number(game.wrongPenalty || 1);
       const totalWrongs = Number(game.totalWrongs || 0);
-      const domPossible = higherLowerDomPossibleWin(game);
+      const streak = Number(game.streak || 0);
+      const cashoutRemaining = Math.max(0, target - streak);
+      const powerRemaining = streak > 0 && streak % 5 === 0 ? 5 : 5 - (streak % 5);
+      const missesUntilPenalty = wrongStreak > 0 && wrongStreak % HIGHER_LOWER_WRONG_STEP === 0
+        ? HIGHER_LOWER_WRONG_STEP
+        : (HIGHER_LOWER_WRONG_STEP - (wrongStreak % HIGHER_LOWER_WRONG_STEP));
       const pulseRemaining = game.pulseActive
         ? Math.max(0, HIGHER_LOWER_PULSE_SECONDS - Number(game.pulseAdded || 0))
         : 0;
@@ -11097,14 +11105,13 @@
         <strong>${state.active ? "Call The Next Card" : "Ready For A Run"}</strong>
         <p>${escapeHtml(game.powerMenuOpen && role !== DOM ? `${state.names.dom} is choosing your fate.` : (game.fateMessage || game.result || (state.active ? `Reach ${target} correct calls in a row to cash out. Wrong calls add ${money(wrongPenalty)} to the pending owed counter; every ${HIGHER_LOWER_WRONG_STEP} wrong in a row raises that by ${money(1)}.` : `${state.names.dom} chooses the cash-out streak. ${state.names.sub} has to hit it without a mistake resetting the streak.`)))}</p>
         <div class="higher-lower-meter">
-          <span>Streak <b>${Number(game.streak || 0)}</b></span>
-          <span>Target <b>${target}</b></span>
-          <span>Owed <b>${money(domPossible)}</b></span>
-          <span>Wrong Adds <b>${money(wrongPenalty)}</b></span>
-          <span>Wrong <b>${wrongStreak}</b></span>
-          <span>Total Misses <b>${totalWrongs}</b></span>
-          <span>Powers <b>${Number(game.powerCharges || 0)}</b></span>
-          ${game.pulseActive ? `<span>Pulse <b>${pulseRemaining}s</b></span>` : ""}
+          <span class="primary countdown">Cashout In <b>${cashoutRemaining}</b></span>
+          <span class="primary">Power In <b>${powerRemaining}</b></span>
+          <span class="primary">Powers <b>${Number(game.powerCharges || 0)}</b></span>
+          ${game.pulseActive ? `<span class="primary pulse">Pulse <b>${pulseRemaining}s</b></span>` : ""}
+          <span>Penalty In <b>${missesUntilPenalty}</b></span>
+          <span>Wrong +<b>${money(wrongPenalty)}</b></span>
+          <span>Misses <b>${totalWrongs}</b></span>
         </div>
       `;
 
@@ -12490,6 +12497,8 @@
       els.lockedTribute.textContent = money(state.domVault);
       if (els.turnDomBankPill) els.turnDomBankPill.classList.toggle("hidden", !isHigherLower);
       if (els.turnDomBank) els.turnDomBank.textContent = money(state.domVault);
+      if (els.turnOwedPill) els.turnOwedPill.classList.toggle("hidden", !isHigherLower);
+      if (els.turnOwed) els.turnOwed.textContent = money(isHigherLower ? higherLowerDomPossibleWin() : 0);
       if (els.backToMenuBtn) {
         const role = localOnlineRole();
         const blocked = Boolean(state.online.room && role !== DOM);
@@ -12545,9 +12554,9 @@
           if (state.higherLower && state.higherLower.powerMenuOpen) {
             els.turnText.innerHTML = `<strong>${state.names.dom}</strong> is choosing ${state.names.sub}'s fate.`;
           } else if (state.higherLower && state.higherLower.suitCallPending) {
-            els.turnText.innerHTML = `<strong>${state.names.sub}</strong> must guess the next suit. Streak ${streak}/${target}.`;
+            els.turnText.innerHTML = `<strong>${state.names.sub}</strong> must guess the next suit. ${Math.max(0, target - streak)} correct call${Math.max(0, target - streak) === 1 ? "" : "s"} to cash out.`;
           } else {
-            els.turnText.innerHTML = `<strong>${state.names.sub}</strong> guesses the next card. Streak ${streak}/${target}.`;
+            els.turnText.innerHTML = `<strong>${state.names.sub}</strong> guesses the next card. ${Math.max(0, target - streak)} correct call${Math.max(0, target - streak) === 1 ? "" : "s"} to cash out.`;
           }
         } else if (state.higherLower && state.higherLower.winner) {
           els.turnText.innerHTML = `<strong>${labelFor(state.higherLower.winner)}</strong> wins the Higher / Lower run.`;
