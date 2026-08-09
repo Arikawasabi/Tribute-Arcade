@@ -2584,12 +2584,10 @@
         : activeTab === "tools"
           ? "Tools & Settings"
         : (state.online.room ? `Room ${state.online.room}` : "Room");
-      els.sidePopout.classList.toggle("ledger-side", activeTab === "ledger");
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
-        const visible = !panelOpen
-          && (tab !== "tools" || canOpenUtility);
+        const visible = tab !== "tools" || canOpenUtility;
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active-restore", tab === activeTab);
         button.classList.toggle("unread", tab === "chat" && hasUnreadChat());

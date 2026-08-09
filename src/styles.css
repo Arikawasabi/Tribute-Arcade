@@ -3174,9 +3174,12 @@
 
     .double-solitaire-slot .playing-card.selected,
     .double-solitaire-column .playing-card.selected {
-      outline: 3px solid var(--gold);
-      outline-offset: 3px;
+      outline: 0;
       transform: translateY(-5px);
+      box-shadow:
+        inset 0 0 0 3px rgba(255, 207, 113, 0.92),
+        inset 0 0 0 6px rgba(255, 79, 134, 0.18),
+        0 14px 32px rgba(0, 0, 0, 0.38);
       z-index: 8;
     }
 
@@ -3721,10 +3724,10 @@
     }
 
     .solitaire-table .playing-card.selected {
-      outline: 2px solid rgba(255, 207, 113, 0.95);
-      outline-offset: 3px;
+      outline: 0;
       box-shadow:
-        0 0 0 5px rgba(255, 79, 134, 0.24),
+        inset 0 0 0 3px rgba(255, 207, 113, 0.92),
+        inset 0 0 0 6px rgba(255, 79, 134, 0.18),
         0 14px 34px rgba(0, 0, 0, 0.36);
     }
 
@@ -4896,17 +4899,7 @@
       pointer-events: none;
     }
 
-    .side-popout.ledger-side {
-      left: 12px;
-      right: auto;
-    }
-
-    .side-popout.ledger-side.closed {
-      transform: translateX(calc(-100% - 16px));
-    }
-
     .side-header,
-    .side-tabs,
     .chat-compose {
       display: flex;
       align-items: center;
@@ -4922,7 +4915,7 @@
     .side-restore-tab {
       position: fixed;
       right: 0;
-      top: 96px;
+      top: 166px;
       z-index: 24;
       width: 44px;
       min-height: 58px;
@@ -4939,14 +4932,14 @@
     }
 
     .side-restore-tab.ledger {
-      left: 0;
-      right: auto;
-      top: 50%;
-      border-radius: 0 8px 8px 0;
+      left: auto;
+      right: 0;
+      top: 96px;
+      border-radius: 8px 0 0 8px;
     }
 
     .side-restore-tab.tools {
-      top: 166px;
+      top: 236px;
     }
 
     .side-restore-tab.unread {
@@ -4963,6 +4956,7 @@
     }
 
     .side-tabs {
+      display: none;
       padding: 10px 12px 0;
     }
 
@@ -5500,14 +5494,10 @@
         transform: translateX(calc(100% + 12px));
       }
 
-      .side-popout.ledger-side.closed {
-        transform: translateX(calc(-100% - 12px));
-      }
-
       .side-restore-tab {
         top: auto;
         right: 0;
-        bottom: 12px;
+        bottom: 82px;
         width: 46px;
         min-height: 58px;
       }
@@ -5518,23 +5508,24 @@
 
       .side-restore-tab.ledger {
         top: auto;
-        left: 0;
-        right: auto;
-        bottom: 12px;
+        left: auto;
+        right: 0;
+        bottom: 152px;
+        border-radius: 8px 0 0 8px;
       }
 
       .side-restore-tab.tools {
         top: auto;
-        bottom: 82px;
+        bottom: 12px;
       }
 
       .side-restore-tab[data-open-side-tab="chat"] {
         top: auto;
-        bottom: 152px;
+        bottom: 82px;
       }
 
       .side-restore-tab[data-open-side-tab="chat"].active-restore {
-        bottom: 12px;
+        bottom: 82px;
       }
 
       .distraction-overlay {
