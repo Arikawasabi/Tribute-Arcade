@@ -2828,7 +2828,13 @@
       if (tab === "settings") tab = "tools";
       if (tab === "ledger" && state.screen !== "game" && state.screen !== "select") return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
+      if (state.settings.sideOpen !== false && state.settings.activeSideTab === tab) {
+        state.settings.sideOpen = false;
+        renderSidePanel();
+        return;
+      }
       state.settings.activeSideTab = tab;
+      state.settings.sideOpen = true;
       if (tab === "chat") markChatSeen();
       renderSidePanel();
     }
@@ -2837,6 +2843,11 @@
       if (tab === "settings") tab = "tools";
       if (tab === "ledger" && state.screen !== "game" && state.screen !== "select") return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
+      if (state.settings.sideOpen !== false && state.settings.activeSideTab === tab) {
+        state.settings.sideOpen = false;
+        renderSidePanel();
+        return;
+      }
       state.settings.activeSideTab = tab;
       state.settings.sideOpen = true;
       if (tab === "chat") markChatSeen();
