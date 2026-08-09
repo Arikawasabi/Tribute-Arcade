@@ -2860,6 +2860,11 @@
       renderSidePanel();
     }
 
+    function sideTabIsOpen(tab) {
+      if (tab === "settings") tab = "tools";
+      return state.settings.sideOpen !== false && state.settings.activeSideTab === tab;
+    }
+
     function chatSenderLabel() {
       const role = localOnlineRole();
       if (role === DOM) return state.names.dom || "Dom";
@@ -14359,7 +14364,14 @@
       else subRefusesCheckersQueen();
     });
     els.sideTabs.forEach((button) => {
-      button.addEventListener("click", () => setSideTab(button.dataset.sideTab));
+      button.addEventListener("click", () => {
+        const tab = button.dataset.sideTab || "chat";
+        if (sideTabIsOpen(tab)) {
+          toggleSidePanel();
+          return;
+        }
+        setSideTab(tab);
+      });
     });
     els.utilityTabs.forEach((button) => {
       button.addEventListener("click", () => {
@@ -14382,7 +14394,14 @@
     });
     els.sideToggleBtn.addEventListener("click", toggleSidePanel);
     els.sideRestoreTabs.forEach((button) => {
-      button.addEventListener("click", () => openSidePanel(button.dataset.openSideTab || "chat"));
+      button.addEventListener("click", () => {
+        const tab = button.dataset.openSideTab || "chat";
+        if (sideTabIsOpen(tab)) {
+          toggleSidePanel();
+          return;
+        }
+        openSidePanel(tab);
+      });
     });
     els.sendChatBtn.addEventListener("click", sendChatMessage);
     els.chatInput.addEventListener("keydown", (event) => {
