@@ -1785,9 +1785,14 @@
         control: "chance"
       };
       const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
-      const tab = ["board", "cards", "chance", "solo", "wip", "all"].includes(requestedTab) ? requestedTab : "board";
+      const soloMenuOpen = state.screen === "select" && state.currentGame === "solitaire";
+      const allowedTabs = soloMenuOpen
+        ? ["solo"]
+        : ["board", "cards", "chance", "wip", "all"];
+      const tab = allowedTabs.includes(requestedTab) ? requestedTab : allowedTabs[0];
       state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
+        button.classList.toggle("hidden", button.dataset.gameTab === "solo" ? !soloMenuOpen : soloMenuOpen);
         button.classList.toggle("active", button.dataset.gameTab === tab);
       });
       els.mainGamesGrid.classList.remove("hidden");
