@@ -5512,25 +5512,64 @@
       }
 
       .crazy8-table {
-        padding: 10px;
+        padding: 8px;
+        overflow: hidden;
       }
 
       .crazy8-shell {
         grid-template-rows: auto auto auto;
+        gap: 8px;
+      }
+
+      .crazy8-hand {
+        padding: 8px;
+        overflow: hidden;
+      }
+
+      .crazy8-hand-title {
+        font-size: 0.72rem;
       }
 
       .crazy8-center {
         grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
       }
 
       .crazy8-card-row {
-        min-height: 112px;
+        justify-content: flex-start;
+        gap: 10px;
+        min-height: clamp(128px, 36vw, 158px);
+        overflow-x: auto;
+        overflow-y: visible;
+        padding: 8px 8px 16px;
+        scroll-padding-inline: 8px;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
       }
 
       .crazy8-card {
-        flex-basis: 0;
-        max-width: 92px;
+        flex: 0 0 auto;
+        width: clamp(78px, 23vw, 98px);
+        max-width: none;
         margin-right: 0;
+        scroll-snap-align: center;
+      }
+
+      .crazy8-hand.local-hand .crazy8-card-row {
+        min-height: clamp(174px, 52vw, 224px);
+      }
+
+      .crazy8-hand.local-hand .crazy8-card {
+        width: clamp(116px, 35vw, 150px);
+      }
+
+      .crazy8-hand.opponent-hand .crazy8-card-row {
+        min-height: clamp(112px, 30vw, 136px);
+      }
+
+      .crazy8-hand.opponent-hand .crazy8-card {
+        width: clamp(72px, 21vw, 90px);
       }
 
       .crazy8-deck,
