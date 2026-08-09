@@ -1266,6 +1266,7 @@
 
     function setScreen(screen) {
       state.screen = screen;
+      if (screen !== "game") clearThroneKissSplash();
       if (screen !== "solitaire") hideSolitaireCardPreview();
       els.setupScreen.classList.toggle("hidden", screen !== "setup");
       els.lobbyScreen.classList.toggle("hidden", screen !== "lobby");
@@ -3441,6 +3442,7 @@
 
     let outcomeSplashTimer = null;
     let throneKissSplashTimer = null;
+    let throneKissFadeWhenFocused = false;
 
     function showOutcomeSplash({ tone = "gold", kicker = "Result", title = "Tribute Updated", detail = "" } = {}) {
       if (!els.outcomeSplash) return;
@@ -3479,8 +3481,47 @@
       }, 260);
     }
 
+    function clearThroneKissSplash() {
+      if (!els.throneKissSplash) return;
+      throneKissFadeWhenFocused = false;
+      window.clearTimeout(throneKissSplashTimer);
+      els.throneKissSplash.classList.remove("active");
+      els.throneKissSplash.classList.add("hidden");
+    }
+
     function throneKissSplashActive() {
       return Boolean(els.throneKissSplash && els.throneKissSplash.classList.contains("active"));
+    }
+
+    function tributeArcadeIsFocused() {
+      return document.visibilityState === "visible" && document.hasFocus();
+    }
+
+    function fadeThroneKissSplashWhenFocused() {
+      if (!throneKissSplashActive()) {
+        throneKissFadeWhenFocused = false;
+        return;
+      }
+      if (!tributeArcadeIsFocused()) {
+        throneKissFadeWhenFocused = true;
+        return;
+      }
+      throneKissFadeWhenFocused = false;
+      hideThroneKissSplash();
+    }
+
+    function settleDeferredThroneKissFade() {
+      if (!throneKissFadeWhenFocused) return;
+      fadeThroneKissSplashWhenFocused();
+    }
+
+    function reconcileThroneKissSplash() {
+      if (!throneKissSplashActive()) return;
+      if (state.screen !== "game") {
+        clearThroneKissSplash();
+        return;
+      }
+      if (state.active) fadeThroneKissSplashWhenFocused();
     }
 
     function snapshotState() {
@@ -3618,6 +3659,7 @@
       processPaymentDemand();
       if (processApprovedWager()) return;
       render();
+      reconcileThroneKissSplash();
     }
 
     async function createOnlineRoom() {
@@ -4349,14 +4391,18 @@
         : "Draw.";
       const changeLabel = prompt.game === "higherLower"
         ? "run"
-        : (isThroneSession() ? "amount" : "bet");
-      els.normalReplayText.textContent = canReplay
-        ? `${winnerText} Replay or change ${changeLabel}?`
-        : `${winnerText} Bank reclaimed. Change ${changeLabel}?`;
+        : (isThroneSession() ? "game select" : "bet");
+      if (isThroneSession()) {
+        els.normalReplayText.textContent = `${winnerText} Replay or go back to Game Select?`;
+      } else {
+        els.normalReplayText.textContent = canReplay
+          ? `${winnerText} Replay or change ${changeLabel}?`
+          : `${winnerText} Bank reclaimed. Change ${changeLabel}?`;
+      }
       els.normalReplayBtn.disabled = !canReplay;
       els.normalChangeBetBtn.textContent = prompt.game === "higherLower"
         ? "Change Run"
-        : `Change ${changeLabel[0].toUpperCase()}${changeLabel.slice(1)}`;
+        : (isThroneSession() ? "Game Select" : `Change ${changeLabel[0].toUpperCase()}${changeLabel.slice(1)}`);
       els.normalChangeBetBtn.disabled = false;
     }
 
@@ -4367,6 +4413,7 @@
       if (replayMode === "reclaim" && state.domVault <= 0) return;
       state.normalReplayPrompt = null;
       hideOutcomeSplash();
+      if (isThroneSession()) fadeThroneKissSplashWhenFocused();
       els.betInput.value = normalizeBuyIn(prompt.amount || state.pot || els.betInput.value || 0);
       wagerStartBypass = true;
       try {
@@ -4387,6 +4434,7 @@
       state.normalReplayPrompt = null;
       hideOutcomeSplash();
       if (isThroneSession() && (!state.online.room || localOnlineRole() === DOM)) {
+        clearThroneKissSplash();
         backToMenu();
         return;
       }
@@ -4554,7 +4602,7 @@
     function renderWagerApproval() {
       const pending = state.pendingWager;
       const role = localOnlineRole();
-      const showPregameBet = !pending && betSetupGameActive() && betSetupAllowedForRole();
+      const showPregameBet = !isThroneSession() && !pending && betSetupGameActive() && betSetupAllowedForRole();
       const show = showPregameBet || Boolean(pending && pendingWagerAllowedForRole());
       els.wagerModal.classList.toggle("hidden", !show);
       if (!show) {
@@ -14463,6 +14511,8 @@
     if (els.normalReplayBtn) els.normalReplayBtn.addEventListener("click", replayNormalRound);
     if (els.normalChangeBetBtn) els.normalChangeBetBtn.addEventListener("click", changeNormalRoundBet);
     document.addEventListener("click", handleThroneKissDismiss, true);
+    window.addEventListener("focus", settleDeferredThroneKissFade);
+    document.addEventListener("visibilitychange", settleDeferredThroneKissFade);
     if (els.domTriggerPanel) {
       els.domTriggerPanel.addEventListener("click", (event) => {
         const button = event.target.closest("[data-dom-trigger]");
