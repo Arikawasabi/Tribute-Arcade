@@ -16224,9 +16224,16 @@
         crazyEightsAdvanceTurn(player);
       } else if (rank === "A") {
         drawCrazyEightsCard(opponent);
-        game.message = `Tribute Tax. ${labelFor(opponent)} draws 1 and ${labelFor(player)} keeps control.`;
-        game.lastAction = `${labelFor(player)} played an ace and taxed ${labelFor(opponent)}.`;
-        crazyEightsAdvanceTurn(player);
+        if (player === DOM) {
+          drawCrazyEightsCard(opponent);
+          game.message = `Tribute Tax. ${labelFor(SUB)} draws 2 and ${labelFor(DOM)} keeps control.`;
+          game.lastAction = `${labelFor(DOM)} played an ace and taxed ${labelFor(SUB)} for two cards.`;
+          crazyEightsAdvanceTurn(DOM);
+        } else {
+          game.message = `Desperate Dodge. ${labelFor(DOM)} draws 1, then takes control.`;
+          game.lastAction = `${labelFor(SUB)} played an ace to make ${labelFor(DOM)} draw one card.`;
+          crazyEightsAdvanceTurn(DOM);
+        }
       } else {
         game.message = `${labelFor(opponent)} to play. Match ${rankName(rank)} or ${suitName(game.currentSuit)}.`;
         game.lastAction = `${labelFor(player)} played ${rankName(rank)} of ${suitName(suit)}.`;
@@ -20274,7 +20281,7 @@
         `<strong>8s:</strong> wild. The player chooses the next active suit.`,
         `<strong>2s:</strong> the opponent draws 2 and loses their turn.`,
         `<strong>Queens:</strong> skip the opponent, letting the same player act again.`,
-        `<strong>Aces:</strong> Tribute Tax. The opponent draws 1 and the same player keeps control.`,
+        `<strong>Aces:</strong> ${state.names.dom}'s ace taxes ${state.names.sub} for 2 cards and keeps control. ${state.names.sub}'s ace makes ${state.names.dom} draw 1, then control passes to ${state.names.dom}.`,
         `<strong>Draw:</strong> if you cannot play, draw one card. If you still have no legal play, the turn passes automatically.`,
         `<strong>Normal win:</strong> if ${state.names.dom} empties her hand first, the bet enters her bank. If ${state.names.sub} wins, the bet is safe.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank; ${state.names.dom} starts reclaim games.`
