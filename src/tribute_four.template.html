@@ -48,7 +48,7 @@
   <main class="screen splash" id="lobbyScreen">
     <header class="splash-header">
       <h1>Tribute Arcade</h1>
-      <p class="subtitle">Pick a name, host or join a room, then choose roles once both players are present.</p>
+      <p class="subtitle">Host a room or enter a code to join the other player's lobby.</p>
     </header>
 
     <section class="menu-dashboard">
@@ -58,21 +58,11 @@
           <button id="createRoomBtn" class="primary">Host Game</button>
         </div>
         <div class="panel-body">
-          <label class="field-label">
-            Your name
-            <input id="lobbyNameInput" type="text" autocomplete="off" placeholder="Enter name">
-          </label>
-          <div class="setup-actions">
-            <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
-            <button class="leave-room-btn hidden">Leave Lobby</button>
-          </div>
           <p class="chooser-line" id="onlineStatus">Offline local game.</p>
           <p class="chooser-line hidden" id="roomCodeDisplay">Room code: -----</p>
           <div class="share-links hidden" id="shareLinks">
-            <div class="copy-row">
-              <div class="share-link" id="inviteShareLink"></div>
-              <button id="copyInviteBtn">Copy</button>
-            </div>
+            <div class="share-link hidden" id="inviteShareLink"></div>
+            <button id="copyInviteBtn" class="hidden">Copy</button>
           </div>
         </div>
       </div>
@@ -105,15 +95,6 @@
           </div>
         </div>
       </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <h2 class="panel-title">Players</h2>
-        </div>
-        <div class="panel-body">
-          <div class="player-list" id="lobbyPlayerList"></div>
-        </div>
-      </div>
     </section>
   </main>
 
@@ -123,7 +104,7 @@
       <p class="subtitle">Choose roles and names. In online rooms, each player controls their own card.</p>
     </header>
 
-    <section class="setup-grid">
+    <section class="setup-grid" id="localSetupGrid">
       <div class="player-card">
         <h2 class="panel-title">Player One</h2>
         <div class="role-row">
@@ -151,18 +132,35 @@
 
     <section class="panel hidden" id="setupRoomPanel">
       <div class="panel-header">
-        <h2 class="panel-title">Room Link</h2>
+        <h2 class="panel-title">Online Lobby</h2>
+        <button class="leave-room-btn hidden">Leave Lobby</button>
       </div>
       <div class="panel-body">
         <p class="chooser-line" id="setupRoomStatus">Offline local setup.</p>
+        <p class="chooser-line hidden" id="setupRoomCodeDisplay">Room code: -----</p>
         <div class="copy-row">
           <div class="share-link" id="setupShareLink"></div>
           <button id="copySetupInviteBtn">Copy</button>
         </div>
+        <label class="field-label">
+          Your name
+          <input id="lobbyNameInput" type="text" autocomplete="off" placeholder="Enter name">
+        </label>
+        <div class="setup-actions">
+          <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
+        </div>
+        <div class="online-role-panel">
+          <span>Choose your role</span>
+          <div class="role-row">
+            <button class="role-btn" data-online-role-choice="dom">Dom</button>
+            <button class="role-btn" data-online-role-choice="sub">Sub</button>
+          </div>
+        </div>
+        <div class="player-list" id="lobbyPlayerList"></div>
       </div>
     </section>
 
-    <div class="setup-actions">
+    <div class="setup-actions" id="localSetupActions">
       <p class="turn-copy" id="setupMessage"></p>
       <button id="confirmPlayersBtn" class="primary">Confirm</button>
     </div>

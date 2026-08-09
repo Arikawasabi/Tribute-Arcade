@@ -776,6 +776,24 @@
       color: var(--muted);
     }
 
+    .player-row.you {
+      border-color: rgba(239, 199, 94, 0.34);
+      background: rgba(239, 199, 94, 0.08);
+      color: var(--cream);
+    }
+
+    .online-role-panel {
+      display: grid;
+      gap: 8px;
+      padding-top: 4px;
+    }
+
+    .online-role-panel > span {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;

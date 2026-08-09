@@ -783,6 +783,24 @@
       color: var(--muted);
     }
 
+    .player-row.you {
+      border-color: rgba(239, 199, 94, 0.34);
+      background: rgba(239, 199, 94, 0.08);
+      color: var(--cream);
+    }
+
+    .online-role-panel {
+      display: grid;
+      gap: 8px;
+      padding-top: 4px;
+    }
+
+    .online-role-panel > span {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -5761,7 +5779,7 @@
   <main class="screen splash" id="lobbyScreen">
     <header class="splash-header">
       <h1>Tribute Arcade</h1>
-      <p class="subtitle">Pick a name, host or join a room, then choose roles once both players are present.</p>
+      <p class="subtitle">Host a room or enter a code to join the other player's lobby.</p>
     </header>
 
     <section class="menu-dashboard">
@@ -5771,21 +5789,11 @@
           <button id="createRoomBtn" class="primary">Host Game</button>
         </div>
         <div class="panel-body">
-          <label class="field-label">
-            Your name
-            <input id="lobbyNameInput" type="text" autocomplete="off" placeholder="Enter name">
-          </label>
-          <div class="setup-actions">
-            <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
-            <button class="leave-room-btn hidden">Leave Lobby</button>
-          </div>
           <p class="chooser-line" id="onlineStatus">Offline local game.</p>
           <p class="chooser-line hidden" id="roomCodeDisplay">Room code: -----</p>
           <div class="share-links hidden" id="shareLinks">
-            <div class="copy-row">
-              <div class="share-link" id="inviteShareLink"></div>
-              <button id="copyInviteBtn">Copy</button>
-            </div>
+            <div class="share-link hidden" id="inviteShareLink"></div>
+            <button id="copyInviteBtn" class="hidden">Copy</button>
           </div>
         </div>
       </div>
@@ -5818,15 +5826,6 @@
           </div>
         </div>
       </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <h2 class="panel-title">Players</h2>
-        </div>
-        <div class="panel-body">
-          <div class="player-list" id="lobbyPlayerList"></div>
-        </div>
-      </div>
     </section>
   </main>
 
@@ -5836,7 +5835,7 @@
       <p class="subtitle">Choose roles and names. In online rooms, each player controls their own card.</p>
     </header>
 
-    <section class="setup-grid">
+    <section class="setup-grid" id="localSetupGrid">
       <div class="player-card">
         <h2 class="panel-title">Player One</h2>
         <div class="role-row">
@@ -5864,18 +5863,35 @@
 
     <section class="panel hidden" id="setupRoomPanel">
       <div class="panel-header">
-        <h2 class="panel-title">Room Link</h2>
+        <h2 class="panel-title">Online Lobby</h2>
+        <button class="leave-room-btn hidden">Leave Lobby</button>
       </div>
       <div class="panel-body">
         <p class="chooser-line" id="setupRoomStatus">Offline local setup.</p>
+        <p class="chooser-line hidden" id="setupRoomCodeDisplay">Room code: -----</p>
         <div class="copy-row">
           <div class="share-link" id="setupShareLink"></div>
           <button id="copySetupInviteBtn">Copy</button>
         </div>
+        <label class="field-label">
+          Your name
+          <input id="lobbyNameInput" type="text" autocomplete="off" placeholder="Enter name">
+        </label>
+        <div class="setup-actions">
+          <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
+        </div>
+        <div class="online-role-panel">
+          <span>Choose your role</span>
+          <div class="role-row">
+            <button class="role-btn" data-online-role-choice="dom">Dom</button>
+            <button class="role-btn" data-online-role-choice="sub">Sub</button>
+          </div>
+        </div>
+        <div class="player-list" id="lobbyPlayerList"></div>
       </div>
     </section>
 
-    <div class="setup-actions">
+    <div class="setup-actions" id="localSetupActions">
       <p class="turn-copy" id="setupMessage"></p>
       <button id="confirmPlayersBtn" class="primary">Confirm</button>
     </div>
@@ -6996,7 +7012,11 @@
       setupMessage: document.getElementById("setupMessage"),
       setupRoomPanel: document.getElementById("setupRoomPanel"),
       setupRoomStatus: document.getElementById("setupRoomStatus"),
+      setupRoomCodeDisplay: document.getElementById("setupRoomCodeDisplay"),
       setupShareLink: document.getElementById("setupShareLink"),
+      copySetupInviteBtn: document.getElementById("copySetupInviteBtn"),
+      localSetupGrid: document.getElementById("localSetupGrid"),
+      localSetupActions: document.getElementById("localSetupActions"),
       copyInviteBtn: document.getElementById("copyInviteBtn"),
       playerSummary: document.getElementById("playerSummary"),
       menuBankLabel: document.getElementById("menuBankLabel"),
@@ -7946,6 +7966,15 @@
         button.classList.toggle("active", state.roles[player] === button.dataset.role);
         button.disabled = Boolean(localSeat() && localSeat() !== player);
       });
+      const seat = localSeat();
+      const isOnlinePlayer = seat === "one" || seat === "two";
+      const ownOnlineRole = isOnlinePlayer ? state.online.roleChoices[seat] : null;
+      const hasOnlineName = isOnlinePlayer && Boolean(state.online.playerNames[seat]);
+      document.querySelectorAll("[data-online-role-choice]").forEach((button) => {
+        const role = button.dataset.onlineRoleChoice;
+        button.classList.toggle("active", ownOnlineRole === role);
+        button.disabled = !state.online.room || !isOnlinePlayer || !hasOnlineName;
+      });
       els.playerOneName.disabled = Boolean(localSeat() && localSeat() !== "one");
       els.playerTwoName.disabled = Boolean(localSeat() && localSeat() !== "two");
     }
@@ -8145,7 +8174,7 @@
       if (localSeat() !== SPECTATOR) {
         els.lobbyNameInput.value = "";
         els.leaveNoticeModal.classList.add("hidden");
-        setScreen("lobby");
+        setScreen("setup");
         updateOnlineUi();
       }
     }
@@ -8159,11 +8188,13 @@
     }
 
     function renderLobby() {
+      const local = localSeat();
       const rows = ["one", "two"].map((seat) => {
         const label = seat === "one" ? "Player One" : "Player Two";
-        const name = state.online.playerNames[seat] || "Waiting";
+        const you = seat === local ? " (You)" : "";
+        const name = state.online.playerNames[seat] ? escapeHtml(state.online.playerNames[seat]) : "Waiting";
         const role = state.online.roleChoices[seat] ? state.online.roleChoices[seat].toUpperCase() : "No role";
-        return `<div class="player-row"><span>${label}: ${name}</span><strong>${role}</strong></div>`;
+        return `<div class="player-row ${seat === local ? "you" : ""}"><span>${label}${you}: ${name}</span><strong>${role}</strong></div>`;
       });
       const spectatorNames = Object.values(state.online.spectators || {}).filter(Boolean);
       if (spectatorNames.length) {
@@ -8177,14 +8208,12 @@
       const ownRole = isPlayerSeat ? state.online.roleChoices[seat] : null;
       const bothRoles = Boolean(state.online.roleChoices.one && state.online.roleChoices.two);
       const roleConflict = bothRoles && state.online.roleChoices.one === state.online.roleChoices.two;
-      els.roleModal.classList.toggle("hidden", !(state.online.room && bothNamed && isPlayerSeat && (!ownRole || roleConflict)));
-      if (isPlayerSeat && bothNamed && (!ownRole || roleConflict)) {
-        els.roleModalText.textContent = roleConflict
-          ? "Both players chose the same role. Choose again."
-          : `${state.online.playerNames[seat]}, choose your role.`;
+      els.roleModal.classList.add("hidden");
+      if (roleConflict && isPlayerSeat) {
+        els.setupRoomStatus.textContent = "Both players chose the same role. Choose again.";
       }
 
-      if (state.online.room && bothNamed && bothRoles && !roleConflict && state.screen === "lobby") {
+      if (state.online.room && bothNamed && bothRoles && !roleConflict && state.screen === "setup") {
         applyOnlineRoles();
         setScreen("select");
         publishState();
@@ -8208,16 +8237,19 @@
       const name = els.lobbyNameInput.value.trim();
       if (!seat) {
         els.onlineStatus.textContent = "Join or host a room first.";
+        if (els.setupRoomStatus) els.setupRoomStatus.textContent = "Join or host a room first.";
         return;
       }
       if (seat === SPECTATOR) {
         if (!name) {
           els.onlineStatus.textContent = "Choose a name first.";
+          if (els.setupRoomStatus) els.setupRoomStatus.textContent = "Choose a name first.";
           return;
         }
         const claim = readSeatClaim();
         if (!claim || !claim.secret) {
           els.onlineStatus.textContent = "Rejoin the room to claim a spectator name.";
+          if (els.setupRoomStatus) els.setupRoomStatus.textContent = "Rejoin the room to claim a spectator name.";
           return;
         }
         state.online.spectators = {
@@ -8233,10 +8265,12 @@
       }
       if (!name) {
         els.onlineStatus.textContent = "Pick a name first.";
+        if (els.setupRoomStatus) els.setupRoomStatus.textContent = "Pick a name first.";
         return;
       }
       if (!state.online.room) {
         els.onlineStatus.textContent = "Host a game first, or open an invite link.";
+        if (els.setupRoomStatus) els.setupRoomStatus.textContent = "Host a game first, or open an invite link.";
         return;
       }
       state.online.playerNames[seat] = name;
@@ -8257,6 +8291,7 @@
       const seat = localSeat();
       if (!seat || seat === SPECTATOR) return;
       state.online.roleChoices[seat] = role;
+      renderRoles();
       renderLobby();
       publishOnlineLobbyChange((lobby) => {
         lobby.roleChoices[seat] = role;
@@ -10200,7 +10235,7 @@
         state.online.seatSecrets = { one: newSeatSecret(), two: "" };
         state.online.spectators = {};
         state.settings.leaveNotice = null;
-        setScreen("lobby");
+        setScreen("setup");
         renderRoles();
         const response = await fetch("/api/create", {
           method: "POST",
@@ -10217,6 +10252,7 @@
         startPolling();
         publishState();
       } catch (error) {
+        setScreen("lobby");
         els.onlineStatus.textContent = "Server is not running. Start outputs/start_multiplayer_server.bat, then press Host again.";
       }
     }
@@ -10242,10 +10278,15 @@
         els.roomCodeDisplay.classList.add("hidden");
         els.shareLinks.classList.add("hidden");
         els.setupRoomPanel.classList.add("hidden");
+        if (els.setupRoomCodeDisplay) els.setupRoomCodeDisplay.classList.add("hidden");
+        if (els.localSetupGrid) els.localSetupGrid.classList.remove("hidden");
+        if (els.localSetupActions) els.localSetupActions.classList.remove("hidden");
         els.localTestingPanel.classList.remove("hidden");
         return;
       }
       els.localTestingPanel.classList.add("hidden");
+      if (els.localSetupGrid) els.localSetupGrid.classList.add("hidden");
+      if (els.localSetupActions) els.localSetupActions.classList.add("hidden");
       const seat = localSeat() || state.online.seat || "one";
       const seatName = seat === SPECTATOR ? "Spectator" : (seat === "two" ? "Player Two" : "Player One");
       const claim = readSeatClaim();
@@ -10257,8 +10298,12 @@
       els.roomCodeDisplay.classList.remove("hidden");
       els.shareLinks.classList.remove("hidden");
       state.online.inviteUrl = roomUrl();
-      els.inviteShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
+      if (els.inviteShareLink) els.inviteShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
       els.setupRoomPanel.classList.remove("hidden");
+      if (els.setupRoomCodeDisplay) {
+        els.setupRoomCodeDisplay.textContent = `Room code: ${state.online.room}`;
+        els.setupRoomCodeDisplay.classList.remove("hidden");
+      }
       els.setupRoomStatus.textContent = state.online.seats.one && state.online.seats.two
         ? (seat === SPECTATOR && !spectatorName ? "Choose a spectator name to join the room chat." : "Both players are in the lobby.")
         : "Waiting for the other player.";
@@ -10547,6 +10592,7 @@
       state.online.seatSecrets = state.online.seatSecrets || { one: "", two: "" };
       await claimOnlineSeat();
       startPolling();
+      setScreen("setup");
       updateOnlineUi();
     }
 
@@ -21310,8 +21356,12 @@
     if (els.tributeReversiCard) els.tributeReversiCard.addEventListener("click", openTributeReversi);
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
     els.copyInviteBtn.addEventListener("click", copyInviteLink);
+    if (els.copySetupInviteBtn) els.copySetupInviteBtn.addEventListener("click", copyInviteLink);
     document.querySelectorAll(".role-btn[data-player]").forEach((button) => {
       button.addEventListener("click", () => setRole(button.dataset.player, button.dataset.role));
+    });
+    document.querySelectorAll("[data-online-role-choice]").forEach((button) => {
+      button.addEventListener("click", () => chooseOnlineRole(button.dataset.onlineRoleChoice));
     });
     window.addEventListener("message", handleThroneExtensionMessage);
     setInterval(requestThroneExtensionStatus, 5000);
