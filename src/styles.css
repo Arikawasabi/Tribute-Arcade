@@ -3076,7 +3076,7 @@
 
     .double-solitaire-status {
       display: grid;
-      grid-template-columns: auto auto 1fr;
+      grid-template-columns: auto auto 1fr auto;
       gap: 8px 14px;
       align-items: center;
       padding: 10px 12px;
@@ -3102,7 +3102,49 @@
       color: var(--cream);
     }
 
+    .double-solitaire-give-up {
+      justify-self: end;
+      min-height: 38px;
+      padding: 0 18px;
+      border-color: rgba(255, 107, 107, 0.35);
+      background: linear-gradient(135deg, rgba(70, 25, 31, 0.9), rgba(116, 38, 48, 0.68));
+      color: var(--cream);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+    }
+
+    .double-solitaire-give-up:hover {
+      border-color: rgba(255, 154, 154, 0.68);
+      transform: translateY(-1px);
+    }
+
+    .double-solitaire-no-moves {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 207, 113, 0.28);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(68, 24, 36, 0.78), rgba(33, 23, 24, 0.9)),
+        rgba(16, 11, 12, 0.94);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.26);
+    }
+
+    .double-solitaire-no-moves strong {
+      display: block;
+      color: var(--gold);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.15rem;
+    }
+
+    .double-solitaire-no-moves p {
+      margin: 4px 0 0;
+      color: var(--muted);
+    }
+
     .double-solitaire-board {
+      position: relative;
       display: grid;
       gap: 14px;
       padding: 12px;
@@ -3113,6 +3155,25 @@
 
     .double-solitaire-board.can-act {
       border-color: rgba(239, 199, 94, 0.4);
+    }
+
+    .double-solitaire-turn-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 12;
+      display: grid;
+      place-items: center;
+      padding: clamp(20px, 5vw, 48px);
+      border-radius: 8px;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(8, 5, 7, 0.08), rgba(8, 5, 7, 0.22));
+      color: rgba(255, 225, 160, 0.94);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.4rem, 8vw, 7rem);
+      font-weight: 900;
+      line-height: 0.95;
+      text-align: center;
+      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.65), 0 0 28px rgba(239, 199, 94, 0.24);
     }
 
     .double-solitaire-top-row {
@@ -3696,6 +3757,39 @@
       grid-template-columns: repeat(2, minmax(118px, 150px)) minmax(18px, 1fr) repeat(4, minmax(118px, 150px));
       gap: 16px;
       align-items: start;
+    }
+
+    .solitaire-no-moves {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 207, 113, 0.28);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(68, 24, 36, 0.78), rgba(33, 23, 24, 0.9)),
+        rgba(16, 11, 12, 0.94);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.34);
+    }
+
+    .solitaire-no-moves strong {
+      display: block;
+      color: var(--gold);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.2rem, 2vw, 1.65rem);
+    }
+
+    .solitaire-no-moves p {
+      margin: 4px 0 0;
+      color: var(--muted);
+    }
+
+    .solitaire-no-moves-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
     }
 
     .solitaire-slot,
@@ -4926,6 +5020,7 @@
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
       font-size: 1.45rem;
       line-height: 1;
+      transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease;
     }
 
     .side-restore-tab.ledger {
@@ -4950,6 +5045,17 @@
 
     .side-restore-tab:hover:not(:disabled) {
       transform: translateY(-50%);
+    }
+
+    .side-restore-tab.active-restore {
+      transform: translate(34px, -50%);
+      opacity: 0.76;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+    }
+
+    .side-restore-tab.active-restore:hover:not(:disabled) {
+      transform: translate(26px, -50%);
+      opacity: 1;
     }
 
     .side-tabs {
@@ -5523,6 +5629,14 @@
 
       .side-restore-tab[data-open-side-tab="chat"].active-restore {
         bottom: 82px;
+      }
+
+      .side-restore-tab.active-restore {
+        transform: translate(36px, -50%);
+      }
+
+      .side-restore-tab.active-restore:hover:not(:disabled) {
+        transform: translate(28px, -50%);
       }
 
       .distraction-overlay {

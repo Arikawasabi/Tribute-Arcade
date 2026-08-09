@@ -445,6 +445,7 @@
     let selectedChessPower = "stance:none";
     let selectedCheckersPower = "crownPull";
     let selectedTwentyOnePower = "pushLuck";
+    let localDoubleSolitaireViewed = null;
     const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
     const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
     const THRONE_EXTENSION_FOCUS_CHECKOUT = "TRIBUTE_ARCADE_FOCUS_THRONE_CHECKOUT";
@@ -1568,7 +1569,7 @@
       resetDoubleSolitaireBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
-      addLog(`<strong>Double Solitaire opened.</strong> ${state.names.sub} buys in, then both players race their own Klondike board.`);
+      addLog(`<strong>Solitaire Duel opened.</strong> ${state.names.sub} buys in, then both players race their own Klondike board.`);
       render();
       publishState();
     }
@@ -7250,7 +7251,7 @@
       if (state.currentGame === "doubleSolitaire") {
         resetDoubleSolitaireBoard();
         els.log.innerHTML = "";
-        addLog(`<strong>Double Solitaire reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        addLog(`<strong>Solitaire Duel reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
         render();
         publishState();
         return;
@@ -9298,6 +9299,8 @@
         selected: null,
         moves: 0,
         started: false,
+        initialDeal: null,
+        noMovesPrompt: false,
         message: "Build all four foundations from Ace to King."
       };
     }
@@ -9584,16 +9587,19 @@
           tableau[column].push(next);
         }
       }
-      return {
+      const board = {
         ...createSolitaireState(),
         stock: deck.map((entry) => entry.card),
         tableau,
         started: true,
-        message: "Move tableau cards freely. Drawing from stock ends your turn."
+        message: "Move cards freely. Clicking the stock pile ends your turn."
       };
+      board.initialDeal = solitaireSnapshot(board);
+      return board;
     }
 
     function startDoubleSolitaireGame(firstTurn, introHtml) {
+      localDoubleSolitaireViewed = null;
       state.doubleSolitaire = {
         ...createDoubleSolitaireState(),
         boards: {
@@ -9601,7 +9607,7 @@
           dom: dealDoubleSolitaireBoard()
         },
         viewed: firstTurn,
-        message: `${labelFor(firstTurn)} starts. Drawing from stock or moving from waste passes control.`,
+        message: `${labelFor(firstTurn)} starts. Clicking the stock pile passes control.`,
         lastAction: ""
       };
       state.turn = firstTurn;
@@ -9610,19 +9616,26 @@
     }
 
     function startDoubleSolitaireNormalMatch() {
-      const bet = prepareRound("normal", "Double Solitaire race");
+      const bet = prepareRound("normal", "Solitaire Duel race");
       if (bet === null) return;
       const starter = randomStarter();
-      startDoubleSolitaireGame(starter, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} starts the Double Solitaire race.`);
+      startDoubleSolitaireGame(starter, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} starts the Solitaire Duel race.`);
     }
 
     function startDoubleSolitaireReclaimMatch() {
-      const pot = prepareRound("reclaim", "Double Solitaire race");
+      const pot = prepareRound("reclaim", "Solitaire Duel race");
       if (pot === null) return;
-      startDoubleSolitaireGame(DOM, `<strong>Reclaim race:</strong> ${state.names.sub} is trying to win back ${money(pot)} in Double Solitaire. ${state.names.dom} starts.`);
+      startDoubleSolitaireGame(DOM, `<strong>Reclaim race:</strong> ${state.names.sub} is trying to win back ${money(pot)} in Solitaire Duel. ${state.names.dom} starts.`);
     }
 
-    function doubleSolitaireBoard(player = state.doubleSolitaire && state.doubleSolitaire.viewed || SUB) {
+    function localDoubleSolitaireViewedPlayer() {
+      if (localDoubleSolitaireViewed === DOM || localDoubleSolitaireViewed === SUB) return localDoubleSolitaireViewed;
+      const role = localOnlineRole();
+      if (role === DOM || role === SUB) return role;
+      return state.doubleSolitaire && state.doubleSolitaire.viewed === DOM ? DOM : SUB;
+    }
+
+    function doubleSolitaireBoard(player = localDoubleSolitaireViewedPlayer()) {
       return state.doubleSolitaire && state.doubleSolitaire.boards && state.doubleSolitaire.boards[player] || createSolitaireState();
     }
 
@@ -9717,15 +9730,40 @@
       state.active = false;
       state.pendingWager = null;
       settleRoundBank(winner);
-      addLog(`<strong>Double Solitaire ends.</strong> ${reason}`);
+      addLog(`<strong>Solitaire Duel ends.</strong> ${reason}`);
       render();
       publishState();
+    }
+
+    function doubleSolitaireGiveUpPlayer() {
+      const role = localOnlineRole();
+      if (role === DOM || role === SUB) return role;
+      return localDoubleSolitaireViewedPlayer();
+    }
+
+    function giveUpDoubleSolitaire(player = doubleSolitaireGiveUpPlayer()) {
+      if (state.currentGame !== "doubleSolitaire" || !state.active || (player !== DOM && player !== SUB)) return;
+      const role = localOnlineRole();
+      if (role && role !== player) return;
+      if (player === DOM) {
+        const message = `${labelFor(DOM)} ends the Solitaire Duel race.`;
+        resetDoubleSolitaireBoard();
+        applyDefaultBet();
+        state.normalReplayPrompt = null;
+        state.pendingWager = null;
+        localDoubleSolitaireViewed = null;
+        state.doubleSolitaire.message = "Start a bet to deal both Klondike boards.";
+        addLog(`<strong>Solitaire Duel reset.</strong> ${message}`);
+        render();
+        publishState();
+        return;
+      }
+      finishDoubleSolitaire(DOM, `${labelFor(SUB)} gives up. ${labelFor(DOM)} claims the race.`);
     }
 
     function passDoubleSolitaireTurn(player, actionText) {
       const next = otherRole(player);
       state.turn = next;
-      state.doubleSolitaire.viewed = next;
       state.doubleSolitaire.message = `${labelFor(next)} takes the turn.`;
       state.doubleSolitaire.lastAction = actionText;
       Object.values(state.doubleSolitaire.boards || {}).forEach((board) => {
@@ -9778,8 +9816,9 @@
       board.tableau[column].push(...moved.map((card) => ({ card, faceUp: true })));
       board.selected = null;
       board.moves += 1;
-      if (source === "waste") passDoubleSolitaireTurn(player, `${labelFor(player)} used the waste card and passed control.`);
-      else state.doubleSolitaire.message = `${labelFor(player)} moved to tableau.`;
+      state.doubleSolitaire.message = source === "waste"
+        ? `${labelFor(player)} moved from waste to tableau.`
+        : `${labelFor(player)} moved to tableau.`;
       render();
       publishState();
     }
@@ -9800,8 +9839,9 @@
       board.selected = null;
       board.moves += 1;
       if (maybeFinishDoubleSolitaire(player)) return;
-      if (source === "waste") passDoubleSolitaireTurn(player, `${labelFor(player)} used the waste card and passed control.`);
-      else state.doubleSolitaire.message = `${labelFor(player)} built a foundation.`;
+      state.doubleSolitaire.message = source === "waste"
+        ? `${labelFor(player)} built a foundation from waste.`
+        : `${labelFor(player)} built a foundation.`;
       render();
       publishState();
     }
@@ -9828,9 +9868,8 @@
 
     function viewDoubleSolitaireBoard(player) {
       if (player !== DOM && player !== SUB) return;
-      state.doubleSolitaire.viewed = player;
+      localDoubleSolitaireViewed = player;
       render();
-      publishState();
     }
 
     function handleDoubleSolitaireBoardClick(event) {
@@ -9840,8 +9879,12 @@
         viewDoubleSolitaireBoard(viewButton.dataset.doubleSolitaireView);
         return;
       }
-      const viewed = state.doubleSolitaire && state.doubleSolitaire.viewed || SUB;
+      const viewed = localDoubleSolitaireViewedPlayer();
       const action = event.target.closest("[data-double-solitaire-action]");
+      if (action && action.dataset.doubleSolitaireAction === "give-up") {
+        giveUpDoubleSolitaire(action.dataset.doubleSolitairePlayer || doubleSolitaireGiveUpPlayer());
+        return;
+      }
       if (action && action.dataset.doubleSolitaireAction === "stock") {
         drawDoubleSolitaireStock(viewed);
         return;
@@ -12166,10 +12209,10 @@
     }
 
     function renderDoubleSolitaireProgress(player) {
-      const game = state.doubleSolitaire || createDoubleSolitaireState();
       const board = doubleSolitaireBoard(player);
+      const viewed = localDoubleSolitaireViewedPlayer();
       const button = document.createElement("button");
-      button.className = `double-solitaire-progress ${player} ${game.viewed === player ? "viewing" : ""} ${state.turn === player ? "active" : ""}`.trim();
+      button.className = `double-solitaire-progress ${player} ${viewed === player ? "viewing" : ""} ${state.turn === player ? "active" : ""}`.trim();
       button.dataset.doubleSolitaireView = player;
       const count = doubleSolitaireFoundationCount(player);
       const foundations = document.createElement("div");
@@ -12197,9 +12240,23 @@
       return element;
     }
 
+    function renderDoubleSolitaireNoMovesPrompt(board, player) {
+      if (!state.active || state.turn !== player || !doubleSolitaireCanAct(player) || solitaireHasAnyLegalMove(board)) return null;
+      const prompt = document.createElement("section");
+      prompt.className = "double-solitaire-no-moves";
+      prompt.innerHTML = `
+        <div>
+          <strong>No moves found</strong>
+          <p>No legal move is available from this board, waste, or reachable draw pile.</p>
+        </div>
+        <button type="button" data-double-solitaire-action="give-up" data-double-solitaire-player="${player}">Give Up</button>
+      `;
+      return prompt;
+    }
+
     function renderDoubleSolitaireBoard() {
       const game = state.doubleSolitaire || createDoubleSolitaireState();
-      const viewed = game.viewed === DOM ? DOM : SUB;
+      const viewed = localDoubleSolitaireViewedPlayer();
       const board = doubleSolitaireBoard(viewed);
       const selectedKey = doubleSolitaireSelectionKey(board.selected);
       const canAct = doubleSolitaireCanAct(viewed);
@@ -12221,10 +12278,28 @@
         <p>${game.message || "Build foundations before the other player does."}</p>
         ${game.lastAction ? `<small>${game.lastAction}</small>` : ""}
       `;
+      const giveUpPlayer = doubleSolitaireGiveUpPlayer();
+      if (state.active && !game.winner && (giveUpPlayer === DOM || giveUpPlayer === SUB)) {
+        const giveUpButton = document.createElement("button");
+        giveUpButton.className = "double-solitaire-give-up";
+        giveUpButton.dataset.doubleSolitaireAction = "give-up";
+        giveUpButton.dataset.doubleSolitairePlayer = giveUpPlayer;
+        giveUpButton.textContent = "Give Up";
+        status.appendChild(giveUpButton);
+      }
       shell.appendChild(status);
+
+      const noMovesPrompt = renderDoubleSolitaireNoMovesPrompt(board, viewed);
+      if (noMovesPrompt) shell.appendChild(noMovesPrompt);
 
       const boardEl = document.createElement("section");
       boardEl.className = `double-solitaire-board ${canAct ? "can-act" : ""}`.trim();
+      if (state.active && state.turn && viewed !== state.turn && !game.winner) {
+        const turnOverlay = document.createElement("div");
+        turnOverlay.className = "double-solitaire-turn-overlay";
+        turnOverlay.textContent = `${labelFor(state.turn)}'s turn`;
+        boardEl.appendChild(turnOverlay);
+      }
       const top = document.createElement("div");
       top.className = "double-solitaire-top-row";
       const stock = document.createElement("button");
@@ -12595,13 +12670,62 @@
           tableau[column].push(next);
         }
       }
-      state.solitaire = {
+      const deal = {
         ...createSolitaireState(),
         stock: deck.map((entry) => entry.card),
         tableau,
         started: true,
         message: "Draw from the stock or move visible cards onto alternating colors."
       };
+      deal.initialDeal = solitaireSnapshot(deal);
+      state.solitaire = deal;
+    }
+
+    function solitaireSnapshot(game = state.solitaire || createSolitaireState()) {
+      return {
+        stock: [...(game.stock || [])],
+        waste: [...(game.waste || [])],
+        foundations: (game.foundations || [[], [], [], []]).map((pile) => [...pile]),
+        tableau: (game.tableau || [[], [], [], [], [], [], []]).map((pile) => pile.map((entry) => ({ ...entry })))
+      };
+    }
+
+    function restoreSolitaireDeal() {
+      const current = state.solitaire || createSolitaireState();
+      const snapshot = current.initialDeal;
+      if (!snapshot) {
+        dealSolitaire();
+        return;
+      }
+      state.solitaire = {
+        ...createSolitaireState(),
+        stock: [...(snapshot.stock || [])],
+        waste: [...(snapshot.waste || [])],
+        foundations: (snapshot.foundations || [[], [], [], []]).map((pile) => [...pile]),
+        tableau: (snapshot.tableau || [[], [], [], [], [], [], []]).map((pile) => pile.map((entry) => ({ ...entry }))),
+        started: true,
+        initialDeal: snapshot,
+        message: "Deal restarted from the beginning."
+      };
+    }
+
+    function newSolitaireDeal(message = "New deal started.") {
+      hideSolitaireCardPreview();
+      dealSolitaire();
+      state.solitaire.message = message;
+      renderSolitaire();
+    }
+
+    function restartSolitaireCurrentDeal() {
+      hideSolitaireCardPreview();
+      restoreSolitaireDeal();
+      renderSolitaire();
+    }
+
+    function giveUpSolitaireDeal() {
+      hideSolitaireCardPreview();
+      state.solitaire = createSolitaireState();
+      backToMenuFromSolo();
     }
 
     function solitaireSelectionKey(selection) {
@@ -12656,8 +12780,12 @@
     }
 
     function canPlaceSolitaireOnTableau(cards, column) {
-      if (!cards.length) return false;
       const game = state.solitaire || createSolitaireState();
+      return canPlaceSolitaireOnTableauForGame(game, cards, column);
+    }
+
+    function canPlaceSolitaireOnTableauForGame(game, cards, column) {
+      if (!cards.length) return false;
       const moving = cards[0];
       const pile = game.tableau[column] || [];
       const top = pile[pile.length - 1];
@@ -12668,13 +12796,66 @@
     }
 
     function canPlaceSolitaireOnFoundation(cards, foundation) {
-      if (cards.length !== 1) return false;
       const game = state.solitaire || createSolitaireState();
+      return canPlaceSolitaireOnFoundationForGame(game, cards, foundation);
+    }
+
+    function canPlaceSolitaireOnFoundationForGame(game, cards, foundation) {
+      if (cards.length !== 1) return false;
       const card = cards[0];
       if (solitaireFoundationIndex(card) !== foundation) return false;
       const pile = game.foundations[foundation] || [];
       const top = pile[pile.length - 1];
       return top ? solitaireRank(card) === solitaireRank(top) + 1 : solitaireRank(card) === 1;
+    }
+
+    function solitaireCardHasLegalMove(game, card, origin = {}) {
+      if (!card) return false;
+      const cards = [card];
+      if (canPlaceSolitaireOnFoundationForGame(game, cards, solitaireFoundationIndex(card))) return true;
+      return (game.tableau || []).some((_, column) => {
+        if (origin.source === "tableau" && origin.column === column) return false;
+        return canPlaceSolitaireOnTableauForGame(game, cards, column);
+      });
+    }
+
+    function solitaireTableauHasLegalMove(game) {
+      return (game.tableau || []).some((pile, column) => pile.some((entry, index) => {
+        if (!entry.faceUp) return false;
+        const cards = pile.slice(index).filter((candidate) => candidate.faceUp).map((candidate) => candidate.card);
+        if (!cards.length) return false;
+        if (cards.length === 1 && canPlaceSolitaireOnFoundationForGame(game, cards, solitaireFoundationIndex(cards[0]))) return true;
+        return (game.tableau || []).some((_, targetColumn) => {
+          if (targetColumn === column) return false;
+          return canPlaceSolitaireOnTableauForGame(game, cards, targetColumn);
+        });
+      }));
+    }
+
+    function solitaireFoundationsHaveLegalMove(game) {
+      return (game.foundations || []).some((pile, foundation) => {
+        const card = pile[pile.length - 1];
+        return card && solitaireCardHasLegalMove(game, card, { source: "foundation", foundation });
+      });
+    }
+
+    function solitaireWasteHasLegalMove(game) {
+      const card = game.waste && game.waste[game.waste.length - 1];
+      return solitaireCardHasLegalMove(game, card, { source: "waste" });
+    }
+
+    function solitaireReachableStockHasLegalMove(game) {
+      const reachable = [...(game.stock || [])].reverse();
+      reachable.push(...[...(game.waste || [])].reverse());
+      return reachable.some((card) => solitaireCardHasLegalMove(game, card, { source: "stock" }));
+    }
+
+    function solitaireHasAnyLegalMove(game = state.solitaire || createSolitaireState()) {
+      if (!game.started || (game.foundations || []).every((pile) => pile.length === 13)) return true;
+      return solitaireTableauHasLegalMove(game)
+        || solitaireFoundationsHaveLegalMove(game)
+        || solitaireWasteHasLegalMove(game)
+        || solitaireReachableStockHasLegalMove(game);
     }
 
     function solitaireFoundationTarget(cards, fallbackFoundation) {
@@ -12743,6 +12924,18 @@
     function handleSolitaireClick(event) {
       hideSolitaireCardPreview();
       const action = event.target.closest("[data-solitaire-action]");
+      if (action && action.dataset.solitaireAction === "restart-deal") {
+        restartSolitaireCurrentDeal();
+        return;
+      }
+      if (action && action.dataset.solitaireAction === "new-deal") {
+        newSolitaireDeal();
+        return;
+      }
+      if (action && action.dataset.solitaireAction === "give-up") {
+        giveUpSolitaireDeal();
+        return;
+      }
       if (action && action.dataset.solitaireAction === "stock") {
         drawSolitaireStock();
         return;
@@ -12800,6 +12993,26 @@
       return element;
     }
 
+    function renderSolitaireNoMovesPrompt(game) {
+      const existing = els.solitaireTable && els.solitaireTable.querySelector(".solitaire-no-moves");
+      if (existing) existing.remove();
+      if (!els.solitaireTable || !game.started || solitaireHasAnyLegalMove(game)) return;
+      const prompt = document.createElement("section");
+      prompt.className = "solitaire-no-moves";
+      prompt.innerHTML = `
+        <div>
+          <strong>No moves found</strong>
+          <p>No legal move is available from the board, waste, or reachable draw pile.</p>
+        </div>
+        <div class="solitaire-no-moves-actions">
+          <button type="button" data-solitaire-action="restart-deal">Restart Deal</button>
+          <button type="button" class="primary" data-solitaire-action="new-deal">New Deal</button>
+          <button type="button" data-solitaire-action="give-up">Give Up</button>
+        </div>
+      `;
+      els.solitaireTable.insertBefore(prompt, els.solitaireTableau || null);
+    }
+
     function renderSolitaire() {
       const game = state.solitaire || createSolitaireState();
       const selectedKey = solitaireSelectionKey(game.selected);
@@ -12853,6 +13066,7 @@
           els.solitaireTableau.appendChild(columnEl);
         });
       }
+      renderSolitaireNoMovesPrompt(game);
     }
 
     const PLAYING_CARD_ART = {
@@ -13197,7 +13411,7 @@
       if (state.currentGame === "tributeTwentyOne") return "Tribute Blackjack";
       if (state.currentGame === "higherLower") return "Higher / Lower";
       if (state.currentGame === "tributeCrazyEights") return "Tribute 8s";
-      if (state.currentGame === "doubleSolitaire") return "Double Solitaire";
+      if (state.currentGame === "doubleSolitaire") return "Solitaire Duel";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
       if (state.currentGame === "tributeTrail") return "Tribute Trail";
@@ -13306,8 +13520,8 @@
       const rules = [
         `<strong>Goal:</strong> race your own Klondike board. First player to build all 52 cards onto foundations wins.`,
         `<strong>Turn flow:</strong> tableau and foundation moves can continue as long as they come from tableau or foundation cards.`,
-        `<strong>Draw stack:</strong> drawing from stock ends your turn immediately.`,
-        `<strong>Waste card:</strong> moving the top waste card to tableau or foundation also ends your turn.`,
+        `<strong>Draw stack:</strong> clicking the stock pile ends your turn immediately.`,
+        `<strong>Waste card:</strong> moving the top waste card is free. Only clicking the stock pile passes control.`,
         `<strong>Viewer:</strong> use the two progress panels to switch between ${state.names.dom}'s board and ${state.names.sub}'s board.`,
         `<strong>Progress:</strong> each progress panel shows the four suit foundations, foundation total, stock count, and waste count.`,
         `<strong>Normal win:</strong> if ${state.names.dom} clears first, the bet enters her bank. If ${state.names.sub} clears first, the bet is safe.`,
@@ -13598,7 +13812,7 @@
       }
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
         ? "Free Spin"
-        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Race" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))))));
+        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Duel" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))))));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
@@ -13665,13 +13879,13 @@
           els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses the buy-in to deal Tribute 8s.`;
         }
       } else if (state.currentGame === "doubleSolitaire") {
-        const viewed = state.doubleSolitaire && state.doubleSolitaire.viewed === DOM ? DOM : SUB;
+        const viewed = localDoubleSolitaireViewedPlayer();
         if (state.active) {
-          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to play. Viewing ${labelFor(viewed)}'s board. Drawing from stock passes the turn.`;
+          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to play. Viewing ${labelFor(viewed)}'s board. Clicking the stock pile passes the turn.`;
         } else if (state.doubleSolitaire && state.doubleSolitaire.winner) {
-          els.turnText.innerHTML = `<strong>${labelFor(state.doubleSolitaire.winner)}</strong> wins Double Solitaire.`;
+          els.turnText.innerHTML = `<strong>${labelFor(state.doubleSolitaire.winner)}</strong> wins Solitaire Duel.`;
         } else {
-          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses the buy-in to deal Double Solitaire.`;
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses the buy-in to deal Solitaire Duel.`;
         }
       } else if (state.currentGame === "tributeReversi") {
         const score = reversiScore();
@@ -13851,8 +14065,8 @@
         return;
       }
       if (state.currentGame === "doubleSolitaire") {
-        els.gameTitle.textContent = "Double Solitaire";
-        els.gameSubtitle.textContent = "A turn-based Klondike race where drawing from stock passes control.";
+        els.gameTitle.textContent = "Solitaire Duel";
+        els.gameSubtitle.textContent = "A turn-based Klondike race where clicking the stock pile passes control.";
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -14144,9 +14358,7 @@
     if (els.solitaireBackBtn) els.solitaireBackBtn.addEventListener("click", backToMenuFromSolo);
     if (els.newSolitaireBtn) {
       els.newSolitaireBtn.addEventListener("click", () => {
-        hideSolitaireCardPreview();
-        dealSolitaire();
-        renderSolitaire();
+        newSolitaireDeal();
       });
     }
     if (els.solitaireTable) {
