@@ -5575,16 +5575,115 @@
       }
 
       .double-solitaire-table {
+        padding: 6px;
+        overflow: visible;
+      }
+
+      .board-wrap.double-solitaire-board-wrap {
+        padding: 4px;
+        overflow: visible;
+      }
+
+      .double-solitaire-shell {
+        gap: 8px;
+      }
+
+      .double-solitaire-progress-row {
+        gap: 6px;
+      }
+
+      .double-solitaire-progress {
+        min-height: 54px;
+        grid-template-columns: 1fr;
+        gap: 5px;
+        padding: 7px;
+      }
+
+      .double-solitaire-progress strong {
+        grid-row: auto;
+        min-width: 0;
+        font-size: 0.68rem;
+      }
+
+      .double-solitaire-mini-foundations {
+        gap: 3px;
+      }
+
+      .double-solitaire-mini-foundation {
+        min-height: 24px;
+        font-size: 0.68rem;
+      }
+
+      .double-solitaire-progress-meta {
+        display: none;
+      }
+
+      .double-solitaire-status {
+        grid-template-columns: 1fr auto;
+        gap: 6px 8px;
+        padding: 8px;
+      }
+
+      .double-solitaire-status strong {
+        font-size: 0.95rem;
+      }
+
+      .double-solitaire-status span,
+      .double-solitaire-status small {
+        font-size: 0.74rem;
+      }
+
+      .double-solitaire-status p {
+        grid-column: 1 / -1;
+        font-size: 0.82rem;
+        line-height: 1.25;
+      }
+
+      .double-solitaire-give-up {
+        min-height: 34px;
+        padding: 0 10px;
+        font-size: 0.82rem;
+      }
+
+      .double-solitaire-no-moves {
+        grid-template-columns: 1fr;
+        gap: 8px;
         padding: 10px;
+      }
+
+      .double-solitaire-board {
+        gap: 6px;
+        padding: 6px;
+        overflow: visible;
       }
 
       .double-solitaire-top-row,
       .double-solitaire-tableau {
         grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
       }
 
       .double-solitaire-top-row {
         grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+
+      .double-solitaire-slot,
+      .double-solitaire-column {
+        min-height: clamp(58px, 17vw, 76px);
+        border-radius: 6px;
+      }
+
+      .double-solitaire-slot {
+        padding: 3px;
+      }
+
+      .double-solitaire-tableau {
+        min-height: clamp(260px, 54vh, 380px);
+      }
+
+      .double-solitaire-column {
+        min-height: clamp(260px, 54vh, 380px);
+        padding: 3px;
       }
 
       .double-solitaire-slot .playing-card,
@@ -5593,7 +5692,13 @@
       }
 
       .double-solitaire-column .playing-card {
-        top: calc(var(--solitaire-card-index, 0) * 16px + 8px);
+        left: 3px;
+        top: calc(var(--solitaire-card-index, 0) * 12px + 3px);
+      }
+
+      .double-solitaire-turn-overlay {
+        font-size: clamp(1.7rem, 12vw, 3.6rem);
+        background: linear-gradient(180deg, rgba(8, 5, 7, 0.16), rgba(8, 5, 7, 0.34));
       }
 
       .solitaire-screen {

@@ -12803,6 +12803,18 @@
       if (nextTarget !== target) hideSolitaireCardPreview();
     }
 
+    function handleSolitairePreviewPointerDown(event) {
+      if (event.pointerType === "mouse") return;
+      const target = event.target.closest("[data-solitaire-preview-card]");
+      if (!target || !solitairePreviewEnabled()) return;
+      scheduleSolitaireCardPreview(target.dataset.solitairePreviewCard, target, event);
+    }
+
+    function handleSolitairePreviewPointerEnd(event) {
+      if (event.pointerType === "mouse") return;
+      hideSolitaireCardPreview();
+    }
+
     function solitaireRank(card) {
       const rank = String(card || "").slice(0, -1);
       if (rank === "A") return 1;
@@ -14315,6 +14327,9 @@
     els.board.addEventListener("pointerover", handleSolitairePreviewPointerOver);
     els.board.addEventListener("pointermove", handleSolitairePreviewPointerMove);
     els.board.addEventListener("pointerout", handleSolitairePreviewPointerOut);
+    els.board.addEventListener("pointerdown", handleSolitairePreviewPointerDown);
+    els.board.addEventListener("pointerup", handleSolitairePreviewPointerEnd);
+    els.board.addEventListener("pointercancel", handleSolitairePreviewPointerEnd);
     els.hitBtn.addEventListener("click", () => {
       if (state.currentGame === "tributeChess") {
         chessFreezeAction();
@@ -14545,6 +14560,9 @@
       els.solitaireTable.addEventListener("pointerover", handleSolitairePreviewPointerOver);
       els.solitaireTable.addEventListener("pointermove", handleSolitairePreviewPointerMove);
       els.solitaireTable.addEventListener("pointerout", handleSolitairePreviewPointerOut);
+      els.solitaireTable.addEventListener("pointerdown", handleSolitairePreviewPointerDown);
+      els.solitaireTable.addEventListener("pointerup", handleSolitairePreviewPointerEnd);
+      els.solitaireTable.addEventListener("pointercancel", handleSolitairePreviewPointerEnd);
       els.solitaireTable.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
         const target = event.target.closest("[data-solitaire-source], [data-solitaire-location], [data-solitaire-action]");
