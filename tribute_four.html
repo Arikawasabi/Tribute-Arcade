@@ -7779,6 +7779,12 @@
 
     function rememberSeat(seat, room = currentRoomId(), secret = null) {
       state.online.seat = seat;
+      if ((seat === "one" || seat === "two") && secret) {
+        state.online.seats = state.online.seats || { one: false, two: false };
+        state.online.seatSecrets = state.online.seatSecrets || { one: "", two: "" };
+        state.online.seats[seat] = true;
+        state.online.seatSecrets[seat] = secret;
+      }
       return writeSeatClaim(seat, room, secret);
     }
 
@@ -7969,11 +7975,10 @@
       const seat = localSeat();
       const isOnlinePlayer = seat === "one" || seat === "two";
       const ownOnlineRole = isOnlinePlayer ? state.online.roleChoices[seat] : null;
-      const hasOnlineName = isOnlinePlayer && Boolean(state.online.playerNames[seat]);
       document.querySelectorAll("[data-online-role-choice]").forEach((button) => {
         const role = button.dataset.onlineRoleChoice;
         button.classList.toggle("active", ownOnlineRole === role);
-        button.disabled = !state.online.room || !isOnlinePlayer || !hasOnlineName;
+        button.disabled = !state.online.room || !isOnlinePlayer;
       });
       els.playerOneName.disabled = Boolean(localSeat() && localSeat() !== "one");
       els.playerTwoName.disabled = Boolean(localSeat() && localSeat() !== "two");
