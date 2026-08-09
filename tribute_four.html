@@ -3181,12 +3181,9 @@
 
     .double-solitaire-slot .playing-card.selected,
     .double-solitaire-column .playing-card.selected {
-      outline: 0;
+      outline: 3px solid var(--gold);
+      outline-offset: 3px;
       transform: translateY(-5px);
-      box-shadow:
-        inset 0 0 0 3px rgba(255, 207, 113, 0.92),
-        inset 0 0 0 6px rgba(255, 79, 134, 0.18),
-        0 14px 32px rgba(0, 0, 0, 0.38);
       z-index: 8;
     }
 
@@ -3675,12 +3672,12 @@
         linear-gradient(rgba(20, 16, 13, 0.02), rgba(20, 16, 13, 0.22)),
         url("tribute_card_back.webp") center / cover no-repeat,
         #201813;
-      color: var(--gold);
-      border-color: rgba(239, 199, 94, 0.36);
+      color: rgba(244, 239, 232, 0.72);
+      border-color: rgba(20, 16, 13, 0.42);
     }
 
     .playing-card.hidden-card::before {
-      border-color: rgba(255, 239, 194, 0.42);
+      display: none;
     }
 
     .solitaire-screen {
@@ -3731,10 +3728,10 @@
     }
 
     .solitaire-table .playing-card.selected {
-      outline: 0;
+      outline: 2px solid rgba(255, 207, 113, 0.95);
+      outline-offset: 3px;
       box-shadow:
-        inset 0 0 0 3px rgba(255, 207, 113, 0.92),
-        inset 0 0 0 6px rgba(255, 79, 134, 0.18),
+        0 0 0 5px rgba(255, 79, 134, 0.24),
         0 14px 34px rgba(0, 0, 0, 0.36);
     }
 
@@ -5911,7 +5908,7 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="solitaireCard" data-game-categories="solo cards all">
+      <button class="panel game-card" id="solitaireCard" data-game-categories="solo">
         <span>
           <span class="game-card-tags"><span>Solo</span><span>Cards</span><span>Klondike</span></span>
           <h2>Solitaire</h2>
@@ -9193,7 +9190,9 @@
 
     function renderSidePanel() {
       const soloMode = state.screen === "solitaire";
-      if (soloMode) {
+      const inGame = state.screen === "game";
+      const inGameSelect = state.screen === "select";
+      if (soloMode || (!inGame && !inGameSelect)) {
         els.sidePopout.classList.add("hidden");
         els.sideRestoreTabs.forEach((button) => button.classList.add("hidden"));
         renderDistractionBackground();
@@ -9206,6 +9205,7 @@
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
       if (state.settings.activeSideTab === "settings") state.settings.activeSideTab = "tools";
+      if (!inGame && state.settings.activeSideTab === "ledger") state.settings.activeSideTab = "chat";
       if (!canOpenUtility && state.settings.activeSideTab === "tools") {
         state.settings.activeSideTab = "chat";
       }
@@ -9224,7 +9224,8 @@
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
-        const visible = tab !== "tools" || canOpenUtility;
+        const visible = (tab !== "ledger" || inGame)
+          && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active-restore", tab === activeTab);
         button.classList.toggle("unread", tab === "chat" && hasUnreadChat());
@@ -9232,7 +9233,8 @@
       els.sideToggleBtn.textContent = "Hide";
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
-        const visible = button.dataset.sideTab !== "tools" || canOpenUtility;
+        const visible = (button.dataset.sideTab !== "ledger" || inGame)
+          && (button.dataset.sideTab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active", button.dataset.sideTab === activeTab);
         button.classList.toggle("unread", button.dataset.sideTab === "chat" && hasUnreadChat());
@@ -9334,6 +9336,7 @@
 
     function setSideTab(tab) {
       if (tab === "settings") tab = "tools";
+      if (tab === "ledger" && state.screen !== "game") return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       state.settings.activeSideTab = tab;
       if (tab === "chat") markChatSeen();
@@ -9342,6 +9345,7 @@
 
     function openSidePanel(tab = state.settings.activeSideTab || "chat") {
       if (tab === "settings") tab = "tools";
+      if (tab === "ledger" && state.screen !== "game") return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       state.settings.activeSideTab = tab;
       state.settings.sideOpen = true;
@@ -18821,6 +18825,7 @@
       Object.entries(attrs).forEach(([key, value]) => {
         element.dataset[key] = String(value);
       });
+      if (!hidden) element.dataset.solitairePreviewCard = card;
       element.setAttribute("role", "button");
       element.setAttribute("tabindex", "0");
       return element;
@@ -19134,6 +19139,10 @@
     let solitairePreviewX = 0;
     let solitairePreviewY = 0;
 
+    function solitairePreviewEnabled() {
+      return state.screen === "solitaire" || (state.screen === "game" && state.currentGame === "doubleSolitaire");
+    }
+
     function hideSolitaireCardPreview() {
       window.clearTimeout(solitairePreviewTimer);
       solitairePreviewTimer = null;
@@ -19145,7 +19154,7 @@
     }
 
     function showSolitaireCardPreview() {
-      if (!els.solitaireCardPreview || state.screen !== "solitaire" || !solitairePreviewTarget || !solitairePreviewCard) return;
+      if (!els.solitaireCardPreview || !solitairePreviewEnabled() || !solitairePreviewTarget || !solitairePreviewCard) return;
       if (!document.body.contains(solitairePreviewTarget)) {
         hideSolitaireCardPreview();
         return;
@@ -19156,7 +19165,7 @@
     }
 
     function scheduleSolitaireCardPreview(card, target, event) {
-      if (!card || !target || state.screen !== "solitaire") return;
+      if (!card || !target || !solitairePreviewEnabled()) return;
       window.clearTimeout(solitairePreviewTimer);
       solitairePreviewTarget = target;
       solitairePreviewCard = card;
@@ -19167,7 +19176,7 @@
 
     function handleSolitairePreviewPointerOver(event) {
       const target = event.target.closest("[data-solitaire-preview-card]");
-      if (!target || !els.solitaireTable || !els.solitaireTable.contains(target)) return;
+      if (!target || !solitairePreviewEnabled()) return;
       if (target === solitairePreviewTarget) return;
       scheduleSolitaireCardPreview(target.dataset.solitairePreviewCard, target, event);
     }
@@ -20558,6 +20567,9 @@
     els.board.addEventListener("click", handleObedienceBoardClick);
     els.board.addEventListener("click", handleCrazyEightsBoardClick);
     els.board.addEventListener("click", handleDoubleSolitaireBoardClick);
+    els.board.addEventListener("pointerover", handleSolitairePreviewPointerOver);
+    els.board.addEventListener("pointermove", handleSolitairePreviewPointerMove);
+    els.board.addEventListener("pointerout", handleSolitairePreviewPointerOut);
     els.hitBtn.addEventListener("click", () => {
       if (state.currentGame === "tributeChess") {
         chessFreezeAction();
