@@ -125,6 +125,7 @@ function ensureLobby(snapshot) {
   snapshot.onlineLobby.seatSecrets = snapshot.onlineLobby.seatSecrets || { one: "", two: "" };
   snapshot.onlineLobby.playerNames = snapshot.onlineLobby.playerNames || { one: "", two: "" };
   snapshot.onlineLobby.roleChoices = snapshot.onlineLobby.roleChoices || { one: null, two: null };
+  snapshot.onlineLobby.ready = snapshot.onlineLobby.ready || { one: false, two: false };
   snapshot.onlineLobby.spectators = snapshot.onlineLobby.spectators || {};
   return snapshot.onlineLobby;
 }
@@ -155,6 +156,7 @@ function claimSeat(room, body) {
     lobby.seatSecrets[seat] = secret;
     lobby.playerNames[seat] = lobby.playerNames[seat] || "";
     lobby.roleChoices[seat] = lobby.roleChoices[seat] || null;
+    lobby.ready[seat] = Boolean(lobby.ready[seat]);
   }
 
   room.rev += 1;
@@ -172,6 +174,7 @@ function preserveSeatClaims(previousSnapshot, nextSnapshot) {
       next.seatSecrets[seat] = previous.seatSecrets[seat];
       next.playerNames[seat] = previous.playerNames[seat];
       next.roleChoices[seat] = previous.roleChoices[seat];
+      next.ready[seat] = previous.ready[seat];
     }
   }
   return nextSnapshot;
@@ -189,6 +192,7 @@ function releaseSeat(room, body) {
   lobby.seatSecrets[seat] = "";
   lobby.playerNames[seat] = "";
   lobby.roleChoices[seat] = null;
+  lobby.ready[seat] = false;
   snapshot.active = false;
   if (body.leaveNotice) {
     snapshot.settings = {

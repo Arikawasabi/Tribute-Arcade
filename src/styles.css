@@ -468,6 +468,69 @@
       gap: 16px;
     }
 
+    .setup-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.18fr) minmax(300px, 0.82fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .setup-main {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .setup-settings-panel {
+      position: sticky;
+      top: 16px;
+    }
+
+    .setup-settings-body {
+      gap: 12px;
+    }
+
+    .setup-settings-row {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .segmented-control {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .segmented-control button.active {
+      border-color: rgba(239, 199, 94, 0.72);
+      background: linear-gradient(135deg, rgba(241, 201, 101, 0.22), rgba(255, 79, 134, 0.12));
+      color: var(--gold);
+      font-weight: 900;
+    }
+
+    .settings-hint {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+      line-height: 1.25;
+      opacity: 0.82;
+    }
+
+    .setup-extension-status {
+      margin: 0;
+      font-size: 0.84rem;
+    }
+
+    .setup-settings-panel .settings-row input[type="checkbox"] {
+      width: auto;
+      justify-self: start;
+      accent-color: var(--gold);
+    }
+
     .player-card {
       display: grid;
       gap: 14px;
@@ -485,6 +548,26 @@
       gap: 7px;
       color: var(--muted);
       font-size: 0.95rem;
+    }
+
+    .lobby-name-field {
+      gap: 5px;
+    }
+
+    .lobby-name-field input {
+      min-height: 2.35rem;
+    }
+
+    .lobby-lower-actions {
+      justify-content: flex-start;
+    }
+
+    .lobby-lower-actions #confirmLobbyNameBtn,
+    .lobby-lower-actions #lobbyReadyBtn {
+      width: min(180px, 100%);
+      min-height: 2.35rem;
+      padding-inline: 14px;
+      white-space: nowrap;
     }
 
     .role-row {
@@ -5447,6 +5530,23 @@
       }
 
       .setup-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .setup-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .setup-settings-panel {
+        position: static;
+      }
+
+      .lobby-lower-actions #confirmLobbyNameBtn,
+      .lobby-lower-actions #lobbyReadyBtn {
+        width: 100%;
+      }
+
+      .segmented-control {
         grid-template-columns: 1fr;
       }
 

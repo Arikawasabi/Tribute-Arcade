@@ -104,65 +104,125 @@
       <p class="subtitle">Choose roles and names. In online rooms, each player controls their own card.</p>
     </header>
 
-    <section class="setup-grid" id="localSetupGrid">
-      <div class="player-card">
-        <h2 class="panel-title">Player One</h2>
-        <div class="role-row">
-          <button class="role-btn" data-player="one" data-role="dom">Dom</button>
-          <button class="role-btn" data-player="one" data-role="sub">Sub</button>
-        </div>
-        <label class="field-label">
-          Name
-          <input id="playerOneName" type="text" autocomplete="off">
-        </label>
-      </div>
-
-      <div class="player-card">
-        <h2 class="panel-title">Player Two</h2>
-        <div class="role-row">
-          <button class="role-btn" data-player="two" data-role="dom">Dom</button>
-          <button class="role-btn" data-player="two" data-role="sub">Sub</button>
-        </div>
-        <label class="field-label">
-          Name
-          <input id="playerTwoName" type="text" autocomplete="off">
-        </label>
-      </div>
-    </section>
-
-    <section class="panel hidden" id="setupRoomPanel">
-      <div class="panel-header">
-        <h2 class="panel-title">Online Lobby</h2>
-        <button class="leave-room-btn hidden">Leave Lobby</button>
-      </div>
-      <div class="panel-body">
-        <p class="chooser-line" id="setupRoomStatus">Offline local setup.</p>
-        <p class="chooser-line hidden" id="setupRoomCodeDisplay">Room code: -----</p>
-        <div class="copy-row">
-          <div class="share-link" id="setupShareLink"></div>
-          <button id="copySetupInviteBtn">Copy</button>
-        </div>
-        <label class="field-label">
-          Your name
-          <input id="lobbyNameInput" type="text" autocomplete="off" placeholder="Enter name">
-        </label>
-        <div class="setup-actions">
-          <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
-        </div>
-        <div class="online-role-panel">
-          <span>Choose your role</span>
-          <div class="role-row">
-            <button class="role-btn" data-online-role-choice="dom">Dom</button>
-            <button class="role-btn" data-online-role-choice="sub">Sub</button>
+    <div class="setup-layout">
+      <div class="setup-main">
+        <section class="setup-grid" id="localSetupGrid">
+          <div class="player-card">
+            <h2 class="panel-title">Player One</h2>
+            <div class="role-row">
+              <button class="role-btn" data-player="one" data-role="dom">Dom</button>
+              <button class="role-btn" data-player="one" data-role="sub">Sub</button>
+            </div>
+            <label class="field-label">
+              Name
+              <input id="playerOneName" type="text" autocomplete="off">
+            </label>
           </div>
-        </div>
-        <div class="player-list" id="lobbyPlayerList"></div>
-      </div>
-    </section>
 
-    <div class="setup-actions" id="localSetupActions">
-      <p class="turn-copy" id="setupMessage"></p>
-      <button id="confirmPlayersBtn" class="primary">Confirm</button>
+          <div class="player-card">
+            <h2 class="panel-title">Player Two</h2>
+            <div class="role-row">
+              <button class="role-btn" data-player="two" data-role="dom">Dom</button>
+              <button class="role-btn" data-player="two" data-role="sub">Sub</button>
+            </div>
+            <label class="field-label">
+              Name
+              <input id="playerTwoName" type="text" autocomplete="off">
+            </label>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="setupRoomPanel">
+          <div class="panel-header">
+            <h2 class="panel-title">Online Lobby</h2>
+            <button class="leave-room-btn hidden">Leave Lobby</button>
+          </div>
+          <div class="panel-body">
+            <p class="chooser-line" id="setupRoomStatus">Offline local setup.</p>
+            <p class="chooser-line hidden" id="setupRoomCodeDisplay">Room code: -----</p>
+            <div class="copy-row">
+              <div class="share-link" id="setupShareLink"></div>
+              <button id="copySetupInviteBtn">Copy</button>
+            </div>
+            <label class="field-label lobby-name-field">
+              Your name
+              <input id="lobbyNameInput" type="text" autocomplete="off" placeholder="Enter name">
+            </label>
+            <div class="setup-actions lobby-lower-actions">
+              <button id="confirmLobbyNameBtn" class="primary">Confirm Name</button>
+              <button id="lobbyReadyBtn" class="primary" disabled>Ready Up</button>
+            </div>
+            <div class="online-role-panel">
+              <span>Choose your role</span>
+              <div class="role-row">
+                <button class="role-btn" data-online-role-choice="dom">Dom</button>
+                <button class="role-btn" data-online-role-choice="sub">Sub</button>
+              </div>
+            </div>
+            <div class="player-list" id="lobbyPlayerList"></div>
+          </div>
+        </section>
+
+        <div class="setup-actions" id="localSetupActions">
+          <p class="turn-copy" id="setupMessage"></p>
+          <button id="confirmPlayersBtn" class="primary">Confirm</button>
+        </div>
+      </div>
+
+      <section class="panel setup-settings-panel" id="setupSettingsPanel">
+        <div class="panel-header">
+          <h2 class="panel-title">Initial Settings</h2>
+        </div>
+        <div class="panel-body setup-settings-body">
+          <div class="setup-settings-row">
+            <span>Session type</span>
+            <div class="segmented-control">
+              <button type="button" data-setup-session-mode="bank">Bank</button>
+              <button type="button" data-setup-session-mode="throne">Throne</button>
+            </div>
+          </div>
+          <label class="settings-row" id="setupDefaultBetRow">
+            <span>
+              Default bet
+              <small class="settings-hint">You can change the bet amount in game from settings.</small>
+            </span>
+            <input id="setupDefaultBetInput" type="number" min="1" step="1" value="10">
+          </label>
+          <label class="settings-row hidden" id="setupThroneAmountRow">
+            <span>
+              Throne amount
+              <small class="settings-hint">You can change the throne amount in game from settings.</small>
+            </span>
+            <input id="setupThroneAmountInput" type="number" min="1" step="1" value="5">
+          </label>
+          <label class="settings-row">
+            <span>
+              Dom reclaim powers always on
+              <small class="settings-hint">Lets supported games use reclaim-style dom powers outside reclaim rounds.</small>
+            </span>
+            <input id="setupDomAdvantageAlwaysInput" type="checkbox">
+          </label>
+          <div class="settings-row hidden" id="setupDomAdvantageModeRow">
+            <select id="setupDomAdvantageMode" aria-label="Dom advantage users">
+              <option value="dom">Dom only</option>
+              <option value="both">Both players</option>
+            </select>
+          </div>
+          <label class="settings-row hidden" id="setupSubLinkWarningRow">
+            Dom links
+            <select id="setupSubLinkWarningMode">
+              <option value="auto">Open automatically</option>
+              <option value="warn">Ask sub first</option>
+            </select>
+          </label>
+          <label class="field-label">
+            Throne / payment URL
+            <input id="setupThroneUrlInput" type="url" placeholder="https://throne.com/name">
+          </label>
+          <p class="chooser-line setup-extension-status" id="setupThroneExtensionStatus">Throne helper status appears here in online rooms.</p>
+          <a class="download-link-button throne-extension-download hidden" id="setupThroneExtensionDownloadLink" href="https://catbox.moe/c/q6bnvl" target="_blank" rel="noopener">Install Throne helper</a>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -765,6 +825,13 @@
               </select>
             </label>
             <label class="settings-row">
+              Sub bet control
+              <select id="domSubBetControl">
+                <option value="editable">Sub can change bet</option>
+                <option value="locked">Use default only</option>
+              </select>
+            </label>
+            <label class="settings-row" id="queenPowerModeRow">
               Queen powers
               <select id="queenPowerMode">
                 <option value="tiered">Unlock by tier</option>
@@ -772,7 +839,7 @@
                 <option value="off">Disabled</option>
               </select>
             </label>
-            <label class="settings-row">
+            <label class="settings-row" id="queenPowerUsersRow">
               Queen power users
               <select id="queenPowerUsers">
                 <option value="dom">Dom only</option>
@@ -789,8 +856,8 @@
             <label class="settings-row">
               Link warning
               <select id="subLinkWarningMode">
-                <option value="warn">Ask before opening</option>
                 <option value="auto">Open without asking</option>
+                <option value="warn">Ask before opening</option>
               </select>
             </label>
           </div>

@@ -95,7 +95,8 @@
         sideOpen: false,
         domAdvantageMode: "dom",
         subDefaultBet: 10,
-        subLinkWarningMode: "warn",
+        subBetControl: "editable",
+        subLinkWarningMode: "auto",
         distractionUrl: "",
         distractionMode: "background-both",
         distractionDuration: 15,
@@ -109,8 +110,9 @@
         distractionGallery: [],
         leaveNotice: null,
         linkRequest: null,
-        sessionMode: "",
-        sessionModePrompted: false,
+        sessionMode: "throne",
+        sessionModePrompted: true,
+        reclaimPowersAlways: false,
         throneReclaimPerks: false,
         throneAmount: 5,
         throneUrl: "",
@@ -140,6 +142,10 @@
         roleChoices: {
           one: null,
           two: null
+        },
+        ready: {
+          one: false,
+          two: false
         },
         seats: {
           one: false,
@@ -231,6 +237,20 @@
       confirmPlayersBtn: document.getElementById("confirmPlayersBtn"),
       setupMessage: document.getElementById("setupMessage"),
       setupRoomPanel: document.getElementById("setupRoomPanel"),
+      setupSettingsPanel: document.getElementById("setupSettingsPanel"),
+      setupDefaultBetRow: document.getElementById("setupDefaultBetRow"),
+      setupDefaultBetInput: document.getElementById("setupDefaultBetInput"),
+      setupThroneAmountRow: document.getElementById("setupThroneAmountRow"),
+      setupThroneAmountInput: document.getElementById("setupThroneAmountInput"),
+      setupDomAdvantageAlwaysInput: document.getElementById("setupDomAdvantageAlwaysInput"),
+      setupDomAdvantageModeRow: document.getElementById("setupDomAdvantageModeRow"),
+      setupDomAdvantageMode: document.getElementById("setupDomAdvantageMode"),
+      setupSubLinkWarningRow: document.getElementById("setupSubLinkWarningRow"),
+      setupSubLinkWarningMode: document.getElementById("setupSubLinkWarningMode"),
+      setupThroneUrlInput: document.getElementById("setupThroneUrlInput"),
+      setupThroneExtensionStatus: document.getElementById("setupThroneExtensionStatus"),
+      setupThroneExtensionDownloadLink: document.getElementById("setupThroneExtensionDownloadLink"),
+      setupSessionModeButtons: document.querySelectorAll("[data-setup-session-mode]"),
       setupRoomStatus: document.getElementById("setupRoomStatus"),
       setupRoomCodeDisplay: document.getElementById("setupRoomCodeDisplay"),
       setupShareLink: document.getElementById("setupShareLink"),
@@ -264,6 +284,7 @@
       subSettingsPane: document.getElementById("subSettingsPane"),
       domToolsPane: document.getElementById("domToolsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
+      domSubBetControl: document.getElementById("domSubBetControl"),
       subDefaultBetInput: document.getElementById("subDefaultBetInput"),
       subLinkWarningMode: document.getElementById("subLinkWarningMode"),
       domLinkUrlInput: document.getElementById("domLinkUrlInput") || document.getElementById("sideDomLinkInput"),
@@ -310,6 +331,8 @@
       sideDistractionStatus: document.getElementById("sideDistractionStatus"),
       queenPowerMode: document.getElementById("queenPowerMode"),
       queenPowerUsers: document.getElementById("queenPowerUsers"),
+      queenPowerModeRow: document.getElementById("queenPowerModeRow"),
+      queenPowerUsersRow: document.getElementById("queenPowerUsersRow"),
       tributeFourCard: document.getElementById("tributeFourCard"),
       tributeFleetCard: document.getElementById("tributeFleetCard"),
       tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
@@ -336,6 +359,7 @@
       playLocalBtn: document.getElementById("playLocalBtn"),
       soloGamesBtn: document.getElementById("soloGamesBtn"),
       lobbyPlayerList: document.getElementById("lobbyPlayerList"),
+      lobbyReadyBtn: document.getElementById("lobbyReadyBtn"),
       roleModal: document.getElementById("roleModal"),
       roleModalText: document.getElementById("roleModalText"),
       chooseDomBtn: document.getElementById("chooseDomBtn"),
@@ -1029,7 +1053,7 @@
     }
 
     function sessionMode() {
-      return state.settings.sessionMode === "throne" ? "throne" : "bank";
+      return state.settings.sessionMode === "bank" ? "bank" : "throne";
     }
 
     function isThroneSession() {
@@ -1048,21 +1072,98 @@
     }
 
     function reclaimPerksActive() {
-      return state.mode === "reclaim" || (isThroneSession() && state.settings.throneReclaimPerks);
+      return state.mode === "reclaim" || Boolean(state.settings.reclaimPowersAlways) || (isThroneSession() && state.settings.throneReclaimPerks);
     }
 
     function sessionModeControlsAllowed() {
+      const seat = localSeat();
+      if (seat === SPECTATOR) return false;
+      if (state.online.room && state.screen === "setup") {
+        const setupChoice = seat ? state.online.roleChoices[seat] : null;
+        return !setupChoice || setupChoice === DOM;
+      }
       const role = localOnlineRole();
       if (role === SPECTATOR) return false;
       return !state.online.room || role === DOM;
     }
 
+    function setupThroneExtensionText() {
+      if (!state.online.room) return "Throne helper status appears here in online rooms.";
+      const remote = state.settings.throneExtensionStatus || {};
+      const fresh = Date.now() - Number(remote.updatedAt || 0) < 30000;
+      const seat = localSeat();
+      const setupRole = state.screen === "setup" && seat ? state.online.roleChoices[seat] : null;
+      const localRole = setupRole || localOnlineRole();
+      const localFresh = Date.now() - Number(throneExtensionStatus.updatedAt || 0) < 30000;
+      const localInstalled = localRole === SUB && localFresh && throneExtensionStatus.installed;
+      const installed = Boolean(localInstalled || (fresh && remote.installed));
+      const ready = Boolean((localRole === SUB && localFresh && throneExtensionStatus.ready) || (fresh && remote.ready));
+      if (!installed) return `No Throne helper detected from ${state.names.sub || "the sub"} yet.`;
+      return ready ? "Sub helper detected. Checkout is ready." : "Sub helper detected. Checkout is not ready yet.";
+    }
+
+    function renderSetupSettings() {
+      if (!els.setupSettingsPanel) return;
+      const canEdit = sessionModeControlsAllowed();
+      const isThrone = isThroneSession();
+      const seat = localSeat();
+      const setupRole = state.screen === "setup" && seat ? state.online.roleChoices[seat] : null;
+      const role = setupRole || localOnlineRole();
+      const canEditSubLinkMode = !state.online.room ? true : role === SUB;
+      els.setupSessionModeButtons.forEach((button) => {
+        const mode = button.dataset.setupSessionMode || "bank";
+        button.classList.toggle("active", sessionMode() === mode);
+        button.disabled = !canEdit;
+      });
+      if (els.setupDefaultBetRow) els.setupDefaultBetRow.classList.toggle("hidden", isThrone);
+      if (els.setupThroneAmountRow) els.setupThroneAmountRow.classList.toggle("hidden", !isThrone);
+      if (els.setupDefaultBetInput) {
+        els.setupDefaultBetInput.value = state.settings.subDefaultBet;
+        els.setupDefaultBetInput.disabled = !canEdit;
+      }
+      if (els.setupThroneAmountInput) {
+        els.setupThroneAmountInput.value = currentThroneAmount();
+        els.setupThroneAmountInput.disabled = !canEdit;
+      }
+      if (els.setupDomAdvantageAlwaysInput) {
+        els.setupDomAdvantageAlwaysInput.checked = Boolean(state.settings.reclaimPowersAlways);
+        els.setupDomAdvantageAlwaysInput.disabled = !canEdit;
+      }
+      if (els.setupDomAdvantageModeRow) {
+        els.setupDomAdvantageModeRow.classList.toggle("hidden", !state.settings.reclaimPowersAlways);
+      }
+      if (els.setupDomAdvantageMode) {
+        els.setupDomAdvantageMode.value = state.settings.domAdvantageMode === "both" ? "both" : "dom";
+        els.setupDomAdvantageMode.disabled = !canEdit || !state.settings.reclaimPowersAlways;
+      }
+      if (els.setupSubLinkWarningRow) els.setupSubLinkWarningRow.classList.toggle("hidden", !canEditSubLinkMode);
+      if (els.setupSubLinkWarningMode) {
+        els.setupSubLinkWarningMode.value = state.settings.subLinkWarningMode || "auto";
+        els.setupSubLinkWarningMode.disabled = !canEditSubLinkMode;
+      }
+      if (els.setupThroneUrlInput && document.activeElement !== els.setupThroneUrlInput) {
+        const easterEgg = activeNameEasterEgg();
+        const defaultThroneUrl = easterEgg && easterEgg.defaultThroneUrl ? normalizeDomLink(easterEgg.defaultThroneUrl) : "";
+        els.setupThroneUrlInput.value = state.settings.throneUrl || defaultThroneUrl || "";
+      }
+      if (els.setupThroneUrlInput) els.setupThroneUrlInput.disabled = !canEdit;
+      if (els.setupThroneExtensionStatus) {
+        els.setupThroneExtensionStatus.textContent = setupThroneExtensionText();
+        els.setupThroneExtensionStatus.classList.toggle("hidden", !isThrone && !state.online.room);
+      }
+      if (els.setupThroneExtensionDownloadLink) {
+        const seat = localSeat();
+        const setupRole = state.screen === "setup" && seat ? state.online.roleChoices[seat] : null;
+        const role = setupRole || localOnlineRole();
+        const localFresh = Date.now() - Number(throneExtensionStatus.updatedAt || 0) < 30000;
+        const localInstalled = localFresh && throneExtensionStatus.installed;
+        const showDownload = isThrone && (!state.online.room || role === SUB) && !localInstalled;
+        els.setupThroneExtensionDownloadLink.classList.toggle("hidden", !showDownload);
+      }
+    }
+
     function maybePromptSessionMode() {
-      if (state.screen !== "select") return;
-      if (!sessionModeControlsAllowed()) return;
-      if (state.settings.sessionModePrompted) return;
-      if (!state.names.dom || !state.names.sub) return;
-      openSessionModeModal("choice");
+      return;
     }
 
     function renderSessionModeModal(step = null) {
@@ -1182,6 +1283,7 @@
       state.roles[player] = role;
       state.roles[other] = role === DOM ? SUB : DOM;
       renderRoles();
+      renderSetupSettings();
       publishState();
     }
 
@@ -1240,6 +1342,7 @@
       state.online.rev = 0;
       state.online.playerNames = { one: "", two: "" };
       state.online.roleChoices = { one: null, two: null };
+      state.online.ready = { one: false, two: false };
       state.online.seats = { one: false, two: false };
       state.online.seatSecrets = { one: "", two: "" };
       state.online.spectators = {};
@@ -1280,6 +1383,7 @@
       state.online.inviteUrl = "";
       state.online.playerNames = { one: "", two: "" };
       state.online.roleChoices = { one: null, two: null };
+      state.online.ready = { one: false, two: false };
       state.online.seats = { one: false, two: false };
       state.online.seatSecrets = { one: "", two: "" };
       state.online.spectators = {};
@@ -1326,6 +1430,8 @@
       state.online.seatSecrets[seat] = "";
       state.online.playerNames[seat] = "";
       state.online.roleChoices[seat] = null;
+      state.online.ready = state.online.ready || { one: false, two: false };
+      state.online.ready[seat] = false;
       state.active = false;
       const claim = readSeatClaim(room);
       try {
@@ -1419,7 +1525,8 @@
         const you = seat === local ? " (You)" : "";
         const name = state.online.playerNames[seat] ? escapeHtml(state.online.playerNames[seat]) : "Waiting";
         const role = state.online.roleChoices[seat] ? state.online.roleChoices[seat].toUpperCase() : "No role";
-        return `<div class="player-row ${seat === local ? "you" : ""}"><span>${label}${you}: ${name}</span><strong>${role}</strong></div>`;
+        const ready = state.online.ready && state.online.ready[seat] ? "Ready" : "Not ready";
+        return `<div class="player-row ${seat === local ? "you" : ""}"><span>${label}${you}: ${name}</span><strong>${role} · ${ready}</strong></div>`;
       });
       const spectatorNames = Object.values(state.online.spectators || {}).filter(Boolean);
       if (spectatorNames.length) {
@@ -1433,12 +1540,20 @@
       const ownRole = isPlayerSeat ? state.online.roleChoices[seat] : null;
       const bothRoles = Boolean(state.online.roleChoices.one && state.online.roleChoices.two);
       const roleConflict = bothRoles && state.online.roleChoices.one === state.online.roleChoices.two;
+      const ownCanReady = isPlayerSeat && Boolean(state.online.playerNames[seat]) && Boolean(ownRole) && !roleConflict;
+      const ownReady = isPlayerSeat && Boolean(state.online.ready && state.online.ready[seat]);
+      if (els.lobbyReadyBtn) {
+        els.lobbyReadyBtn.classList.toggle("hidden", !isPlayerSeat);
+        els.lobbyReadyBtn.disabled = !ownCanReady;
+        els.lobbyReadyBtn.textContent = ownReady ? "Ready ✓" : "Ready Up";
+      }
       els.roleModal.classList.add("hidden");
       if (roleConflict && isPlayerSeat) {
         els.setupRoomStatus.textContent = "Both players chose the same role. Choose again.";
       }
 
-      if (state.online.room && bothNamed && bothRoles && !roleConflict && state.screen === "setup") {
+      const bothReady = Boolean(state.online.ready && state.online.ready.one && state.online.ready.two);
+      if (state.online.room && bothNamed && bothRoles && !roleConflict && bothReady && state.screen === "setup") {
         applyOnlineRoles();
         setScreen("select");
         publishState();
@@ -1500,6 +1615,7 @@
       }
       state.online.playerNames[seat] = name;
       state.online.seats[seat] = true;
+      state.online.ready = { ...(state.online.ready || { one: false, two: false }), [seat]: false };
       const claim = readSeatClaim();
       if (claim && state.online.seatSecrets && !state.online.seatSecrets[seat]) {
         state.online.seatSecrets[seat] = claim.secret;
@@ -1508,6 +1624,7 @@
       publishOnlineLobbyChange((lobby) => {
         lobby.playerNames[seat] = name;
         lobby.seats[seat] = true;
+        lobby.ready[seat] = false;
         if (claim && claim.secret && !lobby.seatSecrets[seat]) lobby.seatSecrets[seat] = claim.secret;
       });
     }
@@ -1516,10 +1633,28 @@
       const seat = localSeat();
       if (!seat || seat === SPECTATOR) return;
       state.online.roleChoices[seat] = role;
+      state.online.ready = { ...(state.online.ready || { one: false, two: false }), [seat]: false };
       renderRoles();
       renderLobby();
+      renderSetupSettings();
       publishOnlineLobbyChange((lobby) => {
         lobby.roleChoices[seat] = role;
+        lobby.ready[seat] = false;
+      });
+    }
+
+    function toggleLobbyReady() {
+      const seat = localSeat();
+      if (seat !== "one" && seat !== "two") return;
+      const hasName = Boolean(state.online.playerNames[seat]);
+      const hasRole = Boolean(state.online.roleChoices[seat]);
+      const roleConflict = state.online.roleChoices.one && state.online.roleChoices.two && state.online.roleChoices.one === state.online.roleChoices.two;
+      if (!hasName || !hasRole || roleConflict) return;
+      const ready = !(state.online.ready && state.online.ready[seat]);
+      state.online.ready = { ...(state.online.ready || { one: false, two: false }), [seat]: ready };
+      renderLobby();
+      publishOnlineLobbyChange((lobby) => {
+        lobby.ready[seat] = ready;
       });
     }
 
@@ -1939,11 +2074,16 @@
       if (els.domSettingsPane) els.domSettingsPane.classList.toggle("hidden", !showDomSettings);
       if (els.subSettingsPane) els.subSettingsPane.classList.toggle("hidden", !showSubSettings);
       if (els.domAdvantageMode) els.domAdvantageMode.value = state.settings.domAdvantageMode;
+      if (els.domSubBetControl) els.domSubBetControl.value = state.settings.subBetControl === "locked" ? "locked" : "editable";
       if (els.subDefaultBetInput) els.subDefaultBetInput.value = state.settings.subDefaultBet;
-      if (els.subLinkWarningMode) els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "warn";
+      if (els.subLinkWarningMode) els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "auto";
       if (els.sendDomLinkBtn) els.sendDomLinkBtn.disabled = !domLinkControlsAllowed();
+      const showQueenSettings = state.currentGame === "tributeChess";
+      if (els.queenPowerModeRow) els.queenPowerModeRow.classList.toggle("hidden", !showQueenSettings);
+      if (els.queenPowerUsersRow) els.queenPowerUsersRow.classList.toggle("hidden", !showQueenSettings);
       if (els.queenPowerMode) els.queenPowerMode.value = state.settings.queenPowerMode;
       if (els.queenPowerUsers) els.queenPowerUsers.value = state.settings.queenPowerUsers;
+      renderSetupSettings();
       renderDomTriggerPanel();
     }
 
@@ -2145,6 +2285,11 @@
       };
       state.settings.subDefaultBet = normalizeBuyIn(Number(state.settings.subDefaultBet));
       state.settings.throneAmount = normalizeBuyIn(Number(state.settings.throneAmount || 5));
+      state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
+      state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
+      state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
+      state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
+      state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
       if (!state.active) applyDefaultBet();
       renderSettings();
       renderGameSelectTabs();
@@ -2574,6 +2719,7 @@
         if (changed) publishSettingsState();
       }
       if (els.sessionModeModal && !els.sessionModeModal.classList.contains("hidden")) renderSessionModeModal();
+      renderSetupSettings();
       renderSidePanel();
     }
 
@@ -2759,6 +2905,7 @@
       els.postDistractionBtn.disabled = !canUseDomSettings;
       els.clearDistractionBtn.disabled = !canUseDomSettings || !hasDistraction();
       if (els.domAdvantageMode) els.domAdvantageMode.disabled = !canUseDomSettings;
+      if (els.domSubBetControl) els.domSubBetControl.disabled = !canUseDomSettings;
       if (els.queenPowerMode) els.queenPowerMode.disabled = !canUseDomSettings;
       if (els.queenPowerUsers) els.queenPowerUsers.disabled = !canUseDomSettings;
       if (els.subDefaultBetInput) els.subDefaultBetInput.disabled = !canUseSubSettings;
@@ -3383,6 +3530,7 @@
           seatSecrets: state.online.seatSecrets,
           playerNames: state.online.playerNames,
           roleChoices: state.online.roleChoices,
+          ready: state.online.ready,
           spectators: state.online.spectators
         },
         logHtml: els.log.innerHTML
@@ -3402,6 +3550,9 @@
         ...state.settings,
         ...(snapshot.settings || {})
       };
+      state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
+      state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
+      state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
       state.settings.sideOpen = localSideOpen;
       state.settings.activeSideTab = localActiveSideTab;
       state.pendingWager = snapshot.pendingWager || null;
@@ -3455,6 +3606,7 @@
         state.online.seatSecrets = snapshot.onlineLobby.seatSecrets || { one: "", two: "" };
         state.online.playerNames = snapshot.onlineLobby.playerNames || state.online.playerNames;
         state.online.roleChoices = snapshot.onlineLobby.roleChoices || state.online.roleChoices;
+        state.online.ready = snapshot.onlineLobby.ready || state.online.ready || { one: false, two: false };
         state.online.spectators = snapshot.onlineLobby.spectators || state.online.spectators || {};
       }
       state.online.applying = false;
@@ -3474,6 +3626,7 @@
         state.online.seats.one = true;
         state.online.seats.two = false;
         state.online.seatSecrets = { one: newSeatSecret(), two: "" };
+        state.online.ready = { one: false, two: false };
         state.online.spectators = {};
         state.settings.leaveNotice = null;
         setScreen("setup");
@@ -3523,6 +3676,7 @@
         if (els.localSetupGrid) els.localSetupGrid.classList.remove("hidden");
         if (els.localSetupActions) els.localSetupActions.classList.remove("hidden");
         els.localTestingPanel.classList.remove("hidden");
+        renderSetupSettings();
         return;
       }
       els.localTestingPanel.classList.add("hidden");
@@ -3551,6 +3705,7 @@
       els.setupShareLink.textContent = `Invite link: ${state.online.inviteUrl}`;
       renderRoles();
       renderLobby();
+      renderSetupSettings();
     }
 
     async function copyInviteLink() {
@@ -3656,6 +3811,7 @@
         seatSecrets: { one: "", two: "", ...(lobby.seatSecrets || {}) },
         playerNames: { one: "", two: "", ...(lobby.playerNames || {}) },
         roleChoices: { one: null, two: null, ...(lobby.roleChoices || {}) },
+        ready: { one: false, two: false, ...(lobby.ready || {}) },
         spectators: { ...(lobby.spectators || {}) }
       };
     }
@@ -3900,12 +4056,14 @@
     }
 
     function pregameBetAmount() {
-      return normalizeBuyIn(isThroneSession() ? currentThroneAmount() : Number(els.betInput.value || state.settings.subDefaultBet));
+      if (isThroneSession()) return currentThroneAmount();
+      if (state.settings.subBetControl === "locked") return normalizeBuyIn(Number(state.settings.subDefaultBet));
+      return normalizeBuyIn(Number(els.betInput.value || state.settings.subDefaultBet));
     }
 
     function updatePregameBetAmount(delta) {
       if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
-      if (isThroneSession()) return;
+      if (isThroneSession() || state.settings.subBetControl === "locked") return;
       const amount = normalizeBuyIn(Number(els.betInput.value || state.settings.subDefaultBet) + delta);
       els.betInput.value = amount;
       renderWagerApproval();
@@ -3913,7 +4071,7 @@
 
     function setPregameBetAmountFromInput(value) {
       if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
-      if (isThroneSession()) return;
+      if (isThroneSession() || state.settings.subBetControl === "locked") return;
       els.betInput.value = normalizeBuyIn(Number(value || state.settings.subDefaultBet));
       renderWagerApproval();
     }
@@ -3921,7 +4079,7 @@
     function startPregameNormalBet() {
       if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
       const amountInput = els.wagerModal.querySelector('input[data-wager-action="pregame-set"]');
-      if (amountInput && !isThroneSession()) els.betInput.value = normalizeBuyIn(Number(amountInput.value || state.settings.subDefaultBet));
+      if (amountInput && !isThroneSession() && state.settings.subBetControl !== "locked") els.betInput.value = normalizeBuyIn(Number(amountInput.value || state.settings.subDefaultBet));
       els.betInput.value = pregameBetAmount();
       startNormalMatch();
     }
@@ -4409,6 +4567,7 @@
       if (showPregameBet) {
         const amount = pregameBetAmount();
         const reclaimAvailable = !isThroneSession() && state.domVault > 0;
+        const amountLocked = isThroneSession() || state.settings.subBetControl === "locked";
         const roleName = escapeHtml(state.names.sub || "Sub");
         els.wagerModalTitle.textContent = isThroneSession() ? "Choose Tribute Amount" : "Place The Bet";
         els.wagerEmojiDock.innerHTML = "";
@@ -4416,22 +4575,22 @@
         els.wagerModalBody.innerHTML = `
           <p class="chooser-line">${roleName} starts ${escapeHtml(currentGameLabel())} by setting the stake before the table opens.</p>
           <div class="wager-adjust-row">
-            <button data-wager-action="pregame-adjust" data-delta="-10"${isThroneSession() ? " disabled" : ""}>&lt;-10</button>
-            <button data-wager-action="pregame-adjust" data-delta="-5"${isThroneSession() ? " disabled" : ""}>&lt;-5</button>
-            <button data-wager-action="pregame-adjust" data-delta="-1"${isThroneSession() ? " disabled" : ""}>&lt;-1</button>
+            <button data-wager-action="pregame-adjust" data-delta="-10"${amountLocked ? " disabled" : ""}>&lt;-10</button>
+            <button data-wager-action="pregame-adjust" data-delta="-5"${amountLocked ? " disabled" : ""}>&lt;-5</button>
+            <button data-wager-action="pregame-adjust" data-delta="-1"${amountLocked ? " disabled" : ""}>&lt;-1</button>
             <label class="wager-amount-input">
               <span>${isThroneSession() ? "Throne" : "Bet"}</span>
-              <input type="number" min="1" step="1" value="${amount}" data-wager-action="pregame-set"${isThroneSession() ? " disabled" : ""}>
+              <input type="number" min="1" step="1" value="${amount}" data-wager-action="pregame-set"${amountLocked ? " disabled" : ""}>
             </label>
-            <button data-wager-action="pregame-adjust" data-delta="1"${isThroneSession() ? " disabled" : ""}>+1&gt;</button>
-            <button data-wager-action="pregame-adjust" data-delta="5"${isThroneSession() ? " disabled" : ""}>+5&gt;</button>
-            <button data-wager-action="pregame-adjust" data-delta="10"${isThroneSession() ? " disabled" : ""}>+10&gt;</button>
+            <button data-wager-action="pregame-adjust" data-delta="1"${amountLocked ? " disabled" : ""}>+1&gt;</button>
+            <button data-wager-action="pregame-adjust" data-delta="5"${amountLocked ? " disabled" : ""}>+5&gt;</button>
+            <button data-wager-action="pregame-adjust" data-delta="10"${amountLocked ? " disabled" : ""}>+10&gt;</button>
           </div>
           <div class="ledger-stats wager-ledger-preview">
             <span>Current pot <strong>${money(isThroneSession() ? roundThroneTributeAmount(amount) : amount)}</strong></span>
             <span>Dom bank <strong>${money(state.domVault)}</strong></span>
             <span>Cash to reclaim <strong>${money(state.domVault)}</strong></span>
-            <span>${isThroneSession() ? "Mode" : "Default bet"} <strong>${isThroneSession() ? "Throne" : money(state.settings.subDefaultBet)}</strong></span>
+            <span>${isThroneSession() ? "Mode" : "Bet control"} <strong>${isThroneSession() ? "Throne" : (state.settings.subBetControl === "locked" ? "Default only" : "Editable")}</strong></span>
           </div>
         `;
         els.wagerModalActions.innerHTML = `
@@ -14127,7 +14286,7 @@
       els.reclaimBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame || isThroneSession());
       els.reclaimBtn.disabled = state.active || wagerPending || state.domVault <= 0 || onlineBlocksSub || isThroneSession();
       els.normalBtn.disabled = state.active || wagerPending || onlineBlocksSub;
-      els.betInput.disabled = state.active || wagerPending || onlineBlocksSub;
+      els.betInput.disabled = state.active || wagerPending || onlineBlocksSub || (!isThroneSession() && state.settings.subBetControl === "locked");
       if (els.potLabel) els.potLabel.textContent = isThroneSession() ? "Throne amount" : "Current pot";
       els.normalBtn.textContent = isThroneSession() ? `Start ${money(currentThroneAmount())}` : "Bet";
       els.betInput.setAttribute("aria-label", isThroneSession() ? "Throne payment amount" : "Bet amount");
@@ -14320,6 +14479,48 @@
         updateSettings({ throneReclaimPerks: els.throneReclaimPerksInput.checked });
       });
     }
+    els.setupSessionModeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const mode = button.dataset.setupSessionMode === "throne" ? "throne" : "bank";
+        const changes = {
+          sessionMode: mode,
+          sessionModePrompted: true,
+          normalThroneRequest: null,
+          pendingThroneDemand: null
+        };
+        if (mode === "throne") {
+          const easterEgg = activeNameEasterEgg();
+          const defaultThroneUrl = easterEgg && easterEgg.defaultThroneUrl ? easterEgg.defaultThroneUrl : "";
+          const url = normalizeDomLink((els.setupThroneUrlInput && els.setupThroneUrlInput.value) || state.settings.throneUrl || defaultThroneUrl);
+          changes.throneUrl = url;
+        }
+        updateSettings(changes);
+        if (mode === "throne") requestThroneExtensionStatus();
+      });
+    });
+    if (els.setupDefaultBetInput) {
+      els.setupDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.setupDefaultBetInput.value }));
+      els.setupDefaultBetInput.addEventListener("input", () => updateSettings({ subDefaultBet: els.setupDefaultBetInput.value }));
+    }
+    if (els.setupThroneAmountInput) {
+      els.setupThroneAmountInput.addEventListener("change", () => updateSettings({ throneAmount: els.setupThroneAmountInput.value }));
+      els.setupThroneAmountInput.addEventListener("input", () => updateSettings({ throneAmount: els.setupThroneAmountInput.value }));
+    }
+    if (els.setupDomAdvantageAlwaysInput) {
+      els.setupDomAdvantageAlwaysInput.addEventListener("change", () => updateSettings({ reclaimPowersAlways: els.setupDomAdvantageAlwaysInput.checked }));
+    }
+    if (els.setupDomAdvantageMode) {
+      els.setupDomAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.setupDomAdvantageMode.value }));
+    }
+    if (els.setupSubLinkWarningMode) {
+      els.setupSubLinkWarningMode.addEventListener("change", () => updateSettings({ subLinkWarningMode: els.setupSubLinkWarningMode.value }));
+    }
+    if (els.setupThroneUrlInput) {
+      els.setupThroneUrlInput.addEventListener("change", () => updateSettings({ throneUrl: normalizeDomLink(els.setupThroneUrlInput.value) }));
+      els.setupThroneUrlInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") updateSettings({ throneUrl: normalizeDomLink(els.setupThroneUrlInput.value) });
+      });
+    }
     els.resetBtn.addEventListener("click", resetPrototype);
     els.board.addEventListener("click", handleObedienceBoardClick);
     els.board.addEventListener("click", handleCrazyEightsBoardClick);
@@ -14423,6 +14624,7 @@
       if (event.key === "Enter") sendChatMessage();
     });
     if (els.domAdvantageMode) els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
+    if (els.domSubBetControl) els.domSubBetControl.addEventListener("change", () => updateSettings({ subBetControl: els.domSubBetControl.value }));
     if (els.subDefaultBetInput) {
       els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
       els.subDefaultBetInput.addEventListener("input", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
@@ -14573,6 +14775,7 @@
     }
     if (els.continueSetupBtn) els.continueSetupBtn.addEventListener("click", continueToSetup);
     els.confirmLobbyNameBtn.addEventListener("click", confirmLobbyName);
+    if (els.lobbyReadyBtn) els.lobbyReadyBtn.addEventListener("click", toggleLobbyReady);
     els.joinRoomBtn.addEventListener("click", joinRoomFromInput);
     els.joinRoomCodeInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") joinRoomFromInput();
