@@ -5195,6 +5195,13 @@
       overflow-wrap: anywhere;
     }
 
+    .payment-note {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
     .ledger-bank-card strong {
       font-size: 1.7rem;
     }

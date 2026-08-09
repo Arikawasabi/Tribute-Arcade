@@ -5202,6 +5202,13 @@
       overflow-wrap: anywhere;
     }
 
+    .payment-note {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
     .ledger-bank-card strong {
       font-size: 1.7rem;
     }
@@ -6874,6 +6881,7 @@
         domTriggerEffect: null,
         focusTax: null,
         paymentDemand: null,
+        normalThroneRequest: null,
         pendingThroneDemand: null,
         throneExtensionStatus: null,
         brattyWelcomeSeen: false,
@@ -7858,6 +7866,7 @@
       updateSettings({
         sessionMode: "bank",
         sessionModePrompted: true,
+        normalThroneRequest: null,
         pendingThroneDemand: null
       });
       closeSessionModeModal();
@@ -7884,6 +7893,7 @@
         sessionMode: "throne",
         sessionModePrompted: true,
         throneUrl: url,
+        normalThroneRequest: null,
         pendingThroneDemand: null
       });
       closeSessionModeModal();
@@ -8992,6 +9002,11 @@
       const paymentLabel = easterEgg ? easterEgg.paymentLabel : "Payment throne";
       const paymentPlaceholder = easterEgg ? easterEgg.paymentPlaceholder : "https://example.com/pay";
       const pendingThroneDemand = state.settings.pendingThroneDemand;
+      const normalThroneRequest = state.settings.normalThroneRequest;
+      const syncedExtension = state.settings.throneExtensionStatus || {};
+      const syncedExtensionFresh = Date.now() - Number(syncedExtension.updatedAt || 0) < 30000;
+      const subExtensionInstalled = Boolean((syncedExtensionFresh && syncedExtension.installed) || (!state.online.room && throneExtensionStatus.installed));
+      const roundedBankTribute = roundThroneTributeAmount(state.domVault);
       const sessionCard = isThroneSession()
         ? `
           <div class="command-card wide throne-session-card">
@@ -9026,13 +9041,27 @@
           </div>
         </div>
       ` : "";
+      const normalRequestCard = normalThroneRequest ? `
+        <div class="command-card wide throne-normal-request-card">
+          <span>Payment request</span>
+          <strong>${escapeHtml(normalThroneRequest.requestedBy || state.names.dom || "Dom")} demands ${money(roundThroneTributeAmount(normalThroneRequest.rounded || normalThroneRequest.amount))}</strong>
+          <p>${escapeHtml(state.names.dom || "Dom")} is asking to run the Throne helper using the current bank value. ${money(normalThroneRequest.amount || 0)} rounds to ${money(roundThroneTributeAmount(normalThroneRequest.rounded || normalThroneRequest.amount))}.</p>
+          ${normalThroneRequestSubAllowed()
+            ? `<div class="payment-actions">
+                <button class="primary" data-ledger-action="accept-normal-throne">Yes, open Throne</button>
+                <button data-ledger-action="deny-normal-throne">No</button>
+              </div>`
+            : `<span class="payment-lock">Waiting for ${escapeHtml(state.names.sub || "the sub")} to approve or deny.</span>`}
+        </div>
+      ` : "";
       const throneControls = canUsePaymentControls
         ? (throneUrl
           ? `
             <div class="payment-actions">
               <button data-ledger-action="change-throne">Change URL</button>
-              ${isThroneSession() ? "" : `<button class="primary" data-ledger-action="demand-payment">Demand Payment</button>`}
+              ${isThroneSession() ? "" : `<button class="primary" data-ledger-action="demand-payment" ${subExtensionInstalled && state.domVault > 0 && !normalThroneRequest ? "" : "disabled"}>Demand Payment</button>`}
             </div>
+            ${!isThroneSession() ? `<p class="payment-note">${money(state.domVault)} bank rounds to ${money(roundedBankTribute)} for Throne. ${subExtensionInstalled ? "The sub will get a yes/no approval box." : "Waiting for the sub's Throne helper extension to be detected."}</p>` : ""}
           `
           : `
             <label class="field-label payment-url-field">
@@ -9056,6 +9085,7 @@
           <strong>${throneLabel}</strong>
           ${throneControls}
         </div>
+        ${normalRequestCard}
         ${extensionCard}
         ${canUsePaymentControls ? `<button class="danger-button ledger-reset-bank" data-ledger-action="reset-bank">Reset Bank</button>` : ""}
         <div class="ledger-stats">
@@ -9093,6 +9123,14 @@
         focusThroneCheckoutForReview();
         return;
       }
+      if (action === "accept-normal-throne") {
+        acceptNormalThroneRequest();
+        return;
+      }
+      if (action === "deny-normal-throne") {
+        denyNormalThroneRequest();
+        return;
+      }
       if (!paymentControlsAllowed()) return;
       if (action === "save-throne") {
         const input = document.getElementById("ledgerThroneUrlInput");
@@ -9110,7 +9148,7 @@
       }
       if (action === "demand-payment") {
         if (isThroneSession()) return;
-        demandPayment();
+        requestNormalThronePayment();
         return;
       }
       if (action === "clear-throne-demand") {
@@ -9120,6 +9158,64 @@
       if (action === "reset-bank") {
         openResetBankModal();
       }
+    }
+
+    function requestNormalThronePayment() {
+      if (isThroneSession() || !paymentControlsAllowed()) return false;
+      const easterEgg = activeNameEasterEgg();
+      const baseUrl = normalizeDomLink(state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl));
+      const amount = Math.max(0, Number(state.domVault || 0));
+      if (!baseUrl || amount <= 0) return false;
+      const rounded = roundThroneTributeAmount(amount);
+      state.settings.normalThroneRequest = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        amount,
+        rounded,
+        url: baseUrl,
+        requestedBy: state.names.dom || "Dom",
+        createdAt: Date.now()
+      };
+      addLog(`<strong>${state.names.dom || "Dom"} requests payment.</strong> ${state.names.sub || "Sub"} must approve a ${money(rounded)} Throne tribute based on the ${money(amount)} bank.`);
+      renderSidePanel();
+      publishState();
+      return true;
+    }
+
+    function normalThroneRequestSubAllowed() {
+      const role = localOnlineRole();
+      return !state.online.room || role === SUB;
+    }
+
+    function acceptNormalThroneRequest() {
+      const request = state.settings.normalThroneRequest;
+      if (!request || !request.id || !normalThroneRequestSubAllowed()) return;
+      const baseUrl = normalizeDomLink(request.url || state.settings.throneUrl);
+      const rounded = roundThroneTributeAmount(request.rounded || request.amount || state.domVault);
+      if (!baseUrl || rounded <= 0) {
+        updateSettings({ normalThroneRequest: null });
+        return;
+      }
+      state.settings.paymentDemand = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url: throneUrlWithTributeAmount(baseUrl, rounded),
+        tributeAmount: rounded,
+        reason: "normal-bank-request",
+        automatic: false
+      };
+      state.settings.normalThroneRequest = null;
+      addLog(`<strong>${state.names.sub || "Sub"} accepts.</strong> Opening a ${money(rounded)} Throne tribute from ${state.names.dom || "the dom"}'s bank request.`);
+      renderSidePanel();
+      processPaymentDemand();
+      publishState();
+    }
+
+    function denyNormalThroneRequest() {
+      const request = state.settings.normalThroneRequest;
+      if (!request || !request.id || !normalThroneRequestSubAllowed()) return;
+      state.settings.normalThroneRequest = null;
+      addLog(`<strong>${state.names.sub || "Sub"} declines.</strong> The normal-mode Throne payment request was denied.`);
+      renderSidePanel();
+      publishState();
     }
 
     function demandPayment({ automatic = false } = {}) {
@@ -9329,6 +9425,10 @@
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
       const canOpenLedger = inGame || inGameSelect;
+      if (state.settings.normalThroneRequest && normalThroneRequestSubAllowed() && canOpenLedger) {
+        state.settings.activeSideTab = "ledger";
+        state.settings.sideOpen = true;
+      }
       if (state.settings.activeSideTab === "settings") state.settings.activeSideTab = "tools";
       if (!canOpenLedger && state.settings.activeSideTab === "ledger") state.settings.activeSideTab = "chat";
       if (!canOpenUtility && state.settings.activeSideTab === "tools") {
