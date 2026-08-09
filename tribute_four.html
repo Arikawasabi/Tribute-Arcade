@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tribute Four</title>
+  <title>Tribute Arcade</title>
   <style>
     :root {
       color-scheme: dark;
@@ -841,6 +841,42 @@
       font-weight: 800;
     }
 
+    .wager-amount-input {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .wager-amount-input span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .wager-amount-input input {
+      min-height: 38px;
+      text-align: center;
+      color: var(--gold);
+      font-weight: 900;
+    }
+
+    .wager-ledger-preview {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .wager-ledger-preview span {
+      display: grid;
+      gap: 4px;
+    }
+
+    .wager-ledger-preview strong {
+      color: var(--text);
+      font-size: 1rem;
+    }
+
     #wagerModal {
       align-content: center;
       gap: 16px;
@@ -1550,7 +1586,22 @@
       gap: 12px;
     }
 
+    .app.wager-wide {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
     .app.higherlower-wide {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .app.crazy8-wide {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .app.double-solitaire-wide {
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
     }
@@ -1564,7 +1615,19 @@
       gap: 10px;
     }
 
+    .app.wager-wide .game-shell {
+      grid-column: 1 / -1;
+    }
+
     .app.higherlower-wide .game-shell {
+      grid-column: 1 / -1;
+    }
+
+    .app.crazy8-wide .game-shell {
+      grid-column: 1 / -1;
+    }
+
+    .app.double-solitaire-wide .game-shell {
       grid-column: 1 / -1;
     }
 
@@ -2079,6 +2142,18 @@
       background: rgba(15, 19, 25, 0.18);
       border-color: rgba(244, 239, 232, 0.10);
       backdrop-filter: blur(1px);
+    }
+
+    .board-wrap.double-solitaire-board-wrap {
+      padding: clamp(8px, 1.2vw, 12px);
+      background: rgba(15, 19, 25, 0.18);
+      overflow: visible;
+    }
+
+    .board-wrap.crazy8-board-wrap {
+      padding: clamp(8px, 1.2vw, 12px);
+      background: rgba(15, 19, 25, 0.18);
+      overflow: visible;
     }
 
     .board {
@@ -2735,7 +2810,12 @@
     .crazy8-table {
       display: block;
       padding: clamp(12px, 2vw, 20px);
-      min-height: min(74vh, 760px);
+      width: 100%;
+      min-height: min(68vh, 720px);
+      max-height: none;
+      aspect-ratio: auto;
+      margin: 0;
+      overflow: visible;
       background:
         radial-gradient(circle at 18% 8%, rgba(239, 199, 94, 0.16), transparent 19rem),
         radial-gradient(circle at 82% 88%, rgba(240, 78, 120, 0.14), transparent 20rem),
@@ -2747,14 +2827,14 @@
       width: 100%;
       min-height: inherit;
       display: grid;
-      grid-template-rows: minmax(150px, auto) minmax(210px, 1fr) minmax(150px, auto);
-      gap: clamp(12px, 2vw, 20px);
+      grid-template-rows: auto auto auto;
+      gap: clamp(10px, 1.6vw, 16px);
     }
 
     .crazy8-hand {
       display: grid;
-      gap: 10px;
-      padding: 12px;
+      gap: 8px;
+      padding: clamp(9px, 1.2vw, 12px);
       border: 1px solid rgba(239, 199, 94, 0.14);
       background: rgba(255, 255, 255, 0.035);
       border-radius: 8px;
@@ -2785,14 +2865,18 @@
     .crazy8-card-row {
       display: flex;
       align-items: center;
-      min-height: 128px;
-      overflow-x: auto;
-      padding: 4px 4px 10px;
+      justify-content: center;
+      gap: clamp(4px, 0.7vw, 8px);
+      min-height: clamp(108px, 11.4vw, 146px);
+      overflow: visible;
+      padding: 4px 4px 8px;
     }
 
     .crazy8-card {
-      flex: 0 0 clamp(76px, 8.4vw, 118px);
-      margin-right: clamp(-20px, -1.8vw, -10px);
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: clamp(78px, 8vw, 118px);
+      margin-right: 0;
       padding: 0;
       border: 0;
       background: transparent;
@@ -2825,7 +2909,7 @@
       grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1fr);
       align-items: center;
       gap: clamp(14px, 2.4vw, 28px);
-      padding: clamp(14px, 2vw, 24px);
+      padding: clamp(12px, 1.7vw, 20px);
       border-radius: 8px;
       background: rgba(0, 0, 0, 0.22);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2920,13 +3004,19 @@
         radial-gradient(circle at 86% 86%, rgba(240, 78, 120, 0.12), transparent 21rem),
         linear-gradient(145deg, rgba(14, 9, 12, 0.97), rgba(7, 7, 8, 0.98));
       border: 1px solid rgba(239, 199, 94, 0.2);
-      overflow-x: auto;
+      overflow: visible;
+      width: 100%;
+      min-height: auto;
+      aspect-ratio: auto;
+      max-height: none;
+      margin: 0;
     }
 
     .double-solitaire-shell {
-      min-width: 1040px;
       display: grid;
       gap: 12px;
+      width: 100%;
+      min-width: 0;
     }
 
     .double-solitaire-progress-row {
@@ -3034,15 +3124,15 @@
 
     .double-solitaire-top-row {
       display: grid;
-      grid-template-columns: repeat(6, minmax(112px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: clamp(6px, 0.8vw, 10px);
       align-items: start;
     }
 
     .double-solitaire-slot,
     .double-solitaire-column {
       position: relative;
-      min-height: 158px;
+      min-height: clamp(118px, 12vw, 158px);
       border-radius: 8px;
       border: 1px solid rgba(239, 199, 94, 0.14);
       background: rgba(0, 0, 0, 0.16);
@@ -3066,20 +3156,20 @@
 
     .double-solitaire-tableau {
       display: grid;
-      grid-template-columns: repeat(7, minmax(112px, 1fr));
-      gap: 10px;
-      min-height: 430px;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: clamp(6px, 0.8vw, 10px);
+      min-height: clamp(360px, 38vw, 470px);
     }
 
     .double-solitaire-column {
-      min-height: 430px;
+      min-height: clamp(360px, 38vw, 470px);
       padding: 8px;
     }
 
     .double-solitaire-slot .playing-card,
     .double-solitaire-column .playing-card {
       width: 100%;
-      max-width: 112px;
+      max-width: 118px;
     }
 
     .double-solitaire-column .playing-card {
@@ -4813,6 +4903,15 @@
       pointer-events: none;
     }
 
+    .side-popout.ledger-side {
+      left: 12px;
+      right: auto;
+    }
+
+    .side-popout.ledger-side.closed {
+      transform: translateX(calc(-100% - 16px));
+    }
+
     .side-header,
     .side-tabs,
     .chat-compose {
@@ -4833,27 +4932,28 @@
       top: 96px;
       z-index: 24;
       width: 44px;
-      min-height: 92px;
+      min-height: 58px;
       padding: 8px 6px;
       transform: translateY(-50%);
-      writing-mode: vertical-rl;
+      writing-mode: horizontal-tb;
       text-orientation: mixed;
       border-radius: 8px 0 0 8px;
       border-color: rgba(239, 199, 94, 0.48);
       background: rgba(26, 22, 18, 0.96);
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+      font-size: 1.45rem;
+      line-height: 1;
     }
 
     .side-restore-tab.ledger {
-      top: 198px;
+      left: 0;
+      right: auto;
+      top: 50%;
+      border-radius: 0 8px 8px 0;
     }
 
     .side-restore-tab.tools {
-      top: 300px;
-    }
-
-    .side-restore-tab.settings {
-      top: 402px;
+      top: 166px;
     }
 
     .side-restore-tab.unread {
@@ -4875,11 +4975,23 @@
 
     .side-tab {
       flex: 1;
+      min-height: 42px;
+      font-size: 1.25rem;
     }
 
     .side-tab.active {
       border-color: rgba(239, 199, 94, 0.55);
       background: linear-gradient(135deg, rgba(241, 201, 101, 0.2), rgba(255, 79, 134, 0.13));
+    }
+
+    .side-tab.unread,
+    .side-restore-tab.unread {
+      border-color: rgba(86, 181, 255, 0.85);
+      background: linear-gradient(180deg, rgba(86, 181, 255, 0.34), rgba(26, 22, 18, 0.96));
+      box-shadow:
+        0 0 18px rgba(86, 181, 255, 0.42),
+        0 12px 28px rgba(0, 0, 0, 0.35);
+      color: #ffffff;
     }
 
     .side-body {
@@ -4897,6 +5009,31 @@
       overflow: auto;
       overscroll-behavior: contain;
       padding-right: 4px;
+    }
+
+    .utility-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding-bottom: 2px;
+      background: rgba(13, 8, 11, 0.94);
+    }
+
+    .utility-tab {
+      min-height: 38px;
+    }
+
+    .utility-tab.active {
+      border-color: rgba(239, 199, 94, 0.55);
+      background: linear-gradient(135deg, rgba(241, 201, 101, 0.2), rgba(255, 79, 134, 0.13));
+    }
+
+    .side-utility-settings {
+      display: grid;
+      gap: 10px;
     }
 
     .chat-pane {
@@ -5288,8 +5425,9 @@
       }
 
       .crazy8-card {
-        flex-basis: clamp(68px, 22vw, 92px);
-        margin-right: -18px;
+        flex-basis: 0;
+        max-width: 92px;
+        margin-right: 0;
       }
 
       .crazy8-deck,
@@ -5305,22 +5443,18 @@
         padding: 10px;
       }
 
-      .double-solitaire-shell {
-        min-width: 920px;
-      }
-
       .double-solitaire-top-row,
       .double-solitaire-tableau {
-        grid-template-columns: repeat(7, minmax(96px, 1fr));
+        grid-template-columns: repeat(7, minmax(0, 1fr));
       }
 
       .double-solitaire-top-row {
-        grid-template-columns: repeat(6, minmax(96px, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
       }
 
       .double-solitaire-slot .playing-card,
       .double-solitaire-column .playing-card {
-        max-width: 96px;
+        max-width: 100%;
       }
 
       .double-solitaire-column .playing-card {
@@ -5373,36 +5507,37 @@
         transform: translateX(calc(100% + 12px));
       }
 
+      .side-popout.ledger-side.closed {
+        transform: translateX(calc(-100% - 12px));
+      }
+
       .side-restore-tab {
         top: auto;
         right: 0;
         bottom: 12px;
         width: 46px;
-        min-height: 104px;
+        min-height: 58px;
       }
 
       .side-restore-tab:not(.active-restore):not([data-open-side-tab="chat"]) {
-        display: none;
+        display: grid;
       }
 
       .side-restore-tab.ledger {
         top: auto;
-        bottom: 12px;
-      }
-
-      .side-restore-tab.settings {
-        top: auto;
+        left: 0;
+        right: auto;
         bottom: 12px;
       }
 
       .side-restore-tab.tools {
         top: auto;
-        bottom: 12px;
+        bottom: 82px;
       }
 
       .side-restore-tab[data-open-side-tab="chat"] {
         top: auto;
-        bottom: 124px;
+        bottom: 152px;
       }
 
       .side-restore-tab[data-open-side-tab="chat"].active-restore {
@@ -5888,7 +6023,7 @@
       <div class="turn-strip">
         <p class="turn-copy" id="turnText"><strong>Sub</strong> must make a normal bet to begin.</p>
         <div class="turn-bank-pill hidden" id="turnDomBankPill"><span>Dom Bank</span><strong id="turnDomBank">$0</strong></div>
-        <div class="turn-bank-pill turn-owed-pill hidden" id="turnOwedPill"><span>Owed</span><strong id="turnOwed">$0</strong></div>
+        <div class="turn-bank-pill turn-owed-pill hidden" id="turnOwedPill"><span id="turnOwedLabel">Owed</span><strong id="turnOwed">$0</strong></div>
         <select id="queenStanceSelect" class="hidden" title="Choose the dom queen's stance">
           <option value="none">None</option>
           <option value="gaze">Gaze</option>
@@ -6173,10 +6308,9 @@
       <button id="sideToggleBtn" title="Collapse panel">Hide</button>
     </div>
     <div class="side-tabs">
-      <button class="side-tab active" data-side-tab="chat">Chat</button>
-      <button class="side-tab" data-side-tab="ledger">Ledger</button>
-      <button class="side-tab" data-side-tab="tools" id="sideToolsTab">Tools</button>
-      <button class="side-tab" data-side-tab="settings" id="sideSettingsTab">Settings</button>
+      <button class="side-tab active" data-side-tab="chat" title="Chat">💬</button>
+      <button class="side-tab" data-side-tab="ledger" title="Ledger">💵</button>
+      <button class="side-tab" data-side-tab="tools" id="sideToolsTab" title="Tools and settings">⚙️</button>
     </div>
     <div class="side-body">
       <section class="side-pane chat-pane" id="sideChatPane">
@@ -6190,49 +6324,11 @@
         <div class="command-summary" id="sideLedgerSummary"></div>
         <div class="ledger-entries" id="sideLedgerEntries"></div>
       </section>
-      <section class="side-pane hidden" id="sideSettingsPane">
-        <div class="settings-pane" id="domSettingsPane">
-          <h3 class="panel-title">Dom Settings</h3>
-          <label class="settings-row">
-            Dom advantages
-            <select id="domAdvantageMode">
-              <option value="dom">Enabled for dom</option>
-              <option value="off">Disabled globally</option>
-              <option value="both">Enabled for both players</option>
-            </select>
-          </label>
-          <label class="settings-row">
-            Queen powers
-            <select id="queenPowerMode">
-              <option value="tiered">Unlock by tier</option>
-              <option value="always">Always enabled</option>
-              <option value="off">Disabled</option>
-            </select>
-          </label>
-          <label class="settings-row">
-            Queen power users
-            <select id="queenPowerUsers">
-              <option value="dom">Dom only</option>
-              <option value="both">Both players</option>
-            </select>
-          </label>
-        </div>
-        <div class="settings-pane hidden" id="subSettingsPane">
-          <h3 class="panel-title">Sub Settings</h3>
-          <label class="settings-row">
-            Default bet
-            <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
-          </label>
-          <label class="settings-row">
-            Link warning
-            <select id="subLinkWarningMode">
-              <option value="warn">Ask before opening</option>
-              <option value="auto">Open without asking</option>
-            </select>
-          </label>
-        </div>
-      </section>
       <section class="side-pane hidden" id="sideToolsPane">
+        <div class="utility-tabs" id="utilityTabs">
+          <button class="utility-tab active" data-utility-tab="tools">Tools</button>
+          <button class="utility-tab" data-utility-tab="settings">Settings</button>
+        </div>
         <div class="settings-pane" id="domToolsPane">
           <h3 class="panel-title">Dom Tools</h3>
           <label class="field-label">
@@ -6268,13 +6364,54 @@
           <div class="distraction-gallery" id="distractionGallery"></div>
           <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
         </div>
+        <div class="side-utility-settings hidden" id="sideSettingsPane">
+          <div class="settings-pane" id="domSettingsPane">
+            <h3 class="panel-title">Dom Settings</h3>
+            <label class="settings-row">
+              Dom advantages
+              <select id="domAdvantageMode">
+                <option value="dom">Enabled for dom</option>
+                <option value="off">Disabled globally</option>
+                <option value="both">Enabled for both players</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              Queen powers
+              <select id="queenPowerMode">
+                <option value="tiered">Unlock by tier</option>
+                <option value="always">Always enabled</option>
+                <option value="off">Disabled</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              Queen power users
+              <select id="queenPowerUsers">
+                <option value="dom">Dom only</option>
+                <option value="both">Both players</option>
+              </select>
+            </label>
+          </div>
+          <div class="settings-pane hidden" id="subSettingsPane">
+            <h3 class="panel-title">Sub Settings</h3>
+            <label class="settings-row">
+              Default bet
+              <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
+            </label>
+            <label class="settings-row">
+              Link warning
+              <select id="subLinkWarningMode">
+                <option value="warn">Ask before opening</option>
+                <option value="auto">Open without asking</option>
+              </select>
+            </label>
+          </div>
+        </div>
       </section>
     </div>
   </aside>
-  <button class="side-restore-tab hidden" data-open-side-tab="chat" title="Open chat panel">Chat</button>
-  <button class="side-restore-tab ledger hidden" data-open-side-tab="ledger" title="Open ledger panel">Ledger</button>
-  <button class="side-restore-tab tools hidden" data-open-side-tab="tools" title="Open tools panel">Tools</button>
-  <button class="side-restore-tab settings hidden" data-open-side-tab="settings" title="Open settings panel">Settings</button>
+  <button class="side-restore-tab hidden" data-open-side-tab="chat" title="Open chat panel">💬</button>
+  <button class="side-restore-tab ledger hidden" data-open-side-tab="ledger" title="Open ledger panel">💵</button>
+  <button class="side-restore-tab tools hidden" data-open-side-tab="tools" title="Open tools and settings">⚙️</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
   <script>
@@ -6600,6 +6737,7 @@
         activeTab: "dom",
         activeGameTab: "main",
         activeSideTab: "chat",
+        activeUtilityTab: "tools",
         sideOpen: false,
         domAdvantageMode: "dom",
         subDefaultBet: 10,
@@ -6765,6 +6903,7 @@
       boardGamesGrid: document.getElementById("boardGamesGrid"),
       domSettingsPane: document.getElementById("domSettingsPane"),
       subSettingsPane: document.getElementById("subSettingsPane"),
+      domToolsPane: document.getElementById("domToolsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
       subDefaultBetInput: document.getElementById("subDefaultBetInput"),
       subLinkWarningMode: document.getElementById("subLinkWarningMode"),
@@ -6776,8 +6915,8 @@
       sideToggleBtn: document.getElementById("sideToggleBtn"),
       sideRestoreTabs: document.querySelectorAll(".side-restore-tab"),
       sideTabs: document.querySelectorAll(".side-tab"),
+      utilityTabs: document.querySelectorAll(".utility-tab"),
       sideToolsTab: document.getElementById("sideToolsTab"),
-      sideSettingsTab: document.getElementById("sideSettingsTab"),
       sideChatPane: document.getElementById("sideChatPane"),
       sideLedgerPane: document.getElementById("sideLedgerPane"),
       sideLedgerSummary: document.getElementById("sideLedgerSummary"),
@@ -6920,6 +7059,7 @@
       turnDomBankPill: document.getElementById("turnDomBankPill"),
       turnDomBank: document.getElementById("turnDomBank"),
       turnOwedPill: document.getElementById("turnOwedPill"),
+      turnOwedLabel: document.getElementById("turnOwedLabel"),
       turnOwed: document.getElementById("turnOwed"),
       modeLabel: document.getElementById("modeLabel"),
       potLabel: document.getElementById("potLabel"),
@@ -9071,45 +9211,54 @@
       els.sidePopout.classList.remove("hidden");
       const canOpenSettings = sideSettingsAllowed();
       const canOpenTools = domLinkControlsAllowed();
+      const canOpenUtility = canOpenSettings || canOpenTools;
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
-      if (!canOpenSettings && state.settings.activeSideTab === "settings") {
-        state.settings.activeSideTab = "chat";
-      }
-      if (!canOpenTools && state.settings.activeSideTab === "tools") {
+      if (state.settings.activeSideTab === "settings") state.settings.activeSideTab = "tools";
+      if (!canOpenUtility && state.settings.activeSideTab === "tools") {
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
+      if (state.settings.activeUtilityTab === "settings" && !canOpenSettings) state.settings.activeUtilityTab = "tools";
+      if (state.settings.activeUtilityTab === "tools" && !canOpenTools && canOpenSettings) state.settings.activeUtilityTab = "settings";
+      const activeUtilityTab = state.settings.activeUtilityTab || "tools";
       const panelOpen = state.settings.sideOpen !== false;
       if (panelOpen && activeTab === "chat") markChatSeen();
       const easterEgg = activeNameEasterEgg();
       els.sidePanelTitle.textContent = activeTab === "ledger"
         ? (easterEgg ? easterEgg.commandTitle : "Command Center")
         : activeTab === "tools"
-          ? "Tools"
+          ? "Tools & Settings"
         : (state.online.room ? `Room ${state.online.room}` : "Room");
+      els.sidePopout.classList.toggle("ledger-side", activeTab === "ledger");
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
         const visible = !panelOpen
-          && (tab !== "settings" || canOpenSettings)
-          && (tab !== "tools" || canOpenTools);
+          && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active-restore", tab === activeTab);
-        button.classList.toggle("unread", tab === "chat" && !panelOpen && hasUnreadChat());
+        button.classList.toggle("unread", tab === "chat" && hasUnreadChat());
       });
       els.sideToggleBtn.textContent = "Hide";
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
-        const visible = (button.dataset.sideTab !== "settings" || canOpenSettings)
-          && (button.dataset.sideTab !== "tools" || canOpenTools);
+        const visible = button.dataset.sideTab !== "tools" || canOpenUtility;
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active", button.dataset.sideTab === activeTab);
+        button.classList.toggle("unread", button.dataset.sideTab === "chat" && hasUnreadChat());
       });
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
       els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");
-      els.sideToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenTools);
-      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "settings" || !canOpenSettings);
+      els.sideToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenUtility);
+      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "settings" || !canOpenSettings);
+      if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeUtilityTab !== "tools" || !canOpenTools);
+      els.utilityTabs.forEach((button) => {
+        const tab = button.dataset.utilityTab || "tools";
+        const visible = tab === "settings" ? canOpenSettings : canOpenTools;
+        button.classList.toggle("hidden", !visible);
+        button.classList.toggle("active", tab === activeUtilityTab);
+      });
       renderLedgerPanel();
       els.chatMessages.innerHTML = (state.chat || []).slice(-80).reverse().map((message) => `
         <div class="chat-message">
@@ -9170,15 +9319,41 @@
       return Boolean(id && window.localStorage.getItem(chatSeenKey()) !== id);
     }
 
+    function playChatDing() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const context = new AudioContext();
+        const now = context.currentTime;
+        const gain = context.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+        gain.connect(context.destination);
+        [740, 988].forEach((frequency, index) => {
+          const oscillator = context.createOscillator();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(frequency, now + index * 0.055);
+          oscillator.connect(gain);
+          oscillator.start(now + index * 0.055);
+          oscillator.stop(now + index * 0.055 + 0.18);
+        });
+      } catch (error) {
+        // Browser autoplay rules may block sound until the page has been interacted with.
+      }
+    }
+
     function setSideTab(tab) {
-      if (tab === "settings" && !sideSettingsAllowed()) return;
+      if (tab === "settings") tab = "tools";
+      if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       state.settings.activeSideTab = tab;
       if (tab === "chat") markChatSeen();
       renderSidePanel();
     }
 
     function openSidePanel(tab = state.settings.activeSideTab || "chat") {
-      if (tab === "settings" && !sideSettingsAllowed()) return;
+      if (tab === "settings") tab = "tools";
+      if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       state.settings.activeSideTab = tab;
       state.settings.sideOpen = true;
       if (tab === "chat") markChatSeen();
@@ -9224,6 +9399,7 @@
         ...(state.chat || []),
         message
       ].slice(-100);
+      window.localStorage.setItem(chatSeenKey(), message.id);
       els.chatInput.value = "";
       renderSidePanel();
       publishChatMessage(message);
@@ -9717,6 +9893,7 @@
     function applySnapshot(snapshot) {
       if (!snapshot) return;
       state.online.applying = true;
+      const previousChatId = latestChatId();
       const localSideOpen = state.settings.sideOpen;
       const localActiveSideTab = state.settings.activeSideTab;
       state.screen = snapshot.screen || state.screen;
@@ -9764,6 +9941,15 @@
       normalizeTrailState();
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
+      const newestMessage = (state.chat || [])[Math.max(0, (state.chat || []).length - 1)];
+      if (newestMessage
+        && newestMessage.id
+        && newestMessage.id !== previousChatId
+        && newestMessage.id !== lastChatDingId
+        && newestMessage.sender !== chatSenderLabel()) {
+        lastChatDingId = newestMessage.id;
+        playChatDing();
+      }
       state.ledger = Array.isArray(snapshot.ledger) ? snapshot.ledger.slice(-120) : state.ledger;
       if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
         state.online.seats = snapshot.onlineLobby.seats;
@@ -10159,6 +10345,7 @@
 
     let wagerStartBypass = false;
     let processedWagerStartId = "";
+    let lastChatDingId = "";
 
     function wagerLabel(type) {
       if (type !== "reclaim" && isThroneSession()) return "Throne Amount";
@@ -10185,6 +10372,53 @@
         `Dom loss: balance remains ${money(state.domVault)}`
       ];
       return lines;
+    }
+
+    function betSetupGameActive() {
+      if (state.screen !== "game") return false;
+      if (state.active || state.pendingWager) return false;
+      if (!usesRoundFlow()) return false;
+      if (state.currentGame === "higherLower") return false;
+      return state.currentGame !== "wheelSpin"
+        && state.currentGame !== "tributeTrail"
+        && state.currentGame !== "obedienceOrders";
+    }
+
+    function betSetupAllowedForRole() {
+      const role = localOnlineRole();
+      return !state.online.room || !role || role === SUB;
+    }
+
+    function pregameBetAmount() {
+      return normalizeBuyIn(isThroneSession() ? currentThroneAmount() : Number(els.betInput.value || state.settings.subDefaultBet));
+    }
+
+    function updatePregameBetAmount(delta) {
+      if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
+      if (isThroneSession()) return;
+      const amount = normalizeBuyIn(Number(els.betInput.value || state.settings.subDefaultBet) + delta);
+      els.betInput.value = amount;
+      renderWagerApproval();
+    }
+
+    function setPregameBetAmountFromInput(value) {
+      if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
+      if (isThroneSession()) return;
+      els.betInput.value = normalizeBuyIn(Number(value || state.settings.subDefaultBet));
+      renderWagerApproval();
+    }
+
+    function startPregameNormalBet() {
+      if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
+      const amountInput = els.wagerModal.querySelector('input[data-wager-action="pregame-set"]');
+      if (amountInput && !isThroneSession()) els.betInput.value = normalizeBuyIn(Number(amountInput.value || state.settings.subDefaultBet));
+      els.betInput.value = pregameBetAmount();
+      startNormalMatch();
+    }
+
+    function startPregameReclaimBet() {
+      if (!betSetupGameActive() || !betSetupAllowedForRole() || isThroneSession() || state.domVault <= 0) return;
+      startReclaimMatch();
     }
 
     function requestWagerApproval(type) {
@@ -10613,6 +10847,10 @@
     }
 
     function handleWagerAction(action, button) {
+      if (action === "pregame-normal") startPregameNormalBet();
+      if (action === "pregame-reclaim") startPregameReclaimBet();
+      if (action === "pregame-adjust") updatePregameBetAmount(Number(button.dataset.delta || 0));
+      if (action === "pregame-set") setPregameBetAmountFromInput(button.value);
       if (action === "approve") approvePendingWager();
       if (action === "deny") denyPendingWager();
       if (action === "adjust-request") requestWagerAdjustment();
@@ -10625,6 +10863,18 @@
 
     function bindWagerActionButtons() {
       els.wagerModal.querySelectorAll("[data-wager-action]").forEach((button) => {
+        if (button.tagName === "INPUT") {
+          button.onchange = (event) => {
+            handleWagerAction(button.dataset.wagerAction, button);
+          };
+          button.onkeydown = (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              handleWagerAction(button.dataset.wagerAction, button);
+            }
+          };
+          return;
+        }
         button.onclick = (event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -10636,13 +10886,49 @@
     function renderWagerApproval() {
       const pending = state.pendingWager;
       const role = localOnlineRole();
-      const show = Boolean(pending && pendingWagerAllowedForRole());
+      const showPregameBet = !pending && betSetupGameActive() && betSetupAllowedForRole();
+      const show = showPregameBet || Boolean(pending && pendingWagerAllowedForRole());
       els.wagerModal.classList.toggle("hidden", !show);
       if (!show) {
         els.wagerModalBody.innerHTML = "";
         els.wagerModalActions.innerHTML = "";
         els.wagerEmojiDock.innerHTML = "";
         els.wagerEmojiDock.className = "wager-emoji-dock hidden";
+        return;
+      }
+      if (showPregameBet) {
+        const amount = pregameBetAmount();
+        const reclaimAvailable = !isThroneSession() && state.domVault > 0;
+        const roleName = escapeHtml(state.names.sub || "Sub");
+        els.wagerModalTitle.textContent = isThroneSession() ? "Choose Tribute Amount" : "Place The Bet";
+        els.wagerEmojiDock.innerHTML = "";
+        els.wagerEmojiDock.className = "wager-emoji-dock hidden";
+        els.wagerModalBody.innerHTML = `
+          <p class="chooser-line">${roleName} starts ${escapeHtml(currentGameLabel())} by setting the stake before the table opens.</p>
+          <div class="wager-adjust-row">
+            <button data-wager-action="pregame-adjust" data-delta="-10"${isThroneSession() ? " disabled" : ""}>&lt;-10</button>
+            <button data-wager-action="pregame-adjust" data-delta="-5"${isThroneSession() ? " disabled" : ""}>&lt;-5</button>
+            <button data-wager-action="pregame-adjust" data-delta="-1"${isThroneSession() ? " disabled" : ""}>&lt;-1</button>
+            <label class="wager-amount-input">
+              <span>${isThroneSession() ? "Throne" : "Bet"}</span>
+              <input type="number" min="1" step="1" value="${amount}" data-wager-action="pregame-set"${isThroneSession() ? " disabled" : ""}>
+            </label>
+            <button data-wager-action="pregame-adjust" data-delta="1"${isThroneSession() ? " disabled" : ""}>+1&gt;</button>
+            <button data-wager-action="pregame-adjust" data-delta="5"${isThroneSession() ? " disabled" : ""}>+5&gt;</button>
+            <button data-wager-action="pregame-adjust" data-delta="10"${isThroneSession() ? " disabled" : ""}>+10&gt;</button>
+          </div>
+          <div class="ledger-stats wager-ledger-preview">
+            <span>Current pot <strong>${money(isThroneSession() ? roundThroneTributeAmount(amount) : amount)}</strong></span>
+            <span>Dom bank <strong>${money(state.domVault)}</strong></span>
+            <span>Cash to reclaim <strong>${money(state.domVault)}</strong></span>
+            <span>${isThroneSession() ? "Mode" : "Default bet"} <strong>${isThroneSession() ? "Throne" : money(state.settings.subDefaultBet)}</strong></span>
+          </div>
+        `;
+        els.wagerModalActions.innerHTML = `
+          <button class="primary" data-wager-action="pregame-normal">${isThroneSession() ? `Start ${money(roundThroneTributeAmount(amount))}` : "Start Bet"}</button>
+          ${reclaimAvailable ? `<button data-wager-action="pregame-reclaim">Reclaim ${money(state.domVault)}</button>` : ""}
+        `;
+        bindWagerActionButtons();
         return;
       }
       const isDomView = !state.online.room || !role || role === DOM;
@@ -17631,6 +17917,8 @@
     function renderBoard() {
       const boardWrap = els.board.closest(".board-wrap");
       if (boardWrap) boardWrap.classList.toggle("trail-board-wrap", state.currentGame === "tributeTrail");
+      if (boardWrap) boardWrap.classList.toggle("crazy8-board-wrap", state.currentGame === "tributeCrazyEights" && state.active);
+      if (boardWrap) boardWrap.classList.toggle("double-solitaire-board-wrap", state.currentGame === "doubleSolitaire" && state.active);
       if (state.currentGame === "tributeChess") {
         renderChessBoard();
         return;
@@ -19916,20 +20204,28 @@
       const isBlackjack = state.currentGame === "tributeTwentyOne";
       const isHigherLower = state.currentGame === "higherLower";
       const isCrazyEights = state.currentGame === "tributeCrazyEights";
+      const isDoubleSolitaire = state.currentGame === "doubleSolitaire";
+      const crazyEightsRoundActive = isCrazyEights && state.active;
+      const doubleSolitaireRaceActive = isDoubleSolitaire && state.active;
+      const wagerLayoutGame = state.screen === "game" && usesRoundFlow() && !isHigherLower;
       els.gameScreen.classList.toggle("trail-wide", isTrail);
       els.gameScreen.classList.toggle("blackjack-wide", isBlackjack);
-      els.gameScreen.classList.toggle("higherlower-wide", isHigherLower || isCrazyEights);
-      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower);
+      els.gameScreen.classList.toggle("wager-wide", wagerLayoutGame);
+      els.gameScreen.classList.toggle("higherlower-wide", isHigherLower);
+      els.gameScreen.classList.toggle("crazy8-wide", crazyEightsRoundActive);
+      els.gameScreen.classList.toggle("double-solitaire-wide", doubleSolitaireRaceActive);
+      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower || wagerLayoutGame || crazyEightsRoundActive || doubleSolitaireRaceActive);
       els.cashLedgerPanel.classList.toggle("blackjack-ledger", isBlackjack);
       els.trailBankAmount.textContent = money(state.trail && state.trail.tributeBank || 0);
       els.trailSpendingAmount.textContent = money(state.trail && state.trail.spendingMoney || 0);
       els.pot.textContent = money(isThroneSession() && !state.active ? currentThroneAmount() : state.pot);
       els.domVault.textContent = money(state.domVault);
       els.lockedTribute.textContent = money(state.domVault);
-      if (els.turnDomBankPill) els.turnDomBankPill.classList.toggle("hidden", !isHigherLower);
+      if (els.turnDomBankPill) els.turnDomBankPill.classList.toggle("hidden", !(isHigherLower || crazyEightsRoundActive || doubleSolitaireRaceActive));
       if (els.turnDomBank) els.turnDomBank.textContent = money(state.domVault);
-      if (els.turnOwedPill) els.turnOwedPill.classList.toggle("hidden", !isHigherLower);
-      if (els.turnOwed) els.turnOwed.textContent = money(isHigherLower ? higherLowerDomPossibleWin() : 0);
+      if (els.turnOwedPill) els.turnOwedPill.classList.toggle("hidden", !(isHigherLower || crazyEightsRoundActive || doubleSolitaireRaceActive));
+      if (els.turnOwedLabel) els.turnOwedLabel.textContent = (crazyEightsRoundActive || doubleSolitaireRaceActive) ? "Pot" : "Owed";
+      if (els.turnOwed) els.turnOwed.textContent = money(isHigherLower ? higherLowerDomPossibleWin() : ((crazyEightsRoundActive || doubleSolitaireRaceActive) ? state.pot : 0));
       if (els.backToMenuBtn) {
         const role = localOnlineRole();
         const blocked = Boolean(state.online.room && role !== DOM);
@@ -20323,6 +20619,15 @@
     });
     els.sideTabs.forEach((button) => {
       button.addEventListener("click", () => setSideTab(button.dataset.sideTab));
+    });
+    els.utilityTabs.forEach((button) => {
+      button.addEventListener("click", () => {
+        const tab = button.dataset.utilityTab || "tools";
+        if (tab === "settings" && !sideSettingsAllowed()) return;
+        if (tab === "tools" && !domLinkControlsAllowed()) return;
+        state.settings.activeUtilityTab = tab;
+        renderSidePanel();
+      });
     });
     els.sideLedgerSummary.addEventListener("click", (event) => {
       const button = event.target.closest("[data-ledger-action]");

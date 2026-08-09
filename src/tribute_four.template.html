@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tribute Four</title>
+  <title>Tribute Arcade</title>
   <style>
 /* {{TRIBUTE_ARCADE_CSS}} */
 </style>
@@ -428,7 +428,7 @@
       <div class="turn-strip">
         <p class="turn-copy" id="turnText"><strong>Sub</strong> must make a normal bet to begin.</p>
         <div class="turn-bank-pill hidden" id="turnDomBankPill"><span>Dom Bank</span><strong id="turnDomBank">$0</strong></div>
-        <div class="turn-bank-pill turn-owed-pill hidden" id="turnOwedPill"><span>Owed</span><strong id="turnOwed">$0</strong></div>
+        <div class="turn-bank-pill turn-owed-pill hidden" id="turnOwedPill"><span id="turnOwedLabel">Owed</span><strong id="turnOwed">$0</strong></div>
         <select id="queenStanceSelect" class="hidden" title="Choose the dom queen's stance">
           <option value="none">None</option>
           <option value="gaze">Gaze</option>
@@ -713,10 +713,9 @@
       <button id="sideToggleBtn" title="Collapse panel">Hide</button>
     </div>
     <div class="side-tabs">
-      <button class="side-tab active" data-side-tab="chat">Chat</button>
-      <button class="side-tab" data-side-tab="ledger">Ledger</button>
-      <button class="side-tab" data-side-tab="tools" id="sideToolsTab">Tools</button>
-      <button class="side-tab" data-side-tab="settings" id="sideSettingsTab">Settings</button>
+      <button class="side-tab active" data-side-tab="chat" title="Chat">💬</button>
+      <button class="side-tab" data-side-tab="ledger" title="Ledger">💵</button>
+      <button class="side-tab" data-side-tab="tools" id="sideToolsTab" title="Tools and settings">⚙️</button>
     </div>
     <div class="side-body">
       <section class="side-pane chat-pane" id="sideChatPane">
@@ -730,49 +729,11 @@
         <div class="command-summary" id="sideLedgerSummary"></div>
         <div class="ledger-entries" id="sideLedgerEntries"></div>
       </section>
-      <section class="side-pane hidden" id="sideSettingsPane">
-        <div class="settings-pane" id="domSettingsPane">
-          <h3 class="panel-title">Dom Settings</h3>
-          <label class="settings-row">
-            Dom advantages
-            <select id="domAdvantageMode">
-              <option value="dom">Enabled for dom</option>
-              <option value="off">Disabled globally</option>
-              <option value="both">Enabled for both players</option>
-            </select>
-          </label>
-          <label class="settings-row">
-            Queen powers
-            <select id="queenPowerMode">
-              <option value="tiered">Unlock by tier</option>
-              <option value="always">Always enabled</option>
-              <option value="off">Disabled</option>
-            </select>
-          </label>
-          <label class="settings-row">
-            Queen power users
-            <select id="queenPowerUsers">
-              <option value="dom">Dom only</option>
-              <option value="both">Both players</option>
-            </select>
-          </label>
-        </div>
-        <div class="settings-pane hidden" id="subSettingsPane">
-          <h3 class="panel-title">Sub Settings</h3>
-          <label class="settings-row">
-            Default bet
-            <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
-          </label>
-          <label class="settings-row">
-            Link warning
-            <select id="subLinkWarningMode">
-              <option value="warn">Ask before opening</option>
-              <option value="auto">Open without asking</option>
-            </select>
-          </label>
-        </div>
-      </section>
       <section class="side-pane hidden" id="sideToolsPane">
+        <div class="utility-tabs" id="utilityTabs">
+          <button class="utility-tab active" data-utility-tab="tools">Tools</button>
+          <button class="utility-tab" data-utility-tab="settings">Settings</button>
+        </div>
         <div class="settings-pane" id="domToolsPane">
           <h3 class="panel-title">Dom Tools</h3>
           <label class="field-label">
@@ -808,13 +769,54 @@
           <div class="distraction-gallery" id="distractionGallery"></div>
           <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
         </div>
+        <div class="side-utility-settings hidden" id="sideSettingsPane">
+          <div class="settings-pane" id="domSettingsPane">
+            <h3 class="panel-title">Dom Settings</h3>
+            <label class="settings-row">
+              Dom advantages
+              <select id="domAdvantageMode">
+                <option value="dom">Enabled for dom</option>
+                <option value="off">Disabled globally</option>
+                <option value="both">Enabled for both players</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              Queen powers
+              <select id="queenPowerMode">
+                <option value="tiered">Unlock by tier</option>
+                <option value="always">Always enabled</option>
+                <option value="off">Disabled</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              Queen power users
+              <select id="queenPowerUsers">
+                <option value="dom">Dom only</option>
+                <option value="both">Both players</option>
+              </select>
+            </label>
+          </div>
+          <div class="settings-pane hidden" id="subSettingsPane">
+            <h3 class="panel-title">Sub Settings</h3>
+            <label class="settings-row">
+              Default bet
+              <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
+            </label>
+            <label class="settings-row">
+              Link warning
+              <select id="subLinkWarningMode">
+                <option value="warn">Ask before opening</option>
+                <option value="auto">Open without asking</option>
+              </select>
+            </label>
+          </div>
+        </div>
       </section>
     </div>
   </aside>
-  <button class="side-restore-tab hidden" data-open-side-tab="chat" title="Open chat panel">Chat</button>
-  <button class="side-restore-tab ledger hidden" data-open-side-tab="ledger" title="Open ledger panel">Ledger</button>
-  <button class="side-restore-tab tools hidden" data-open-side-tab="tools" title="Open tools panel">Tools</button>
-  <button class="side-restore-tab settings hidden" data-open-side-tab="settings" title="Open settings panel">Settings</button>
+  <button class="side-restore-tab hidden" data-open-side-tab="chat" title="Open chat panel">💬</button>
+  <button class="side-restore-tab ledger hidden" data-open-side-tab="ledger" title="Open ledger panel">💵</button>
+  <button class="side-restore-tab tools hidden" data-open-side-tab="tools" title="Open tools and settings">⚙️</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
   <script>

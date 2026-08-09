@@ -834,6 +834,42 @@
       font-weight: 800;
     }
 
+    .wager-amount-input {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .wager-amount-input span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .wager-amount-input input {
+      min-height: 38px;
+      text-align: center;
+      color: var(--gold);
+      font-weight: 900;
+    }
+
+    .wager-ledger-preview {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .wager-ledger-preview span {
+      display: grid;
+      gap: 4px;
+    }
+
+    .wager-ledger-preview strong {
+      color: var(--text);
+      font-size: 1rem;
+    }
+
     #wagerModal {
       align-content: center;
       gap: 16px;
@@ -1543,7 +1579,22 @@
       gap: 12px;
     }
 
+    .app.wager-wide {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
     .app.higherlower-wide {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .app.crazy8-wide {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .app.double-solitaire-wide {
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
     }
@@ -1557,7 +1608,19 @@
       gap: 10px;
     }
 
+    .app.wager-wide .game-shell {
+      grid-column: 1 / -1;
+    }
+
     .app.higherlower-wide .game-shell {
+      grid-column: 1 / -1;
+    }
+
+    .app.crazy8-wide .game-shell {
+      grid-column: 1 / -1;
+    }
+
+    .app.double-solitaire-wide .game-shell {
       grid-column: 1 / -1;
     }
 
@@ -2072,6 +2135,18 @@
       background: rgba(15, 19, 25, 0.18);
       border-color: rgba(244, 239, 232, 0.10);
       backdrop-filter: blur(1px);
+    }
+
+    .board-wrap.double-solitaire-board-wrap {
+      padding: clamp(8px, 1.2vw, 12px);
+      background: rgba(15, 19, 25, 0.18);
+      overflow: visible;
+    }
+
+    .board-wrap.crazy8-board-wrap {
+      padding: clamp(8px, 1.2vw, 12px);
+      background: rgba(15, 19, 25, 0.18);
+      overflow: visible;
     }
 
     .board {
@@ -2728,7 +2803,12 @@
     .crazy8-table {
       display: block;
       padding: clamp(12px, 2vw, 20px);
-      min-height: min(74vh, 760px);
+      width: 100%;
+      min-height: min(68vh, 720px);
+      max-height: none;
+      aspect-ratio: auto;
+      margin: 0;
+      overflow: visible;
       background:
         radial-gradient(circle at 18% 8%, rgba(239, 199, 94, 0.16), transparent 19rem),
         radial-gradient(circle at 82% 88%, rgba(240, 78, 120, 0.14), transparent 20rem),
@@ -2740,14 +2820,14 @@
       width: 100%;
       min-height: inherit;
       display: grid;
-      grid-template-rows: minmax(150px, auto) minmax(210px, 1fr) minmax(150px, auto);
-      gap: clamp(12px, 2vw, 20px);
+      grid-template-rows: auto auto auto;
+      gap: clamp(10px, 1.6vw, 16px);
     }
 
     .crazy8-hand {
       display: grid;
-      gap: 10px;
-      padding: 12px;
+      gap: 8px;
+      padding: clamp(9px, 1.2vw, 12px);
       border: 1px solid rgba(239, 199, 94, 0.14);
       background: rgba(255, 255, 255, 0.035);
       border-radius: 8px;
@@ -2778,14 +2858,18 @@
     .crazy8-card-row {
       display: flex;
       align-items: center;
-      min-height: 128px;
-      overflow-x: auto;
-      padding: 4px 4px 10px;
+      justify-content: center;
+      gap: clamp(4px, 0.7vw, 8px);
+      min-height: clamp(108px, 11.4vw, 146px);
+      overflow: visible;
+      padding: 4px 4px 8px;
     }
 
     .crazy8-card {
-      flex: 0 0 clamp(76px, 8.4vw, 118px);
-      margin-right: clamp(-20px, -1.8vw, -10px);
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: clamp(78px, 8vw, 118px);
+      margin-right: 0;
       padding: 0;
       border: 0;
       background: transparent;
@@ -2818,7 +2902,7 @@
       grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1fr);
       align-items: center;
       gap: clamp(14px, 2.4vw, 28px);
-      padding: clamp(14px, 2vw, 24px);
+      padding: clamp(12px, 1.7vw, 20px);
       border-radius: 8px;
       background: rgba(0, 0, 0, 0.22);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2913,13 +2997,19 @@
         radial-gradient(circle at 86% 86%, rgba(240, 78, 120, 0.12), transparent 21rem),
         linear-gradient(145deg, rgba(14, 9, 12, 0.97), rgba(7, 7, 8, 0.98));
       border: 1px solid rgba(239, 199, 94, 0.2);
-      overflow-x: auto;
+      overflow: visible;
+      width: 100%;
+      min-height: auto;
+      aspect-ratio: auto;
+      max-height: none;
+      margin: 0;
     }
 
     .double-solitaire-shell {
-      min-width: 1040px;
       display: grid;
       gap: 12px;
+      width: 100%;
+      min-width: 0;
     }
 
     .double-solitaire-progress-row {
@@ -3027,15 +3117,15 @@
 
     .double-solitaire-top-row {
       display: grid;
-      grid-template-columns: repeat(6, minmax(112px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: clamp(6px, 0.8vw, 10px);
       align-items: start;
     }
 
     .double-solitaire-slot,
     .double-solitaire-column {
       position: relative;
-      min-height: 158px;
+      min-height: clamp(118px, 12vw, 158px);
       border-radius: 8px;
       border: 1px solid rgba(239, 199, 94, 0.14);
       background: rgba(0, 0, 0, 0.16);
@@ -3059,20 +3149,20 @@
 
     .double-solitaire-tableau {
       display: grid;
-      grid-template-columns: repeat(7, minmax(112px, 1fr));
-      gap: 10px;
-      min-height: 430px;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: clamp(6px, 0.8vw, 10px);
+      min-height: clamp(360px, 38vw, 470px);
     }
 
     .double-solitaire-column {
-      min-height: 430px;
+      min-height: clamp(360px, 38vw, 470px);
       padding: 8px;
     }
 
     .double-solitaire-slot .playing-card,
     .double-solitaire-column .playing-card {
       width: 100%;
-      max-width: 112px;
+      max-width: 118px;
     }
 
     .double-solitaire-column .playing-card {
@@ -4806,6 +4896,15 @@
       pointer-events: none;
     }
 
+    .side-popout.ledger-side {
+      left: 12px;
+      right: auto;
+    }
+
+    .side-popout.ledger-side.closed {
+      transform: translateX(calc(-100% - 16px));
+    }
+
     .side-header,
     .side-tabs,
     .chat-compose {
@@ -4826,27 +4925,28 @@
       top: 96px;
       z-index: 24;
       width: 44px;
-      min-height: 92px;
+      min-height: 58px;
       padding: 8px 6px;
       transform: translateY(-50%);
-      writing-mode: vertical-rl;
+      writing-mode: horizontal-tb;
       text-orientation: mixed;
       border-radius: 8px 0 0 8px;
       border-color: rgba(239, 199, 94, 0.48);
       background: rgba(26, 22, 18, 0.96);
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+      font-size: 1.45rem;
+      line-height: 1;
     }
 
     .side-restore-tab.ledger {
-      top: 198px;
+      left: 0;
+      right: auto;
+      top: 50%;
+      border-radius: 0 8px 8px 0;
     }
 
     .side-restore-tab.tools {
-      top: 300px;
-    }
-
-    .side-restore-tab.settings {
-      top: 402px;
+      top: 166px;
     }
 
     .side-restore-tab.unread {
@@ -4868,11 +4968,23 @@
 
     .side-tab {
       flex: 1;
+      min-height: 42px;
+      font-size: 1.25rem;
     }
 
     .side-tab.active {
       border-color: rgba(239, 199, 94, 0.55);
       background: linear-gradient(135deg, rgba(241, 201, 101, 0.2), rgba(255, 79, 134, 0.13));
+    }
+
+    .side-tab.unread,
+    .side-restore-tab.unread {
+      border-color: rgba(86, 181, 255, 0.85);
+      background: linear-gradient(180deg, rgba(86, 181, 255, 0.34), rgba(26, 22, 18, 0.96));
+      box-shadow:
+        0 0 18px rgba(86, 181, 255, 0.42),
+        0 12px 28px rgba(0, 0, 0, 0.35);
+      color: #ffffff;
     }
 
     .side-body {
@@ -4890,6 +5002,31 @@
       overflow: auto;
       overscroll-behavior: contain;
       padding-right: 4px;
+    }
+
+    .utility-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding-bottom: 2px;
+      background: rgba(13, 8, 11, 0.94);
+    }
+
+    .utility-tab {
+      min-height: 38px;
+    }
+
+    .utility-tab.active {
+      border-color: rgba(239, 199, 94, 0.55);
+      background: linear-gradient(135deg, rgba(241, 201, 101, 0.2), rgba(255, 79, 134, 0.13));
+    }
+
+    .side-utility-settings {
+      display: grid;
+      gap: 10px;
     }
 
     .chat-pane {
@@ -5281,8 +5418,9 @@
       }
 
       .crazy8-card {
-        flex-basis: clamp(68px, 22vw, 92px);
-        margin-right: -18px;
+        flex-basis: 0;
+        max-width: 92px;
+        margin-right: 0;
       }
 
       .crazy8-deck,
@@ -5298,22 +5436,18 @@
         padding: 10px;
       }
 
-      .double-solitaire-shell {
-        min-width: 920px;
-      }
-
       .double-solitaire-top-row,
       .double-solitaire-tableau {
-        grid-template-columns: repeat(7, minmax(96px, 1fr));
+        grid-template-columns: repeat(7, minmax(0, 1fr));
       }
 
       .double-solitaire-top-row {
-        grid-template-columns: repeat(6, minmax(96px, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
       }
 
       .double-solitaire-slot .playing-card,
       .double-solitaire-column .playing-card {
-        max-width: 96px;
+        max-width: 100%;
       }
 
       .double-solitaire-column .playing-card {
@@ -5366,36 +5500,37 @@
         transform: translateX(calc(100% + 12px));
       }
 
+      .side-popout.ledger-side.closed {
+        transform: translateX(calc(-100% - 12px));
+      }
+
       .side-restore-tab {
         top: auto;
         right: 0;
         bottom: 12px;
         width: 46px;
-        min-height: 104px;
+        min-height: 58px;
       }
 
       .side-restore-tab:not(.active-restore):not([data-open-side-tab="chat"]) {
-        display: none;
+        display: grid;
       }
 
       .side-restore-tab.ledger {
         top: auto;
-        bottom: 12px;
-      }
-
-      .side-restore-tab.settings {
-        top: auto;
+        left: 0;
+        right: auto;
         bottom: 12px;
       }
 
       .side-restore-tab.tools {
         top: auto;
-        bottom: 12px;
+        bottom: 82px;
       }
 
       .side-restore-tab[data-open-side-tab="chat"] {
         top: auto;
-        bottom: 124px;
+        bottom: 152px;
       }
 
       .side-restore-tab[data-open-side-tab="chat"].active-restore {

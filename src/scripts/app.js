@@ -91,6 +91,7 @@
         activeTab: "dom",
         activeGameTab: "main",
         activeSideTab: "chat",
+        activeUtilityTab: "tools",
         sideOpen: false,
         domAdvantageMode: "dom",
         subDefaultBet: 10,
@@ -256,6 +257,7 @@
       boardGamesGrid: document.getElementById("boardGamesGrid"),
       domSettingsPane: document.getElementById("domSettingsPane"),
       subSettingsPane: document.getElementById("subSettingsPane"),
+      domToolsPane: document.getElementById("domToolsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
       subDefaultBetInput: document.getElementById("subDefaultBetInput"),
       subLinkWarningMode: document.getElementById("subLinkWarningMode"),
@@ -267,8 +269,8 @@
       sideToggleBtn: document.getElementById("sideToggleBtn"),
       sideRestoreTabs: document.querySelectorAll(".side-restore-tab"),
       sideTabs: document.querySelectorAll(".side-tab"),
+      utilityTabs: document.querySelectorAll(".utility-tab"),
       sideToolsTab: document.getElementById("sideToolsTab"),
-      sideSettingsTab: document.getElementById("sideSettingsTab"),
       sideChatPane: document.getElementById("sideChatPane"),
       sideLedgerPane: document.getElementById("sideLedgerPane"),
       sideLedgerSummary: document.getElementById("sideLedgerSummary"),
@@ -411,6 +413,7 @@
       turnDomBankPill: document.getElementById("turnDomBankPill"),
       turnDomBank: document.getElementById("turnDomBank"),
       turnOwedPill: document.getElementById("turnOwedPill"),
+      turnOwedLabel: document.getElementById("turnOwedLabel"),
       turnOwed: document.getElementById("turnOwed"),
       modeLabel: document.getElementById("modeLabel"),
       potLabel: document.getElementById("potLabel"),
@@ -2562,45 +2565,54 @@
       els.sidePopout.classList.remove("hidden");
       const canOpenSettings = sideSettingsAllowed();
       const canOpenTools = domLinkControlsAllowed();
+      const canOpenUtility = canOpenSettings || canOpenTools;
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
-      if (!canOpenSettings && state.settings.activeSideTab === "settings") {
-        state.settings.activeSideTab = "chat";
-      }
-      if (!canOpenTools && state.settings.activeSideTab === "tools") {
+      if (state.settings.activeSideTab === "settings") state.settings.activeSideTab = "tools";
+      if (!canOpenUtility && state.settings.activeSideTab === "tools") {
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
+      if (state.settings.activeUtilityTab === "settings" && !canOpenSettings) state.settings.activeUtilityTab = "tools";
+      if (state.settings.activeUtilityTab === "tools" && !canOpenTools && canOpenSettings) state.settings.activeUtilityTab = "settings";
+      const activeUtilityTab = state.settings.activeUtilityTab || "tools";
       const panelOpen = state.settings.sideOpen !== false;
       if (panelOpen && activeTab === "chat") markChatSeen();
       const easterEgg = activeNameEasterEgg();
       els.sidePanelTitle.textContent = activeTab === "ledger"
         ? (easterEgg ? easterEgg.commandTitle : "Command Center")
         : activeTab === "tools"
-          ? "Tools"
+          ? "Tools & Settings"
         : (state.online.room ? `Room ${state.online.room}` : "Room");
+      els.sidePopout.classList.toggle("ledger-side", activeTab === "ledger");
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
         const visible = !panelOpen
-          && (tab !== "settings" || canOpenSettings)
-          && (tab !== "tools" || canOpenTools);
+          && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active-restore", tab === activeTab);
-        button.classList.toggle("unread", tab === "chat" && !panelOpen && hasUnreadChat());
+        button.classList.toggle("unread", tab === "chat" && hasUnreadChat());
       });
       els.sideToggleBtn.textContent = "Hide";
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
-        const visible = (button.dataset.sideTab !== "settings" || canOpenSettings)
-          && (button.dataset.sideTab !== "tools" || canOpenTools);
+        const visible = button.dataset.sideTab !== "tools" || canOpenUtility;
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active", button.dataset.sideTab === activeTab);
+        button.classList.toggle("unread", button.dataset.sideTab === "chat" && hasUnreadChat());
       });
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
       els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");
-      els.sideToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenTools);
-      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "settings" || !canOpenSettings);
+      els.sideToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenUtility);
+      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "settings" || !canOpenSettings);
+      if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeUtilityTab !== "tools" || !canOpenTools);
+      els.utilityTabs.forEach((button) => {
+        const tab = button.dataset.utilityTab || "tools";
+        const visible = tab === "settings" ? canOpenSettings : canOpenTools;
+        button.classList.toggle("hidden", !visible);
+        button.classList.toggle("active", tab === activeUtilityTab);
+      });
       renderLedgerPanel();
       els.chatMessages.innerHTML = (state.chat || []).slice(-80).reverse().map((message) => `
         <div class="chat-message">
@@ -2661,15 +2673,41 @@
       return Boolean(id && window.localStorage.getItem(chatSeenKey()) !== id);
     }
 
+    function playChatDing() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const context = new AudioContext();
+        const now = context.currentTime;
+        const gain = context.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+        gain.connect(context.destination);
+        [740, 988].forEach((frequency, index) => {
+          const oscillator = context.createOscillator();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(frequency, now + index * 0.055);
+          oscillator.connect(gain);
+          oscillator.start(now + index * 0.055);
+          oscillator.stop(now + index * 0.055 + 0.18);
+        });
+      } catch (error) {
+        // Browser autoplay rules may block sound until the page has been interacted with.
+      }
+    }
+
     function setSideTab(tab) {
-      if (tab === "settings" && !sideSettingsAllowed()) return;
+      if (tab === "settings") tab = "tools";
+      if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       state.settings.activeSideTab = tab;
       if (tab === "chat") markChatSeen();
       renderSidePanel();
     }
 
     function openSidePanel(tab = state.settings.activeSideTab || "chat") {
-      if (tab === "settings" && !sideSettingsAllowed()) return;
+      if (tab === "settings") tab = "tools";
+      if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       state.settings.activeSideTab = tab;
       state.settings.sideOpen = true;
       if (tab === "chat") markChatSeen();
@@ -2715,6 +2753,7 @@
         ...(state.chat || []),
         message
       ].slice(-100);
+      window.localStorage.setItem(chatSeenKey(), message.id);
       els.chatInput.value = "";
       renderSidePanel();
       publishChatMessage(message);
@@ -3208,6 +3247,7 @@
     function applySnapshot(snapshot) {
       if (!snapshot) return;
       state.online.applying = true;
+      const previousChatId = latestChatId();
       const localSideOpen = state.settings.sideOpen;
       const localActiveSideTab = state.settings.activeSideTab;
       state.screen = snapshot.screen || state.screen;
@@ -3255,6 +3295,15 @@
       normalizeTrailState();
       state.chess = normalizeChessState(snapshot.chess || state.chess);
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
+      const newestMessage = (state.chat || [])[Math.max(0, (state.chat || []).length - 1)];
+      if (newestMessage
+        && newestMessage.id
+        && newestMessage.id !== previousChatId
+        && newestMessage.id !== lastChatDingId
+        && newestMessage.sender !== chatSenderLabel()) {
+        lastChatDingId = newestMessage.id;
+        playChatDing();
+      }
       state.ledger = Array.isArray(snapshot.ledger) ? snapshot.ledger.slice(-120) : state.ledger;
       if (snapshot.onlineLobby && snapshot.onlineLobby.seats) {
         state.online.seats = snapshot.onlineLobby.seats;
@@ -3650,6 +3699,7 @@
 
     let wagerStartBypass = false;
     let processedWagerStartId = "";
+    let lastChatDingId = "";
 
     function wagerLabel(type) {
       if (type !== "reclaim" && isThroneSession()) return "Throne Amount";
@@ -3676,6 +3726,53 @@
         `Dom loss: balance remains ${money(state.domVault)}`
       ];
       return lines;
+    }
+
+    function betSetupGameActive() {
+      if (state.screen !== "game") return false;
+      if (state.active || state.pendingWager) return false;
+      if (!usesRoundFlow()) return false;
+      if (state.currentGame === "higherLower") return false;
+      return state.currentGame !== "wheelSpin"
+        && state.currentGame !== "tributeTrail"
+        && state.currentGame !== "obedienceOrders";
+    }
+
+    function betSetupAllowedForRole() {
+      const role = localOnlineRole();
+      return !state.online.room || !role || role === SUB;
+    }
+
+    function pregameBetAmount() {
+      return normalizeBuyIn(isThroneSession() ? currentThroneAmount() : Number(els.betInput.value || state.settings.subDefaultBet));
+    }
+
+    function updatePregameBetAmount(delta) {
+      if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
+      if (isThroneSession()) return;
+      const amount = normalizeBuyIn(Number(els.betInput.value || state.settings.subDefaultBet) + delta);
+      els.betInput.value = amount;
+      renderWagerApproval();
+    }
+
+    function setPregameBetAmountFromInput(value) {
+      if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
+      if (isThroneSession()) return;
+      els.betInput.value = normalizeBuyIn(Number(value || state.settings.subDefaultBet));
+      renderWagerApproval();
+    }
+
+    function startPregameNormalBet() {
+      if (!betSetupGameActive() || !betSetupAllowedForRole()) return;
+      const amountInput = els.wagerModal.querySelector('input[data-wager-action="pregame-set"]');
+      if (amountInput && !isThroneSession()) els.betInput.value = normalizeBuyIn(Number(amountInput.value || state.settings.subDefaultBet));
+      els.betInput.value = pregameBetAmount();
+      startNormalMatch();
+    }
+
+    function startPregameReclaimBet() {
+      if (!betSetupGameActive() || !betSetupAllowedForRole() || isThroneSession() || state.domVault <= 0) return;
+      startReclaimMatch();
     }
 
     function requestWagerApproval(type) {
@@ -4104,6 +4201,10 @@
     }
 
     function handleWagerAction(action, button) {
+      if (action === "pregame-normal") startPregameNormalBet();
+      if (action === "pregame-reclaim") startPregameReclaimBet();
+      if (action === "pregame-adjust") updatePregameBetAmount(Number(button.dataset.delta || 0));
+      if (action === "pregame-set") setPregameBetAmountFromInput(button.value);
       if (action === "approve") approvePendingWager();
       if (action === "deny") denyPendingWager();
       if (action === "adjust-request") requestWagerAdjustment();
@@ -4116,6 +4217,18 @@
 
     function bindWagerActionButtons() {
       els.wagerModal.querySelectorAll("[data-wager-action]").forEach((button) => {
+        if (button.tagName === "INPUT") {
+          button.onchange = (event) => {
+            handleWagerAction(button.dataset.wagerAction, button);
+          };
+          button.onkeydown = (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              handleWagerAction(button.dataset.wagerAction, button);
+            }
+          };
+          return;
+        }
         button.onclick = (event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -4127,13 +4240,49 @@
     function renderWagerApproval() {
       const pending = state.pendingWager;
       const role = localOnlineRole();
-      const show = Boolean(pending && pendingWagerAllowedForRole());
+      const showPregameBet = !pending && betSetupGameActive() && betSetupAllowedForRole();
+      const show = showPregameBet || Boolean(pending && pendingWagerAllowedForRole());
       els.wagerModal.classList.toggle("hidden", !show);
       if (!show) {
         els.wagerModalBody.innerHTML = "";
         els.wagerModalActions.innerHTML = "";
         els.wagerEmojiDock.innerHTML = "";
         els.wagerEmojiDock.className = "wager-emoji-dock hidden";
+        return;
+      }
+      if (showPregameBet) {
+        const amount = pregameBetAmount();
+        const reclaimAvailable = !isThroneSession() && state.domVault > 0;
+        const roleName = escapeHtml(state.names.sub || "Sub");
+        els.wagerModalTitle.textContent = isThroneSession() ? "Choose Tribute Amount" : "Place The Bet";
+        els.wagerEmojiDock.innerHTML = "";
+        els.wagerEmojiDock.className = "wager-emoji-dock hidden";
+        els.wagerModalBody.innerHTML = `
+          <p class="chooser-line">${roleName} starts ${escapeHtml(currentGameLabel())} by setting the stake before the table opens.</p>
+          <div class="wager-adjust-row">
+            <button data-wager-action="pregame-adjust" data-delta="-10"${isThroneSession() ? " disabled" : ""}>&lt;-10</button>
+            <button data-wager-action="pregame-adjust" data-delta="-5"${isThroneSession() ? " disabled" : ""}>&lt;-5</button>
+            <button data-wager-action="pregame-adjust" data-delta="-1"${isThroneSession() ? " disabled" : ""}>&lt;-1</button>
+            <label class="wager-amount-input">
+              <span>${isThroneSession() ? "Throne" : "Bet"}</span>
+              <input type="number" min="1" step="1" value="${amount}" data-wager-action="pregame-set"${isThroneSession() ? " disabled" : ""}>
+            </label>
+            <button data-wager-action="pregame-adjust" data-delta="1"${isThroneSession() ? " disabled" : ""}>+1&gt;</button>
+            <button data-wager-action="pregame-adjust" data-delta="5"${isThroneSession() ? " disabled" : ""}>+5&gt;</button>
+            <button data-wager-action="pregame-adjust" data-delta="10"${isThroneSession() ? " disabled" : ""}>+10&gt;</button>
+          </div>
+          <div class="ledger-stats wager-ledger-preview">
+            <span>Current pot <strong>${money(isThroneSession() ? roundThroneTributeAmount(amount) : amount)}</strong></span>
+            <span>Dom bank <strong>${money(state.domVault)}</strong></span>
+            <span>Cash to reclaim <strong>${money(state.domVault)}</strong></span>
+            <span>${isThroneSession() ? "Mode" : "Default bet"} <strong>${isThroneSession() ? "Throne" : money(state.settings.subDefaultBet)}</strong></span>
+          </div>
+        `;
+        els.wagerModalActions.innerHTML = `
+          <button class="primary" data-wager-action="pregame-normal">${isThroneSession() ? `Start ${money(roundThroneTributeAmount(amount))}` : "Start Bet"}</button>
+          ${reclaimAvailable ? `<button data-wager-action="pregame-reclaim">Reclaim ${money(state.domVault)}</button>` : ""}
+        `;
+        bindWagerActionButtons();
         return;
       }
       const isDomView = !state.online.room || !role || role === DOM;
@@ -11122,6 +11271,8 @@
     function renderBoard() {
       const boardWrap = els.board.closest(".board-wrap");
       if (boardWrap) boardWrap.classList.toggle("trail-board-wrap", state.currentGame === "tributeTrail");
+      if (boardWrap) boardWrap.classList.toggle("crazy8-board-wrap", state.currentGame === "tributeCrazyEights" && state.active);
+      if (boardWrap) boardWrap.classList.toggle("double-solitaire-board-wrap", state.currentGame === "doubleSolitaire" && state.active);
       if (state.currentGame === "tributeChess") {
         renderChessBoard();
         return;
@@ -13407,20 +13558,28 @@
       const isBlackjack = state.currentGame === "tributeTwentyOne";
       const isHigherLower = state.currentGame === "higherLower";
       const isCrazyEights = state.currentGame === "tributeCrazyEights";
+      const isDoubleSolitaire = state.currentGame === "doubleSolitaire";
+      const crazyEightsRoundActive = isCrazyEights && state.active;
+      const doubleSolitaireRaceActive = isDoubleSolitaire && state.active;
+      const wagerLayoutGame = state.screen === "game" && usesRoundFlow() && !isHigherLower;
       els.gameScreen.classList.toggle("trail-wide", isTrail);
       els.gameScreen.classList.toggle("blackjack-wide", isBlackjack);
-      els.gameScreen.classList.toggle("higherlower-wide", isHigherLower || isCrazyEights);
-      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower);
+      els.gameScreen.classList.toggle("wager-wide", wagerLayoutGame);
+      els.gameScreen.classList.toggle("higherlower-wide", isHigherLower);
+      els.gameScreen.classList.toggle("crazy8-wide", crazyEightsRoundActive);
+      els.gameScreen.classList.toggle("double-solitaire-wide", doubleSolitaireRaceActive);
+      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower || wagerLayoutGame || crazyEightsRoundActive || doubleSolitaireRaceActive);
       els.cashLedgerPanel.classList.toggle("blackjack-ledger", isBlackjack);
       els.trailBankAmount.textContent = money(state.trail && state.trail.tributeBank || 0);
       els.trailSpendingAmount.textContent = money(state.trail && state.trail.spendingMoney || 0);
       els.pot.textContent = money(isThroneSession() && !state.active ? currentThroneAmount() : state.pot);
       els.domVault.textContent = money(state.domVault);
       els.lockedTribute.textContent = money(state.domVault);
-      if (els.turnDomBankPill) els.turnDomBankPill.classList.toggle("hidden", !isHigherLower);
+      if (els.turnDomBankPill) els.turnDomBankPill.classList.toggle("hidden", !(isHigherLower || crazyEightsRoundActive || doubleSolitaireRaceActive));
       if (els.turnDomBank) els.turnDomBank.textContent = money(state.domVault);
-      if (els.turnOwedPill) els.turnOwedPill.classList.toggle("hidden", !isHigherLower);
-      if (els.turnOwed) els.turnOwed.textContent = money(isHigherLower ? higherLowerDomPossibleWin() : 0);
+      if (els.turnOwedPill) els.turnOwedPill.classList.toggle("hidden", !(isHigherLower || crazyEightsRoundActive || doubleSolitaireRaceActive));
+      if (els.turnOwedLabel) els.turnOwedLabel.textContent = (crazyEightsRoundActive || doubleSolitaireRaceActive) ? "Pot" : "Owed";
+      if (els.turnOwed) els.turnOwed.textContent = money(isHigherLower ? higherLowerDomPossibleWin() : ((crazyEightsRoundActive || doubleSolitaireRaceActive) ? state.pot : 0));
       if (els.backToMenuBtn) {
         const role = localOnlineRole();
         const blocked = Boolean(state.online.room && role !== DOM);
@@ -13814,6 +13973,15 @@
     });
     els.sideTabs.forEach((button) => {
       button.addEventListener("click", () => setSideTab(button.dataset.sideTab));
+    });
+    els.utilityTabs.forEach((button) => {
+      button.addEventListener("click", () => {
+        const tab = button.dataset.utilityTab || "tools";
+        if (tab === "settings" && !sideSettingsAllowed()) return;
+        if (tab === "tools" && !domLinkControlsAllowed()) return;
+        state.settings.activeUtilityTab = tab;
+        renderSidePanel();
+      });
     });
     els.sideLedgerSummary.addEventListener("click", (event) => {
       const button = event.target.closest("[data-ledger-action]");
