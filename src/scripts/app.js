@@ -2571,8 +2571,9 @@
       const canOpenUtility = canOpenSettings || canOpenTools;
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
+      const canOpenLedger = inGame || inGameSelect;
       if (state.settings.activeSideTab === "settings") state.settings.activeSideTab = "tools";
-      if (!inGame && state.settings.activeSideTab === "ledger") state.settings.activeSideTab = "chat";
+      if (!canOpenLedger && state.settings.activeSideTab === "ledger") state.settings.activeSideTab = "chat";
       if (!canOpenUtility && state.settings.activeSideTab === "tools") {
         state.settings.activeSideTab = "chat";
       }
@@ -2591,16 +2592,16 @@
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
-        const visible = (tab !== "ledger" || inGame)
+        const visible = (tab !== "ledger" || canOpenLedger)
           && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
-        button.classList.toggle("active-restore", tab === activeTab);
+        button.classList.toggle("active-restore", panelOpen && tab === activeTab);
         button.classList.toggle("unread", tab === "chat" && hasUnreadChat());
       });
       els.sideToggleBtn.textContent = "Hide";
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
-        const visible = (button.dataset.sideTab !== "ledger" || inGame)
+        const visible = (button.dataset.sideTab !== "ledger" || canOpenLedger)
           && (button.dataset.sideTab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active", button.dataset.sideTab === activeTab);
@@ -2703,7 +2704,7 @@
 
     function setSideTab(tab) {
       if (tab === "settings") tab = "tools";
-      if (tab === "ledger" && state.screen !== "game") return;
+      if (tab === "ledger" && state.screen !== "game" && state.screen !== "select") return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       state.settings.activeSideTab = tab;
       if (tab === "chat") markChatSeen();
@@ -2712,7 +2713,7 @@
 
     function openSidePanel(tab = state.settings.activeSideTab || "chat") {
       if (tab === "settings") tab = "tools";
-      if (tab === "ledger" && state.screen !== "game") return;
+      if (tab === "ledger" && state.screen !== "game" && state.screen !== "select") return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       state.settings.activeSideTab = tab;
       state.settings.sideOpen = true;
@@ -9592,7 +9593,7 @@
         stock: deck.map((entry) => entry.card),
         tableau,
         started: true,
-        message: "Move cards freely. Clicking the stock pile ends your turn."
+        message: "Move cards freely. Drawing a stock card ends your turn."
       };
       board.initialDeal = solitaireSnapshot(board);
       return board;
@@ -9607,7 +9608,7 @@
           dom: dealDoubleSolitaireBoard()
         },
         viewed: firstTurn,
-        message: `${labelFor(firstTurn)} starts. Clicking the stock pile passes control.`,
+        message: `${labelFor(firstTurn)} starts. Drawing a stock card passes control.`,
         lastAction: ""
       };
       state.turn = firstTurn;
@@ -9857,8 +9858,8 @@
       } else if (board.waste.length) {
         board.stock = board.waste.reverse();
         board.waste = [];
-        board.message = "Waste returned to stock.";
-        passDoubleSolitaireTurn(player, `${labelFor(player)} reset their stock.`);
+        state.doubleSolitaire.message = `${labelFor(player)} recycled their waste into stock and keeps the turn.`;
+        state.doubleSolitaire.lastAction = `${labelFor(player)} reset their stock.`;
       } else {
         state.doubleSolitaire.message = "No cards left in stock.";
       }
@@ -12121,12 +12122,18 @@
       return button;
     }
 
-    function renderCrazyEightsHand(player) {
+    function crazyEightsLocalPlayer() {
+      const localRole = localOnlineRole();
+      if (localRole === DOM || localRole === SUB) return localRole;
+      return state.turn === DOM ? DOM : SUB;
+    }
+
+    function renderCrazyEightsHand(player, position = "") {
       const game = state.crazyEights || createCrazyEightsState();
       const localRole = localOnlineRole();
       const canSee = !localRole || localRole === player || (localRole === SPECTATOR && !state.online.room);
       const section = document.createElement("section");
-      section.className = `crazy8-hand ${player} ${state.turn === player ? "active" : ""}`.trim();
+      section.className = `crazy8-hand ${player} ${position} ${state.turn === player ? "active" : ""}`.trim();
       const title = document.createElement("div");
       title.className = "crazy8-hand-title";
       title.innerHTML = `<strong>${labelFor(player)}</strong><span>${(game.hands[player] || []).length} card${(game.hands[player] || []).length === 1 ? "" : "s"}</span>`;
@@ -12149,9 +12156,11 @@
       const topCard = crazyEightsTopCard(game);
       const localRole = localOnlineRole();
       const canAct = state.active && (!localRole || localRole === state.turn);
+      const localPlayer = crazyEightsLocalPlayer();
+      const opponent = otherRole(localPlayer);
       const shell = document.createElement("div");
       shell.className = "crazy8-shell";
-      shell.appendChild(renderCrazyEightsHand(DOM));
+      shell.appendChild(renderCrazyEightsHand(opponent, "opponent-hand"));
       const center = document.createElement("section");
       center.className = "crazy8-center";
       const pile = document.createElement("div");
@@ -12193,7 +12202,7 @@
         center.appendChild(chooser);
       }
       shell.appendChild(center);
-      shell.appendChild(renderCrazyEightsHand(SUB));
+      shell.appendChild(renderCrazyEightsHand(localPlayer, "local-hand"));
       els.board.appendChild(shell);
     }
 
@@ -13520,8 +13529,8 @@
       const rules = [
         `<strong>Goal:</strong> race your own Klondike board. First player to build all 52 cards onto foundations wins.`,
         `<strong>Turn flow:</strong> tableau and foundation moves can continue as long as they come from tableau or foundation cards.`,
-        `<strong>Draw stack:</strong> clicking the stock pile ends your turn immediately.`,
-        `<strong>Waste card:</strong> moving the top waste card is free. Only clicking the stock pile passes control.`,
+        `<strong>Draw stack:</strong> drawing a stock card ends your turn immediately. Recycling waste back into stock does not.`,
+        `<strong>Waste card:</strong> moving the top waste card is free. Only drawing a fresh stock card passes control.`,
         `<strong>Viewer:</strong> use the two progress panels to switch between ${state.names.dom}'s board and ${state.names.sub}'s board.`,
         `<strong>Progress:</strong> each progress panel shows the four suit foundations, foundation total, stock count, and waste count.`,
         `<strong>Normal win:</strong> if ${state.names.dom} clears first, the bet enters her bank. If ${state.names.sub} clears first, the bet is safe.`,
@@ -13881,7 +13890,7 @@
       } else if (state.currentGame === "doubleSolitaire") {
         const viewed = localDoubleSolitaireViewedPlayer();
         if (state.active) {
-          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to play. Viewing ${labelFor(viewed)}'s board. Clicking the stock pile passes the turn.`;
+          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to play. Viewing ${labelFor(viewed)}'s board. Drawing a stock card passes the turn.`;
         } else if (state.doubleSolitaire && state.doubleSolitaire.winner) {
           els.turnText.innerHTML = `<strong>${labelFor(state.doubleSolitaire.winner)}</strong> wins Solitaire Duel.`;
         } else {
@@ -14066,7 +14075,7 @@
       }
       if (state.currentGame === "doubleSolitaire") {
         els.gameTitle.textContent = "Solitaire Duel";
-        els.gameSubtitle.textContent = "A turn-based Klondike race where clicking the stock pile passes control.";
+        els.gameSubtitle.textContent = "A turn-based Klondike race where drawing a stock card passes control.";
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {

@@ -2838,6 +2838,15 @@
       box-shadow: 0 0 26px rgba(239, 199, 94, 0.16);
     }
 
+    .crazy8-hand.local-hand {
+      border-color: rgba(239, 199, 94, 0.24);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.025));
+    }
+
+    .crazy8-hand.opponent-hand {
+      background: rgba(255, 255, 255, 0.026);
+    }
+
     .crazy8-hand-title {
       display: flex;
       justify-content: space-between;
