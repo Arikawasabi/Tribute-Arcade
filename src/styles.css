@@ -2362,6 +2362,7 @@
     }
 
     .higher-lower-panel {
+      position: relative;
       width: 100%;
       display: grid;
       grid-template-columns: minmax(420px, 1.2fr) minmax(260px, 0.8fr);
@@ -2601,8 +2602,18 @@
     }
 
     .higher-lower-power-menu {
+      position: absolute;
+      left: 50%;
+      top: clamp(12px, 2.2vw, 26px);
+      width: min(760px, calc(100% - 24px));
+      transform: translateX(-50%);
+      z-index: 90;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       align-items: stretch;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(240, 78, 120, 0.22), transparent 18rem),
+        linear-gradient(145deg, rgba(31, 13, 22, 0.98), rgba(9, 7, 9, 0.99));
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.62), 0 0 0 999vmax rgba(0, 0, 0, 0.32);
     }
 
     .higher-lower-power-menu > div:first-child {
@@ -2712,6 +2723,371 @@
       font-size: 0.82rem;
       font-weight: 800;
       text-transform: uppercase;
+    }
+
+    .crazy8-table {
+      display: block;
+      padding: clamp(12px, 2vw, 20px);
+      min-height: min(74vh, 760px);
+      background:
+        radial-gradient(circle at 18% 8%, rgba(239, 199, 94, 0.16), transparent 19rem),
+        radial-gradient(circle at 82% 88%, rgba(240, 78, 120, 0.14), transparent 20rem),
+        linear-gradient(145deg, rgba(18, 9, 13, 0.96), rgba(8, 7, 7, 0.98));
+      border: 1px solid rgba(239, 199, 94, 0.22);
+    }
+
+    .crazy8-shell {
+      width: 100%;
+      min-height: inherit;
+      display: grid;
+      grid-template-rows: minmax(150px, auto) minmax(210px, 1fr) minmax(150px, auto);
+      gap: clamp(12px, 2vw, 20px);
+    }
+
+    .crazy8-hand {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(239, 199, 94, 0.14);
+      background: rgba(255, 255, 255, 0.035);
+      border-radius: 8px;
+    }
+
+    .crazy8-hand.active {
+      border-color: rgba(239, 199, 94, 0.58);
+      box-shadow: 0 0 26px rgba(239, 199, 94, 0.16);
+    }
+
+    .crazy8-hand-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      color: var(--cream);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+    }
+
+    .crazy8-hand-title span {
+      color: var(--muted);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .crazy8-card-row {
+      display: flex;
+      align-items: center;
+      min-height: 128px;
+      overflow-x: auto;
+      padding: 4px 4px 10px;
+    }
+
+    .crazy8-card {
+      flex: 0 0 clamp(76px, 8.4vw, 118px);
+      margin-right: clamp(-20px, -1.8vw, -10px);
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      transition: transform 150ms ease, filter 150ms ease;
+    }
+
+    .crazy8-card:last-child {
+      margin-right: 0;
+    }
+
+    .crazy8-card .playing-card {
+      width: 100%;
+    }
+
+    .crazy8-card.playable:not(:disabled):hover,
+    .crazy8-card.playable:not(:disabled):focus-visible {
+      transform: translateY(-14px);
+      filter: drop-shadow(0 14px 18px rgba(239, 199, 94, 0.22));
+      z-index: 5;
+    }
+
+    .crazy8-card:disabled {
+      cursor: default;
+    }
+
+    .crazy8-center {
+      align-self: stretch;
+      display: grid;
+      grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1fr);
+      align-items: center;
+      gap: clamp(14px, 2.4vw, 28px);
+      padding: clamp(14px, 2vw, 24px);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .crazy8-pile {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(14px, 2vw, 24px);
+    }
+
+    .crazy8-deck,
+    .crazy8-discard {
+      width: clamp(92px, 10vw, 140px);
+      display: grid;
+      gap: 8px;
+      place-items: center;
+    }
+
+    .crazy8-deck {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .crazy8-deck:disabled {
+      cursor: default;
+      opacity: 0.72;
+    }
+
+    .crazy8-deck .playing-card,
+    .crazy8-discard .playing-card {
+      width: 100%;
+    }
+
+    .crazy8-deck span {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .crazy8-status {
+      display: grid;
+      gap: 8px;
+      align-content: center;
+      min-width: 0;
+    }
+
+    .crazy8-status span,
+    .crazy8-status small {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .crazy8-status strong {
+      color: var(--gold);
+      font-family: Georgia, serif;
+      font-size: clamp(1.35rem, 2.4vw, 2rem);
+    }
+
+    .crazy8-status p {
+      margin: 0;
+      color: var(--cream);
+      line-height: 1.45;
+    }
+
+    .crazy8-suit-chooser {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding-top: 8px;
+    }
+
+    .crazy8-suit-chooser strong {
+      grid-column: 1 / -1;
+      color: var(--cream);
+      text-align: center;
+    }
+
+    .crazy8-suit-chooser button {
+      min-height: 44px;
+    }
+
+    .double-solitaire-table {
+      display: block;
+      padding: clamp(10px, 1.8vw, 18px);
+      background:
+        radial-gradient(circle at 18% 10%, rgba(239, 199, 94, 0.16), transparent 19rem),
+        radial-gradient(circle at 86% 86%, rgba(240, 78, 120, 0.12), transparent 21rem),
+        linear-gradient(145deg, rgba(14, 9, 12, 0.97), rgba(7, 7, 8, 0.98));
+      border: 1px solid rgba(239, 199, 94, 0.2);
+      overflow-x: auto;
+    }
+
+    .double-solitaire-shell {
+      min-width: 1040px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .double-solitaire-progress-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .double-solitaire-progress {
+      min-height: 78px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 7px 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 199, 94, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--cream);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .double-solitaire-progress.active {
+      border-color: rgba(239, 199, 94, 0.55);
+      box-shadow: 0 0 22px rgba(239, 199, 94, 0.14);
+    }
+
+    .double-solitaire-progress.viewing {
+      background: rgba(239, 199, 94, 0.1);
+    }
+
+    .double-solitaire-progress strong {
+      grid-row: span 2;
+      min-width: 78px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+    }
+
+    .double-solitaire-mini-foundations {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .double-solitaire-mini-foundation {
+      min-height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      border: 1px solid rgba(239, 199, 94, 0.16);
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--cream);
+      font-weight: 900;
+      font-size: 0.75rem;
+    }
+
+    .double-solitaire-progress-meta {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .double-solitaire-status {
+      display: grid;
+      grid-template-columns: auto auto 1fr;
+      gap: 8px 14px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .double-solitaire-status strong {
+      color: var(--gold);
+      font-family: Georgia, serif;
+      font-size: 1.08rem;
+    }
+
+    .double-solitaire-status span,
+    .double-solitaire-status small {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .double-solitaire-status p {
+      margin: 0;
+      color: var(--cream);
+    }
+
+    .double-solitaire-board {
+      display: grid;
+      gap: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 199, 94, 0.13);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .double-solitaire-board.can-act {
+      border-color: rgba(239, 199, 94, 0.4);
+    }
+
+    .double-solitaire-top-row {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(112px, 1fr));
+      gap: 10px;
+      align-items: start;
+    }
+
+    .double-solitaire-slot,
+    .double-solitaire-column {
+      position: relative;
+      min-height: 158px;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 199, 94, 0.14);
+      background: rgba(0, 0, 0, 0.16);
+    }
+
+    .double-solitaire-slot {
+      display: grid;
+      place-items: center;
+      padding: 8px;
+      color: var(--muted);
+    }
+
+    button.double-solitaire-slot {
+      cursor: pointer;
+    }
+
+    button.double-solitaire-slot:disabled {
+      cursor: default;
+      opacity: 0.72;
+    }
+
+    .double-solitaire-tableau {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(112px, 1fr));
+      gap: 10px;
+      min-height: 430px;
+    }
+
+    .double-solitaire-column {
+      min-height: 430px;
+      padding: 8px;
+    }
+
+    .double-solitaire-slot .playing-card,
+    .double-solitaire-column .playing-card {
+      width: 100%;
+      max-width: 112px;
+    }
+
+    .double-solitaire-column .playing-card {
+      position: absolute;
+      left: 8px;
+      top: calc(var(--solitaire-card-index, 0) * 18px + 8px);
+      cursor: pointer;
+    }
+
+    .double-solitaire-slot .playing-card.selected,
+    .double-solitaire-column .playing-card.selected {
+      outline: 3px solid var(--gold);
+      outline-offset: 3px;
+      transform: translateY(-5px);
+      z-index: 8;
     }
 
     .app.blackjack-wide .twentyone-table .playing-card {
@@ -4886,6 +5262,62 @@
 
       .higher-lower-run-options {
         grid-template-columns: 1fr;
+      }
+
+      .crazy8-table {
+        padding: 10px;
+      }
+
+      .crazy8-shell {
+        grid-template-rows: auto auto auto;
+      }
+
+      .crazy8-center {
+        grid-template-columns: 1fr;
+      }
+
+      .crazy8-card-row {
+        min-height: 112px;
+      }
+
+      .crazy8-card {
+        flex-basis: clamp(68px, 22vw, 92px);
+        margin-right: -18px;
+      }
+
+      .crazy8-deck,
+      .crazy8-discard {
+        width: clamp(82px, 26vw, 112px);
+      }
+
+      .crazy8-suit-chooser {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .double-solitaire-table {
+        padding: 10px;
+      }
+
+      .double-solitaire-shell {
+        min-width: 920px;
+      }
+
+      .double-solitaire-top-row,
+      .double-solitaire-tableau {
+        grid-template-columns: repeat(7, minmax(96px, 1fr));
+      }
+
+      .double-solitaire-top-row {
+        grid-template-columns: repeat(6, minmax(96px, 1fr));
+      }
+
+      .double-solitaire-slot .playing-card,
+      .double-solitaire-column .playing-card {
+        max-width: 96px;
+      }
+
+      .double-solitaire-column .playing-card {
+        top: calc(var(--solitaire-card-index, 0) * 16px + 8px);
       }
 
       .solitaire-screen {

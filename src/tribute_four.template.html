@@ -217,16 +217,16 @@
     </section>
 
     <div class="game-select-tabs">
-      <button class="game-select-tab active" data-game-tab="table">Table Duels</button>
-      <button class="game-select-tab" data-game-tab="casino">Casino Risk</button>
-      <button class="game-select-tab" data-game-tab="chance">Chance / Punishment</button>
-      <button class="game-select-tab" data-game-tab="solo">Solo Games</button>
-      <button class="game-select-tab" data-game-tab="misc">Misc / WIP</button>
+      <button class="game-select-tab active" data-game-tab="board">Board</button>
+      <button class="game-select-tab" data-game-tab="cards">Cards</button>
+      <button class="game-select-tab" data-game-tab="chance">Chance</button>
+      <button class="game-select-tab" data-game-tab="solo">Solo</button>
+      <button class="game-select-tab" data-game-tab="wip">WIP</button>
       <button class="game-select-tab" data-game-tab="all">All</button>
     </div>
 
     <section class="game-grid" id="mainGamesGrid">
-      <button class="panel game-card" id="tributeFourCard" data-game-categories="table all">
+      <button class="panel game-card" id="tributeFourCard" data-game-categories="board all">
         <span>
           <span class="game-card-tags"><span>1v1</span><span>Classic</span><span>Reclaim</span></span>
           <h2>Tribute Four</h2>
@@ -235,7 +235,7 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeFleetCard" data-game-categories="table all">
+      <button class="panel game-card" id="tributeFleetCard" data-game-categories="board all">
         <span>
           <span class="game-card-tags"><span>1v1</span><span>Hidden Info</span><span>Reclaim</span></span>
           <h2>Tribute Fleet</h2>
@@ -244,7 +244,7 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeChessCard" data-game-categories="table all">
+      <button class="panel game-card" id="tributeChessCard" data-game-categories="board all">
         <span>
           <span class="game-card-tags"><span>1v1</span><span>Strategy</span><span>Queen Powers</span></span>
           <h2>Tribute Chess</h2>
@@ -253,7 +253,7 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeCheckersCard" data-game-categories="table all">
+      <button class="panel game-card" id="tributeCheckersCard" data-game-categories="board all">
         <span>
           <span class="game-card-tags"><span>1v1</span><span>Classic</span><span>Claim</span></span>
           <h2>Tribute Checkers</h2>
@@ -262,7 +262,7 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeReversiCard" data-game-categories="table all">
+      <button class="panel game-card" id="tributeReversiCard" data-game-categories="board all">
         <span>
           <span class="game-card-tags"><span>1v1</span><span>Classic</span><span>Dom Tiers</span></span>
           <h2>Tribute Reversi</h2>
@@ -271,7 +271,7 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeTwentyOneCard" data-game-categories="casino all">
+      <button class="panel game-card" id="tributeTwentyOneCard" data-game-categories="cards all">
         <span>
           <span class="game-card-tags"><span>Casino</span><span>Dealer</span><span>Powers</span></span>
           <h2>Tribute Blackjack</h2>
@@ -280,7 +280,25 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeTicTacToeCard" data-game-categories="table all">
+      <button class="panel game-card" id="tributeCrazyEightsCard" data-game-categories="cards all">
+        <span>
+          <span class="game-card-tags"><span>1v1</span><span>Cards</span><span>Reclaim</span></span>
+          <h2>Tribute 8s</h2>
+          <p>Classic Crazy 8's with wild suits, draw traps, skips, and ace tribute tax.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="doubleSolitaireCard" data-game-categories="cards all">
+        <span>
+          <span class="game-card-tags"><span>1v1</span><span>Cards</span><span>Race</span></span>
+          <h2>Double Solitaire</h2>
+          <p>Turn-based Klondike race where the draw stack hands control to the other player.</p>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="tributeTicTacToeCard" data-game-categories="board all">
         <span>
           <span class="game-card-tags"><span>Quick</span><span>1v1</span><span>Reclaim</span></span>
           <h2>Tribute Tic Tac Toe</h2>
@@ -298,7 +316,7 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="higherLowerCard" data-game-categories="chance all">
+      <button class="panel game-card" id="higherLowerCard" data-game-categories="chance cards all">
         <span>
           <span class="game-card-tags"><span>Chance</span><span>Cards</span><span>Streak</span></span>
           <h2>Higher / Lower</h2>
@@ -307,7 +325,7 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="solitaireCard" data-game-categories="solo all">
+      <button class="panel game-card" id="solitaireCard" data-game-categories="solo cards all">
         <span>
           <span class="game-card-tags"><span>Solo</span><span>Cards</span><span>Klondike</span></span>
           <h2>Solitaire</h2>
@@ -316,7 +334,7 @@
         <strong class="status-pill">Play Solo</strong>
       </button>
 
-      <button class="panel game-card" id="obedienceOrdersCard" data-game-categories="misc all" data-game-hidden="true">
+      <button class="panel game-card" id="obedienceOrdersCard" data-game-categories="wip all" data-game-hidden="true">
         <span>
           <span class="game-card-tags"><span>WIP</span><span>Command</span><span>Memory</span></span>
           <h2>Obedience Orders</h2>
@@ -325,7 +343,7 @@
         <strong class="status-pill">WIP</strong>
       </button>
 
-      <button class="panel game-card" id="tributeTrailCard" data-game-categories="misc all" data-game-hidden="true">
+      <button class="panel game-card" id="tributeTrailCard" data-game-categories="wip board chance all" data-game-hidden="true">
         <span>
           <span class="game-card-tags"><span>WIP</span><span>Race</span><span>Cards</span></span>
           <h2>Tribute Trail</h2>

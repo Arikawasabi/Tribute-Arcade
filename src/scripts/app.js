@@ -173,6 +173,8 @@
       fleet: createFleetState(),
       twentyOne: createTwentyOneState(),
       higherLower: createHigherLowerState(),
+      crazyEights: createCrazyEightsState(),
+      doubleSolitaire: createDoubleSolitaireState(),
       dice: createDiceState(),
       wheel: createWheelState(),
       trail: createTrailState(),
@@ -305,6 +307,8 @@
       tributeFleetCard: document.getElementById("tributeFleetCard"),
       tributeTwentyOneCard: document.getElementById("tributeTwentyOneCard"),
       higherLowerCard: document.getElementById("higherLowerCard"),
+      tributeCrazyEightsCard: document.getElementById("tributeCrazyEightsCard"),
+      doubleSolitaireCard: document.getElementById("doubleSolitaireCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
       obedienceOrdersCard: document.getElementById("obedienceOrdersCard"),
@@ -1540,6 +1544,32 @@
       publishState();
     }
 
+    function openTributeCrazyEights() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "tributeCrazyEights";
+      setScreen("game");
+      resetCrazyEightsBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>Tribute 8s opened.</strong> ${state.names.sub} buys in, then both players race to empty their hand.`);
+      render();
+      publishState();
+    }
+
+    function openDoubleSolitaire() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "doubleSolitaire";
+      setScreen("game");
+      resetDoubleSolitaireBoard();
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>Double Solitaire opened.</strong> ${state.names.sub} buys in, then both players race their own Klondike board.`);
+      render();
+      publishState();
+    }
+
     function openTributeTicTacToe() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.pendingWager = null;
@@ -1694,6 +1724,8 @@
       els.tributeFleetCard.disabled = domPickBlocked;
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       if (els.higherLowerCard) els.higherLowerCard.disabled = domPickBlocked;
+      if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.disabled = domPickBlocked;
+      if (els.doubleSolitaireCard) els.doubleSolitaireCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
       els.tributeWheelCard.disabled = domPickBlocked;
       if (els.obedienceOrdersCard) els.obedienceOrdersCard.disabled = domPickBlocked;
@@ -1737,13 +1769,16 @@
 
     function renderGameSelectTabs() {
       const tabAliases = {
-        main: "table",
-        mini: "casino",
-        testing: "misc",
+        main: "board",
+        mini: "cards",
+        table: "board",
+        casino: "cards",
+        testing: "wip",
+        misc: "wip",
         control: "chance"
       };
       const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
-      const tab = ["table", "casino", "chance", "solo", "misc", "all"].includes(requestedTab) ? requestedTab : "table";
+      const tab = ["board", "cards", "chance", "solo", "wip", "all"].includes(requestedTab) ? requestedTab : "board";
       state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
         button.classList.toggle("active", button.dataset.gameTab === tab);
@@ -3148,6 +3183,8 @@
         fleet: state.fleet,
         twentyOne: state.twentyOne,
         higherLower: state.higherLower,
+        crazyEights: state.crazyEights,
+        doubleSolitaire: state.doubleSolitaire,
         dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
@@ -3207,6 +3244,8 @@
       state.fleet = snapshot.fleet || state.fleet;
       state.twentyOne = snapshot.twentyOne || state.twentyOne;
       state.higherLower = snapshot.higherLower || state.higherLower;
+      state.crazyEights = snapshot.crazyEights || state.crazyEights;
+      state.doubleSolitaire = snapshot.doubleSolitaire || state.doubleSolitaire;
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
       state.trail = snapshot.trail || state.trail;
@@ -3695,6 +3734,8 @@
       "tributeCheckers",
       "tributeReversi",
       "tributeTwentyOne",
+      "tributeCrazyEights",
+      "doubleSolitaire",
       "tributeTicTacToe"
     ]);
 
@@ -4217,6 +4258,14 @@
         startHigherLowerNormalMatch();
         return;
       }
+      if (state.currentGame === "tributeCrazyEights") {
+        startCrazyEightsNormalMatch();
+        return;
+      }
+      if (state.currentGame === "doubleSolitaire") {
+        startDoubleSolitaireNormalMatch();
+        return;
+      }
       if (state.currentGame === "tributeTicTacToe") {
         startTicTacToeNormalMatch();
         return;
@@ -4265,6 +4314,14 @@
         return;
       }
       if (state.currentGame === "higherLower") {
+        return;
+      }
+      if (state.currentGame === "tributeCrazyEights") {
+        startCrazyEightsReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "doubleSolitaire") {
+        startDoubleSolitaireReclaimMatch();
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -7028,6 +7085,22 @@
         publishState();
         return;
       }
+      if (state.currentGame === "tributeCrazyEights") {
+        resetCrazyEightsBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Tribute 8s reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
+      if (state.currentGame === "doubleSolitaire") {
+        resetDoubleSolitaireBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Double Solitaire reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
       if (state.currentGame === "tributeTicTacToe") {
         resetTributeTicTacToeBoard();
         els.log.innerHTML = "";
@@ -7088,6 +7161,10 @@
         resetTributeTwentyOneBoard();
       } else if (state.currentGame === "higherLower") {
         resetHigherLowerBoard();
+      } else if (state.currentGame === "tributeCrazyEights") {
+        resetCrazyEightsBoard();
+      } else if (state.currentGame === "doubleSolitaire") {
+        resetDoubleSolitaireBoard();
       } else if (state.currentGame === "tributeTicTacToe") {
         resetTributeTicTacToeBoard();
       } else if (state.currentGame === "wheelSpin") {
@@ -9071,6 +9148,33 @@
       };
     }
 
+    function createDoubleSolitaireState() {
+      return {
+        boards: {
+          sub: createSolitaireState(),
+          dom: createSolitaireState()
+        },
+        viewed: SUB,
+        winner: null,
+        message: "Start a bet to deal both Klondike boards.",
+        lastAction: ""
+      };
+    }
+
+    function createCrazyEightsState() {
+      return {
+        deck: [],
+        discard: [],
+        hands: { sub: [], dom: [] },
+        currentSuit: "S",
+        pendingWild: null,
+        winner: null,
+        message: "Start a bet to deal Tribute 8s.",
+        lastAction: "",
+        drawnThisTurn: false
+      };
+    }
+
     function shuffleDeck(deck) {
       const copy = [...deck];
       for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -9083,6 +9187,547 @@
     function drawTwentyOneCard() {
       if (!state.twentyOne.deck.length) state.twentyOne.deck = shuffleDeck(createTwentyOneDeck());
       return state.twentyOne.deck.pop();
+    }
+
+    function resetCrazyEightsBoard() {
+      state.crazyEights = createCrazyEightsState();
+      state.active = false;
+      state.turn = SUB;
+      state.mode = "normal";
+      state.pot = 0;
+      state.winningCells = [];
+    }
+
+    function dealCrazyEights(firstTurn = SUB) {
+      let deck = shuffleDeck(createTwentyOneDeck());
+      const hands = { sub: [], dom: [] };
+      for (let i = 0; i < 7; i += 1) {
+        hands.sub.push(deck.pop());
+        hands.dom.push(deck.pop());
+      }
+      let starter = deck.pop();
+      while (starter && starter.slice(0, -1) === "8") {
+        deck.unshift(starter);
+        deck = shuffleDeck(deck);
+        starter = deck.pop();
+      }
+      state.crazyEights = {
+        ...createCrazyEightsState(),
+        deck,
+        discard: starter ? [starter] : [],
+        hands,
+        currentSuit: starter ? starter.slice(-1) : "S",
+        message: `${labelFor(firstTurn)} starts. Match rank or suit, or play an 8 to choose suit.`,
+        lastAction: starter ? `Opening card: ${rankName(starter.slice(0, -1))} of ${suitName(starter.slice(-1))}.` : "",
+        drawnThisTurn: false
+      };
+      state.turn = firstTurn;
+      state.active = true;
+    }
+
+    function startCrazyEightsNormalMatch() {
+      const bet = prepareRound("normal", "Tribute 8s game");
+      if (bet === null) return;
+      const starter = randomStarter();
+      dealCrazyEights(starter);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} takes the first Tribute 8s turn.`, false);
+    }
+
+    function startCrazyEightsReclaimMatch() {
+      const pot = prepareRound("reclaim", "Tribute 8s game");
+      if (pot === null) return;
+      dealCrazyEights(DOM);
+      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)} in Tribute 8s. ${state.names.dom} starts with control.`, false);
+    }
+
+    function crazyEightsTopCard(game = state.crazyEights) {
+      return game && game.discard && game.discard[game.discard.length - 1] || null;
+    }
+
+    function crazyEightsCanPlay(card, game = state.crazyEights) {
+      const top = crazyEightsTopCard(game);
+      if (!card || !top) return false;
+      const rank = card.slice(0, -1);
+      return rank === "8" || rank === top.slice(0, -1) || card.slice(-1) === game.currentSuit;
+    }
+
+    function crazyEightsHasPlayable(player = state.turn) {
+      const hand = state.crazyEights && state.crazyEights.hands && state.crazyEights.hands[player] || [];
+      return hand.some((card) => crazyEightsCanPlay(card));
+    }
+
+    function drawCrazyEightsCard(player) {
+      const game = state.crazyEights;
+      if (!game.deck.length && game.discard.length > 1) {
+        const top = game.discard.pop();
+        game.deck = shuffleDeck(game.discard);
+        game.discard = [top];
+      }
+      const card = game.deck.pop();
+      if (card) game.hands[player].push(card);
+      return card || null;
+    }
+
+    function crazyEightsAdvanceTurn(nextTurn) {
+      state.turn = nextTurn;
+      state.crazyEights.drawnThisTurn = false;
+    }
+
+    function finishCrazyEights(winner, reason) {
+      state.crazyEights.winner = winner;
+      state.crazyEights.message = reason;
+      state.active = false;
+      state.pendingWager = null;
+      settleRoundBank(winner);
+      addLog(`<strong>Tribute 8s ends.</strong> ${reason}`);
+      render();
+      publishState();
+    }
+
+    function applyCrazyEightsPlayedCard(player, card) {
+      const game = state.crazyEights;
+      const opponent = otherRole(player);
+      const rank = card.slice(0, -1);
+      const suit = card.slice(-1);
+      game.discard.push(card);
+      game.currentSuit = suit;
+      game.drawnThisTurn = false;
+      game.pendingWild = null;
+      if (!game.hands[player].length) {
+        finishCrazyEights(player, `${labelFor(player)} empties their hand.`);
+        return;
+      }
+      if (rank === "2") {
+        drawCrazyEightsCard(opponent);
+        drawCrazyEightsCard(opponent);
+        game.message = `${labelFor(opponent)} draws 2. ${labelFor(player)} keeps control.`;
+        game.lastAction = `${labelFor(player)} played a 2 and trapped ${labelFor(opponent)} with two cards.`;
+        crazyEightsAdvanceTurn(player);
+      } else if (rank === "Q") {
+        game.message = `${labelFor(player)} skips ${labelFor(opponent)} and plays again.`;
+        game.lastAction = `${labelFor(player)} played a queen skip.`;
+        crazyEightsAdvanceTurn(player);
+      } else if (rank === "A") {
+        drawCrazyEightsCard(opponent);
+        game.message = `Tribute Tax. ${labelFor(opponent)} draws 1 and ${labelFor(player)} keeps control.`;
+        game.lastAction = `${labelFor(player)} played an ace and taxed ${labelFor(opponent)}.`;
+        crazyEightsAdvanceTurn(player);
+      } else {
+        game.message = `${labelFor(opponent)} to play. Match ${rankName(rank)} or ${suitName(game.currentSuit)}.`;
+        game.lastAction = `${labelFor(player)} played ${rankName(rank)} of ${suitName(suit)}.`;
+        crazyEightsAdvanceTurn(opponent);
+      }
+      render();
+      publishState();
+    }
+
+    function playCrazyEightsCard(index) {
+      if (state.currentGame !== "tributeCrazyEights" || !state.active || state.crazyEights.pendingWild) return;
+      const role = localOnlineRole();
+      if (role && role !== state.turn) return;
+      const player = state.turn;
+      const hand = state.crazyEights.hands[player] || [];
+      const card = hand[index];
+      if (!crazyEightsCanPlay(card)) {
+        state.crazyEights.message = "That card does not match the rank, suit, or wild rule.";
+        render();
+        return;
+      }
+      if (card.slice(0, -1) === "8") {
+        state.crazyEights.pendingWild = { player, index };
+        state.crazyEights.message = `${labelFor(player)} played an 8. Choose the next suit.`;
+        render();
+        publishState();
+        return;
+      }
+      hand.splice(index, 1);
+      applyCrazyEightsPlayedCard(player, card);
+    }
+
+    function chooseCrazyEightsSuit(suit) {
+      const game = state.crazyEights;
+      if (state.currentGame !== "tributeCrazyEights" || !state.active || !game.pendingWild) return;
+      const role = localOnlineRole();
+      const player = game.pendingWild.player;
+      if (role && role !== player) return;
+      const hand = game.hands[player] || [];
+      const card = hand.splice(Number(game.pendingWild.index), 1)[0];
+      if (!card) {
+        game.pendingWild = null;
+        render();
+        return;
+      }
+      game.discard.push(card);
+      game.currentSuit = suit;
+      game.pendingWild = null;
+      game.drawnThisTurn = false;
+      if (!hand.length) {
+        finishCrazyEights(player, `${labelFor(player)} empties their hand with a wild 8.`);
+        return;
+      }
+      const opponent = otherRole(player);
+      game.message = `${labelFor(player)} calls ${suitName(suit)}. ${labelFor(opponent)} must match it or play another 8.`;
+      game.lastAction = `${labelFor(player)} played an 8 and chose ${suitName(suit)}.`;
+      crazyEightsAdvanceTurn(opponent);
+      render();
+      publishState();
+    }
+
+    function drawCrazyEightsTurnCard() {
+      if (state.currentGame !== "tributeCrazyEights" || !state.active || state.crazyEights.pendingWild) return;
+      const role = localOnlineRole();
+      if (role && role !== state.turn) return;
+      const player = state.turn;
+      const card = drawCrazyEightsCard(player);
+      state.crazyEights.drawnThisTurn = true;
+      state.crazyEights.message = card
+        ? `${labelFor(player)} draws a card${crazyEightsCanPlay(card) ? " and can play if it fits." : "."}`
+        : "No cards left to draw.";
+      state.crazyEights.lastAction = `${labelFor(player)} drew from the deck.`;
+      if (!crazyEightsHasPlayable(player)) {
+        const opponent = otherRole(player);
+        state.crazyEights.message = `${labelFor(player)} has no play after drawing. ${labelFor(opponent)} takes the turn.`;
+        crazyEightsAdvanceTurn(opponent);
+      }
+      render();
+      publishState();
+    }
+
+    function handleCrazyEightsBoardClick(event) {
+      if (state.currentGame !== "tributeCrazyEights") return;
+      const suitButton = event.target.closest("[data-crazy8-suit]");
+      if (suitButton) {
+        chooseCrazyEightsSuit(suitButton.dataset.crazy8Suit);
+        return;
+      }
+      const action = event.target.closest("[data-crazy8-action]");
+      if (action && action.dataset.crazy8Action === "draw") {
+        drawCrazyEightsTurnCard();
+        return;
+      }
+      const cardButton = event.target.closest("[data-crazy8-card-index]");
+      if (cardButton) {
+        playCrazyEightsCard(Number(cardButton.dataset.crazy8CardIndex));
+      }
+    }
+
+    function resetDoubleSolitaireBoard() {
+      state.doubleSolitaire = createDoubleSolitaireState();
+      state.active = false;
+      state.turn = SUB;
+      state.mode = "normal";
+      state.pot = 0;
+      state.winningCells = [];
+    }
+
+    function dealDoubleSolitaireBoard() {
+      const deck = shuffleDeck(createTwentyOneDeck()).map((card) => ({ card, faceUp: false }));
+      const tableau = [[], [], [], [], [], [], []];
+      for (let column = 0; column < 7; column += 1) {
+        for (let count = 0; count <= column; count += 1) {
+          const next = deck.pop();
+          next.faceUp = count === column;
+          tableau[column].push(next);
+        }
+      }
+      return {
+        ...createSolitaireState(),
+        stock: deck.map((entry) => entry.card),
+        tableau,
+        started: true,
+        message: "Move tableau cards freely. Drawing from stock ends your turn."
+      };
+    }
+
+    function startDoubleSolitaireGame(firstTurn, introHtml) {
+      state.doubleSolitaire = {
+        ...createDoubleSolitaireState(),
+        boards: {
+          sub: dealDoubleSolitaireBoard(),
+          dom: dealDoubleSolitaireBoard()
+        },
+        viewed: firstTurn,
+        message: `${labelFor(firstTurn)} starts. Drawing from stock or moving from waste passes control.`,
+        lastAction: ""
+      };
+      state.turn = firstTurn;
+      state.active = true;
+      finishRoundStart(introHtml, false);
+    }
+
+    function startDoubleSolitaireNormalMatch() {
+      const bet = prepareRound("normal", "Double Solitaire race");
+      if (bet === null) return;
+      const starter = randomStarter();
+      startDoubleSolitaireGame(starter, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} starts the Double Solitaire race.`);
+    }
+
+    function startDoubleSolitaireReclaimMatch() {
+      const pot = prepareRound("reclaim", "Double Solitaire race");
+      if (pot === null) return;
+      startDoubleSolitaireGame(DOM, `<strong>Reclaim race:</strong> ${state.names.sub} is trying to win back ${money(pot)} in Double Solitaire. ${state.names.dom} starts.`);
+    }
+
+    function doubleSolitaireBoard(player = state.doubleSolitaire && state.doubleSolitaire.viewed || SUB) {
+      return state.doubleSolitaire && state.doubleSolitaire.boards && state.doubleSolitaire.boards[player] || createSolitaireState();
+    }
+
+    function doubleSolitaireFoundationCount(player) {
+      return (doubleSolitaireBoard(player).foundations || []).reduce((total, pile) => total + pile.length, 0);
+    }
+
+    function doubleSolitaireCanAct(player = state.turn) {
+      const role = localOnlineRole();
+      return state.currentGame === "doubleSolitaire"
+        && state.active
+        && state.turn === player
+        && (!role || role === player);
+    }
+
+    function doubleSolitaireSelectionKey(selection) {
+      if (!selection) return "";
+      return `${selection.source}:${selection.column ?? ""}:${selection.index ?? ""}:${selection.foundation ?? ""}`;
+    }
+
+    function doubleSolitaireSelectedCards(player) {
+      const board = doubleSolitaireBoard(player);
+      const selection = board.selected;
+      if (!selection) return [];
+      if (selection.source === "waste") {
+        const card = board.waste[board.waste.length - 1];
+        return card ? [card] : [];
+      }
+      if (selection.source === "foundation") {
+        const pile = board.foundations[selection.foundation] || [];
+        const card = pile[pile.length - 1];
+        return card ? [card] : [];
+      }
+      if (selection.source === "tableau") {
+        return (board.tableau[selection.column] || []).slice(selection.index).filter((entry) => entry.faceUp).map((entry) => entry.card);
+      }
+      return [];
+    }
+
+    function canPlaceDoubleSolitaireOnTableau(board, cards, column) {
+      if (!cards.length) return false;
+      const moving = cards[0];
+      const pile = board.tableau[column] || [];
+      const top = pile[pile.length - 1];
+      if (!top) return solitaireRank(moving) === 13;
+      return top.faceUp
+        && solitaireColor(top.card) !== solitaireColor(moving)
+        && solitaireRank(top.card) === solitaireRank(moving) + 1;
+    }
+
+    function canPlaceDoubleSolitaireOnFoundation(board, cards, foundation) {
+      if (cards.length !== 1) return false;
+      const card = cards[0];
+      if (solitaireFoundationIndex(card) !== foundation) return false;
+      const pile = board.foundations[foundation] || [];
+      const top = pile[pile.length - 1];
+      return top ? solitaireRank(card) === solitaireRank(top) + 1 : solitaireRank(card) === 1;
+    }
+
+    function removeDoubleSolitaireSelectedCards(player) {
+      const board = doubleSolitaireBoard(player);
+      const selection = board.selected;
+      if (!selection) return [];
+      if (selection.source === "waste") {
+        const card = board.waste.pop();
+        return card ? [card] : [];
+      }
+      if (selection.source === "foundation") {
+        const pile = board.foundations[selection.foundation] || [];
+        const card = pile.pop();
+        return card ? [card] : [];
+      }
+      if (selection.source === "tableau") {
+        const pile = board.tableau[selection.column] || [];
+        const moved = pile.splice(selection.index).map((entry) => entry.card);
+        const newTop = pile[pile.length - 1];
+        if (newTop && !newTop.faceUp) newTop.faceUp = true;
+        return moved;
+      }
+      return [];
+    }
+
+    function maybeFinishDoubleSolitaire(player) {
+      if (doubleSolitaireFoundationCount(player) < 52) return false;
+      finishDoubleSolitaire(player, `${labelFor(player)} completes all four foundations.`);
+      return true;
+    }
+
+    function finishDoubleSolitaire(winner, reason) {
+      state.doubleSolitaire.winner = winner;
+      state.doubleSolitaire.message = reason;
+      state.active = false;
+      state.pendingWager = null;
+      settleRoundBank(winner);
+      addLog(`<strong>Double Solitaire ends.</strong> ${reason}`);
+      render();
+      publishState();
+    }
+
+    function passDoubleSolitaireTurn(player, actionText) {
+      const next = otherRole(player);
+      state.turn = next;
+      state.doubleSolitaire.viewed = next;
+      state.doubleSolitaire.message = `${labelFor(next)} takes the turn.`;
+      state.doubleSolitaire.lastAction = actionText;
+      Object.values(state.doubleSolitaire.boards || {}).forEach((board) => {
+        if (board) board.selected = null;
+      });
+    }
+
+    function selectDoubleSolitaireSource(player, selection) {
+      if (!doubleSolitaireCanAct(player)) return;
+      const board = doubleSolitaireBoard(player);
+      const cards = doubleSolitaireSelectedCards(player);
+      const nextCards = (() => {
+        if (selection.source === "waste") {
+          const card = board.waste[board.waste.length - 1];
+          return card ? [card] : [];
+        }
+        if (selection.source === "foundation") {
+          const pile = board.foundations[selection.foundation] || [];
+          const card = pile[pile.length - 1];
+          return card ? [card] : [];
+        }
+        if (selection.source === "tableau") {
+          return (board.tableau[selection.column] || []).slice(selection.index).filter((entry) => entry.faceUp).map((entry) => entry.card);
+        }
+        return [];
+      })();
+      if (!nextCards.length) return;
+      const current = doubleSolitaireSelectionKey(board.selected);
+      const next = doubleSolitaireSelectionKey(selection);
+      board.selected = current === next ? null : selection;
+      state.doubleSolitaire.message = board.selected
+        ? `${labelFor(player)} selected ${nextCards.length > 1 ? `${nextCards.length} cards` : nextCards[0]}.`
+        : "Selection cleared.";
+      render();
+      publishState();
+      void cards;
+    }
+
+    function moveDoubleSolitaireToTableau(player, column) {
+      if (!doubleSolitaireCanAct(player)) return;
+      const board = doubleSolitaireBoard(player);
+      const cards = doubleSolitaireSelectedCards(player);
+      if (!board.selected || !canPlaceDoubleSolitaireOnTableau(board, cards, column)) {
+        state.doubleSolitaire.message = "That card cannot be placed there.";
+        render();
+        return;
+      }
+      const source = board.selected.source;
+      const moved = removeDoubleSolitaireSelectedCards(player);
+      board.tableau[column].push(...moved.map((card) => ({ card, faceUp: true })));
+      board.selected = null;
+      board.moves += 1;
+      if (source === "waste") passDoubleSolitaireTurn(player, `${labelFor(player)} used the waste card and passed control.`);
+      else state.doubleSolitaire.message = `${labelFor(player)} moved to tableau.`;
+      render();
+      publishState();
+    }
+
+    function moveDoubleSolitaireToFoundation(player, foundation) {
+      if (!doubleSolitaireCanAct(player)) return;
+      const board = doubleSolitaireBoard(player);
+      const cards = doubleSolitaireSelectedCards(player);
+      const target = solitaireFoundationTarget(cards, foundation);
+      if (!board.selected || !canPlaceDoubleSolitaireOnFoundation(board, cards, target)) {
+        state.doubleSolitaire.message = "That card cannot go to that foundation.";
+        render();
+        return;
+      }
+      const source = board.selected.source;
+      const moved = removeDoubleSolitaireSelectedCards(player);
+      board.foundations[target].push(moved[0]);
+      board.selected = null;
+      board.moves += 1;
+      if (maybeFinishDoubleSolitaire(player)) return;
+      if (source === "waste") passDoubleSolitaireTurn(player, `${labelFor(player)} used the waste card and passed control.`);
+      else state.doubleSolitaire.message = `${labelFor(player)} built a foundation.`;
+      render();
+      publishState();
+    }
+
+    function drawDoubleSolitaireStock(player) {
+      if (!doubleSolitaireCanAct(player)) return;
+      const board = doubleSolitaireBoard(player);
+      board.selected = null;
+      if (board.stock.length) {
+        board.waste.push(board.stock.pop());
+        board.message = "Card drawn.";
+        passDoubleSolitaireTurn(player, `${labelFor(player)} drew from stock.`);
+      } else if (board.waste.length) {
+        board.stock = board.waste.reverse();
+        board.waste = [];
+        board.message = "Waste returned to stock.";
+        passDoubleSolitaireTurn(player, `${labelFor(player)} reset their stock.`);
+      } else {
+        state.doubleSolitaire.message = "No cards left in stock.";
+      }
+      render();
+      publishState();
+    }
+
+    function viewDoubleSolitaireBoard(player) {
+      if (player !== DOM && player !== SUB) return;
+      state.doubleSolitaire.viewed = player;
+      render();
+      publishState();
+    }
+
+    function handleDoubleSolitaireBoardClick(event) {
+      if (state.currentGame !== "doubleSolitaire") return;
+      const viewButton = event.target.closest("[data-double-solitaire-view]");
+      if (viewButton) {
+        viewDoubleSolitaireBoard(viewButton.dataset.doubleSolitaireView);
+        return;
+      }
+      const viewed = state.doubleSolitaire && state.doubleSolitaire.viewed || SUB;
+      const action = event.target.closest("[data-double-solitaire-action]");
+      if (action && action.dataset.doubleSolitaireAction === "stock") {
+        drawDoubleSolitaireStock(viewed);
+        return;
+      }
+      const sourceTarget = event.target.closest("[data-double-solitaire-source]");
+      if (sourceTarget) {
+        const source = sourceTarget.dataset.doubleSolitaireSource;
+        if (source === "waste") {
+          selectDoubleSolitaireSource(viewed, { source: "waste" });
+          return;
+        }
+        if (source === "foundation") {
+          const foundation = Number(sourceTarget.dataset.foundationIndex);
+          const selection = { source: "foundation", foundation };
+          const board = doubleSolitaireBoard(viewed);
+          if (doubleSolitaireSelectionKey(board.selected) === doubleSolitaireSelectionKey(selection)) selectDoubleSolitaireSource(viewed, selection);
+          else if (board.selected) moveDoubleSolitaireToFoundation(viewed, foundation);
+          else selectDoubleSolitaireSource(viewed, selection);
+          return;
+        }
+        if (source === "tableau") {
+          const column = Number(sourceTarget.dataset.tableauColumn);
+          const index = Number(sourceTarget.dataset.cardIndex);
+          const selection = { source: "tableau", column, index };
+          const board = doubleSolitaireBoard(viewed);
+          if (doubleSolitaireSelectionKey(board.selected) === doubleSolitaireSelectionKey(selection)) selectDoubleSolitaireSource(viewed, selection);
+          else if (board.selected) moveDoubleSolitaireToTableau(viewed, column);
+          else selectDoubleSolitaireSource(viewed, selection);
+          return;
+        }
+      }
+      const location = event.target.closest("[data-double-solitaire-location]");
+      if (!location) return;
+      const board = doubleSolitaireBoard(viewed);
+      if (!board.selected) return;
+      if (location.dataset.doubleSolitaireLocation === "foundation") {
+        moveDoubleSolitaireToFoundation(viewed, Number(location.dataset.foundationIndex));
+      } else if (location.dataset.doubleSolitaireLocation === "tableau") {
+        moveDoubleSolitaireToTableau(viewed, Number(location.dataset.tableauColumn));
+      }
     }
 
     const HIGHER_LOWER_DEFAULT_TARGET = 15;
@@ -9152,10 +9797,18 @@
 
     function higherLowerSetUpcomingCards(cards) {
       if (!state.higherLower.deck.length) state.higherLower.deck = shuffleDeck(createTwentyOneDeck());
-      cards.forEach((card, index) => {
-        const position = state.higherLower.deck.length - 1 - index;
-        if (position >= 0) state.higherLower.deck[position] = card;
-      });
+      const wanted = cards.filter(Boolean);
+      const wantedSet = new Set(wanted);
+      const remaining = state.higherLower.deck.filter((card) => !wantedSet.has(card));
+      while (remaining.length < wanted.length) {
+        const fallback = shuffleDeck(createTwentyOneDeck()).find((card) => !wantedSet.has(card));
+        if (!fallback) break;
+        remaining.unshift(fallback);
+      }
+      state.higherLower.deck = [
+        ...remaining,
+        ...wanted.slice().reverse()
+      ];
     }
 
     function higherLowerCardFromParts(rank, suit) {
@@ -10485,6 +11138,14 @@
         renderHigherLowerBoard();
         return;
       }
+      if (state.currentGame === "tributeCrazyEights") {
+        renderCrazyEightsBoard();
+        return;
+      }
+      if (state.currentGame === "doubleSolitaire") {
+        renderDoubleSolitaireBoard();
+        return;
+      }
       if (state.currentGame === "tributeTicTacToe") {
         renderTicTacToeBoard();
         return;
@@ -11249,6 +11910,226 @@
         suit2: menu.querySelector("[data-hl-suit='2']").value
       }));
       return menu;
+    }
+
+    function renderCrazyEightsCardButton(card, player, index, hidden, playable) {
+      const button = document.createElement("button");
+      button.className = `crazy8-card ${playable ? "playable" : ""}`.trim();
+      button.dataset.crazy8CardIndex = String(index);
+      button.disabled = hidden || !playable || state.turn !== player || Boolean(state.crazyEights.pendingWild);
+      button.setAttribute("aria-label", hidden ? `${labelFor(player)} hidden card` : `${rankName(card.slice(0, -1))} of ${suitName(card.slice(-1))}`);
+      button.appendChild(renderPlayingCard(hidden ? "AS" : card, hidden));
+      return button;
+    }
+
+    function renderCrazyEightsHand(player) {
+      const game = state.crazyEights || createCrazyEightsState();
+      const localRole = localOnlineRole();
+      const canSee = !localRole || localRole === player || (localRole === SPECTATOR && !state.online.room);
+      const section = document.createElement("section");
+      section.className = `crazy8-hand ${player} ${state.turn === player ? "active" : ""}`.trim();
+      const title = document.createElement("div");
+      title.className = "crazy8-hand-title";
+      title.innerHTML = `<strong>${labelFor(player)}</strong><span>${(game.hands[player] || []).length} card${(game.hands[player] || []).length === 1 ? "" : "s"}</span>`;
+      section.appendChild(title);
+      const row = document.createElement("div");
+      row.className = "crazy8-card-row";
+      (game.hands[player] || []).forEach((card, index) => {
+        const hidden = !canSee;
+        const playable = !hidden && crazyEightsCanPlay(card, game);
+        row.appendChild(renderCrazyEightsCardButton(card, player, index, hidden, playable));
+      });
+      section.appendChild(row);
+      return section;
+    }
+
+    function renderCrazyEightsBoard() {
+      const game = state.crazyEights || createCrazyEightsState();
+      els.board.innerHTML = "";
+      els.board.className = "board crazy8-table";
+      const topCard = crazyEightsTopCard(game);
+      const localRole = localOnlineRole();
+      const canAct = state.active && (!localRole || localRole === state.turn);
+      const shell = document.createElement("div");
+      shell.className = "crazy8-shell";
+      shell.appendChild(renderCrazyEightsHand(DOM));
+      const center = document.createElement("section");
+      center.className = "crazy8-center";
+      const pile = document.createElement("div");
+      pile.className = "crazy8-pile";
+      const deck = document.createElement("button");
+      deck.className = "crazy8-deck";
+      deck.dataset.crazy8Action = "draw";
+      deck.disabled = !canAct || Boolean(game.pendingWild);
+      deck.appendChild(renderPlayingCard("AS", true));
+      const deckText = document.createElement("span");
+      deckText.textContent = `${game.deck.length} left`;
+      deck.appendChild(deckText);
+      pile.appendChild(deck);
+      const discard = document.createElement("div");
+      discard.className = "crazy8-discard";
+      discard.appendChild(topCard ? renderPlayingCard(topCard, false) : renderPlayingCard("AS", true));
+      pile.appendChild(discard);
+      center.appendChild(pile);
+      const status = document.createElement("div");
+      status.className = "crazy8-status";
+      status.innerHTML = `
+        <span>Active suit</span>
+        <strong>${suitSymbol(game.currentSuit)} ${suitName(game.currentSuit)}</strong>
+        <p>${game.message || "Match the rank, suit, or play an 8."}</p>
+        ${game.lastAction ? `<small>${game.lastAction}</small>` : ""}
+      `;
+      center.appendChild(status);
+      if (game.pendingWild) {
+        const chooser = document.createElement("div");
+        chooser.className = "crazy8-suit-chooser";
+        chooser.innerHTML = `<strong>${labelFor(game.pendingWild.player)} chooses the next suit</strong>`;
+        ["S", "H", "C", "D"].forEach((suit) => {
+          const button = document.createElement("button");
+          button.dataset.crazy8Suit = suit;
+          button.disabled = Boolean(localRole && localRole !== game.pendingWild.player);
+          button.textContent = `${suitSymbol(suit)} ${suitName(suit)}`;
+          chooser.appendChild(button);
+        });
+        center.appendChild(chooser);
+      }
+      shell.appendChild(center);
+      shell.appendChild(renderCrazyEightsHand(SUB));
+      els.board.appendChild(shell);
+    }
+
+    function renderDoubleSolitaireMiniFoundation(player, index) {
+      const pile = doubleSolitaireBoard(player).foundations[index] || [];
+      const card = pile[pile.length - 1];
+      const item = document.createElement("span");
+      item.className = "double-solitaire-mini-foundation";
+      item.textContent = card
+        ? `${suitSymbol(solitaireSuit(card))} ${rankName(card.slice(0, -1))}`
+        : SOLITAIRE_FOUNDATION_LABELS[index];
+      return item;
+    }
+
+    function renderDoubleSolitaireProgress(player) {
+      const game = state.doubleSolitaire || createDoubleSolitaireState();
+      const board = doubleSolitaireBoard(player);
+      const button = document.createElement("button");
+      button.className = `double-solitaire-progress ${player} ${game.viewed === player ? "viewing" : ""} ${state.turn === player ? "active" : ""}`.trim();
+      button.dataset.doubleSolitaireView = player;
+      const count = doubleSolitaireFoundationCount(player);
+      const foundations = document.createElement("div");
+      foundations.className = "double-solitaire-mini-foundations";
+      SOLITAIRE_FOUNDATION_SUITS.forEach((_, index) => foundations.appendChild(renderDoubleSolitaireMiniFoundation(player, index)));
+      const meta = document.createElement("span");
+      meta.className = "double-solitaire-progress-meta";
+      meta.textContent = `${count}/52 foundations - stock ${board.stock.length} - waste ${board.waste.length}`;
+      const title = document.createElement("strong");
+      title.textContent = labelFor(player);
+      button.appendChild(title);
+      button.appendChild(foundations);
+      button.appendChild(meta);
+      return button;
+    }
+
+    function renderDoubleSolitaireCard(card, hidden, attrs = {}) {
+      const element = renderPlayingCard(card, hidden);
+      Object.entries(attrs).forEach(([key, value]) => {
+        element.dataset[key] = String(value);
+      });
+      element.setAttribute("role", "button");
+      element.setAttribute("tabindex", "0");
+      return element;
+    }
+
+    function renderDoubleSolitaireBoard() {
+      const game = state.doubleSolitaire || createDoubleSolitaireState();
+      const viewed = game.viewed === DOM ? DOM : SUB;
+      const board = doubleSolitaireBoard(viewed);
+      const selectedKey = doubleSolitaireSelectionKey(board.selected);
+      const canAct = doubleSolitaireCanAct(viewed);
+      els.board.innerHTML = "";
+      els.board.className = "board double-solitaire-table";
+      const shell = document.createElement("div");
+      shell.className = "double-solitaire-shell";
+      const progress = document.createElement("div");
+      progress.className = "double-solitaire-progress-row";
+      progress.appendChild(renderDoubleSolitaireProgress(DOM));
+      progress.appendChild(renderDoubleSolitaireProgress(SUB));
+      shell.appendChild(progress);
+
+      const status = document.createElement("section");
+      status.className = "double-solitaire-status";
+      status.innerHTML = `
+        <strong>${labelFor(viewed)} board</strong>
+        <span>${state.active ? `${labelFor(state.turn)} to play` : "Waiting for a bet"}</span>
+        <p>${game.message || "Build foundations before the other player does."}</p>
+        ${game.lastAction ? `<small>${game.lastAction}</small>` : ""}
+      `;
+      shell.appendChild(status);
+
+      const boardEl = document.createElement("section");
+      boardEl.className = `double-solitaire-board ${canAct ? "can-act" : ""}`.trim();
+      const top = document.createElement("div");
+      top.className = "double-solitaire-top-row";
+      const stock = document.createElement("button");
+      stock.className = "double-solitaire-slot stock";
+      stock.dataset.doubleSolitaireAction = "stock";
+      stock.disabled = !canAct;
+      if (board.stock.length) stock.appendChild(renderPlayingCard("AS", true));
+      else stock.appendChild(solitaireSlotLabel(board.waste.length ? "Reset" : "Stock"));
+      top.appendChild(stock);
+
+      const waste = document.createElement("button");
+      waste.className = "double-solitaire-slot waste";
+      const wasteCard = board.waste[board.waste.length - 1];
+      if (wasteCard) {
+        const rendered = renderDoubleSolitaireCard(wasteCard, false, { doubleSolitaireSource: "waste" });
+        if (selectedKey === "waste:::") rendered.classList.add("selected");
+        waste.appendChild(rendered);
+      } else {
+        waste.appendChild(solitaireSlotLabel("Waste"));
+      }
+      top.appendChild(waste);
+
+      SOLITAIRE_FOUNDATION_SUITS.forEach((_, index) => {
+        const slot = document.createElement("button");
+        slot.className = "double-solitaire-slot foundation";
+        slot.dataset.doubleSolitaireLocation = "foundation";
+        slot.dataset.foundationIndex = String(index);
+        const pile = board.foundations[index] || [];
+        const card = pile[pile.length - 1];
+        if (card) {
+          const rendered = renderDoubleSolitaireCard(card, false, { doubleSolitaireSource: "foundation", foundationIndex: index });
+          if (selectedKey === `foundation:::${index}`) rendered.classList.add("selected");
+          slot.appendChild(rendered);
+        } else {
+          slot.appendChild(solitaireSlotLabel(SOLITAIRE_FOUNDATION_LABELS[index], "suit-placeholder"));
+        }
+        top.appendChild(slot);
+      });
+      boardEl.appendChild(top);
+
+      const tableau = document.createElement("div");
+      tableau.className = "double-solitaire-tableau";
+      board.tableau.forEach((pile, column) => {
+        const columnEl = document.createElement("div");
+        columnEl.className = "double-solitaire-column";
+        columnEl.dataset.doubleSolitaireLocation = "tableau";
+        columnEl.dataset.tableauColumn = String(column);
+        if (!pile.length) columnEl.appendChild(solitaireSlotLabel("K"));
+        pile.forEach((entry, index) => {
+          const attrs = entry.faceUp
+            ? { doubleSolitaireSource: "tableau", tableauColumn: column, cardIndex: index }
+            : {};
+          const rendered = renderDoubleSolitaireCard(entry.card, !entry.faceUp, attrs);
+          rendered.style.setProperty("--solitaire-card-index", index);
+          if (selectedKey === `tableau:${column}:${index}:`) rendered.classList.add("selected");
+          columnEl.appendChild(rendered);
+        });
+        tableau.appendChild(columnEl);
+      });
+      boardEl.appendChild(tableau);
+      shell.appendChild(boardEl);
+      els.board.appendChild(shell);
     }
 
     function chessPieceGlyph(piece) {
@@ -12089,7 +12970,7 @@
 
     function currentTiltStatusItems() {
       if (state.screen !== "game") return [];
-      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail" || state.currentGame === "higherLower") return [];
+      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") return [];
       if (state.currentGame === "tributeReversi") {
         if (state.mode !== "reclaim") return [];
         const commandText = state.reversi && state.reversi.commandMode
@@ -12154,6 +13035,8 @@
       if (state.currentGame === "tributeReversi") return "Tribute Reversi";
       if (state.currentGame === "tributeTwentyOne") return "Tribute Blackjack";
       if (state.currentGame === "higherLower") return "Higher / Lower";
+      if (state.currentGame === "tributeCrazyEights") return "Tribute 8s";
+      if (state.currentGame === "doubleSolitaire") return "Double Solitaire";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
       if (state.currentGame === "tributeTrail") return "Tribute Trail";
@@ -12183,6 +13066,14 @@
       }
       if (state.currentGame === "higherLower") {
         renderHigherLowerRules();
+        return;
+      }
+      if (state.currentGame === "tributeCrazyEights") {
+        renderCrazyEightsRules();
+        return;
+      }
+      if (state.currentGame === "doubleSolitaire") {
+        renderDoubleSolitaireRules();
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -12232,6 +13123,36 @@
 
     function setRuleList(rules) {
       els.ruleList.innerHTML = rules.map(rule => `<li>${rule}</li>`).join("");
+    }
+
+    function renderCrazyEightsRules() {
+      const rules = [
+        `<strong>Goal:</strong> empty your hand before your opponent.`,
+        `<strong>Start:</strong> ${state.names.sub} chooses a normal bet or reclaim. Each player gets 7 cards and one discard starts the pile.`,
+        `<strong>Play:</strong> match the discard rank, match the active suit, or play an 8.`,
+        `<strong>8s:</strong> wild. The player chooses the next active suit.`,
+        `<strong>2s:</strong> the opponent draws 2 and loses their turn.`,
+        `<strong>Queens:</strong> skip the opponent, letting the same player act again.`,
+        `<strong>Aces:</strong> Tribute Tax. The opponent draws 1 and the same player keeps control.`,
+        `<strong>Draw:</strong> if you cannot play, draw one card. If you still have no legal play, the turn passes automatically.`,
+        `<strong>Normal win:</strong> if ${state.names.dom} empties her hand first, the bet enters her bank. If ${state.names.sub} wins, the bet is safe.`,
+        `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank; ${state.names.dom} starts reclaim games.`
+      ];
+      setRuleList(rules);
+    }
+
+    function renderDoubleSolitaireRules() {
+      const rules = [
+        `<strong>Goal:</strong> race your own Klondike board. First player to build all 52 cards onto foundations wins.`,
+        `<strong>Turn flow:</strong> tableau and foundation moves can continue as long as they come from tableau or foundation cards.`,
+        `<strong>Draw stack:</strong> drawing from stock ends your turn immediately.`,
+        `<strong>Waste card:</strong> moving the top waste card to tableau or foundation also ends your turn.`,
+        `<strong>Viewer:</strong> use the two progress panels to switch between ${state.names.dom}'s board and ${state.names.sub}'s board.`,
+        `<strong>Progress:</strong> each progress panel shows the four suit foundations, foundation total, stock count, and waste count.`,
+        `<strong>Normal win:</strong> if ${state.names.dom} clears first, the bet enters her bank. If ${state.names.sub} clears first, the bet is safe.`,
+        `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank; ${state.names.dom} starts reclaim races.`
+      ];
+      setRuleList(rules);
     }
 
     function renderTicTacToeRules() {
@@ -12485,9 +13406,10 @@
       const isTrail = state.currentGame === "tributeTrail";
       const isBlackjack = state.currentGame === "tributeTwentyOne";
       const isHigherLower = state.currentGame === "higherLower";
+      const isCrazyEights = state.currentGame === "tributeCrazyEights";
       els.gameScreen.classList.toggle("trail-wide", isTrail);
       els.gameScreen.classList.toggle("blackjack-wide", isBlackjack);
-      els.gameScreen.classList.toggle("higherlower-wide", isHigherLower);
+      els.gameScreen.classList.toggle("higherlower-wide", isHigherLower || isCrazyEights);
       els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower);
       els.cashLedgerPanel.classList.toggle("blackjack-ledger", isBlackjack);
       els.trailBankAmount.textContent = money(state.trail && state.trail.tributeBank || 0);
@@ -12507,7 +13429,7 @@
       }
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
         ? "Free Spin"
-        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))));
+        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Race" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))))));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
@@ -12562,6 +13484,25 @@
           els.turnText.innerHTML = `<strong>${labelFor(state.higherLower.winner)}</strong> wins the Higher / Lower run.`;
         } else {
           els.turnText.innerHTML = `<strong>${state.names.dom}</strong> sets the Higher / Lower cash-out streak.`;
+        }
+      } else if (state.currentGame === "tributeCrazyEights") {
+        if (state.active && state.crazyEights && state.crazyEights.pendingWild) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.crazyEights.pendingWild.player)}</strong> chooses the next suit.`;
+        } else if (state.active) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to play. Match the discard, draw, or throw an 8.`;
+        } else if (state.crazyEights && state.crazyEights.winner) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.crazyEights.winner)}</strong> wins Tribute 8s.`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses the buy-in to deal Tribute 8s.`;
+        }
+      } else if (state.currentGame === "doubleSolitaire") {
+        const viewed = state.doubleSolitaire && state.doubleSolitaire.viewed === DOM ? DOM : SUB;
+        if (state.active) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to play. Viewing ${labelFor(viewed)}'s board. Drawing from stock passes the turn.`;
+        } else if (state.doubleSolitaire && state.doubleSolitaire.winner) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.doubleSolitaire.winner)}</strong> wins Double Solitaire.`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses the buy-in to deal Double Solitaire.`;
         }
       } else if (state.currentGame === "tributeReversi") {
         const score = reversiScore();
@@ -12690,7 +13631,7 @@
         els.passBtn.classList.toggle("hidden", !(canCommand || (state.reversi && state.reversi.commandMode)));
         els.passBtn.disabled = !canCommand;
         els.passBtn.textContent = state.reversi && state.reversi.commandMode ? "Command Armed" : "Command Move";
-      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders" || state.currentGame === "higherLower") {
+      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") {
         els.passBtn.classList.add("hidden");
       } else {
         const tributeFourPowerReady = !state.lockColumnMode && ((state.lockColumnAvailable && !state.lockColumnMode) || (state.pressureDropAvailable && !state.pressureDropArmed));
@@ -12733,6 +13674,16 @@
       if (state.currentGame === "higherLower") {
         els.gameTitle.textContent = "Higher / Lower";
         els.gameSubtitle.textContent = "A dom-set card endurance run. The sub chases the cash-out streak while wrong calls build a pending owed counter.";
+        return;
+      }
+      if (state.currentGame === "tributeCrazyEights") {
+        els.gameTitle.textContent = "Tribute 8s";
+        els.gameSubtitle.textContent = "Crazy Eights with wild suits, draw traps, skips, and ace tribute tax.";
+        return;
+      }
+      if (state.currentGame === "doubleSolitaire") {
+        els.gameTitle.textContent = "Double Solitaire";
+        els.gameSubtitle.textContent = "A turn-based Klondike race where drawing from stock passes control.";
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
@@ -12811,6 +13762,8 @@
     }
     els.resetBtn.addEventListener("click", resetPrototype);
     els.board.addEventListener("click", handleObedienceBoardClick);
+    els.board.addEventListener("click", handleCrazyEightsBoardClick);
+    els.board.addEventListener("click", handleDoubleSolitaireBoardClick);
     els.hitBtn.addEventListener("click", () => {
       if (state.currentGame === "tributeChess") {
         chessFreezeAction();
@@ -13074,6 +14027,8 @@
     els.tributeFleetCard.addEventListener("click", openTributeFleet);
     els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
     if (els.higherLowerCard) els.higherLowerCard.addEventListener("click", openHigherLower);
+    if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.addEventListener("click", openTributeCrazyEights);
+    if (els.doubleSolitaireCard) els.doubleSolitaireCard.addEventListener("click", openDoubleSolitaire);
     if (els.solitaireCard) els.solitaireCard.addEventListener("click", openSolitaire);
     els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
     els.tributeWheelCard.addEventListener("click", openWheelSpin);
