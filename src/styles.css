@@ -1549,6 +1549,83 @@
       }
     }
 
+    .ttt-shell {
+      position: relative;
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+    }
+
+    .ttt-match-panel {
+      width: min(92vw, 560px);
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(241, 201, 101, 0.18);
+      border-radius: 8px;
+      background: rgba(20, 10, 16, 0.72);
+    }
+
+    .ttt-match-popup {
+      position: relative;
+      z-index: 2;
+      margin-bottom: -4px;
+      background:
+        linear-gradient(145deg, rgba(58, 32, 42, 0.96), rgba(19, 10, 16, 0.98)),
+        var(--panel);
+      border-color: rgba(255, 112, 154, 0.36);
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.38), 0 0 24px rgba(255, 79, 134, 0.12);
+    }
+
+    .ttt-score-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .ttt-score-row span:last-child {
+      text-align: right;
+    }
+
+    .ttt-score-row strong {
+      color: var(--gold);
+      font-size: 1.25rem;
+    }
+
+    .ttt-format-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+      gap: 8px;
+    }
+
+    .ttt-format-row button {
+      min-height: 2.25rem;
+      padding-inline: 8px;
+      font-size: 0.86rem;
+    }
+
+    .ttt-format-row button.active {
+      border-color: rgba(239, 199, 94, 0.74);
+      background: linear-gradient(135deg, rgba(241, 201, 101, 0.22), rgba(255, 79, 134, 0.12));
+      color: var(--gold);
+      font-weight: 900;
+    }
+
+    .ttt-match-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      text-align: center;
+    }
+
+    .ttt-next-board-btn {
+      justify-self: center;
+      min-width: min(220px, 100%);
+    }
+
     .ttt-board {
       width: min(92vw, 420px);
       aspect-ratio: 1;
@@ -1579,6 +1656,12 @@
     .ttt-cell.win {
       border-color: rgba(239, 199, 94, 0.72);
       box-shadow: 0 0 26px rgba(239, 199, 94, 0.25), inset 0 0 28px rgba(239, 199, 94, 0.16);
+    }
+
+    .blackjack-round-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+      gap: 8px;
     }
 
     .dice-table {

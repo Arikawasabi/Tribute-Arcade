@@ -10,6 +10,9 @@
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
     const WHEEL_NUDGE_LIMIT = 4;
+    const WHEEL_THRONE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+    const WHEEL_THRONE_SPIN_LIMIT = 5;
+    const WHEEL_THRONE_FREE_SPIN = "free";
     const OBEDIENCE_GRID_SIZE = 9;
     const OBEDIENCE_MIN_ORDER = 3;
     const OBEDIENCE_MAX_PRESSURE = 5;
@@ -183,6 +186,7 @@
       higherLower: createHigherLowerState(),
       crazyEights: createCrazyEightsState(),
       doubleSolitaire: createDoubleSolitaireState(),
+      ticTacToe: createTicTacToeState(),
       dice: createDiceState(),
       wheel: createWheelState(),
       trail: createTrailState(),
@@ -498,6 +502,67 @@
       return Array.from({ length: 3 }, () => Array(3).fill(EMPTY));
     }
 
+    function createTicTacToeState() {
+      return {
+        format: "bo3",
+        target: 2,
+        maxBoards: 3,
+        scores: {
+          sub: 0,
+          dom: 0,
+          draws: 0
+        },
+        boardNumber: 1,
+        matchActive: false,
+        pendingNextBoard: false,
+        lastBoardWinner: null
+      };
+    }
+
+    const TIC_TAC_TOE_FORMATS = [
+      { id: "first1", label: "First to 1", target: 1, maxBoards: 1 },
+      { id: "bo3", label: "Best of 3", target: 2, maxBoards: 3 },
+      { id: "bo5", label: "Best of 5", target: 3, maxBoards: 5 },
+      { id: "first3", label: "First to 3", target: 3, maxBoards: 0 },
+      { id: "first5", label: "First to 5", target: 5, maxBoards: 0 }
+    ];
+
+    function ticTacToeFormatById(id) {
+      return TIC_TAC_TOE_FORMATS.find((format) => format.id === id) || TIC_TAC_TOE_FORMATS[1];
+    }
+
+    function ticTacToeFormatOptions() {
+      return isThroneSession()
+        ? TIC_TAC_TOE_FORMATS.filter((format) => format.id !== "first1")
+        : TIC_TAC_TOE_FORMATS;
+    }
+
+    function currentTicTacToeFormat() {
+      const options = ticTacToeFormatOptions();
+      return options.find((format) => format.id === (state.ticTacToe && state.ticTacToe.format)) || options[0];
+    }
+
+    function normalizeTicTacToeState(value) {
+      const base = createTicTacToeState();
+      const format = ticTacToeFormatById(value && value.format);
+      return {
+        ...base,
+        ...(value || {}),
+        format: format.id,
+        target: format.target,
+        maxBoards: format.maxBoards,
+        scores: {
+          sub: Math.max(0, Number(value && value.scores ? value.scores.sub : 0) || 0),
+          dom: Math.max(0, Number(value && value.scores ? value.scores.dom : 0) || 0),
+          draws: Math.max(0, Number(value && value.scores ? value.scores.draws : 0) || 0)
+        },
+        boardNumber: Math.max(1, Number(value && value.boardNumber) || 1),
+        matchActive: Boolean(value && value.matchActive),
+        pendingNextBoard: Boolean(value && value.pendingNextBoard),
+        lastBoardWinner: value && (value.lastBoardWinner === SUB || value.lastBoardWinner === DOM || value.lastBoardWinner === "draw") ? value.lastBoardWinner : null
+      };
+    }
+
     function createCheckersState() {
       return {
         board: Array.from({ length: 8 }, (_, row) => Array.from({ length: 8 }, (_, col) => {
@@ -603,6 +668,18 @@
       };
     }
 
+    const BLACKJACK_ROUND_FORMATS = [
+      { id: "single", label: "1 Round", target: 1 },
+      { id: "bo3", label: "Best of 3", target: 2 },
+      { id: "bo5", label: "Best of 5", target: 3 },
+      { id: "first3", label: "First to 3", target: 3 },
+      { id: "first5", label: "First to 5", target: 5 }
+    ];
+
+    function blackjackRoundFormat(id) {
+      return BLACKJACK_ROUND_FORMATS.find((format) => format.id === id) || BLACKJACK_ROUND_FORMATS[0];
+    }
+
     function createWheelState() {
       return {
         slices: createWheelSlices(),
@@ -659,6 +736,27 @@
         }
       }
       return slices;
+    }
+
+    function createThroneWheelSlices() {
+      const values = [
+        ...Array(1).fill(100),
+        ...Array(2).fill(50),
+        ...Array(4).fill(25),
+        ...Array(6).fill(10),
+        ...Array(10).fill(5),
+        ...Array(5).fill(WHEEL_THRONE_FREE_SPIN),
+        ...Array(8).fill(0)
+      ];
+      for (let i = values.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [values[i], values[j]] = [values[j], values[i]];
+      }
+      return values;
+    }
+
+    function createCurrentWheelSlices() {
+      return isThroneSession() ? createThroneWheelSlices() : createWheelSlices(state.wheel && state.wheel.riskMode);
     }
 
     function wheelRiskModeSlots(riskMode = wheelRiskModeInfo()) {
@@ -1668,6 +1766,7 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>${state.names.dom}</strong> controls the bank. <strong>${state.names.sub}</strong> makes the first normal bet.`);
+      if (startThroneRoundOnOpen()) return;
       render();
       publishState();
     }
@@ -1681,6 +1780,7 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>${state.names.dom}</strong> controls the bank. <strong>${state.names.sub}</strong> makes the first fleet bet.`);
+      if (startThroneRoundOnOpen()) return;
       render();
       publishState();
     }
@@ -1694,6 +1794,7 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>${state.names.dom}</strong> holds the table. <strong>${state.names.sub}</strong> buys into the first hand.`);
+      if (startThroneRoundOnOpen()) return;
       render();
       publishState();
     }
@@ -1720,6 +1821,7 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>Tribute 8s opened.</strong> ${state.names.sub} buys in, then both players race to empty their hand.`);
+      if (startThroneRoundOnOpen()) return;
       render();
       publishState();
     }
@@ -1733,6 +1835,7 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>Solitaire Duel opened.</strong> ${state.names.sub} buys in, then both players race their own Klondike board.`);
+      if (startThroneRoundOnOpen()) return;
       render();
       publishState();
     }
@@ -1757,7 +1860,9 @@
       setScreen("game");
       resetWheelSpinBoard();
       els.log.innerHTML = "";
-      addLog(`<strong>Wheel Spin opened.</strong> ${state.names.sub} can spin after ${state.names.dom} unlocks the wheel. Cash spaces pay ${state.names.dom}'s bank, minus spaces drain it, and blanks spare the spin.`);
+      addLog(isThroneSession()
+        ? `<strong>Throne Wheel opened.</strong> ${state.names.dom} has 5 spins per hour. Cash spaces open ${state.names.sub}'s Throne page for that amount, + free spin keeps the count, and blanks do nothing.`
+        : `<strong>Wheel Spin opened.</strong> ${state.names.sub} can spin after ${state.names.dom} unlocks the wheel. Cash spaces pay ${state.names.dom}'s bank, minus spaces drain it, and blanks spare the spin.`);
       render();
       publishState();
     }
@@ -1783,6 +1888,7 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>${state.names.sub}</strong> plays dark and moves first. <strong>${state.names.dom}</strong> plays light and waits to flip the board.`);
+      if (startThroneRoundOnOpen()) return;
       render();
       publishState();
     }
@@ -1808,6 +1914,7 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>${state.names.dom}</strong> claims the board. <strong>${state.names.sub}</strong> buys into the first game.`);
+      if (startThroneRoundOnOpen()) return;
       render();
       publishState();
     }
@@ -1821,6 +1928,7 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>${state.names.dom}</strong> claims the dark squares. <strong>${state.names.sub}</strong> buys into the first checkers game.`);
+      if (startThroneRoundOnOpen()) return;
       render();
       publishState();
     }
@@ -3557,6 +3665,7 @@
         higherLower: state.higherLower,
         crazyEights: state.crazyEights,
         doubleSolitaire: state.doubleSolitaire,
+        ticTacToe: state.ticTacToe,
         dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
@@ -3623,6 +3732,7 @@
       state.higherLower = snapshot.higherLower || state.higherLower;
       state.crazyEights = snapshot.crazyEights || state.crazyEights;
       state.doubleSolitaire = snapshot.doubleSolitaire || state.doubleSolitaire;
+      state.ticTacToe = normalizeTicTacToeState(snapshot.ticTacToe || state.ticTacToe);
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
       state.trail = snapshot.trail || state.trail;
@@ -4131,6 +4241,12 @@
       startReclaimMatch();
     }
 
+    function startThroneRoundOnOpen() {
+      if (!isThroneSession()) return false;
+      startNormalMatch();
+      return true;
+    }
+
     function requestWagerApproval(type) {
       if (wagerStartBypass) return true;
       if (!usesRoundFlow()) return true;
@@ -4222,7 +4338,7 @@
 
     function finishRoundStart(logHtml, shouldRender = true) {
       if (logHtml) addLog(logHtml);
-      if (shouldRender) render();
+      if (shouldRender || isThroneSession()) render();
       publishState();
     }
 
@@ -6179,6 +6295,12 @@
       state.active = false;
       state.mode = "normal";
       state.pot = 0;
+      state.ticTacToe = normalizeTicTacToeState(state.ticTacToe);
+      state.ticTacToe.scores = { sub: 0, dom: 0, draws: 0 };
+      state.ticTacToe.boardNumber = 1;
+      state.ticTacToe.matchActive = false;
+      state.ticTacToe.pendingNextBoard = false;
+      state.ticTacToe.lastBoardWinner = null;
       state.lockedTribute = state.domVault;
       state.winningCells = [];
       state.trail = createTrailState();
@@ -7482,16 +7604,11 @@
       const role = localOnlineRole();
       const canChoose = !state.online.room || role === DOM;
       const rounds = state.twentyOne.settings.rounds || "single";
-      const powers = state.twentyOne.settings.powers || "on";
       els.blackjackSettingsText.textContent = canChoose
         ? "Choose how long this Blackjack table runs."
         : `${state.names.dom} is choosing the Blackjack settings.`;
       els.blackjackSettingsModal.querySelectorAll("[data-blackjack-rounds]").forEach((button) => {
         button.classList.toggle("primary", button.dataset.blackjackRounds === rounds);
-        button.disabled = !canChoose;
-      });
-      els.blackjackSettingsModal.querySelectorAll("[data-blackjack-powers]").forEach((button) => {
-        button.classList.toggle("primary", button.dataset.blackjackPowers === powers);
         button.disabled = !canChoose;
       });
       els.blackjackSettingsConfirmBtn.disabled = !canChoose;
@@ -8232,13 +8349,15 @@
     }
 
     function resetWheelSpinBoard() {
-      state.turn = SUB;
+      state.turn = isThroneSession() ? DOM : SUB;
       state.active = true;
       state.mode = "normal";
       state.pot = 0;
       state.lockedTribute = state.domVault;
       state.winningCells = [];
       state.wheel = createWheelState();
+      state.wheel.slices = createCurrentWheelSlices();
+      state.wheel.unlocked = isThroneSession();
     }
 
     function startWheelSpinNormalMatch() {
@@ -8252,8 +8371,9 @@
     function spinWheel() {
       refreshWheelLimitWindow();
       if (!state.active || state.wheel.spinning) return;
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
-      if (!state.wheel.unlocked) {
+      const throneWheel = isThroneSession();
+      if (localOnlineRole() && localOnlineRole() !== (throneWheel ? DOM : SUB)) return;
+      if (!throneWheel && !state.wheel.unlocked) {
         addLog(`<strong class="danger">Wheel locked.</strong> ${state.names.dom} must unlock it before ${state.names.sub} can spin.`);
         render();
         return;
@@ -8264,6 +8384,7 @@
         return;
       }
       const resultIndex = Math.floor(Math.random() * 36);
+      const selectedValue = state.wheel.slices[resultIndex];
       resolveFocusTaxSuccess();
       const sliceAngle = Math.PI * 2 / 36;
       const rotations = 8 + Math.floor(Math.random() * 4);
@@ -8278,19 +8399,22 @@
       state.wheel.targetAngle = targetAngle;
       state.wheel.resultIndex = resultIndex;
       state.wheel.result = null;
-      state.wheel.unlocked = false;
+      state.wheel.unlocked = throneWheel ? true : false;
       state.wheel.finalPayout = null;
       state.wheel.finalBankDelta = null;
       state.wheel.resultNotes = [];
       state.wheel.nudgeUsed = false;
-      state.wheel.spinsUsed += 1;
-      addLog(`<strong>${state.names.sub} spins the wheel.</strong>`);
+      if (!(throneWheel && selectedValue === WHEEL_THRONE_FREE_SPIN)) state.wheel.spinsUsed += 1;
+      addLog(throneWheel
+        ? `<strong>${state.names.dom} spins the Throne wheel.</strong>`
+        : `<strong>${state.names.sub} spins the wheel.</strong>`);
       render();
       publishState();
     }
 
     function unlockWheelSpin() {
       refreshWheelLimitWindow();
+      if (isThroneSession()) return;
       if (!canUseWheelDomTools() || wheelSpinsRemaining() <= 0) return;
       const riskMode = wheelRiskModeInfo();
       if (state.domVault < riskMode.cost) {
@@ -8364,9 +8488,9 @@
 
     function refreshWheelLimitWindow(now = Date.now()) {
       const started = Number(state.wheel.limitWindowStartedAt || 0);
-      if (!started || now - started >= WHEEL_LIMIT_WINDOW_MS) {
+      if (!started || now - started >= wheelLimitWindowMs()) {
         state.wheel.limitWindowStartedAt = now;
-        state.wheel.slices = createWheelSlices(state.wheel.riskMode);
+        state.wheel.slices = createCurrentWheelSlices();
         state.wheel.spinsUsed = 0;
         state.wheel.blessUses = 0;
         state.wheel.greedyUses = 0;
@@ -8374,14 +8498,22 @@
       }
     }
 
+    function wheelLimitWindowMs() {
+      return isThroneSession() ? WHEEL_THRONE_LIMIT_WINDOW_MS : WHEEL_LIMIT_WINDOW_MS;
+    }
+
+    function wheelSpinLimit() {
+      return isThroneSession() ? WHEEL_THRONE_SPIN_LIMIT : WHEEL_SPIN_LIMIT;
+    }
+
     function wheelLimitRemainingMs(now = Date.now()) {
       refreshWheelLimitWindow(now);
-      return Math.max(0, WHEEL_LIMIT_WINDOW_MS - (now - Number(state.wheel.limitWindowStartedAt || now)));
+      return Math.max(0, wheelLimitWindowMs() - (now - Number(state.wheel.limitWindowStartedAt || now)));
     }
 
     function wheelSpinsRemaining() {
       refreshWheelLimitWindow();
-      return Math.max(0, WHEEL_SPIN_LIMIT - Number(state.wheel.spinsUsed || 0));
+      return Math.max(0, wheelSpinLimit() - Number(state.wheel.spinsUsed || 0));
     }
 
     function wheelPowerRemaining(power) {
@@ -8417,11 +8549,16 @@
 
     function finishWheelSpin() {
       if (!state.wheel.spinning) return;
-      if (localOnlineRole() && localOnlineRole() !== SUB) return;
+      const throneWheel = isThroneSession();
+      if (localOnlineRole() && localOnlineRole() !== (throneWheel ? DOM : SUB)) return;
       state.wheel.spinning = false;
       state.wheel.angle = state.wheel.targetAngle;
       const value = state.wheel.slices[state.wheel.resultIndex];
       state.wheel.result = value;
+      if (throneWheel) {
+        finishThroneWheelSpin(value);
+        return;
+      }
       const result = resolveWheelPayout(value);
       state.wheel.finalPayout = result.payout;
       state.wheel.resultNotes = result.notes;
@@ -8569,6 +8706,7 @@
         && state.active
         && !state.wheel.spinning
         && !state.wheel.unlocked
+        && !isThroneSession()
         && (!state.online.room || localOnlineRole() === DOM);
     }
 
@@ -8606,6 +8744,7 @@
 
     function canNudgeWheel() {
       return state.currentGame === "wheelSpin"
+        && !isThroneSession()
         && !state.wheel.spinning
         && state.wheel.resultIndex !== null
         && !state.wheel.nudgeUsed
@@ -8660,10 +8799,12 @@
     }
 
     function wheelValueText(value) {
+      if (value === WHEEL_THRONE_FREE_SPIN) return "+ free spin";
       return value === 0 ? "blank" : wheelSignedMoney(value);
     }
 
     function wheelSignedMoney(value) {
+      if (value === WHEEL_THRONE_FREE_SPIN) return "+ free spin";
       const amount = Number(value || 0);
       if (amount < 0) return `-${money(Math.abs(amount))}`;
       return money(amount);
@@ -8684,6 +8825,98 @@
       state.domOpened = false;
     }
 
+    function setTicTacToeFormat(formatId) {
+      if (state.currentGame !== "tributeTicTacToe") return;
+      if (state.active || state.pot > 0) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      const format = ticTacToeFormatOptions().find((option) => option.id === formatId) || currentTicTacToeFormat();
+      state.ticTacToe = normalizeTicTacToeState({ ...state.ticTacToe, format: format.id });
+      render();
+      publishState();
+    }
+
+    function finishThroneWheelSpin(value) {
+      state.wheel.finalBankDelta = 0;
+      state.wheel.resultNotes = [];
+      state.active = true;
+      const amount = Number(value || 0);
+      if (value === WHEEL_THRONE_FREE_SPIN) {
+        state.wheel.finalPayout = 0;
+        state.wheel.resultNotes = ["free spin"];
+        showOutcomeSplash({
+          tone: "gold",
+          kicker: "Free Spin",
+          title: "The Dom Keeps Spinning",
+          detail: "That slice does not spend one of the hourly spins."
+        });
+        addLog(`<strong>Free spin.</strong> ${state.names.dom} keeps her spin count and can spin again.`);
+      } else if (amount > 0) {
+        const before = state.domVault;
+        state.wheel.finalPayout = amount;
+        state.settings.pendingThroneDemand = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          game: "Wheel Spin",
+          amount,
+          createdAt: Date.now()
+        };
+        recordLedgerEvent({
+          type: "demand",
+          label: "Throne Wheel Opened",
+          detail: `The Throne wheel lands on ${money(amount)} and opens the payment page automatically.`,
+          delta: 0,
+          before,
+          after: state.domVault
+        });
+        demandPayment({ automatic: true });
+        showOutcomeSplash({
+          tone: "dom",
+          kicker: "Throne Wheel",
+          title: `${money(amount)} Tribute`,
+          detail: `${state.names.sub}'s Throne page opens for ${money(roundThroneTributeAmount(amount))}.`
+        });
+        addLog(`<strong>Throne Wheel hits ${money(amount)}.</strong> ${state.names.sub}'s Throne page opens automatically.`);
+      } else {
+        state.wheel.finalPayout = 0;
+        showOutcomeSplash({
+          tone: "gold",
+          kicker: "Blank",
+          title: "No Tribute Sent",
+          detail: "The wheel lands blank."
+        });
+        addLog(`<strong>Throne Wheel hits blank.</strong> No payment page opens.`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
+    }
+
+    function resetTicTacToeMatchProgress() {
+      state.ticTacToe = normalizeTicTacToeState(state.ticTacToe);
+      const format = currentTicTacToeFormat();
+      state.ticTacToe.format = format.id;
+      state.ticTacToe.target = format.target;
+      state.ticTacToe.maxBoards = format.maxBoards;
+      state.ticTacToe.scores = { sub: 0, dom: 0, draws: 0 };
+      state.ticTacToe.boardNumber = 1;
+      state.ticTacToe.matchActive = true;
+      state.ticTacToe.pendingNextBoard = false;
+      state.ticTacToe.lastBoardWinner = null;
+      state.winningCells = [];
+    }
+
+    function ticTacToeStartNextBoard(message = "") {
+      state.board = createTicTacToeBoard();
+      state.winningCells = [];
+      state.ticTacToe = normalizeTicTacToeState({
+        ...state.ticTacToe,
+        pendingNextBoard: false,
+        lastBoardWinner: null
+      });
+      state.turn = state.mode === "reclaim" ? DOM : randomStarter();
+      state.active = true;
+      if (message) addLog(message);
+    }
+
     function resetTributeChessBoard() {
       state.turn = SUB;
       state.active = false;
@@ -8697,20 +8930,80 @@
     function startTicTacToeNormalMatch() {
       const bet = prepareRound("normal");
       if (bet === null) return;
-      state.board = createTicTacToeBoard();
-      const starter = randomStarter();
-      state.turn = starter;
-      state.active = true;
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} starts.`);
+      resetTicTacToeMatchProgress();
+      ticTacToeStartNextBoard();
+      const format = currentTicTacToeFormat();
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${format.label}: first to ${format.target} board wins takes the match. ${labelFor(state.turn)} starts board 1.`);
     }
 
     function startTicTacToeReclaimMatch() {
       const pot = prepareRound("reclaim", "match");
       if (pot === null) return;
-      state.board = createTicTacToeBoard();
-      state.turn = DOM;
-      state.active = true;
-      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} tries to take back ${money(pot)}. ${state.names.dom} starts and wins draws.`);
+      resetTicTacToeMatchProgress();
+      ticTacToeStartNextBoard();
+      const format = currentTicTacToeFormat();
+      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} tries to take back ${money(pot)} across ${format.label}. ${state.names.dom} starts boards and drawn boards count for her.`);
+    }
+
+    function ticTacToeMatchWinner() {
+      const game = normalizeTicTacToeState(state.ticTacToe);
+      if (game.scores.sub >= game.target) return SUB;
+      if (game.scores.dom >= game.target) return DOM;
+      return null;
+    }
+
+    function ticTacToeScoreText() {
+      const scores = normalizeTicTacToeState(state.ticTacToe).scores;
+      return `${state.names.sub} ${scores.sub}, ${state.names.dom} ${scores.dom}${scores.draws ? `, draws ${scores.draws}` : ""}`;
+    }
+
+    function finishTicTacToeBoard(boardWinner, cells = []) {
+      state.active = false;
+      state.winningCells = cells;
+      state.ticTacToe = normalizeTicTacToeState(state.ticTacToe);
+      const scoredWinner = boardWinner === "draw" && state.mode === "reclaim" ? DOM : boardWinner;
+      if (scoredWinner === SUB || scoredWinner === DOM) {
+        state.ticTacToe.scores[scoredWinner] += 1;
+      } else {
+        state.ticTacToe.scores.draws += 1;
+      }
+      state.ticTacToe.lastBoardWinner = boardWinner;
+      const matchWinner = ticTacToeMatchWinner();
+      if (matchWinner) {
+        state.ticTacToe.matchActive = false;
+        const result = settleRoundBank(matchWinner);
+        const scoreText = ticTacToeScoreText();
+        if (result.outcome === "subReclaim") {
+          addLog(`<strong>${state.names.sub} wins the Tic Tac Toe match.</strong> ${scoreText}. ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+        } else if (result.outcome === "subNormal") {
+          addLog(`<strong>${state.names.sub} wins the Tic Tac Toe match.</strong> ${scoreText}. Nothing enters ${state.names.dom}'s bank.`);
+        } else if (result.outcome === "domReclaim") {
+          addLog(`<strong>${state.names.dom} wins the Tic Tac Toe reclaim match.</strong> ${scoreText}. ${money(result.amount)} is added to her bank.`);
+        } else if (result.outcome === "domNormal") {
+          addLog(`<strong>${state.names.dom} wins the Tic Tac Toe match.</strong> ${scoreText}. ${money(result.amount)} moves into her bank.`);
+        } else if (result.outcome === "domThrone") {
+          addLog(`<strong>${state.names.sub} loses the Tic Tac Toe match.</strong> ${scoreText}. The Throne page opens automatically.`);
+        }
+        state.pot = 0;
+        render();
+        publishState();
+        return;
+      }
+      state.ticTacToe.pendingNextBoard = true;
+      addLog(boardWinner === "draw"
+        ? `<strong>Board ${state.ticTacToe.boardNumber} draws.</strong> ${state.mode === "reclaim" ? `${state.names.dom} claims the board. ` : ""}${ticTacToeScoreText()}.`
+        : `<strong>${labelFor(boardWinner)} takes board ${state.ticTacToe.boardNumber}.</strong> ${ticTacToeScoreText()}.`);
+      render();
+      publishState();
+    }
+
+    function continueTicTacToeMatch() {
+      if (state.currentGame !== "tributeTicTacToe" || !state.ticTacToe || !state.ticTacToe.pendingNextBoard) return;
+      if (state.online.room && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.ticTacToe.boardNumber += 1;
+      ticTacToeStartNextBoard(`<strong>Board ${state.ticTacToe.boardNumber} starts.</strong> ${labelFor(state.turn)} moves first.`);
+      render();
+      publishState();
     }
 
     function playTicTacToe(row, col) {
@@ -8722,11 +9015,11 @@
       if (player === SUB) resolveFocusTaxSuccess();
       const result = evaluateTicTacToe();
       if (result.winner) {
-        endMatch(result.winner, result.cells);
+        finishTicTacToeBoard(result.winner, result.cells);
         return;
       }
       if (isTicTacToeFull()) {
-        endMatch(state.mode === "reclaim" ? DOM : "draw", []);
+        finishTicTacToeBoard("draw", []);
         return;
       }
       state.turn = state.turn === SUB ? DOM : SUB;
@@ -9566,22 +9859,15 @@
     }
 
     function blackjackPowersEnabled() {
-      return state.twentyOne && (!state.twentyOne.settings || state.twentyOne.settings.powers !== "off");
+      return Boolean(state.twentyOne && reclaimPerksActive() && domAdvantagesEnabled());
     }
 
     function setBlackjackRounds(rounds) {
       if (state.currentGame !== "tributeTwentyOne" || !state.twentyOne.setupPending) return;
       if (state.online.room && localOnlineRole() !== DOM) return;
-      state.twentyOne.settings.rounds = rounds === "marks" ? "marks" : "single";
-      state.twentyOne.targetMarks = state.twentyOne.settings.rounds === "marks" ? 3 : 1;
-      render();
-      publishState();
-    }
-
-    function setBlackjackPowers(powerMode) {
-      if (state.currentGame !== "tributeTwentyOne" || !state.twentyOne.setupPending) return;
-      if (state.online.room && localOnlineRole() !== DOM) return;
-      state.twentyOne.settings.powers = powerMode === "off" ? "off" : "on";
+      const format = blackjackRoundFormat(rounds);
+      state.twentyOne.settings.rounds = format.id;
+      state.twentyOne.targetMarks = format.target;
       render();
       publishState();
     }
@@ -9589,11 +9875,12 @@
     function confirmBlackjackSettings() {
       if (state.currentGame !== "tributeTwentyOne" || !state.twentyOne.setupPending) return;
       if (state.online.room && localOnlineRole() !== DOM) return;
+      const format = blackjackRoundFormat(state.twentyOne.settings.rounds);
       state.twentyOne.setupPending = false;
       state.twentyOne.marks = { dom: 0, sub: 0 };
-      state.twentyOne.targetMarks = state.twentyOne.settings.rounds === "marks" ? 3 : 1;
-      const roundText = state.twentyOne.targetMarks === 3 ? "first to 3 marks" : "one round";
-      addLog(`<strong>Blackjack settings locked.</strong> ${roundText}, powers ${blackjackPowersEnabled() ? "on" : "off"}.`);
+      state.twentyOne.settings.rounds = format.id;
+      state.twentyOne.targetMarks = format.target;
+      addLog(`<strong>Blackjack settings locked.</strong> ${format.label}.`);
       resetTwentyOneHand(true);
       publishState();
     }
@@ -9603,7 +9890,7 @@
       if (state.online.room && localOnlineRole() !== DOM) return;
       state.twentyOne.nextHandPending = false;
       resetTwentyOneHand(true);
-      addLog(`<strong>Next hand.</strong> First to ${state.twentyOne.targetMarks} marks wins the table.`);
+      addLog(`<strong>Next hand.</strong> ${blackjackRoundFormat(state.twentyOne.settings.rounds).label} wins the table.`);
       publishState();
     }
 
@@ -10871,7 +11158,7 @@
             publishState();
             return;
           }
-          addLog(`<strong>${labelFor(winner)} wins the Blackjack table.</strong> First to ${state.twentyOne.targetMarks} marks.`);
+          addLog(`<strong>${labelFor(winner)} wins the Blackjack table.</strong> ${blackjackRoundFormat(state.twentyOne.settings.rounds).label}.`);
         } else {
           addLog(`<strong>Push.</strong> ${reason} No mark awarded.`);
           state.twentyOne.nextHandPending = true;
@@ -11753,7 +12040,46 @@
 
     function renderTicTacToeBoard() {
       els.board.innerHTML = "";
-      els.board.className = "ttt-board";
+      els.board.className = "ttt-shell";
+      state.ticTacToe = normalizeTicTacToeState(state.ticTacToe);
+      const game = state.ticTacToe;
+      const format = currentTicTacToeFormat();
+      const formatOptions = ticTacToeFormatOptions();
+      const canPickFormat = !state.active && state.pot <= 0 && (!state.online.room || localOnlineRole() === DOM);
+      const canStartMatch = !state.active && state.pot <= 0 && !state.pendingWager && !state.normalReplayPrompt && (!state.online.room || !localOnlineRole() || localOnlineRole() === SUB);
+      const canContinue = game.pendingNextBoard && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
+      const setup = document.createElement("div");
+      setup.className = `ttt-match-panel ${(!state.active || game.pendingNextBoard) ? "ttt-match-popup" : ""}`.trim();
+      setup.innerHTML = `
+        <div class="ttt-score-row">
+          <span>${escapeHtml(state.names.sub)} <strong>${game.scores.sub}</strong></span>
+          <span>Board ${game.boardNumber}</span>
+          <span>${escapeHtml(state.names.dom)} <strong>${game.scores.dom}</strong></span>
+        </div>
+        <div class="ttt-format-row">
+          ${formatOptions.map((option) => `
+            <button type="button" data-ttt-format="${option.id}" class="${option.id === format.id ? "active" : ""}"${canPickFormat ? "" : " disabled"}>${option.label}</button>
+          `).join("")}
+        </div>
+        <p class="ttt-match-note">${format.label}: first to ${format.target} board wins${game.scores.draws ? ` · Draws ${game.scores.draws}` : ""}.</p>
+        ${!game.matchActive && state.pot <= 0 && !state.normalReplayPrompt ? `<button type="button" class="primary ttt-next-board-btn" data-ttt-start${canStartMatch ? "" : " disabled"}>Start</button>` : ""}
+        ${game.pendingNextBoard ? `<button type="button" class="primary ttt-next-board-btn" data-ttt-next-board${canContinue ? "" : " disabled"}>Start Next Board</button>` : ""}
+      `;
+      setup.addEventListener("click", (event) => {
+        const formatButton = event.target.closest("[data-ttt-format]");
+        if (formatButton && !formatButton.disabled) {
+          setTicTacToeFormat(formatButton.dataset.tttFormat);
+          return;
+        }
+        const nextButton = event.target.closest("[data-ttt-next-board]");
+        if (nextButton && !nextButton.disabled) continueTicTacToeMatch();
+        const startButton = event.target.closest("[data-ttt-start]");
+        if (startButton && !startButton.disabled) startNormalMatch();
+      });
+      els.board.appendChild(setup);
+
+      const grid = document.createElement("div");
+      grid.className = "ttt-board";
       const winSet = new Set((state.winningCells || []).map(([row, col]) => `${row},${col}`));
       for (let row = 0; row < 3; row += 1) {
         for (let col = 0; col < 3; col += 1) {
@@ -11765,9 +12091,10 @@
           cell.setAttribute("aria-label", value ? `${labelFor(value)} mark` : `empty tic tac toe square`);
           cell.disabled = !state.active || Boolean(value) || (localOnlineRole() && localOnlineRole() !== state.turn);
           cell.addEventListener("click", () => playTicTacToe(row, col));
-          els.board.appendChild(cell);
+          grid.appendChild(cell);
         }
       }
+      els.board.appendChild(grid);
     }
 
     function renderObedienceOrdersBoard() {
@@ -11977,13 +12304,24 @@
       if (state.wheel.spinning) return "The wheel is slowing down...";
       if (state.wheel.result !== null) {
         const notes = (state.wheel.resultNotes || []).length ? ` (${state.wheel.resultNotes.join(", ")})` : "";
+        if (isThroneSession()) {
+          if (state.wheel.result === WHEEL_THRONE_FREE_SPIN) return `Result: ${wheelValueText(state.wheel.result)}${notes}`;
+          if (Number(state.wheel.result || 0) > 0) return `Result: ${wheelValueText(state.wheel.result)} -> Throne`;
+          return `Result: ${wheelValueText(state.wheel.result)}`;
+        }
         return `Result: ${wheelValueText(state.wheel.result)}${notes} -> ${wheelSignedMoney(Number(state.wheel.finalPayout || 0))}`;
       }
+      if (isThroneSession()) return `${state.names.dom} has ${wheelSpinsRemaining()} Throne spins left this hour.`;
       if (!state.wheel.unlocked) return `${state.names.dom} must unlock the wheel.`;
       return `${state.names.sub} can press the center to spin.`;
     }
 
     function wheelCenterButtonText() {
+      if (isThroneSession()) {
+        if (state.wheel.spinning) return "Spinning";
+        if (wheelSpinsRemaining() <= 0) return "No Spins";
+        return "Spin";
+      }
       if (!state.wheel.spinning && !state.wheel.unlocked) return "Locked";
       if (!state.wheel.spinning) return "Spin";
       return "Spinning";
@@ -11991,11 +12329,21 @@
 
     function wheelCenterButtonDisabled() {
       if (!state.active) return true;
+      if (isThroneSession()) return Boolean(!state.wheel.spinning && ((localOnlineRole() && localOnlineRole() !== DOM) || wheelSpinsRemaining() <= 0)) || state.wheel.spinning;
       if (!state.wheel.spinning) return Boolean(!state.wheel.unlocked || (localOnlineRole() && localOnlineRole() !== SUB) || wheelSpinsRemaining() <= 0);
       return true;
     }
 
     function wheelSliceDisplay(value) {
+      if (value === WHEEL_THRONE_FREE_SPIN) {
+        return {
+          label: "+FREE",
+          color: "#24614c",
+          textColor: "#f6ffe9",
+          large: true,
+          affected: false
+        };
+      }
       const colors = {
         0: "#15110f",
         "-10": "#4b0f18",
@@ -12010,7 +12358,7 @@
       };
       let displayValue = Number(value || 0);
       let affected = false;
-      if (state.wheel.greedyDom) {
+      if (!isThroneSession() && state.wheel.greedyDom) {
         if (value === 25) {
           displayValue = 60;
           affected = true;
@@ -12022,7 +12370,7 @@
           affected = true;
         }
       }
-      if (displayValue > 0 && state.wheel.blessActive) {
+      if (!isThroneSession() && displayValue > 0 && state.wheel.blessActive) {
         const upgraded = wheelUpgradeValue(value);
         if (upgraded > displayValue) {
           displayValue = upgraded;
@@ -12045,6 +12393,17 @@
       tools.classList.toggle("hidden", !visible);
       tools.innerHTML = "";
       if (!visible) return;
+      if (isThroneSession()) {
+        const limitRow = document.createElement("div");
+        limitRow.className = "wheel-tool-row";
+        limitRow.innerHTML = `<strong>Throne Wheel</strong><span>${wheelSpinsRemaining()} spins left this hour. Cash slices open Throne automatically, + free spin keeps the count, and blank does nothing. Resets in ${formatWheelTime(wheelLimitRemainingMs())}.</span>`;
+        const layoutRow = document.createElement("div");
+        layoutRow.className = "wheel-tool-row";
+        layoutRow.innerHTML = `<strong>Layout</strong><span>1x $100, 2x $50, 4x $25, 6x $10, 10x $5, 5x + free spin, 8 blanks.</span>`;
+        tools.appendChild(limitRow);
+        tools.appendChild(layoutRow);
+        return;
+      }
       const canUse = canUseWheelDomTools();
       const limitRow = document.createElement("div");
       limitRow.className = "wheel-tool-row";
@@ -13916,10 +14275,10 @@
 
     function renderTicTacToeRules() {
       const rules = [
-        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player starts.`,
-        `<strong>Goal:</strong> first to make three in a row wins.`,
-        `<strong>Normal draw:</strong> drawn boards return the pot.`,
-        `<strong>Dom win:</strong> if ${state.names.dom} wins, the bet goes to her bank.`,
+        `<strong>Match setup:</strong> before the first board, ${state.names.dom} chooses the match length. First to 1 is available for bank/reclaim games, while Throne games start at Best of 3 or longer.`,
+        `<strong>Board goal:</strong> first to make three in a row wins that board. The match ends when someone reaches the selected target.`,
+        `<strong>Normal draw:</strong> drawn boards are replayed and do not settle the match.`,
+        `<strong>Dom win:</strong> if ${state.names.dom} wins the match, the bet goes to her bank or the Throne page opens in Throne mode.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank.`,
         `<strong>Reclaim edge:</strong> ${state.names.dom} plays O first, and drawn reclaim boards go to ${state.names.dom}.`
       ];
@@ -13958,6 +14317,19 @@
     }
 
     function renderWheelSpinRules() {
+      if (isThroneSession()) {
+        const rules = [
+          `<strong>Spin:</strong> ${state.names.dom} presses the center of the wheel. ${state.names.sub} does not need to unlock or spin it in Throne mode.`,
+          `<strong>Hourly limit:</strong> ${state.names.dom} gets 5 Throne wheel spins per hour.`,
+          `<strong>Throne layout:</strong> 36 equal-size spaces: 1 $100, 2 $50, 4 $25, 6 $10, 10 $5, 5 + free spin, and 8 blanks.`,
+          `<strong>Cash result:</strong> landing on a cash space opens ${state.names.sub}'s Throne page through the extension using that amount, rounded to the nearest $5 if needed.`,
+          `<strong>Free spin:</strong> + free spin does not spend one of the 5 hourly spins.`,
+          `<strong>Blank:</strong> blank opens nothing and the spin is spent.`,
+          `<strong>No powers:</strong> risk modes, Bless, Greedy Dom, Nudge, and unlock costs are disabled for the Throne wheel.`
+        ];
+        setRuleList(rules);
+        return;
+      }
       const rules = [
         `<strong>Spin:</strong> ${state.names.sub} presses the center of the wheel to spin. No bet is required in this mode.`,
         `<strong>The wheel:</strong> 36 equal-size spaces. Every space has the same chance to land.`,
@@ -14075,14 +14447,14 @@
     function renderTwentyOneRules() {
       const rules = [
         `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet.`,
-        `<strong>Table settings:</strong> before the first hand, ${state.names.dom} chooses either 1 Round or First To 3, and can turn Blackjack powers on or off.`,
-        `<strong>First To 3:</strong> each won hand gives that player 1 mark. Push hands redeal with no mark. First player to 3 marks wins the bet or reclaim.`,
+        `<strong>Table settings:</strong> before the first hand, ${state.names.dom} chooses 1 Round, Best of 3, Best of 5, First to 3, or First to 5.`,
+        `<strong>Match scoring:</strong> each won hand gives that player 1 mark. Push hands redeal with no mark. The selected mark target wins the bet or reclaim.`,
         `<strong>Player hand:</strong> ${state.names.sub} chooses Hit or Stand.`,
         `<strong>Dealer hand:</strong> after ${state.names.sub} stands, ${state.names.dom}'s hidden card is revealed and ${state.names.dom} chooses Hit or Stand for the dealer hand.`,
         `<strong>Dealer limit:</strong> ${state.names.dom} cannot stand below 17 unless Dealer Lock is active.`,
         `<strong>Win condition:</strong> closest to 21 wins. Busts lose. Normal ties push.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. Reclaim ties go to ${state.names.dom}.`,
-        `<strong>Powers:</strong> if powers are off, Peek, Soft Save, Push Your Luck, Dealer Lock, and House Sweep do not apply.`,
+        `<strong>Powers:</strong> Blackjack powers follow the global dom advantage and reclaim perk settings.`,
         `<strong>Tilt 1, Peek:</strong> ${state.names.dom} can see her hidden dealer card.`,
         `<strong>Tilt 2, Soft Save:</strong> once per reclaim, a dom bust from 22 to 24 is treated as 21.`,
         `<strong>Tilt 3, Push Your Luck:</strong> ${state.names.dom} may queue this while ${state.names.sub} is deciding. If ${state.names.sub} stands, it forces one extra ${state.names.sub} card. If ${state.names.sub} survives, ${state.names.dom} immediately takes one kickback card before playing her dealer hand.`,
@@ -14094,7 +14466,7 @@
 
     function twentyOneTiltRules() {
       if (!domAdvantagesEnabled()) return [`Tilt level ${state.tiltLevel}: dom advantages are disabled.`];
-      if (!blackjackPowersEnabled()) return [`Tilt level ${state.tiltLevel}: Blackjack powers are off for this table.`];
+      if (!blackjackPowersEnabled()) return [`Tilt level ${state.tiltLevel}: Blackjack powers follow the global dom advantage and reclaim perk settings, and are inactive right now.`];
       const rules = [`Tilt level ${state.tiltLevel}: ${twentyOneTiltSummary()}`];
       if (state.tiltLevel >= 1) rules.push("Peek: the dom can see her hidden dealer card.");
       if (state.tiltLevel >= 2) rules.push("Soft Save: once per reclaim, a dom bust from 22 to 24 is treated as 21.");
@@ -14106,7 +14478,7 @@
 
     function twentyOneTiltSummary() {
       if (!domAdvantagesEnabled()) return "dom advantages are disabled.";
-      if (!blackjackPowersEnabled()) return "Blackjack powers are off for this table.";
+      if (!blackjackPowersEnabled()) return "Blackjack powers are inactive under the current global settings.";
       if (state.tiltLevel >= 5) return "Peek, Soft Save, Push Your Luck, Dealer Lock, and House Sweep.";
       if (state.tiltLevel >= 4) return "Peek, Soft Save, Push Your Luck, and Dealer Lock.";
       if (state.tiltLevel >= 3) return "Peek, Soft Save, and Push Your Luck.";
@@ -14195,15 +14567,17 @@
         els.backToMenuBtn.title = blocked ? "Only the dom can return to games during an online room." : "";
       }
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
-        ? "Free Spin"
+        ? (isThroneSession() ? "Throne Wheel" : "Free Spin")
         : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Duel" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))))));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
           ? `<strong>The wheel is spinning.</strong>`
-          : (state.wheel.unlocked
+          : (isThroneSession()
+            ? `<strong>${state.names.dom}</strong> can spin the Throne wheel. ${wheelSpinsRemaining()} spins left this hour.`
+            : (state.wheel.unlocked
             ? `<strong>${state.names.sub}</strong> can press the center to spin.`
-            : `<strong>${state.names.dom}</strong> must unlock the wheel for ${state.names.sub}.`);
+            : `<strong>${state.names.dom}</strong> must unlock the wheel for ${state.names.sub}.`));
       } else if (state.currentGame === "tributeTrail") {
         if (state.trail && state.trail.setupPending) {
           els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses how much Trail Tribute moves into her bank at the end.`;
@@ -14271,6 +14645,18 @@
         } else {
           els.turnText.innerHTML = `<strong>${state.names.sub}</strong> chooses the buy-in to deal Solitaire Duel.`;
         }
+      } else if (state.currentGame === "tributeTicTacToe") {
+        const game = normalizeTicTacToeState(state.ticTacToe);
+        const format = currentTicTacToeFormat();
+        if (state.active) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> to move. ${format.label}, ${ticTacToeScoreText()}.`;
+        } else if (game.pendingNextBoard) {
+          els.turnText.innerHTML = `<strong>Board ${game.boardNumber} finished.</strong> ${state.names.dom} starts the next board when ready. ${ticTacToeScoreText()}.`;
+        } else if (game.matchActive) {
+          els.turnText.innerHTML = `<strong>Tic Tac Toe match finished.</strong> ${ticTacToeScoreText()}.`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Tic Tac Toe match length before the first board.`;
+        }
       } else if (state.currentGame === "tributeReversi") {
         const score = reversiScore();
         if (state.active) {
@@ -14327,16 +14713,17 @@
       const isWheelSpin = state.currentGame === "wheelSpin";
       const isFreeGame = isWheelSpin || state.currentGame === "tributeTrail" || state.currentGame === "obedienceOrders";
       const normalOnlyGame = state.currentGame === "higherLower";
+      const ticTacToeBetweenBoards = state.currentGame === "tributeTicTacToe" && state.ticTacToe && state.ticTacToe.pendingNextBoard;
       const wagerPending = Boolean(state.pendingWager);
       renderWheelDomTools();
       els.betInput.classList.toggle("hidden", isFreeGame || normalOnlyGame || isThroneSession());
       els.normalBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame);
       els.reclaimBtn.classList.toggle("hidden", isFreeGame || normalOnlyGame || isThroneSession());
-      els.reclaimBtn.disabled = state.active || wagerPending || state.domVault <= 0 || onlineBlocksSub || isThroneSession();
-      els.normalBtn.disabled = state.active || wagerPending || onlineBlocksSub;
-      els.betInput.disabled = state.active || wagerPending || onlineBlocksSub || (!isThroneSession() && state.settings.subBetControl === "locked");
+      els.reclaimBtn.disabled = state.active || ticTacToeBetweenBoards || wagerPending || state.domVault <= 0 || onlineBlocksSub || isThroneSession();
+      els.normalBtn.disabled = state.active || ticTacToeBetweenBoards || wagerPending || onlineBlocksSub;
+      els.betInput.disabled = state.active || ticTacToeBetweenBoards || wagerPending || onlineBlocksSub || (!isThroneSession() && state.settings.subBetControl === "locked");
       if (els.potLabel) els.potLabel.textContent = isThroneSession() ? "Throne amount" : "Current pot";
-      els.normalBtn.textContent = isThroneSession() ? `Start ${money(currentThroneAmount())}` : "Bet";
+      els.normalBtn.textContent = isThroneSession() ? "Start" : "Bet";
       els.betInput.setAttribute("aria-label", isThroneSession() ? "Throne payment amount" : "Bet amount");
       els.betInput.title = isThroneSession() ? "This amount is used for the Throne demand if the sub loses." : "Bet amount";
       els.hitBtn.classList.toggle("hidden", state.currentGame !== "tributeTwentyOne");
@@ -14455,12 +14842,14 @@
       }
       if (state.currentGame === "tributeTicTacToe") {
         els.gameTitle.textContent = "Tribute Tic Tac Toe";
-        els.gameSubtitle.textContent = "Fast three-in-a-row mini bets. The sub opens normal games as X; reclaim lets the dom start and take drawn boards.";
+        els.gameSubtitle.textContent = "Fast three-in-a-row matches. The dom picks the match length before the first board; reclaim lets her start and take drawn boards.";
         return;
       }
       if (state.currentGame === "wheelSpin") {
         els.gameTitle.textContent = "Wheel Spin";
-        els.gameSubtitle.textContent = "A 36-space wheel with equal odds per slice. Cash spaces pay the dom bank, minus spaces drain it, and the fixed arrow marks the result.";
+        els.gameSubtitle.textContent = isThroneSession()
+          ? "A Throne tribute wheel with 5 dom spins per hour. Cash slices open the extension for that amount, free spins keep the count, and blanks spare the sub."
+          : "A 36-space wheel with equal odds per slice. Cash spaces pay the dom bank, minus spaces drain it, and the fixed arrow marks the result.";
         return;
       }
       if (state.currentGame === "tributeTrail") {
@@ -14614,9 +15003,6 @@
     });
     els.blackjackSettingsModal.querySelectorAll("[data-blackjack-rounds]").forEach((button) => {
       button.addEventListener("click", () => setBlackjackRounds(button.dataset.blackjackRounds));
-    });
-    els.blackjackSettingsModal.querySelectorAll("[data-blackjack-powers]").forEach((button) => {
-      button.addEventListener("click", () => setBlackjackPowers(button.dataset.blackjackPowers));
     });
     els.blackjackSettingsConfirmBtn.addEventListener("click", confirmBlackjackSettings);
     els.checkersQueenYesBtn.addEventListener("click", () => {
