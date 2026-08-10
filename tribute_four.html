@@ -10026,8 +10026,18 @@
       if (!els.brattyWelcomeModal) return;
       const show = brattyWelcomeAllowed();
       els.brattyWelcomeModal.classList.toggle("hidden", !show);
-      if (show && els.brattyWelcomeText) {
-        els.brattyWelcomeText.textContent = `${state.names.dom} has entered like a goddess. The arcade knows she deserves tribute before the first move. Start her bank with $15 and begin at reclaim level 1?`;
+      if (show) {
+        const throneMode = isThroneSession();
+        if (els.brattyWelcomeText) {
+          els.brattyWelcomeText.textContent = throneMode
+            ? `${state.names.dom} has entered like a goddess. Bratty mode is ready, her Throne is already set, and the arcade is grateful she came to play.`
+            : `${state.names.dom} has entered like a goddess. The arcade knows she deserves tribute before the first move. Start her bank with $15 and begin at reclaim level 1?`;
+        }
+        if (els.declineBrattyWelcomeBtn) els.declineBrattyWelcomeBtn.textContent = throneMode ? "Thanks" : "No";
+        if (els.acceptBrattyWelcomeBtn) {
+          els.acceptBrattyWelcomeBtn.classList.toggle("hidden", throneMode);
+          els.acceptBrattyWelcomeBtn.textContent = "Yes";
+        }
       }
     }
 
@@ -10040,6 +10050,10 @@
 
     function acceptBrattyWelcome() {
       if (!brattyWelcomeAllowed()) return;
+      if (isThroneSession()) {
+        declineBrattyWelcome();
+        return;
+      }
       const before = state.domVault;
       state.domVault += 15;
       state.lockedTribute = state.domVault;
@@ -21670,6 +21684,7 @@
       const isHigherLower = state.currentGame === "higherLower";
       const isCrazyEights = state.currentGame === "tributeCrazyEights";
       const isDoubleSolitaire = state.currentGame === "doubleSolitaire";
+      const throneWheelSpin = state.currentGame === "wheelSpin" && isThroneSession();
       const crazyEightsRoundActive = isCrazyEights && state.active;
       const doubleSolitaireRaceActive = isDoubleSolitaire && state.active;
       const wagerLayoutGame = state.screen === "game" && usesRoundFlow() && !isHigherLower;
@@ -21679,7 +21694,7 @@
       els.gameScreen.classList.toggle("higherlower-wide", isHigherLower);
       els.gameScreen.classList.toggle("crazy8-wide", crazyEightsRoundActive);
       els.gameScreen.classList.toggle("double-solitaire-wide", doubleSolitaireRaceActive);
-      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower || wagerLayoutGame || crazyEightsRoundActive || doubleSolitaireRaceActive);
+      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower || wagerLayoutGame || crazyEightsRoundActive || doubleSolitaireRaceActive || throneWheelSpin);
       els.cashLedgerPanel.classList.toggle("blackjack-ledger", isBlackjack);
       els.trailBankAmount.textContent = money(state.trail && state.trail.tributeBank || 0);
       els.trailSpendingAmount.textContent = money(state.trail && state.trail.spendingMoney || 0);
