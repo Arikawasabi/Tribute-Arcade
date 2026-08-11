@@ -2578,6 +2578,84 @@
       justify-self: center;
     }
 
+    .fleet-placement-panel {
+      gap: 14px;
+    }
+
+    .fleet-placement-tools {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(241, 201, 101, 0.15);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .fleet-placement-tools .fleet-placement-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .fleet-placement-tools div {
+      display: grid;
+      gap: 3px;
+    }
+
+    .fleet-placement-tools strong {
+      color: var(--gold);
+      text-transform: capitalize;
+    }
+
+    .fleet-placement-tools span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .fleet-placement-preview {
+      display: grid;
+      grid-template-columns: repeat(var(--fleet-preview-size, 2), 22px);
+      grid-auto-rows: 22px;
+      gap: 2px;
+      padding: 4px;
+      border: 1px solid rgba(196, 213, 231, 0.18);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.16);
+    }
+
+    .fleet-placement-preview.vertical {
+      grid-template-columns: 22px;
+      grid-template-rows: repeat(var(--fleet-preview-size, 2), 22px);
+    }
+
+    .fleet-placement-preview span {
+      display: block;
+      min-width: 22px;
+      min-height: 22px;
+      background: linear-gradient(135deg, rgba(86, 99, 114, 0.98), rgba(40, 49, 64, 0.99));
+      border: 1px solid rgba(196, 213, 231, 0.28);
+    }
+
+    .fleet-placement-preview:not(.vertical) .start {
+      clip-path: polygon(16% 0, 100% 0, 100% 100%, 16% 100%, 0 50%);
+    }
+
+    .fleet-placement-preview:not(.vertical) .end {
+      clip-path: polygon(0 0, 84% 0, 100% 50%, 84% 100%, 0 100%);
+    }
+
+    .fleet-placement-preview.vertical .start {
+      clip-path: polygon(50% 0, 100% 16%, 100% 100%, 0 100%, 0 16%);
+    }
+
+    .fleet-placement-preview.vertical .end {
+      clip-path: polygon(0 0, 100% 0, 100% 84%, 50% 100%, 0 84%);
+    }
+
     .fleet-cell {
       position: relative;
       overflow: hidden;
@@ -2595,15 +2673,27 @@
       border-color: rgba(244, 239, 232, 0.28);
     }
 
+    .fleet-placement-grid .fleet-cell.placeable:not(.ship) {
+      border-color: rgba(101, 210, 143, 0.45);
+      background: linear-gradient(135deg, rgba(23, 44, 37, 0.74), rgba(17, 32, 29, 0.74));
+    }
+
+    .fleet-placement-grid .fleet-cell.replacing {
+      border-color: rgba(255, 214, 110, 0.78);
+      box-shadow:
+        inset 0 0 18px rgba(0, 0, 0, 0.28),
+        0 0 0 2px rgba(255, 214, 110, 0.22);
+    }
+
     .fleet-ship-art {
       position: absolute;
-      inset: 16% -8%;
+      inset: 16% 5%;
       z-index: 1;
       pointer-events: none;
     }
 
     .fleet-ship-art.ship-vertical {
-      inset: -8% 16%;
+      inset: 5% 16%;
     }
 
     .fleet-ship-art.subtle {
@@ -2613,12 +2703,12 @@
 
     .fleet-ship-art .ship-hull {
       position: absolute;
-      inset: 16% -2%;
-      border: 1px solid rgba(255, 235, 184, 0.38);
+      inset: 16% 0;
+      border: 1px solid rgba(196, 213, 231, 0.28);
       border-left-width: 0;
       border-right-width: 0;
       background:
-        linear-gradient(90deg, rgba(255, 235, 184, 0.14), transparent 22%, transparent 78%, rgba(255, 235, 184, 0.18)),
+        linear-gradient(90deg, rgba(220, 234, 248, 0.12), transparent 22%, transparent 78%, rgba(220, 234, 248, 0.12)),
         linear-gradient(135deg, rgba(76, 90, 105, 0.95), rgba(34, 44, 57, 0.98));
       box-shadow:
         inset 0 8px 16px rgba(255, 255, 255, 0.08),
@@ -2627,10 +2717,10 @@
     }
 
     .fleet-ship-art.ship-vertical .ship-hull {
-      inset: -2% 16%;
+      inset: 0 16%;
       border-width: 0 1px;
       background:
-        linear-gradient(180deg, rgba(255, 235, 184, 0.14), transparent 22%, transparent 78%, rgba(255, 235, 184, 0.18)),
+        linear-gradient(180deg, rgba(220, 234, 248, 0.12), transparent 22%, transparent 78%, rgba(220, 234, 248, 0.12)),
         linear-gradient(135deg, rgba(76, 90, 105, 0.95), rgba(34, 44, 57, 0.98));
     }
 
@@ -2660,12 +2750,38 @@
       border-right-width: 1px;
     }
 
+    .fleet-ship-art.ship-patrol .ship-hull,
+    .fleet-ship-art.ship-destroyer .ship-hull,
+    .fleet-ship-art.ship-cruiser .ship-hull {
+      border-radius: 2px;
+    }
+
+    .fleet-ship-art.ship-patrol.ship-start .ship-hull,
+    .fleet-ship-art.ship-destroyer.ship-start .ship-hull,
+    .fleet-ship-art.ship-cruiser.ship-start .ship-hull {
+      clip-path: polygon(16% 0, 100% 0, 100% 100%, 16% 100%, 0 50%);
+    }
+
+    .fleet-ship-art.ship-patrol.ship-end .ship-hull,
+    .fleet-ship-art.ship-destroyer.ship-end .ship-hull,
+    .fleet-ship-art.ship-cruiser.ship-end .ship-hull {
+      clip-path: polygon(0 0, 84% 0, 100% 50%, 84% 100%, 0 100%);
+    }
+
+    .fleet-ship-art.ship-vertical.ship-patrol.ship-start .ship-hull,
+    .fleet-ship-art.ship-vertical.ship-destroyer.ship-start .ship-hull,
+    .fleet-ship-art.ship-vertical.ship-cruiser.ship-start .ship-hull {
+      clip-path: polygon(50% 0, 100% 16%, 100% 100%, 0 100%, 0 16%);
+    }
+
+    .fleet-ship-art.ship-vertical.ship-patrol.ship-end .ship-hull,
+    .fleet-ship-art.ship-vertical.ship-destroyer.ship-end .ship-hull,
+    .fleet-ship-art.ship-vertical.ship-cruiser.ship-end .ship-hull {
+      clip-path: polygon(0 0, 100% 0, 100% 84%, 50% 100%, 0 84%);
+    }
+
     .fleet-ship-art .ship-mark {
-      position: absolute;
-      z-index: 2;
-      border-radius: 999px;
-      background: rgba(255, 225, 160, 0.72);
-      box-shadow: 0 0 10px rgba(255, 225, 160, 0.16);
+      display: none;
     }
 
     .fleet-ship-art .ship-mark-a {
@@ -2702,7 +2818,7 @@
     .fleet-ship-art.ship-destroyer .ship-hull,
     .fleet-ship-art.ship-cruiser .ship-hull {
       background:
-        linear-gradient(90deg, rgba(255, 235, 184, 0.16), transparent 22%, transparent 78%, rgba(255, 235, 184, 0.18)),
+        linear-gradient(90deg, rgba(220, 234, 248, 0.12), transparent 22%, transparent 78%, rgba(220, 234, 248, 0.12)),
         linear-gradient(135deg, rgba(86, 99, 114, 0.98), rgba(40, 49, 64, 0.99));
     }
 
@@ -2714,9 +2830,9 @@
     .fleet-ship-art.ship-flagship .ship-hull {
       inset-block: 10%;
       background:
-        linear-gradient(90deg, rgba(255, 214, 110, 0.18), transparent 18%, transparent 82%, rgba(255, 214, 110, 0.2)),
+        linear-gradient(90deg, rgba(220, 234, 248, 0.14), transparent 18%, transparent 82%, rgba(220, 234, 248, 0.14)),
         linear-gradient(135deg, rgba(105, 85, 100, 0.98), rgba(49, 39, 58, 0.99));
-      border-color: rgba(255, 214, 110, 0.48);
+      border-color: rgba(211, 222, 235, 0.34);
     }
 
     .fleet-ship-art.ship-vertical.ship-flagship .ship-hull {
@@ -6421,6 +6537,7 @@
         <p class="chooser-line" id="normalReplayText">Replay or change bet?</p>
         <div class="role-row">
           <button id="normalReplayBtn" class="primary">Replay</button>
+          <button id="normalFleetNewRulesBtn" class="hidden">New Rules</button>
           <button id="normalChangeBetBtn">Change Bet</button>
         </div>
       </div>
@@ -7740,6 +7857,7 @@
       normalReplayModal: document.getElementById("normalReplayModal"),
       normalReplayText: document.getElementById("normalReplayText"),
       normalReplayBtn: document.getElementById("normalReplayBtn"),
+      normalFleetNewRulesBtn: document.getElementById("normalFleetNewRulesBtn"),
       normalChangeBetBtn: document.getElementById("normalChangeBetBtn"),
       playerOneName: document.getElementById("playerOneName"),
       playerTwoName: document.getElementById("playerTwoName"),
@@ -8158,6 +8276,22 @@
         shipCounts: counts,
         setupPending: false,
         setupStarter: SUB,
+        placementPending: false,
+        placementDecisionPending: false,
+        placementStarter: SUB,
+        placementQueue: [],
+        placementReuse: {
+          dom: null,
+          sub: null
+        },
+        placementReady: {
+          dom: false,
+          sub: false
+        },
+        placement: {
+          dom: { orientation: "horizontal", replacingId: null },
+          sub: { orientation: "horizontal", replacingId: null }
+        },
         boards: {
           dom: createFleetGrid(gridSize),
           sub: createFleetGrid(gridSize)
@@ -8188,6 +8322,21 @@
         ...(fleet || {}),
         size,
         shipCounts: normalizeFleetShipCounts(fleet && fleet.shipCounts, size),
+        placement: {
+          dom: { orientation: "horizontal", replacingId: null, ...((fleet && fleet.placement && fleet.placement.dom) || {}) },
+          sub: { orientation: "horizontal", replacingId: null, ...((fleet && fleet.placement && fleet.placement.sub) || {}) }
+        },
+        placementReuse: {
+          dom: null,
+          sub: null,
+          ...((fleet && fleet.placementReuse) || {})
+        },
+        placementReady: {
+          dom: false,
+          sub: false,
+          ...((fleet && fleet.placementReady) || {})
+        },
+        placementQueue: Array.isArray(fleet && fleet.placementQueue) ? fleet.placementQueue : [],
         boards: {
           dom: (fleet && fleet.boards && fleet.boards.dom) || base.boards.dom,
           sub: (fleet && fleet.boards && fleet.boards.sub) || base.boards.sub
@@ -12180,6 +12329,7 @@
     function normalReplayControlsAllowed() {
       const role = localOnlineRole();
       if (role === SPECTATOR) return false;
+      if (state.normalReplayPrompt && state.normalReplayPrompt.game === "tributeFleet") return !state.online.room || !role || role === DOM;
       if (isThroneSession()) return !state.online.room || role === DOM || role === SUB;
       return !state.online.room || role === SUB;
     }
@@ -12189,16 +12339,23 @@
       const prompt = state.normalReplayPrompt;
       const show = Boolean(prompt && state.screen === "game" && normalReplayControlsAllowed());
       els.normalReplayModal.classList.toggle("hidden", !show);
-      if (!show) return;
+      if (!show) {
+        if (els.normalFleetNewRulesBtn) els.normalFleetNewRulesBtn.classList.add("hidden");
+        if (els.normalReplayBtn) els.normalReplayBtn.textContent = "Replay";
+        return;
+      }
       const isReclaim = prompt.mode === "reclaim";
       const canReplay = !isReclaim || state.domVault > 0;
       const winnerText = prompt.winner
         ? `${labelFor(prompt.winner)} won.`
         : "Draw.";
+      const isFleet = prompt.game === "tributeFleet";
       const changeLabel = prompt.game === "higherLower"
         ? "run"
         : (isThroneSession() ? "game select" : "bet");
-      if (isThroneSession()) {
+      if (isFleet) {
+        els.normalReplayText.textContent = `${winnerText} Choose the next Fleet match.`;
+      } else if (isThroneSession()) {
         els.normalReplayText.textContent = `${winnerText} Replay or go back to Game Select?`;
       } else {
         els.normalReplayText.textContent = canReplay
@@ -12206,15 +12363,24 @@
           : `${winnerText} Bank reclaimed. Change ${changeLabel}?`;
       }
       els.normalReplayBtn.disabled = !canReplay;
+      els.normalReplayBtn.textContent = isFleet ? "Current Rules" : "Replay";
+      if (els.normalFleetNewRulesBtn) {
+        els.normalFleetNewRulesBtn.classList.toggle("hidden", !isFleet);
+        els.normalFleetNewRulesBtn.disabled = !isFleet || !canReplay;
+      }
       els.normalChangeBetBtn.textContent = prompt.game === "higherLower"
         ? "Change Run"
-        : (isThroneSession() ? "Game Select" : `Change ${changeLabel[0].toUpperCase()}${changeLabel.slice(1)}`);
+        : (isFleet ? "Game List" : (isThroneSession() ? "Game Select" : `Change ${changeLabel[0].toUpperCase()}${changeLabel.slice(1)}`));
       els.normalChangeBetBtn.disabled = false;
     }
 
     function replayNormalRound() {
       const prompt = state.normalReplayPrompt;
       if (!prompt || !normalReplayControlsAllowed()) return;
+      if (prompt.game === "tributeFleet") {
+        restartFleetWithCurrentRules(prompt);
+        return;
+      }
       const replayMode = prompt.mode === "reclaim" ? "reclaim" : "normal";
       if (replayMode === "reclaim" && state.domVault <= 0) return;
       state.normalReplayPrompt = null;
@@ -12237,6 +12403,13 @@
 
     function changeNormalRoundBet() {
       if (!state.normalReplayPrompt || !normalReplayControlsAllowed()) return;
+      if (state.normalReplayPrompt.game === "tributeFleet") {
+        state.normalReplayPrompt = null;
+        hideOutcomeSplash();
+        clearThroneKissSplash();
+        backToMenu();
+        return;
+      }
       state.normalReplayPrompt = null;
       hideOutcomeSplash();
       if (isThroneSession() && (!state.online.room || localOnlineRole() === DOM)) {
@@ -12247,6 +12420,26 @@
       resetCurrentGameToAmountChoice(state.currentGame === "higherLower"
         ? `<strong>Ready for the next Higher / Lower run.</strong>`
         : `<strong>Ready for the next bet.</strong>`);
+    }
+
+    function restartFleetWithNewRules() {
+      const prompt = state.normalReplayPrompt;
+      if (!prompt || prompt.game !== "tributeFleet" || !normalReplayControlsAllowed()) return;
+      const replayMode = prompt.mode === "reclaim" ? "reclaim" : "normal";
+      if (replayMode === "reclaim" && state.domVault <= 0) return;
+      state.normalReplayPrompt = null;
+      hideOutcomeSplash();
+      if (isThroneSession()) fadeThroneKissSplashWhenFocused();
+      els.betInput.value = normalizeBuyIn(prompt.amount || state.pot || els.betInput.value || 0);
+      wagerStartBypass = true;
+      try {
+        if (replayMode === "reclaim") startReclaimMatch();
+        else startNormalMatch();
+      } finally {
+        wagerStartBypass = false;
+      }
+      render();
+      publishState();
     }
 
     function updatePendingWager(changes, publish = true) {
@@ -19091,7 +19284,7 @@
       const size = fleetSize();
       const counts = fleetShipCounts();
       if (!fleetSetupValid(size, counts)) return;
-      resetFleetMatch(state.fleet.setupStarter || state.turn || SUB);
+      beginFleetPlacement(state.fleet.setupStarter || state.turn || SUB);
       publishState();
     }
 
@@ -19143,6 +19336,262 @@
       els.board.appendChild(panel);
     }
 
+    function createFleetPlacementQueue(counts = fleetShipCounts()) {
+      return fleetShipListFromCounts(counts).map((size, index) => ({
+        id: `ship-${index}-${size}`,
+        size,
+        design: FLEET_SHIP_DESIGNS[size] || "patrol"
+      }));
+    }
+
+    function beginFleetPlacement(starter) {
+      const size = fleetSize();
+      const counts = fleetShipCounts();
+      state.fleet = createFleetState(size, counts);
+      state.fleet.setupPending = false;
+      state.fleet.placementPending = true;
+      state.fleet.placementStarter = starter;
+      state.fleet.placementQueue = createFleetPlacementQueue(counts);
+      state.fleet.placementReady = { dom: false, sub: false };
+      state.turn = starter;
+      state.active = false;
+      state.winningCells = [];
+      addLog(`<strong>Fleet placement.</strong> Each player places their ships and readies up before ${labelFor(starter)} opens fire.`);
+      render();
+    }
+
+    function fleetPlacementOwner() {
+      const role = localOnlineRole();
+      if (role === DOM || role === SUB) return role;
+      return fleetPlacementComplete(DOM) ? SUB : DOM;
+    }
+
+    function fleetPlacementComplete(owner) {
+      const queue = state.fleet && Array.isArray(state.fleet.placementQueue) ? state.fleet.placementQueue : [];
+      const ships = state.fleet && state.fleet.ships && Array.isArray(state.fleet.ships[owner]) ? state.fleet.ships[owner] : [];
+      return queue.length > 0 && ships.length >= queue.length;
+    }
+
+    function fleetCurrentPlacementSpec(owner) {
+      const queue = state.fleet && Array.isArray(state.fleet.placementQueue) ? state.fleet.placementQueue : [];
+      const placement = state.fleet && state.fleet.placement && state.fleet.placement[owner] ? state.fleet.placement[owner] : {};
+      const ships = state.fleet && state.fleet.ships && Array.isArray(state.fleet.ships[owner]) ? state.fleet.ships[owner] : [];
+      if (placement.replacingId) {
+        const replacing = ships.find((ship) => ship.id === placement.replacingId);
+        if (replacing) return { id: replacing.id, size: replacing.size, design: replacing.design || FLEET_SHIP_DESIGNS[replacing.size] || "patrol", replacing: true };
+      }
+      const placedIds = new Set(ships.map((ship) => ship.id));
+      return queue.find((ship) => !placedIds.has(ship.id)) || null;
+    }
+
+    function fleetPlacementCells(row, col, size, orientation) {
+      return Array.from({ length: size }, (_, index) => ({
+        row: row + (orientation === "vertical" ? index : 0),
+        col: col + (orientation === "horizontal" ? index : 0),
+        segment: index
+      }));
+    }
+
+    function fleetCanPlaceShip(owner, row, col, spec = fleetCurrentPlacementSpec(owner)) {
+      if (!spec) return false;
+      const placement = state.fleet.placement[owner] || { orientation: "horizontal", replacingId: null };
+      const size = fleetSize();
+      const cells = fleetPlacementCells(row, col, spec.size, placement.orientation);
+      return cells.every((cell) => {
+        if (cell.row < 0 || cell.col < 0 || cell.row >= size || cell.col >= size) return false;
+        const existing = fleetShipSegment(owner, cell.row, cell.col);
+        return !existing || existing.ship.id === placement.replacingId;
+      });
+    }
+
+    function rebuildFleetPlacementBoard(owner) {
+      const size = fleetSize();
+      state.fleet.boards[owner] = createFleetGrid(size);
+      (state.fleet.ships[owner] || []).forEach((ship) => {
+        (ship.cells || []).forEach((cell) => {
+          if (state.fleet.boards[owner][cell.row]) state.fleet.boards[owner][cell.row][cell.col] = true;
+        });
+      });
+    }
+
+    function selectFleetShipForReplacement(owner, shipId) {
+      if (!state.fleet || !state.fleet.placementPending || !state.fleet.placement[owner]) return;
+      if (state.online.room && localOnlineRole() !== owner) return;
+      const ship = (state.fleet.ships[owner] || []).find((item) => item.id === shipId);
+      if (!ship) return;
+      if (!state.fleet.placementReady) state.fleet.placementReady = { dom: false, sub: false };
+      state.fleet.placementReady[owner] = false;
+      state.fleet.placement[owner].replacingId = ship.id;
+      state.fleet.placement[owner].orientation = ship.orientation || "horizontal";
+      render();
+      publishState();
+    }
+
+    function rotateFleetPlacementShip(owner) {
+      if (!state.fleet || !state.fleet.placementPending || !state.fleet.placement[owner]) return;
+      if (state.online.room && localOnlineRole() !== owner) return;
+      if (!state.fleet.placementReady) state.fleet.placementReady = { dom: false, sub: false };
+      state.fleet.placementReady[owner] = false;
+      state.fleet.placement[owner].orientation = state.fleet.placement[owner].orientation === "vertical" ? "horizontal" : "vertical";
+      render();
+      publishState();
+    }
+
+    function placeFleetPlacementShip(owner, row, col) {
+      if (!state.fleet || !state.fleet.placementPending || !state.fleet.placement[owner]) return;
+      if (state.online.room && localOnlineRole() !== owner) return;
+      const spec = fleetCurrentPlacementSpec(owner);
+      if (!spec || !fleetCanPlaceShip(owner, row, col, spec)) return;
+      if (!state.fleet.placementReady) state.fleet.placementReady = { dom: false, sub: false };
+      state.fleet.placementReady[owner] = false;
+      const placement = state.fleet.placement[owner];
+      const orientation = placement.orientation || "horizontal";
+      const cells = fleetPlacementCells(row, col, spec.size, orientation);
+      state.fleet.ships[owner] = (state.fleet.ships[owner] || []).filter((ship) => ship.id !== placement.replacingId && ship.id !== spec.id);
+      state.fleet.ships[owner].push({
+        id: spec.id,
+        size: spec.size,
+        design: spec.design || FLEET_SHIP_DESIGNS[spec.size] || "patrol",
+        orientation,
+        cells
+      });
+      placement.replacingId = null;
+      rebuildFleetPlacementBoard(owner);
+      render();
+      publishState();
+    }
+
+    function randomizeFleetPlacement(owner) {
+      if (!state.fleet || !state.fleet.placementPending || !state.fleet.placement[owner]) return;
+      if (state.online.room && localOnlineRole() !== owner) return;
+      if (!state.fleet.placementReady) state.fleet.placementReady = { dom: false, sub: false };
+      state.fleet.placementReady[owner] = false;
+      state.fleet.boards[owner] = createFleetGrid(fleetSize());
+      state.fleet.ships[owner] = placeFleet(state.fleet.boards[owner], owner);
+      state.fleet.placement[owner] = { orientation: "horizontal", replacingId: null };
+      render();
+      publishState();
+    }
+
+    function readyFleetPlacement(owner) {
+      if (!state.fleet || !state.fleet.placementPending) return;
+      if (state.online.room && localOnlineRole() !== owner) return;
+      if (!fleetPlacementComplete(owner)) return;
+      if (!state.fleet.placementReady) state.fleet.placementReady = { dom: false, sub: false };
+      state.fleet.placementReady[owner] = true;
+      if (state.fleet.placement && state.fleet.placement[owner]) state.fleet.placement[owner].replacingId = null;
+      if (fleetBothReadyForCombat()) {
+        startFleetCombatFromPlacement();
+      } else {
+        render();
+      }
+      publishState();
+    }
+
+    function startFleetCombatFromPlacement() {
+      state.fleet.placementPending = false;
+      state.fleet.placementDecisionPending = false;
+      state.fleet.setupPending = false;
+      state.turn = state.fleet.placementStarter || state.turn || SUB;
+      state.active = true;
+      state.winningCells = [];
+      state.fleet.scanAvailable = state.mode === "reclaim" && domAdvantagesEnabled() && state.tiltLevel >= 1;
+      state.fleet.scanReveals = [];
+      rollFleetModifiers();
+      chooseFleetTurnHazards();
+      const size = fleetSize();
+      const shipCount = fleetShipListFromCounts(fleetShipCounts()).length;
+      const modifierText = state.mode === "reclaim" && state.fleet.modifiers.length
+        ? ` Extra modifiers: ${state.fleet.modifiers.map(fleetModifierLabel).join(", ")}.`
+        : "";
+      addLog(`<strong>Fleet deployed.</strong> ${size} x ${size}, ${shipCount} ships. ${labelFor(state.turn)} opens fire.${modifierText}`);
+      if (state.fleet.priorityIntel) {
+        addLog(`<strong>Priority Intel.</strong> ${state.fleet.priorityIntel.label} contains ${state.fleet.priorityIntel.count} ${state.fleet.priorityIntel.count === 1 ? "ship segment" : "ship segments"}.`);
+      }
+      render();
+    }
+
+    function fleetReadyForCombat(owner) {
+      return state.fleet
+        && state.fleet.placementReady
+        && state.fleet.placementReady[owner]
+        && (state.fleet.placementReuse[owner] === "reuse" || fleetPlacementComplete(owner));
+    }
+
+    function fleetBothReadyForCombat() {
+      return fleetReadyForCombat(DOM) && fleetReadyForCombat(SUB);
+    }
+
+    function restartFleetWithCurrentRules(prompt) {
+      if (!prompt || prompt.game !== "tributeFleet" || !normalReplayControlsAllowed()) return;
+      const replayMode = prompt.mode === "reclaim" ? "reclaim" : "normal";
+      if (replayMode === "reclaim" && state.domVault <= 0) return;
+      state.normalReplayPrompt = null;
+      hideOutcomeSplash();
+      if (isThroneSession()) fadeThroneKissSplashWhenFocused();
+      els.betInput.value = normalizeBuyIn(prompt.amount || state.pot || els.betInput.value || 0);
+      wagerStartBypass = true;
+      try {
+        const amount = prepareRound(replayMode, "match");
+        if (amount === null) return;
+      } finally {
+        wagerStartBypass = false;
+      }
+      const size = fleetSize();
+      state.fleet.size = size;
+      state.fleet.shipCounts = fleetShipCounts();
+      state.fleet.shots = { dom: createShotGrid(size), sub: createShotGrid(size) };
+      state.fleet.scanReveals = [];
+      state.fleet.modifiers = [];
+      state.fleet.doubleTapAvailable = false;
+      state.fleet.commandFog = null;
+      state.fleet.noisyWaters = null;
+      state.fleet.priorityIntel = null;
+      state.fleet.setupPending = false;
+      state.fleet.placementPending = false;
+      state.fleet.placementDecisionPending = true;
+      state.fleet.placementStarter = replayMode === "reclaim" ? DOM : chooseStartingPlayer();
+      state.fleet.placementReuse = { dom: null, sub: null };
+      state.fleet.placementReady = { dom: false, sub: false };
+      state.fleet.placement = {
+        dom: { orientation: "horizontal", replacingId: null },
+        sub: { orientation: "horizontal", replacingId: null }
+      };
+      rebuildFleetPlacementBoard(DOM);
+      rebuildFleetPlacementBoard(SUB);
+      state.turn = state.fleet.placementStarter;
+      state.active = false;
+      addLog(`<strong>Fleet rematch.</strong> Each player chooses whether to reuse their ships or place them again.`);
+      render();
+      publishState();
+    }
+
+    function chooseFleetPlacementReuse(owner, reuse) {
+      if (!state.fleet || !state.fleet.placementDecisionPending) return;
+      if (state.online.room && localOnlineRole() !== owner) return;
+      if (!state.fleet.placementReuse) state.fleet.placementReuse = { dom: null, sub: null };
+      if (!state.fleet.placementReady) state.fleet.placementReady = { dom: false, sub: false };
+      if (reuse) {
+        state.fleet.placementReuse[owner] = "reuse";
+        state.fleet.placementReady[owner] = true;
+        state.fleet.placement[owner] = { orientation: "horizontal", replacingId: null };
+        rebuildFleetPlacementBoard(owner);
+      } else {
+        state.fleet.placementReuse[owner] = "replace";
+        state.fleet.placementReady[owner] = false;
+        state.fleet.placementPending = true;
+        state.fleet.ships[owner] = [];
+        state.fleet.boards[owner] = createFleetGrid(fleetSize());
+        state.fleet.placement[owner] = { orientation: "horizontal", replacingId: null };
+      }
+      if (fleetBothReadyForCombat()) {
+        startFleetCombatFromPlacement();
+      } else {
+        render();
+      }
+      publishState();
+    }
+
     function choosePriorityIntel() {
       const axis = Math.random() < 0.5 ? "row" : "col";
       const size = fleetSize();
@@ -19163,9 +19612,16 @@
 
     function placeFleet(grid, owner = "") {
       const size = normalizeFleetSize(grid.length);
-      const shipList = fleetShipListFromCounts(state.fleet && state.fleet.shipCounts);
+      const queuedShips = state.fleet && Array.isArray(state.fleet.placementQueue) && state.fleet.placementQueue.length
+        ? state.fleet.placementQueue
+        : fleetShipListFromCounts(state.fleet && state.fleet.shipCounts).map((shipSize, index) => ({
+          id: `${owner || "ship"}-${shipSize}-${index}`,
+          size: shipSize,
+          design: FLEET_SHIP_DESIGNS[shipSize] || "patrol"
+        }));
       const ships = [];
-      shipList.forEach((shipSize, index) => {
+      queuedShips.forEach((shipSpec, index) => {
+        const shipSize = Number(shipSpec.size || shipSpec);
         let placed = false;
         let attempts = 0;
         while (!placed && attempts < 500) {
@@ -19182,9 +19638,9 @@
               grid[r][c] = true;
             });
             ships.push({
-              id: `${owner || "ship"}-${shipSize}-${index}-${row}-${col}`,
+              id: shipSpec.id || `${owner || "ship"}-${shipSize}-${index}-${row}-${col}`,
               size: shipSize,
-              design: FLEET_SHIP_DESIGNS[shipSize] || "patrol",
+              design: shipSpec.design || FLEET_SHIP_DESIGNS[shipSize] || "patrol",
               orientation: horizontal ? "horizontal" : "vertical",
               cells: cells.map(([r, c], segment) => ({ row: r, col: c, segment }))
             });
@@ -21960,7 +22416,127 @@
       cell.appendChild(art);
     }
 
+    function renderFleetPlacementPanel() {
+      const role = localOnlineRole();
+      const owner = fleetPlacementOwner();
+      const canPlace = !state.online.room || role === owner;
+      const size = fleetSize();
+      const queue = state.fleet && Array.isArray(state.fleet.placementQueue) ? state.fleet.placementQueue : [];
+      const placed = state.fleet && state.fleet.ships && Array.isArray(state.fleet.ships[owner]) ? state.fleet.ships[owner] : [];
+      const spec = fleetCurrentPlacementSpec(owner);
+      const ownerReady = Boolean(state.fleet && state.fleet.placementReady && state.fleet.placementReady[owner]);
+      const complete = fleetPlacementComplete(owner);
+      const canEdit = canPlace && !ownerReady;
+      const placement = state.fleet && state.fleet.placement && state.fleet.placement[owner]
+        ? state.fleet.placement[owner]
+        : { orientation: "horizontal", replacingId: null };
+      const waitingFor = owner === DOM ? state.names.dom : state.names.sub;
+      els.board.className = "fleet-layout fleet-switch-layout";
+      els.board.innerHTML = "";
+
+      const panel = document.createElement("div");
+      panel.className = "fleet-panel fleet-panel-large fleet-placement-panel";
+      panel.innerHTML = `
+        <div class="fleet-panel-title">
+          <h3>${escapeHtml(canPlace ? "Place Your Fleet" : `${waitingFor}'s Fleet`)}</h3>
+          <span>${placed.length}/${queue.length} ships placed</span>
+        </div>
+        <div class="fleet-placement-tools">
+          <div>
+            <strong>${ownerReady ? "Ready to deploy" : (spec ? `${spec.size}-cell ${spec.design}` : "Fleet placed")}</strong>
+            <span>${canPlace
+              ? (ownerReady ? "Waiting for the other player to ready up." : (spec ? (placement.replacingId ? "Choose a new position for this ship." : "Pick a valid square to place this ship.") : "Ready up when you like this placement."))
+              : `${escapeHtml(waitingFor)} is placing ships.`}</span>
+          </div>
+          ${spec && !ownerReady ? `<div class="fleet-placement-preview ${placement.orientation}" style="--fleet-preview-size:${spec.size}">${Array.from({ length: spec.size }, (_, index) => `<span class="${index === 0 ? "start" : ""} ${index === spec.size - 1 ? "end" : ""}"></span>`).join("")}</div>` : ""}
+          <div class="fleet-placement-actions">
+            <button data-fleet-placement-random ${canPlace ? "" : "disabled"}>${complete ? "Rerandomize" : "Random Placement"}</button>
+            <button data-fleet-placement-rotate ${canEdit && spec ? "" : "disabled"}>Rotate ${placement.orientation === "vertical" ? "Vertical" : "Horizontal"}</button>
+            <button class="primary" data-fleet-placement-ready ${canPlace && complete && !ownerReady ? "" : "disabled"}>${ownerReady ? "Ready" : "Ready Up"}</button>
+          </div>
+        </div>
+      `;
+      const grid = document.createElement("div");
+      grid.className = "fleet-grid fleet-placement-grid";
+      grid.style.setProperty("--fleet-size", size);
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          const cell = document.createElement("button");
+          const segment = fleetShipSegment(owner, row, col);
+          const valid = canEdit && spec && fleetCanPlaceShip(owner, row, col, spec);
+          cell.className = `fleet-cell ${state.fleet.boards[owner][row][col] ? "ship" : ""} ${valid ? "placeable" : ""} ${segment && segment.ship.id === placement.replacingId ? "replacing" : ""}`.trim();
+          if (state.fleet.boards[owner][row][col]) renderFleetShipArt(cell, owner, row, col);
+          cell.setAttribute("aria-label", `${labelFor(owner)} placement row ${row + 1}, column ${col + 1}`);
+          cell.disabled = !canEdit || (!valid && !segment);
+          cell.addEventListener("click", () => {
+            if (!canPlace) return;
+            if (segment) {
+              selectFleetShipForReplacement(owner, segment.ship.id);
+              return;
+            }
+            placeFleetPlacementShip(owner, row, col);
+          });
+          grid.appendChild(cell);
+        }
+      }
+
+      panel.querySelector("[data-fleet-placement-random]").addEventListener("click", () => randomizeFleetPlacement(owner));
+      panel.querySelector("[data-fleet-placement-rotate]").addEventListener("click", () => rotateFleetPlacementShip(owner));
+      panel.querySelector("[data-fleet-placement-ready]").addEventListener("click", () => readyFleetPlacement(owner));
+      panel.appendChild(grid);
+      els.board.appendChild(panel);
+    }
+
+    function renderFleetPlacementDecisionPanel() {
+      const role = localOnlineRole();
+      const owner = role === DOM || role === SUB ? role : fleetPlacementOwner();
+      const canChoose = !state.online.room || role === owner;
+      const decision = state.fleet && state.fleet.placementReuse ? state.fleet.placementReuse[owner] : null;
+      const other = otherRole(owner);
+      const otherDecision = state.fleet && state.fleet.placementReuse ? state.fleet.placementReuse[other] : null;
+      els.board.className = "fleet-layout fleet-switch-layout";
+      els.board.innerHTML = "";
+      const panel = document.createElement("div");
+      panel.className = "fleet-panel fleet-setup-panel fleet-placement-choice-panel";
+      panel.innerHTML = `
+        <div class="fleet-panel-title">
+          <h3>Fleet Rematch</h3>
+          <span>${canChoose ? "Reuse or replace your ships" : `${escapeHtml(labelFor(owner))} is choosing ships`}</span>
+        </div>
+        <div class="fleet-setup-summary">
+          Current rules: ${fleetSize()} x ${fleetSize()} · ${fleetShipListFromCounts(fleetShipCounts()).length} ships
+        </div>
+        <div class="role-row">
+          <button class="primary" data-fleet-reuse="true" ${canChoose && !decision ? "" : "disabled"}>Reuse Placement</button>
+          <button data-fleet-reuse="false" ${canChoose && !decision ? "" : "disabled"}>Replace Ships</button>
+        </div>
+        <div class="fleet-setup-summary">
+          ${escapeHtml(labelFor(owner))}: ${decision ? (decision === "reuse" ? "reusing placement" : "replacing ships") : "choosing"}
+          · ${escapeHtml(labelFor(other))}: ${otherDecision ? (otherDecision === "reuse" ? "reusing placement" : "replacing ships") : "choosing"}
+        </div>
+      `;
+      panel.querySelectorAll("[data-fleet-reuse]").forEach((button) => {
+        button.addEventListener("click", () => chooseFleetPlacementReuse(owner, button.dataset.fleetReuse === "true"));
+      });
+      els.board.appendChild(panel);
+    }
+
     function renderFleetBoard() {
+      if (state.fleet && state.fleet.placementDecisionPending) {
+        const role = localOnlineRole();
+        const owner = role === DOM || role === SUB ? role : fleetPlacementOwner();
+        if (state.fleet.placementReuse && state.fleet.placementReuse[owner] === "replace" && !(state.fleet.placementReady && state.fleet.placementReady[owner])) {
+          renderFleetPlacementPanel();
+        } else {
+          renderFleetPlacementDecisionPanel();
+        }
+        return;
+      }
+      if (state.fleet && state.fleet.placementPending) {
+        renderFleetPlacementPanel();
+        return;
+      }
       if (localOnlineRole() === SPECTATOR) {
         renderFleetSpectatorBoard();
         return;
@@ -22698,6 +23274,11 @@
             : `<strong>${state.names.dom}</strong> decides whether to take the queen anyway.`;
         } else if (state.currentGame === "tributeFleet" && state.fleet && state.fleet.setupPending) {
           els.turnText.innerHTML = `<strong>${state.names.dom}</strong> is configuring the fleet size and ships.`;
+        } else if (state.currentGame === "tributeFleet" && state.fleet && state.fleet.placementDecisionPending) {
+          els.turnText.innerHTML = `<strong>Fleet rematch.</strong> Each player chooses reuse or replace.`;
+        } else if (state.currentGame === "tributeFleet" && state.fleet && state.fleet.placementPending) {
+          const owner = fleetPlacementOwner();
+          els.turnText.innerHTML = `<strong>${labelFor(owner)}</strong> is placing ships.`;
         } else {
           els.turnText.innerHTML = state.domVault > 0
             ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
@@ -22915,6 +23496,7 @@
     els.normalBtn.addEventListener("click", startNormalMatch);
     els.reclaimBtn.addEventListener("click", startReclaimMatch);
     if (els.normalReplayBtn) els.normalReplayBtn.addEventListener("click", replayNormalRound);
+    if (els.normalFleetNewRulesBtn) els.normalFleetNewRulesBtn.addEventListener("click", restartFleetWithNewRules);
     if (els.normalChangeBetBtn) els.normalChangeBetBtn.addEventListener("click", changeNormalRoundBet);
     document.addEventListener("click", handleThroneKissDismiss, true);
     window.addEventListener("focus", settleDeferredThroneKissFade);
