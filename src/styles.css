@@ -1165,24 +1165,28 @@
     }
 
 
-    .game-card h2 {
+    .game-card-title {
+      display: block;
       margin: 8px 0 0;
       font-size: 1.35rem;
       letter-spacing: 0;
+      font-family: "Trebuchet MS", "Arial Black", sans-serif;
+      font-weight: 900;
       color: #ffe1a0;
     }
 
-    body.bratty-theme .game-card h2 {
+    body.bratty-theme .game-card-title {
       color: #fff0b8;
     }
 
-    .game-card p {
+    .game-card-copy {
+      display: block;
       margin: 8px 0 0;
       color: var(--muted);
       line-height: 1.4;
     }
 
-    body.bratty-theme .game-card p,
+    body.bratty-theme .game-card-copy,
     body.bratty-theme .chooser-line {
       color: #d9aebd;
     }

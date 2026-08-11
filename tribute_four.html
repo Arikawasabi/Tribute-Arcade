@@ -1172,24 +1172,28 @@
     }
 
 
-    .game-card h2 {
+    .game-card-title {
+      display: block;
       margin: 8px 0 0;
       font-size: 1.35rem;
       letter-spacing: 0;
+      font-family: "Trebuchet MS", "Arial Black", sans-serif;
+      font-weight: 900;
       color: #ffe1a0;
     }
 
-    body.bratty-theme .game-card h2 {
+    body.bratty-theme .game-card-title {
       color: #fff0b8;
     }
 
-    .game-card p {
+    .game-card-copy {
+      display: block;
       margin: 8px 0 0;
       color: var(--muted);
       line-height: 1.4;
     }
 
-    body.bratty-theme .game-card p,
+    body.bratty-theme .game-card-copy,
     body.bratty-theme .chooser-line {
       color: #d9aebd;
     }
@@ -6479,114 +6483,114 @@
     </div>
 
     <section class="game-grid" id="mainGamesGrid">
-      <button class="panel game-card" id="tributeFourCard" data-game-categories="board all">
+      <button class="panel game-card" id="tributeFourCard" data-open-game="tributeFour" data-game-categories="board all">
         <span>
-          <h2>Tribute Four</h2>
-          <p>Connect Four with normal bets, reclaim matches, and tilted dom-favored rules.</p>
+          <span class="game-card-title">Tribute Four</span>
+          <span class="game-card-copy">Connect Four with normal bets, reclaim matches, and tilted dom-favored rules.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeFleetCard" data-game-categories="board all">
+      <button class="panel game-card" id="tributeFleetCard" data-open-game="tributeFleet" data-game-categories="board all">
         <span>
-          <h2>Tribute Fleet</h2>
-          <p>Battleship with hidden fleets, cash stakes, and reclaim pressure on the sub's shots.</p>
+          <span class="game-card-title">Tribute Fleet</span>
+          <span class="game-card-copy">Battleship with hidden fleets, cash stakes, and reclaim pressure on the sub's shots.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeChessCard" data-game-categories="board all">
+      <button class="panel game-card" id="tributeChessCard" data-open-game="tributeChess" data-game-categories="board all">
         <span>
-          <h2>Tribute Chess</h2>
-          <p>Classic chess with queen stances, shared charges, and reclaim commands.</p>
+          <span class="game-card-title">Tribute Chess</span>
+          <span class="game-card-copy">Classic chess with queen stances, shared charges, and reclaim commands.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeCheckersCard" data-game-categories="board all">
+      <button class="panel game-card" id="tributeCheckersCard" data-open-game="tributeCheckers" data-game-categories="board all">
         <span>
-          <h2>Tribute Checkers</h2>
-          <p>Classic checkers where dom captures build Claim and her queens drain cash from captured sub pieces.</p>
+          <span class="game-card-title">Tribute Checkers</span>
+          <span class="game-card-copy">Classic checkers where dom captures build Claim and her queens drain cash from captured sub pieces.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeReversiCard" data-game-categories="board all">
+      <button class="panel game-card" id="tributeReversiCard" data-open-game="tributeReversi" data-game-categories="board all">
         <span>
-          <h2>Tribute Reversi</h2>
-          <p>Classic disc-flipping board control where every line turned can swing the table.</p>
+          <span class="game-card-title">Tribute Reversi</span>
+          <span class="game-card-copy">Classic disc-flipping board control where every line turned can swing the table.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeTwentyOneCard" data-game-categories="cards all">
+      <button class="panel game-card" id="tributeTwentyOneCard" data-open-game="tributeTwentyOne" data-game-categories="cards all">
         <span>
-          <h2>Tribute Blackjack</h2>
-          <p>Blackjack hands where the sub plays first, then the dom takes the dealer turn and presses the table edge in reclaim.</p>
+          <span class="game-card-title">Tribute Blackjack</span>
+          <span class="game-card-copy">Blackjack hands where the sub plays first, then the dom takes the dealer turn and presses the table edge in reclaim.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeCrazyEightsCard" data-game-categories="cards all">
+      <button class="panel game-card" id="tributeCrazyEightsCard" data-open-game="tributeCrazyEights" data-game-categories="cards all">
         <span>
-          <h2>Tribute 8s</h2>
-          <p>Classic Crazy 8's with wild suits, draw traps, skips, and ace tribute tax.</p>
+          <span class="game-card-title">Tribute 8s</span>
+          <span class="game-card-copy">Classic Crazy 8's with wild suits, draw traps, skips, and ace tribute tax.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="doubleSolitaireCard" data-game-categories="cards all">
+      <button class="panel game-card" id="doubleSolitaireCard" data-open-game="doubleSolitaire" data-game-categories="cards all">
         <span>
-          <h2>Solitaire Duel</h2>
-          <p>Turn-based Klondike race where the draw stack hands control to the other player.</p>
+          <span class="game-card-title">Solitaire Duel</span>
+          <span class="game-card-copy">Turn-based Klondike race where the draw stack hands control to the other player.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeTicTacToeCard" data-game-categories="board all">
+      <button class="panel game-card" id="tributeTicTacToeCard" data-open-game="tributeTicTacToe" data-game-categories="board all">
         <span>
-          <h2>Tribute Tic Tac Toe</h2>
-          <p>Quick three-in-a-row bets. In reclaim, the dom starts and drawn boards go to her.</p>
+          <span class="game-card-title">Tribute Tic Tac Toe</span>
+          <span class="game-card-copy">Quick three-in-a-row bets. In reclaim, the dom starts and drawn boards go to her.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="tributeWheelCard" data-game-categories="chance all">
+      <button class="panel game-card" id="tributeWheelCard" data-open-game="wheelSpin" data-game-categories="chance all">
         <span>
-          <h2>Wheel Spin</h2>
-          <p>A 36-space cash wheel with timed spins, dom powers, $25 prizes, and minus slots that can drain the dom bank.</p>
+          <span class="game-card-title">Wheel Spin</span>
+          <span class="game-card-copy">A 36-space cash wheel with timed spins, dom powers, $25 prizes, and minus slots that can drain the dom bank.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="higherLowerCard" data-game-categories="chance cards all">
+      <button class="panel game-card" id="higherLowerCard" data-open-game="higherLower" data-game-categories="chance cards all">
         <span>
-          <h2>Higher / Lower</h2>
-          <p>A dom-set card endurance run. Build the streak to cash out before wrong calls make the owed counter worth collecting.</p>
+          <span class="game-card-title">Higher / Lower</span>
+          <span class="game-card-copy">A dom-set card endurance run. Build the streak to cash out before wrong calls make the owed counter worth collecting.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="solitaireCard" data-game-categories="solo">
+      <button class="panel game-card" id="solitaireCard" data-open-game="solitaire" data-game-categories="solo">
         <span>
-          <h2>Solitaire</h2>
-          <p>A relaxed solo card table using the custom Tribute Arcade deck.</p>
+          <span class="game-card-title">Solitaire</span>
+          <span class="game-card-copy">A relaxed solo card table using the custom Tribute Arcade deck.</span>
         </span>
         <strong class="status-pill">Play Solo</strong>
       </button>
 
-      <button class="panel game-card" id="obedienceOrdersCard" data-game-categories="wip all" data-game-hidden="true">
+      <button class="panel game-card" id="obedienceOrdersCard" data-open-game="obedienceOrders" data-game-categories="wip all" data-game-hidden="true">
         <span>
-          <h2>Obedience Orders</h2>
-          <p>A command-tile duel where the dom leads, raises pressure, and every sub mistake pays tribute.</p>
+          <span class="game-card-title">Obedience Orders</span>
+          <span class="game-card-copy">A command-tile duel where the dom leads, raises pressure, and every sub mistake pays tribute.</span>
         </span>
         <strong class="status-pill">WIP</strong>
       </button>
 
-      <button class="panel game-card" id="tributeTrailCard" data-game-categories="wip board chance all" data-game-hidden="true">
+      <button class="panel game-card" id="tributeTrailCard" data-open-game="tributeTrail" data-game-categories="wip board chance all" data-game-hidden="true">
         <span>
-          <h2>Tribute Trail</h2>
-          <p>A 60-space public test race with dice rolls, card draws, chance draws, cash spaces, blank spaces, and slides.</p>
+          <span class="game-card-title">Tribute Trail</span>
+          <span class="game-card-copy">A 60-space public test race with dice rolls, card draws, chance draws, cash spaces, blank spaces, and slides.</span>
         </span>
         <strong class="status-pill">Public Test</strong>
       </button>
@@ -11210,7 +11214,14 @@
     function mergeLatestSnapshotWithLocalAction(latestSnapshot, localSnapshot) {
       const latest = latestSnapshot || {};
       const local = localSnapshot || snapshotState();
-      const localRole = localOnlineRole();
+      const localSeatValue = localSeat();
+      const localRole = localSeatValue === SPECTATOR
+        ? SPECTATOR
+        : (localSeatValue
+          ? ((local.roles && local.roles[localSeatValue])
+            || (local.onlineLobby && local.onlineLobby.roleChoices && local.onlineLobby.roleChoices[localSeatValue])
+            || localOnlineRole())
+          : localOnlineRole());
       const staleLocalGameSelection = Boolean(
         state.online.room
         && localRole
@@ -11327,6 +11338,7 @@
             }
             if (!retryResponse.ok) throw new Error(retryData.error || "Sync failed");
             state.online.rev = retryData.rev;
+            applySnapshot(merged);
             return;
           }
           applySnapshot(data.snapshot);
@@ -11524,7 +11536,9 @@
       state.online.seatSecrets = state.online.seatSecrets || { one: "", two: "" };
       await claimOnlineSeat();
       startPolling();
-      setScreen("setup");
+      if (state.screen !== "game" && state.screen !== "select") {
+        setScreen("setup");
+      }
       updateOnlineUi();
     }
 
@@ -22752,20 +22766,30 @@
       handleWagerAction(button.dataset.wagerAction, button);
     });
     els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
-    els.tributeFourCard.addEventListener("click", openTributeFour);
-    els.tributeFleetCard.addEventListener("click", openTributeFleet);
-    els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
-    if (els.higherLowerCard) els.higherLowerCard.addEventListener("click", openHigherLower);
-    if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.addEventListener("click", openTributeCrazyEights);
-    if (els.doubleSolitaireCard) els.doubleSolitaireCard.addEventListener("click", openDoubleSolitaire);
-    if (els.solitaireCard) els.solitaireCard.addEventListener("click", openSolitaire);
-    els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
-    els.tributeWheelCard.addEventListener("click", openWheelSpin);
-    if (els.obedienceOrdersCard) els.obedienceOrdersCard.addEventListener("click", openObedienceOrders);
-    els.tributeTrailCard.addEventListener("click", openTributeTrail);
-    els.tributeChessCard.addEventListener("click", openTributeChess);
-    els.tributeCheckersCard.addEventListener("click", openTributeCheckers);
-    if (els.tributeReversiCard) els.tributeReversiCard.addEventListener("click", openTributeReversi);
+    const gameOpeners = {
+      tributeFour: openTributeFour,
+      tributeFleet: openTributeFleet,
+      tributeTwentyOne: openTributeTwentyOne,
+      higherLower: openHigherLower,
+      tributeCrazyEights: openTributeCrazyEights,
+      doubleSolitaire: openDoubleSolitaire,
+      solitaire: openSolitaire,
+      tributeTicTacToe: openTributeTicTacToe,
+      wheelSpin: openWheelSpin,
+      obedienceOrders: openObedienceOrders,
+      tributeTrail: openTributeTrail,
+      tributeChess: openTributeChess,
+      tributeCheckers: openTributeCheckers,
+      tributeReversi: openTributeReversi
+    };
+    if (els.mainGamesGrid) {
+      els.mainGamesGrid.addEventListener("click", (event) => {
+        const card = event.target.closest(".game-card[data-open-game]");
+        if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
+        const opener = gameOpeners[card.dataset.openGame];
+        if (opener) opener();
+      });
+    }
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
     els.copyInviteBtn.addEventListener("click", copyInviteLink);
     if (els.copySetupInviteBtn) els.copySetupInviteBtn.addEventListener("click", copyInviteLink);

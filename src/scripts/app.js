@@ -3914,7 +3914,14 @@
     function mergeLatestSnapshotWithLocalAction(latestSnapshot, localSnapshot) {
       const latest = latestSnapshot || {};
       const local = localSnapshot || snapshotState();
-      const localRole = localOnlineRole();
+      const localSeatValue = localSeat();
+      const localRole = localSeatValue === SPECTATOR
+        ? SPECTATOR
+        : (localSeatValue
+          ? ((local.roles && local.roles[localSeatValue])
+            || (local.onlineLobby && local.onlineLobby.roleChoices && local.onlineLobby.roleChoices[localSeatValue])
+            || localOnlineRole())
+          : localOnlineRole());
       const staleLocalGameSelection = Boolean(
         state.online.room
         && localRole
@@ -4031,6 +4038,7 @@
             }
             if (!retryResponse.ok) throw new Error(retryData.error || "Sync failed");
             state.online.rev = retryData.rev;
+            applySnapshot(merged);
             return;
           }
           applySnapshot(data.snapshot);
@@ -4228,7 +4236,9 @@
       state.online.seatSecrets = state.online.seatSecrets || { one: "", two: "" };
       await claimOnlineSeat();
       startPolling();
-      setScreen("setup");
+      if (state.screen !== "game" && state.screen !== "select") {
+        setScreen("setup");
+      }
       updateOnlineUi();
     }
 
@@ -15456,20 +15466,30 @@
       handleWagerAction(button.dataset.wagerAction, button);
     });
     els.confirmPlayersBtn.addEventListener("click", confirmPlayers);
-    els.tributeFourCard.addEventListener("click", openTributeFour);
-    els.tributeFleetCard.addEventListener("click", openTributeFleet);
-    els.tributeTwentyOneCard.addEventListener("click", openTributeTwentyOne);
-    if (els.higherLowerCard) els.higherLowerCard.addEventListener("click", openHigherLower);
-    if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.addEventListener("click", openTributeCrazyEights);
-    if (els.doubleSolitaireCard) els.doubleSolitaireCard.addEventListener("click", openDoubleSolitaire);
-    if (els.solitaireCard) els.solitaireCard.addEventListener("click", openSolitaire);
-    els.tributeTicTacToeCard.addEventListener("click", openTributeTicTacToe);
-    els.tributeWheelCard.addEventListener("click", openWheelSpin);
-    if (els.obedienceOrdersCard) els.obedienceOrdersCard.addEventListener("click", openObedienceOrders);
-    els.tributeTrailCard.addEventListener("click", openTributeTrail);
-    els.tributeChessCard.addEventListener("click", openTributeChess);
-    els.tributeCheckersCard.addEventListener("click", openTributeCheckers);
-    if (els.tributeReversiCard) els.tributeReversiCard.addEventListener("click", openTributeReversi);
+    const gameOpeners = {
+      tributeFour: openTributeFour,
+      tributeFleet: openTributeFleet,
+      tributeTwentyOne: openTributeTwentyOne,
+      higherLower: openHigherLower,
+      tributeCrazyEights: openTributeCrazyEights,
+      doubleSolitaire: openDoubleSolitaire,
+      solitaire: openSolitaire,
+      tributeTicTacToe: openTributeTicTacToe,
+      wheelSpin: openWheelSpin,
+      obedienceOrders: openObedienceOrders,
+      tributeTrail: openTributeTrail,
+      tributeChess: openTributeChess,
+      tributeCheckers: openTributeCheckers,
+      tributeReversi: openTributeReversi
+    };
+    if (els.mainGamesGrid) {
+      els.mainGamesGrid.addEventListener("click", (event) => {
+        const card = event.target.closest(".game-card[data-open-game]");
+        if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
+        const opener = gameOpeners[card.dataset.openGame];
+        if (opener) opener();
+      });
+    }
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
     els.copyInviteBtn.addEventListener("click", copyInviteLink);
     if (els.copySetupInviteBtn) els.copySetupInviteBtn.addEventListener("click", copyInviteLink);
