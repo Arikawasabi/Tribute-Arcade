@@ -10030,13 +10030,13 @@
         const throneMode = isThroneSession();
         if (els.brattyWelcomeText) {
           els.brattyWelcomeText.textContent = throneMode
-            ? `${state.names.dom} has entered like a goddess. Bratty mode is ready, her Throne is already set, and the arcade is grateful she came to play.`
+            ? `${state.names.dom} has entered like a goddess. Bratty mode is ready, her Throne is already set, and the arcade is grateful she came to play. Would she like a small gift as thanks for playing?`
             : `${state.names.dom} has entered like a goddess. The arcade knows she deserves tribute before the first move. Start her bank with $15 and begin at reclaim level 1?`;
         }
-        if (els.declineBrattyWelcomeBtn) els.declineBrattyWelcomeBtn.textContent = throneMode ? "Thanks" : "No";
+        if (els.declineBrattyWelcomeBtn) els.declineBrattyWelcomeBtn.textContent = throneMode ? "No Thanks" : "No";
         if (els.acceptBrattyWelcomeBtn) {
-          els.acceptBrattyWelcomeBtn.classList.toggle("hidden", throneMode);
-          els.acceptBrattyWelcomeBtn.textContent = "Yes";
+          els.acceptBrattyWelcomeBtn.classList.remove("hidden");
+          els.acceptBrattyWelcomeBtn.textContent = throneMode ? "Send Gift" : "Yes";
         }
       }
     }
@@ -10051,7 +10051,7 @@
     function acceptBrattyWelcome() {
       if (!brattyWelcomeAllowed()) return;
       if (isThroneSession()) {
-        declineBrattyWelcome();
+        sendBrattyWelcomeGift();
         return;
       }
       const before = state.domVault;
@@ -11484,6 +11484,32 @@
     function finishRoundStart(logHtml, shouldRender = true) {
       if (logHtml) addLog(logHtml);
       if (shouldRender || isThroneSession()) render();
+      publishState();
+    }
+
+    function sendBrattyWelcomeGift() {
+      const easterEgg = activeNameEasterEgg();
+      const baseUrl = normalizeDomLink(state.settings.throneUrl || (easterEgg && easterEgg.defaultThroneUrl));
+      state.settings.brattyWelcomeSeen = true;
+      if (!baseUrl) {
+        addLog(`<strong class="danger">Gift blocked.</strong> No Throne URL is saved for ${state.names.dom || "Bratty"}.`);
+        if (els.brattyWelcomeModal) els.brattyWelcomeModal.classList.add("hidden");
+        render();
+        publishState();
+        return;
+      }
+      state.settings.paymentDemand = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url: throneUrlWithTributeAmount(baseUrl, 5),
+        tributeAmount: roundThroneTributeAmount(5),
+        reason: "bratty-welcome-gift",
+        automatic: true
+      };
+      addLog(`<strong>Small gift sent.</strong> ${state.names.dom || "Bratty"} gets a little thank-you for playing.`);
+      if (els.brattyWelcomeModal) els.brattyWelcomeModal.classList.add("hidden");
+      renderSidePanel();
+      processPaymentDemand();
+      render();
       publishState();
     }
 
