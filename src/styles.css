@@ -2320,9 +2320,13 @@
       overflow: visible;
     }
 
-    .board-wrap.four-board-wrap,
     .board-wrap.fleet-board-wrap {
       width: min(100%, 1040px);
+      justify-self: center;
+    }
+
+    .board-wrap.four-board-wrap {
+      width: min(100%, 820px);
       justify-self: center;
     }
 
@@ -2340,8 +2344,8 @@
     }
 
     .board-wrap.four-board-wrap .board {
-      width: min(100%, 980px);
-      max-height: min(72vh, 760px);
+      width: min(100%, 760px);
+      max-height: none;
     }
 
     .cell {
@@ -2505,9 +2509,61 @@
 
     .fleet-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(var(--fleet-size, 6), 1fr);
       gap: 5px;
       aspect-ratio: 1;
+    }
+
+    .fleet-setup-panel {
+      width: min(100%, 760px);
+      justify-self: center;
+      display: grid;
+      gap: 16px;
+    }
+
+    .fleet-size-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .fleet-setup-sliders {
+      display: grid;
+      gap: 10px;
+    }
+
+    .fleet-setup-slider {
+      display: grid;
+      gap: 6px;
+      padding: 10px;
+      border: 1px solid rgba(241, 201, 101, 0.15);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .fleet-setup-slider span {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .fleet-setup-slider strong {
+      color: var(--gold);
+    }
+
+    .fleet-setup-summary {
+      padding: 10px 12px;
+      border: 1px solid rgba(244, 239, 232, 0.12);
+      border-radius: 8px;
+      color: var(--muted);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .fleet-setup-summary.danger {
+      border-color: rgba(255, 79, 134, 0.36);
+      color: #ffb2c8;
     }
 
     .fleet-panel-large .fleet-grid {
@@ -2516,6 +2572,8 @@
     }
 
     .fleet-cell {
+      position: relative;
+      overflow: hidden;
       min-height: 0;
       aspect-ratio: 1;
       padding: 0;
@@ -2530,9 +2588,145 @@
       border-color: rgba(244, 239, 232, 0.28);
     }
 
+    .fleet-ship-art {
+      position: absolute;
+      inset: 16% -8%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .fleet-ship-art.ship-vertical {
+      inset: -8% 16%;
+    }
+
+    .fleet-ship-art.subtle {
+      opacity: 0.55;
+      filter: saturate(0.85);
+    }
+
+    .fleet-ship-art .ship-hull {
+      position: absolute;
+      inset: 16% -2%;
+      border: 1px solid rgba(255, 235, 184, 0.38);
+      border-left-width: 0;
+      border-right-width: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 235, 184, 0.14), transparent 22%, transparent 78%, rgba(255, 235, 184, 0.18)),
+        linear-gradient(135deg, rgba(76, 90, 105, 0.95), rgba(34, 44, 57, 0.98));
+      box-shadow:
+        inset 0 8px 16px rgba(255, 255, 255, 0.08),
+        inset 0 -10px 18px rgba(0, 0, 0, 0.28),
+        0 6px 16px rgba(0, 0, 0, 0.26);
+    }
+
+    .fleet-ship-art.ship-vertical .ship-hull {
+      inset: -2% 16%;
+      border-width: 0 1px;
+      background:
+        linear-gradient(180deg, rgba(255, 235, 184, 0.14), transparent 22%, transparent 78%, rgba(255, 235, 184, 0.18)),
+        linear-gradient(135deg, rgba(76, 90, 105, 0.95), rgba(34, 44, 57, 0.98));
+    }
+
+    .fleet-ship-art.ship-start .ship-hull {
+      border-top-left-radius: 999px;
+      border-bottom-left-radius: 999px;
+      border-left-width: 1px;
+    }
+
+    .fleet-ship-art.ship-end .ship-hull {
+      border-top-right-radius: 999px;
+      border-bottom-right-radius: 999px;
+      border-right-width: 1px;
+    }
+
+    .fleet-ship-art.ship-vertical.ship-start .ship-hull {
+      border-radius: 999px 999px 0 0;
+      border-top-width: 1px;
+      border-left-width: 1px;
+      border-right-width: 1px;
+    }
+
+    .fleet-ship-art.ship-vertical.ship-end .ship-hull {
+      border-radius: 0 0 999px 999px;
+      border-bottom-width: 1px;
+      border-left-width: 1px;
+      border-right-width: 1px;
+    }
+
+    .fleet-ship-art .ship-mark {
+      position: absolute;
+      z-index: 2;
+      border-radius: 999px;
+      background: rgba(255, 225, 160, 0.72);
+      box-shadow: 0 0 10px rgba(255, 225, 160, 0.16);
+    }
+
+    .fleet-ship-art .ship-mark-a {
+      width: 28%;
+      height: 16%;
+      left: 36%;
+      top: 42%;
+    }
+
+    .fleet-ship-art .ship-mark-b {
+      width: 14%;
+      height: 28%;
+      right: 18%;
+      top: 35%;
+      opacity: 0;
+    }
+
+    .fleet-ship-art.ship-vertical .ship-mark-a {
+      width: 16%;
+      height: 28%;
+      left: 42%;
+      top: 36%;
+    }
+
+    .fleet-ship-art.ship-vertical .ship-mark-b {
+      width: 28%;
+      height: 14%;
+      left: 35%;
+      right: auto;
+      top: auto;
+      bottom: 18%;
+    }
+
+    .fleet-ship-art.ship-destroyer .ship-hull,
+    .fleet-ship-art.ship-cruiser .ship-hull {
+      background:
+        linear-gradient(90deg, rgba(255, 235, 184, 0.16), transparent 22%, transparent 78%, rgba(255, 235, 184, 0.18)),
+        linear-gradient(135deg, rgba(86, 99, 114, 0.98), rgba(40, 49, 64, 0.99));
+    }
+
+    .fleet-ship-art.ship-cruiser .ship-mark-b,
+    .fleet-ship-art.ship-flagship .ship-mark-b {
+      opacity: 0.9;
+    }
+
+    .fleet-ship-art.ship-flagship .ship-hull {
+      inset-block: 10%;
+      background:
+        linear-gradient(90deg, rgba(255, 214, 110, 0.18), transparent 18%, transparent 82%, rgba(255, 214, 110, 0.2)),
+        linear-gradient(135deg, rgba(105, 85, 100, 0.98), rgba(49, 39, 58, 0.99));
+      border-color: rgba(255, 214, 110, 0.48);
+    }
+
+    .fleet-ship-art.ship-vertical.ship-flagship .ship-hull {
+      inset-inline: 10%;
+    }
+
+    .fleet-cell.hit .fleet-ship-art {
+      opacity: 0.32;
+      filter: grayscale(0.3);
+    }
+
     .fleet-cell.hit {
       background: radial-gradient(circle at 50% 45%, #ffd2dd, var(--dom) 45%, #7d1431 100%);
       border-color: #ff8ca7;
+      box-shadow:
+        inset 0 0 18px rgba(0, 0, 0, 0.28),
+        0 0 18px rgba(255, 79, 134, 0.22);
     }
 
     .fleet-cell.miss {

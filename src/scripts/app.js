@@ -1,7 +1,18 @@
     const ROWS = 6;
     const COLS = 7;
     const FLEET_SIZE = 6;
-    const FLEET_SHIPS = [3, 2, 2];
+    const FLEET_DEFAULT_SETUPS = {
+      5: { 2: 2, 3: 1, 4: 0, 5: 0 },
+      6: { 2: 2, 3: 2, 4: 1, 5: 0 },
+      7: { 2: 3, 3: 2, 4: 1, 5: 1 }
+    };
+    const FLEET_SHIP_LIMITS = { 2: 5, 3: 3, 4: 3, 5: 2 };
+    const FLEET_SHIP_DESIGNS = {
+      2: "patrol",
+      3: "destroyer",
+      4: "cruiser",
+      5: "flagship"
+    };
     const EMPTY = "";
     const SUB = "sub";
     const DOM = "dom";
@@ -616,23 +627,54 @@
       };
     }
 
-    function createFleetGrid() {
-      return Array.from({ length: FLEET_SIZE }, () => Array(FLEET_SIZE).fill(false));
+    function normalizeFleetSize(size) {
+      const value = Number(size);
+      return value === 5 || value === 7 ? value : 6;
     }
 
-    function createShotGrid() {
-      return Array.from({ length: FLEET_SIZE }, () => Array(FLEET_SIZE).fill(EMPTY));
+    function defaultFleetShipCounts(size = FLEET_SIZE) {
+      return { ...(FLEET_DEFAULT_SETUPS[normalizeFleetSize(size)] || FLEET_DEFAULT_SETUPS[FLEET_SIZE]) };
     }
 
-    function createFleetState() {
+    function normalizeFleetShipCounts(counts = {}, size = FLEET_SIZE) {
+      const normalized = {};
+      Object.keys(FLEET_SHIP_LIMITS).forEach((shipSize) => {
+        const fallback = defaultFleetShipCounts(size)[shipSize] || 0;
+        const value = Number(counts[shipSize]);
+        normalized[shipSize] = Math.max(0, Math.min(FLEET_SHIP_LIMITS[shipSize], Number.isFinite(value) ? Math.round(value) : fallback));
+      });
+      return normalized;
+    }
+
+    function createFleetGrid(size = FLEET_SIZE) {
+      const gridSize = normalizeFleetSize(size);
+      return Array.from({ length: gridSize }, () => Array(gridSize).fill(false));
+    }
+
+    function createShotGrid(size = FLEET_SIZE) {
+      const gridSize = normalizeFleetSize(size);
+      return Array.from({ length: gridSize }, () => Array(gridSize).fill(EMPTY));
+    }
+
+    function createFleetState(size = FLEET_SIZE, shipCounts = defaultFleetShipCounts(size)) {
+      const gridSize = normalizeFleetSize(size);
+      const counts = normalizeFleetShipCounts(shipCounts, gridSize);
       return {
+        size: gridSize,
+        shipCounts: counts,
+        setupPending: false,
+        setupStarter: SUB,
         boards: {
-          dom: createFleetGrid(),
-          sub: createFleetGrid()
+          dom: createFleetGrid(gridSize),
+          sub: createFleetGrid(gridSize)
+        },
+        ships: {
+          dom: [],
+          sub: []
         },
         shots: {
-          dom: createShotGrid(),
-          sub: createShotGrid()
+          dom: createShotGrid(gridSize),
+          sub: createShotGrid(gridSize)
         },
         scanAvailable: false,
         scanReveals: [],
@@ -642,6 +684,31 @@
         noisyWaters: null,
         priorityIntel: null
       };
+    }
+
+    function normalizeFleetState(fleet = state.fleet) {
+      const size = normalizeFleetSize(fleet && fleet.size);
+      const base = createFleetState(size, fleet && fleet.shipCounts);
+      const next = {
+        ...base,
+        ...(fleet || {}),
+        size,
+        shipCounts: normalizeFleetShipCounts(fleet && fleet.shipCounts, size),
+        boards: {
+          dom: (fleet && fleet.boards && fleet.boards.dom) || base.boards.dom,
+          sub: (fleet && fleet.boards && fleet.boards.sub) || base.boards.sub
+        },
+        ships: {
+          dom: (fleet && fleet.ships && Array.isArray(fleet.ships.dom)) ? fleet.ships.dom : [],
+          sub: (fleet && fleet.ships && Array.isArray(fleet.ships.sub)) ? fleet.ships.sub : []
+        },
+        shots: {
+          dom: (fleet && fleet.shots && fleet.shots.dom) || base.shots.dom,
+          sub: (fleet && fleet.shots && fleet.shots.sub) || base.shots.sub
+        }
+      };
+      state.fleet = next;
+      return next;
     }
 
     function createTwentyOneState() {
@@ -3764,6 +3831,7 @@
       state.domOpened = Boolean(snapshot.domOpened);
       state.winningCells = snapshot.winningCells || [];
       state.fleet = snapshot.fleet || state.fleet;
+      normalizeFleetState();
       state.twentyOne = snapshot.twentyOne || state.twentyOne;
       state.higherLower = snapshot.higherLower || state.higherLower;
       state.crazyEights = snapshot.crazyEights || state.crazyEights;
@@ -7751,6 +7819,18 @@
       const role = localOnlineRole();
       const stage = setup.stage || "sub";
       const isLocal = !state.online.room || !role;
+      if (stage === "domThrone") {
+        const canChoose = isLocal || role === DOM;
+        els.checkersQueenTitle.textContent = "Start Crowned?";
+        els.checkersQueenText.textContent = canChoose
+          ? `Do you want ${state.names.dom} to start with a queen?`
+          : `${state.names.dom} is deciding whether to start with a queen.`;
+        els.checkersQueenYesBtn.textContent = "Start With Queen";
+        els.checkersQueenNoBtn.textContent = "Start Normal";
+        els.checkersQueenYesBtn.disabled = !canChoose;
+        els.checkersQueenNoBtn.disabled = !canChoose;
+        return;
+      }
       if (stage === "sub") {
         const canChoose = isLocal || role === SUB;
         els.checkersQueenTitle.textContent = "Offer Her A Queen";
@@ -8029,7 +8109,8 @@
       if (bet === null) return;
       const starter = chooseStartingPlayer();
       preserveTiltLevel(() => beginCheckersQueenSetup(starter));
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} will move first after the queen offer.`, false);
+      const queenPending = Boolean(state.checkers && state.checkers.queenSetup);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} ${queenPending ? "will move first after the queen choice." : "moves first."}`, false);
     }
 
     function startCheckersReclaimMatch() {
@@ -8043,6 +8124,19 @@
       state.checkers = createCheckersState();
       state.turn = starter;
       state.active = false;
+      if (isThroneSession()) {
+        if (reclaimPerksActive() && domAdvantagesEnabled()) {
+          state.checkers.queenSetup = {
+            stage: "domThrone",
+            starter,
+            decidedAt: 0
+          };
+        } else {
+          state.checkers.queenSetup = null;
+          state.active = true;
+        }
+        return;
+      }
       state.checkers.queenSetup = {
         stage: "sub",
         starter,
@@ -8116,6 +8210,21 @@
       if (state.currentGame !== "tributeCheckers" || !state.checkers.queenSetup || state.checkers.queenSetup.stage !== "dom") return;
       if (state.online.room && localOnlineRole() !== DOM) return;
       addLog(`<strong>No starting queen.</strong> ${state.names.dom} lets the board begin without mercy.`);
+      finishCheckersQueenSetup();
+    }
+
+    function domDeclinesThroneCheckersQueen() {
+      if (state.currentGame !== "tributeCheckers" || !state.checkers.queenSetup || state.checkers.queenSetup.stage !== "domThrone") return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      addLog(`<strong>No starting queen.</strong> ${state.names.dom} starts the throne game normally.`);
+      finishCheckersQueenSetup();
+    }
+
+    function domStartsThroneCheckersWithQueen() {
+      if (state.currentGame !== "tributeCheckers" || !state.checkers.queenSetup || state.checkers.queenSetup.stage !== "domThrone") return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      giveDomStartingCheckersQueen();
+      addLog(`<strong>Queen chosen.</strong> ${state.names.dom} starts the throne game crowned.`);
       finishCheckersQueenSetup();
     }
 
@@ -11319,29 +11428,35 @@
       const bet = prepareRound("normal");
       if (bet === null) return;
       const starter = chooseStartingPlayer();
-      preserveTiltLevel(() => resetFleetMatch(starter));
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} opens fire first.`, false);
+      preserveTiltLevel(() => beginFleetSetup(starter));
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.dom} configures the fleets before ${labelFor(starter)} opens fire.`, false);
     }
 
     function startFleetReclaimMatch() {
       const pot = prepareRound("reclaim", "match");
       if (pot === null) return;
-      resetFleetMatch(DOM);
-      state.fleet.scanAvailable = domAdvantagesEnabled() && state.tiltLevel >= 1;
-      const modifierText = state.fleet.modifiers.length
-        ? ` Extra modifiers: ${state.fleet.modifiers.map(fleetModifierLabel).join(", ")}.`
-        : "";
-      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to sink the fleet and reclaim ${money(pot)}. Tilt level ${state.tiltLevel}.${modifierText}`);
-      if (state.fleet.priorityIntel) {
-        addLog(`<strong>Priority Intel.</strong> ${state.fleet.priorityIntel.label} contains ${state.fleet.priorityIntel.count} ${state.fleet.priorityIntel.count === 1 ? "ship segment" : "ship segments"}.`);
-      }
+      beginFleetSetup(DOM);
+      addLog(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to sink the fleet and reclaim ${money(pot)}. ${state.names.dom} configures the fleets first. Tilt level ${state.tiltLevel}.`);
       publishState();
     }
 
+    function beginFleetSetup(starter) {
+      const size = fleetSize();
+      const counts = fleetShipCounts();
+      state.fleet = createFleetState(size, counts);
+      state.fleet.setupPending = true;
+      state.fleet.setupStarter = starter;
+      state.turn = starter;
+      state.active = false;
+      state.winningCells = [];
+    }
+
     function resetFleetMatch(firstTurn) {
-      state.fleet = createFleetState();
-      placeFleet(state.fleet.boards.dom);
-      placeFleet(state.fleet.boards.sub);
+      const size = fleetSize();
+      const counts = fleetShipCounts();
+      state.fleet = createFleetState(size, counts);
+      state.fleet.ships.dom = placeFleet(state.fleet.boards.dom, DOM);
+      state.fleet.ships.sub = placeFleet(state.fleet.boards.sub, SUB);
       state.turn = firstTurn;
       state.active = true;
       state.winningCells = [];
@@ -11349,6 +11464,17 @@
       state.fleet.scanReveals = [];
       rollFleetModifiers();
       chooseFleetTurnHazards();
+      if (state.mode === "reclaim") {
+        const modifierText = state.fleet.modifiers.length
+          ? ` Extra modifiers: ${state.fleet.modifiers.map(fleetModifierLabel).join(", ")}.`
+          : "";
+        addLog(`<strong>Fleet configured.</strong> ${size} x ${size}, ${fleetShipListFromCounts(counts).length} ships.${modifierText}`);
+        if (state.fleet.priorityIntel) {
+          addLog(`<strong>Priority Intel.</strong> ${state.fleet.priorityIntel.label} contains ${state.fleet.priorityIntel.count} ${state.fleet.priorityIntel.count === 1 ? "ship segment" : "ship segments"}.`);
+        }
+      } else {
+        addLog(`<strong>Fleet configured.</strong> ${size} x ${size}, ${fleetShipListFromCounts(counts).length} ships.`);
+      }
       render();
     }
 
@@ -11415,11 +11541,120 @@
       return `<span class="effect-chip" tabindex="0" data-tooltip="${description}">${label}</span>`;
     }
 
+    function fleetSize() {
+      return normalizeFleetSize(state.fleet && state.fleet.size);
+    }
+
+    function fleetShipCounts() {
+      return normalizeFleetShipCounts(state.fleet && state.fleet.shipCounts, fleetSize());
+    }
+
+    function fleetShipListFromCounts(counts = fleetShipCounts()) {
+      return Object.keys(FLEET_SHIP_LIMITS)
+        .map(Number)
+        .sort((a, b) => b - a)
+        .flatMap((size) => Array.from({ length: Number(counts[size] || 0) }, () => size));
+    }
+
+    function fleetShipSegmentCount(counts = fleetShipCounts()) {
+      return Object.keys(FLEET_SHIP_LIMITS).reduce((total, size) => total + Number(size) * Number(counts[size] || 0), 0);
+    }
+
+    function fleetSetupValid(size = fleetSize(), counts = fleetShipCounts()) {
+      const gridSize = normalizeFleetSize(size);
+      const ships = fleetShipListFromCounts(counts);
+      return ships.length > 0
+        && ships.every((shipSize) => shipSize <= gridSize)
+        && fleetShipSegmentCount(counts) <= gridSize * gridSize;
+    }
+
+    function updateFleetSetupSize(size) {
+      if (state.currentGame !== "tributeFleet" || !state.fleet || !state.fleet.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      const gridSize = normalizeFleetSize(size);
+      state.fleet.size = gridSize;
+      state.fleet.shipCounts = defaultFleetShipCounts(gridSize);
+      render();
+      publishState();
+    }
+
+    function updateFleetSetupShipCount(shipSize, count) {
+      if (state.currentGame !== "tributeFleet" || !state.fleet || !state.fleet.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      const size = String(shipSize);
+      if (!Object.prototype.hasOwnProperty.call(FLEET_SHIP_LIMITS, size)) return;
+      state.fleet.shipCounts = {
+        ...fleetShipCounts(),
+        [size]: Math.max(0, Math.min(FLEET_SHIP_LIMITS[size], Math.round(Number(count) || 0)))
+      };
+      render();
+      publishState();
+    }
+
+    function confirmFleetSetup() {
+      if (state.currentGame !== "tributeFleet" || !state.fleet || !state.fleet.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      const size = fleetSize();
+      const counts = fleetShipCounts();
+      if (!fleetSetupValid(size, counts)) return;
+      resetFleetMatch(state.fleet.setupStarter || state.turn || SUB);
+      publishState();
+    }
+
+    function renderFleetSetupPanel() {
+      const role = localOnlineRole();
+      const canChoose = !state.online.room || !role || role === DOM;
+      const size = fleetSize();
+      const counts = fleetShipCounts();
+      const totalSegments = fleetShipSegmentCount(counts);
+      const valid = fleetSetupValid(size, counts);
+      els.board.className = "fleet-layout fleet-switch-layout";
+      els.board.innerHTML = "";
+      const panel = document.createElement("div");
+      panel.className = "fleet-panel fleet-setup-panel";
+      panel.innerHTML = `
+        <div class="fleet-panel-title">
+          <h3>Fleet Setup</h3>
+          <span>${canChoose ? "Configure the waters" : `${escapeHtml(state.names.dom)} is configuring the fleets`}</span>
+        </div>
+        <div class="fleet-size-row">
+          ${[5, 6, 7].map((option) => `<button class="${option === size ? "primary" : ""}" data-fleet-size="${option}" ${canChoose ? "" : "disabled"}>${option} x ${option}</button>`).join("")}
+        </div>
+        <div class="fleet-setup-sliders">
+          ${[2, 3, 4, 5].map((shipSize) => {
+            const value = Number(counts[shipSize] || 0);
+            const limit = FLEET_SHIP_LIMITS[shipSize];
+            return `
+              <label class="fleet-setup-slider">
+                <span>${shipSize}-cell ships <strong>${value}</strong></span>
+                <input type="range" min="0" max="${limit}" value="${value}" data-fleet-ship-size="${shipSize}" ${canChoose ? "" : "disabled"}>
+              </label>
+            `;
+          }).join("")}
+        </div>
+        <div class="fleet-setup-summary ${valid ? "" : "danger"}">
+          ${fleetShipListFromCounts(counts).length} ships · ${totalSegments}/${size * size} spaces
+          ${valid ? "" : " · choose at least one ship and keep the total within the board"}
+        </div>
+        <button class="primary" data-fleet-confirm ${canChoose && valid ? "" : "disabled"}>Start Fleet</button>
+      `;
+      panel.querySelectorAll("[data-fleet-size]").forEach((button) => {
+        button.addEventListener("click", () => updateFleetSetupSize(button.dataset.fleetSize));
+      });
+      panel.querySelectorAll("[data-fleet-ship-size]").forEach((input) => {
+        input.addEventListener("input", () => updateFleetSetupShipCount(input.dataset.fleetShipSize, input.value));
+      });
+      const confirm = panel.querySelector("[data-fleet-confirm]");
+      if (confirm) confirm.addEventListener("click", confirmFleetSetup);
+      els.board.appendChild(panel);
+    }
+
     function choosePriorityIntel() {
       const axis = Math.random() < 0.5 ? "row" : "col";
-      const index = Math.floor(Math.random() * FLEET_SIZE);
+      const size = fleetSize();
+      const index = Math.floor(Math.random() * size);
       let count = 0;
-      for (let i = 0; i < FLEET_SIZE; i += 1) {
+      for (let i = 0; i < size; i += 1) {
         const row = axis === "row" ? index : i;
         const col = axis === "row" ? i : index;
         if (state.fleet.boards.sub[row][col]) count += 1;
@@ -11432,25 +11667,38 @@
       };
     }
 
-    function placeFleet(grid) {
-      FLEET_SHIPS.forEach((size) => {
+    function placeFleet(grid, owner = "") {
+      const size = normalizeFleetSize(grid.length);
+      const shipList = fleetShipListFromCounts(state.fleet && state.fleet.shipCounts);
+      const ships = [];
+      shipList.forEach((shipSize, index) => {
         let placed = false;
-        while (!placed) {
+        let attempts = 0;
+        while (!placed && attempts < 500) {
+          attempts += 1;
           const horizontal = Math.random() < 0.5;
-          const row = Math.floor(Math.random() * (horizontal ? FLEET_SIZE : FLEET_SIZE - size + 1));
-          const col = Math.floor(Math.random() * (horizontal ? FLEET_SIZE - size + 1 : FLEET_SIZE));
+          const row = Math.floor(Math.random() * (horizontal ? size : size - shipSize + 1));
+          const col = Math.floor(Math.random() * (horizontal ? size - shipSize + 1 : size));
           const cells = [];
-          for (let i = 0; i < size; i += 1) {
+          for (let i = 0; i < shipSize; i += 1) {
             cells.push([row + (horizontal ? 0 : i), col + (horizontal ? i : 0)]);
           }
           if (cells.every(([r, c]) => !grid[r][c])) {
             cells.forEach(([r, c]) => {
               grid[r][c] = true;
             });
+            ships.push({
+              id: `${owner || "ship"}-${shipSize}-${index}-${row}-${col}`,
+              size: shipSize,
+              design: FLEET_SHIP_DESIGNS[shipSize] || "patrol",
+              orientation: horizontal ? "horizontal" : "vertical",
+              cells: cells.map(([r, c], segment) => ({ row: r, col: c, segment }))
+            });
             placed = true;
           }
         }
       });
+      return ships;
     }
 
     function otherRole(role) {
@@ -11467,9 +11715,10 @@
         state.fleet.commandFog = null;
         return;
       }
+      const size = fleetSize();
       state.fleet.commandFog = {
         axis: Math.random() < 0.5 ? "row" : "col",
-        index: Math.floor(Math.random() * FLEET_SIZE)
+        index: Math.floor(Math.random() * size)
       };
     }
 
@@ -11479,13 +11728,14 @@
         return;
       }
       const open = [];
-      for (let row = 0; row < FLEET_SIZE; row += 1) {
-        for (let col = 0; col < FLEET_SIZE; col += 1) {
+      const size = fleetSize();
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
           if (!state.fleet.shots.sub[row][col]) open.push([row, col]);
         }
       }
       const blocked = [];
-      const count = Math.min(Math.floor((FLEET_SIZE * FLEET_SIZE) / 2), open.length);
+      const count = Math.min(Math.floor((size * size) / 2), open.length);
       while (blocked.length < count && open.length) {
         const index = Math.floor(Math.random() * open.length);
         blocked.push(open.splice(index, 1)[0]);
@@ -11561,8 +11811,9 @@
 
     function fleetAllSunk(target) {
       const attacker = otherRole(target);
-      for (let row = 0; row < FLEET_SIZE; row += 1) {
-        for (let col = 0; col < FLEET_SIZE; col += 1) {
+      const size = fleetSize();
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
           if (state.fleet.boards[target][row][col] && state.fleet.shots[attacker][row][col] !== "hit") {
             return false;
           }
@@ -11603,8 +11854,9 @@
 
     function fleetShotCount(attacker, result = "") {
       let count = 0;
-      for (let row = 0; row < FLEET_SIZE; row += 1) {
-        for (let col = 0; col < FLEET_SIZE; col += 1) {
+      const size = fleetSize();
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
           const shot = state.fleet.shots[attacker][row][col];
           if (result ? shot === result : Boolean(shot)) count += 1;
         }
@@ -11616,8 +11868,9 @@
       if (!state.active || state.mode !== "reclaim" || state.currentGame !== "tributeFleet" || state.turn !== DOM || !state.fleet.scanAvailable) return;
       if (!domAdvantageControlsAllowed(localOnlineRole())) return;
       const options = [];
-      for (let row = 0; row < FLEET_SIZE; row += 1) {
-        for (let col = 0; col < FLEET_SIZE; col += 1) {
+      const size = fleetSize();
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
           const alreadyRevealed = state.fleet.scanReveals.some(([r, c]) => r === row && c === col);
           if (state.fleet.boards.sub[row][col] && state.fleet.shots.dom[row][col] !== "hit" && !alreadyRevealed) {
             options.push([row, col]);
@@ -14173,14 +14426,59 @@
       return "\u2660";
     }
 
+    function fleetShipSegment(owner, row, col) {
+      const ships = state.fleet && state.fleet.ships && Array.isArray(state.fleet.ships[owner])
+        ? state.fleet.ships[owner]
+        : [];
+      for (const ship of ships) {
+        const segment = (ship.cells || []).find((cell) => cell.row === row && cell.col === col);
+        if (segment) {
+          return {
+            ship,
+            segment: Number(segment.segment || 0),
+            last: Number(segment.segment || 0) === Number(ship.size || 1) - 1
+          };
+        }
+      }
+      return null;
+    }
+
+    function renderFleetShipArt(cell, owner, row, col, subtle = false) {
+      const segment = fleetShipSegment(owner, row, col);
+      if (!segment) return;
+      const ship = segment.ship;
+      const art = document.createElement("span");
+      art.className = [
+        "fleet-ship-art",
+        `ship-${ship.design || "patrol"}`,
+        `ship-size-${ship.size || 1}`,
+        `ship-${ship.orientation || "horizontal"}`,
+        `ship-segment-${segment.segment}`,
+        segment.segment === 0 ? "ship-start" : "",
+        segment.last ? "ship-end" : "",
+        subtle ? "subtle" : ""
+      ].filter(Boolean).join(" ");
+      art.innerHTML = `
+        <span class="ship-hull"></span>
+        <span class="ship-mark ship-mark-a"></span>
+        <span class="ship-mark ship-mark-b"></span>
+      `;
+      cell.appendChild(art);
+    }
+
     function renderFleetBoard() {
       if (localOnlineRole() === SPECTATOR) {
         renderFleetSpectatorBoard();
         return;
       }
+      if (state.fleet && state.fleet.setupPending) {
+        renderFleetSetupPanel();
+        return;
+      }
       const viewer = localFleetViewer();
       const target = otherRole(viewer);
       const view = fleetViewMode();
+      const size = fleetSize();
       els.board.className = "fleet-layout fleet-switch-layout";
       els.board.innerHTML = "";
 
@@ -14220,9 +14518,10 @@
       `;
       const grid = document.createElement("div");
       grid.className = "fleet-grid";
+      grid.style.setProperty("--fleet-size", size);
 
-      for (let row = 0; row < FLEET_SIZE; row += 1) {
-        for (let col = 0; col < FLEET_SIZE; col += 1) {
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
           const cell = document.createElement("button");
           if (view === "target") {
             const shot = state.fleet.shots[viewer][row][col];
@@ -14231,6 +14530,7 @@
             if (revealed && !shot) cell.classList.add("revealed");
             if (viewer === SUB && isFleetTargetFogged(row, col)) cell.classList.add("fogged");
             if (viewer === SUB && state.fleet.noisyWaters && !isFleetTargetNoisyAllowed(row, col)) cell.classList.add("noisy");
+            if ((revealed || shot === "hit") && state.fleet.boards[target][row][col]) renderFleetShipArt(cell, target, row, col, true);
             cell.setAttribute("aria-label", `${labelFor(target)} waters row ${row + 1}, column ${col + 1}`);
             cell.disabled = !canFire
               || Boolean(shot)
@@ -14241,6 +14541,7 @@
           } else {
             const incoming = state.fleet.shots[target][row][col];
             cell.className = `fleet-cell ${state.fleet.boards[viewer][row][col] ? "ship" : ""} ${incoming || ""}`;
+            if (state.fleet.boards[viewer][row][col]) renderFleetShipArt(cell, viewer, row, col);
             cell.setAttribute("aria-label", `${labelFor(viewer)} fleet row ${row + 1}, column ${col + 1}`);
             cell.disabled = true;
           }
@@ -14263,6 +14564,7 @@
     }
 
     function renderFleetSpectatorBoard() {
+      const size = fleetSize();
       els.board.className = "fleet-layout";
       els.board.innerHTML = "";
       [
@@ -14274,8 +14576,9 @@
         panel.innerHTML = `<h3>${labelFor(attacker)} attacking ${labelFor(target)}</h3>`;
         const grid = document.createElement("div");
         grid.className = "fleet-grid";
-        for (let row = 0; row < FLEET_SIZE; row += 1) {
-          for (let col = 0; col < FLEET_SIZE; col += 1) {
+        grid.style.setProperty("--fleet-size", size);
+        for (let row = 0; row < size; row += 1) {
+          for (let col = 0; col < size; col += 1) {
             const cell = document.createElement("button");
             const shot = state.fleet.shots[attacker][row][col];
             cell.className = `fleet-cell ${shot || ""}`;
@@ -14894,9 +15197,13 @@
       } else if (!state.active) {
         if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.queenSetup) {
           const stage = state.checkers.queenSetup.stage || "sub";
-          els.turnText.innerHTML = stage === "sub"
+          els.turnText.innerHTML = stage === "domThrone"
+            ? `<strong>${state.names.dom}</strong> decides whether to start with a queen.`
+            : stage === "sub"
             ? `<strong>${state.names.sub}</strong> decides whether ${state.names.dom} starts with a queen.`
             : `<strong>${state.names.dom}</strong> decides whether to take the queen anyway.`;
+        } else if (state.currentGame === "tributeFleet" && state.fleet && state.fleet.setupPending) {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> is configuring the fleet size and ships.`;
         } else {
           els.turnText.innerHTML = state.domVault > 0
             ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
@@ -15226,12 +15533,14 @@
     els.blackjackSettingsConfirmBtn.addEventListener("click", confirmBlackjackSettings);
     els.checkersQueenYesBtn.addEventListener("click", () => {
       const stage = state.checkers && state.checkers.queenSetup && state.checkers.queenSetup.stage;
-      if (stage === "dom") domTakesCheckersQueen();
+      if (stage === "domThrone") domStartsThroneCheckersWithQueen();
+      else if (stage === "dom") domTakesCheckersQueen();
       else subAllowsCheckersQueen();
     });
     els.checkersQueenNoBtn.addEventListener("click", () => {
       const stage = state.checkers && state.checkers.queenSetup && state.checkers.queenSetup.stage;
-      if (stage === "dom") domDeclinesCheckersQueen();
+      if (stage === "domThrone") domDeclinesThroneCheckersQueen();
+      else if (stage === "dom") domDeclinesCheckersQueen();
       else subRefusesCheckersQueen();
     });
     els.sideTabs.forEach((button) => {
