@@ -699,7 +699,8 @@
         doubleTapAvailable: false,
         commandFog: null,
         noisyWaters: null,
-        priorityIntel: null
+        priorityIntel: null,
+        shotResolving: null
       };
     }
 
@@ -9249,6 +9250,18 @@
       finishRoundStart(`${normalRoundAmountIntro(bet)} ${format.label}: first to ${format.target} board wins takes the match. ${labelFor(state.turn)} starts board 1.`);
     }
 
+    function startTicTacToeSetupMatch() {
+      if (state.currentGame !== "tributeTicTacToe") return;
+      if (state.active || state.pot > 0 || state.pendingWager || state.normalReplayPrompt) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      wagerStartBypass = true;
+      try {
+        startNormalMatch();
+      } finally {
+        wagerStartBypass = false;
+      }
+    }
+
     function startTicTacToeReclaimMatch() {
       const pot = prepareRound("reclaim", "match");
       if (pot === null) return;
@@ -12097,6 +12110,7 @@
 
     function fireFleetShot(row, col) {
       if (!state.active) return;
+      if (state.fleet.shotResolving) return;
       if (localOnlineRole() && localOnlineRole() !== state.turn) return;
       if (isFleetTargetFogged(row, col)) return;
       if (!isFleetTargetNoisyAllowed(row, col)) return;
@@ -12105,15 +12119,30 @@
       if (state.fleet.shots[attacker][row][col]) return;
       const hit = state.fleet.boards[target][row][col];
       state.fleet.shots[attacker][row][col] = hit ? "hit" : "miss";
-      if (!localOnlineRole() || localOnlineRole() === target) {
-        localFleetView = "fleet";
-        localFleetViewTurn = state.turn || null;
-        localFleetHoldUntil = Date.now() + 2000;
-      }
       if (attacker === SUB) resolveFocusTaxSuccess();
+      const resolvingId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      state.fleet.shotResolving = {
+        id: resolvingId,
+        attacker,
+        target,
+        row,
+        col,
+        result: hit ? "hit" : "miss",
+        until: Date.now() + 1000
+      };
       addLog(hit
         ? `<strong>${labelFor(attacker)} scores a hit.</strong>`
         : `<strong>${labelFor(attacker)} misses.</strong>`);
+      render();
+      publishState();
+      window.setTimeout(() => finishFleetShotResolution(resolvingId), 1050);
+    }
+
+    function finishFleetShotResolution(resolvingId) {
+      if (!state.fleet || !state.fleet.shotResolving || state.fleet.shotResolving.id !== resolvingId) return;
+      const { attacker, target, result } = state.fleet.shotResolving;
+      const hit = result === "hit";
+      state.fleet.shotResolving = null;
 
       if (fleetAllSunk(target)) {
         endFleetMatch(attacker);
@@ -12814,7 +12843,7 @@
       const format = currentTicTacToeFormat();
       const formatOptions = ticTacToeFormatOptions();
       const canPickFormat = !state.active && state.pot <= 0 && (!state.online.room || localOnlineRole() === DOM);
-      const canStartMatch = !state.active && state.pot <= 0 && !state.pendingWager && !state.normalReplayPrompt && (!state.online.room || !localOnlineRole() || localOnlineRole() === SUB);
+      const canStartMatch = !state.active && state.pot <= 0 && !state.pendingWager && !state.normalReplayPrompt && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
       const canContinue = game.pendingNextBoard && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
       const setup = document.createElement("div");
       setup.className = `ttt-match-panel ${(!state.active || game.pendingNextBoard) ? "ttt-match-popup" : ""}`.trim();
@@ -12842,7 +12871,7 @@
         const nextButton = event.target.closest("[data-ttt-next-board]");
         if (nextButton && !nextButton.disabled) continueTicTacToeMatch();
         const startButton = event.target.closest("[data-ttt-start]");
-        if (startButton && !startButton.disabled) startNormalMatch();
+        if (startButton && !startButton.disabled) startTicTacToeSetupMatch();
       });
       els.board.appendChild(setup);
 
@@ -14984,14 +15013,20 @@
           const cell = document.createElement("button");
           if (view === "target") {
             const shot = state.fleet.shots[viewer][row][col];
+            const resolving = state.fleet.shotResolving
+              && state.fleet.shotResolving.attacker === viewer
+              && state.fleet.shotResolving.row === row
+              && state.fleet.shotResolving.col === col;
             const revealed = viewer === DOM && state.fleet.scanReveals.some(([r, c]) => r === row && c === col);
             cell.className = `fleet-cell ${shot || ""}`;
+            if (resolving) cell.classList.add("resolving-shot");
             if (revealed && !shot) cell.classList.add("revealed");
             if (viewer === SUB && isFleetTargetFogged(row, col)) cell.classList.add("fogged");
             if (viewer === SUB && state.fleet.noisyWaters && !isFleetTargetNoisyAllowed(row, col)) cell.classList.add("noisy");
             if ((revealed || shot === "hit") && state.fleet.boards[target][row][col]) renderFleetShipArt(cell, target, row, col, true);
             cell.setAttribute("aria-label", `${labelFor(target)} waters row ${row + 1}, column ${col + 1}`);
             cell.disabled = !canFire
+              || Boolean(state.fleet.shotResolving)
               || Boolean(shot)
               || (viewer === SUB && isFleetTargetFogged(row, col))
               || (viewer === SUB && !isFleetTargetNoisyAllowed(row, col))
@@ -14999,7 +15034,12 @@
             cell.addEventListener("click", () => fireFleetShot(row, col));
           } else {
             const incoming = state.fleet.shots[target][row][col];
+            const resolving = state.fleet.shotResolving
+              && state.fleet.shotResolving.target === viewer
+              && state.fleet.shotResolving.row === row
+              && state.fleet.shotResolving.col === col;
             cell.className = `fleet-cell ${state.fleet.boards[viewer][row][col] ? "ship" : ""} ${incoming || ""}`;
+            if (resolving) cell.classList.add("resolving-shot");
             if (state.fleet.boards[viewer][row][col]) renderFleetShipArt(cell, viewer, row, col);
             cell.setAttribute("aria-label", `${labelFor(viewer)} fleet row ${row + 1}, column ${col + 1}`);
             cell.disabled = true;

@@ -2845,9 +2845,47 @@
         0 0 18px rgba(255, 79, 134, 0.22);
     }
 
+    .fleet-cell.resolving-shot.hit {
+      animation: fleetHitFlash 0.16s steps(2, end) 7;
+    }
+
     .fleet-cell.miss {
       background: radial-gradient(circle at 50% 45%, #d8f2ff, #3e8ab7 42%, #183d58 100%);
       border-color: rgba(157, 217, 255, 0.8);
+    }
+
+    .fleet-cell.resolving-shot.miss {
+      animation: fleetMissFlash 0.16s steps(2, end) 7;
+    }
+
+    @keyframes fleetHitFlash {
+      0%,
+      100% {
+        filter: brightness(1);
+        box-shadow:
+          inset 0 0 18px rgba(0, 0, 0, 0.28),
+          0 0 18px rgba(255, 79, 134, 0.22);
+      }
+      50% {
+        filter: brightness(1.65) saturate(1.25);
+        box-shadow:
+          inset 0 0 22px rgba(255, 255, 255, 0.24),
+          0 0 34px rgba(255, 79, 134, 0.56);
+      }
+    }
+
+    @keyframes fleetMissFlash {
+      0%,
+      100% {
+        filter: brightness(1);
+        box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.28);
+      }
+      50% {
+        filter: brightness(1.55) saturate(1.2);
+        box-shadow:
+          inset 0 0 22px rgba(255, 255, 255, 0.18),
+          0 0 30px rgba(157, 217, 255, 0.42);
+      }
     }
 
     .fleet-cell.revealed {
