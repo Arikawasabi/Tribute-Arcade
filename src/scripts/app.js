@@ -115,6 +115,7 @@
         linkRequest: null,
         sessionMode: "throne",
         sessionModePrompted: true,
+        startingPlayerMode: "random",
         reclaimPowersAlways: false,
         throneReclaimPerks: false,
         throneAmount: 5,
@@ -246,6 +247,7 @@
       setupDefaultBetInput: document.getElementById("setupDefaultBetInput"),
       setupThroneAmountRow: document.getElementById("setupThroneAmountRow"),
       setupThroneAmountInput: document.getElementById("setupThroneAmountInput"),
+      setupStartingPlayerMode: document.getElementById("setupStartingPlayerMode"),
       setupDomAdvantageAlwaysInput: document.getElementById("setupDomAdvantageAlwaysInput"),
       setupDomAdvantageModeRow: document.getElementById("setupDomAdvantageModeRow"),
       setupDomAdvantageMode: document.getElementById("setupDomAdvantageMode"),
@@ -479,6 +481,9 @@
     let selectedCheckersPower = "crownPull";
     let selectedTwentyOnePower = "pushLuck";
     let localDoubleSolitaireViewed = null;
+    let localFleetView = null;
+    let localFleetViewTurn = null;
+    let localFleetHoldUntil = 0;
     const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
     const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
     const THRONE_EXTENSION_FOCUS_CHECKOUT = "TRIBUTE_ARCADE_FOCUS_THRONE_CHECKOUT";
@@ -1024,6 +1029,17 @@
       return Math.random() < 0.5 ? SUB : DOM;
     }
 
+    function startingPlayerMode() {
+      return state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB
+        ? state.settings.startingPlayerMode
+        : "random";
+    }
+
+    function chooseStartingPlayer() {
+      const mode = startingPlayerMode();
+      return mode === "random" ? randomStarter() : mode;
+    }
+
     function escapeHtml(value) {
       return String(value || "")
         .replace(/&/g, "&amp;")
@@ -1222,6 +1238,10 @@
       if (els.setupThroneAmountInput) {
         els.setupThroneAmountInput.value = currentThroneAmount();
         els.setupThroneAmountInput.disabled = !canEdit;
+      }
+      if (els.setupStartingPlayerMode) {
+        els.setupStartingPlayerMode.value = startingPlayerMode();
+        els.setupStartingPlayerMode.disabled = !canEdit;
       }
       if (els.setupDomAdvantageAlwaysInput) {
         els.setupDomAdvantageAlwaysInput.checked = Boolean(state.settings.reclaimPowersAlways);
@@ -1887,7 +1907,7 @@
       resetTributeReversiBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
-      addLog(`<strong>${state.names.sub}</strong> plays dark and moves first. <strong>${state.names.dom}</strong> plays light and waits to flip the board.`);
+      addLog(`<strong>Reversi opened.</strong> The lobby starting-player setting decides who plays dark and moves first.`);
       if (startThroneRoundOnOpen()) return;
       render();
       publishState();
@@ -2397,6 +2417,7 @@
       state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
       state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
+      state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
       if (!state.active) applyDefaultBet();
@@ -3717,6 +3738,7 @@
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
       state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
       state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
+      state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.sideOpen = localSideOpen;
       state.settings.activeSideTab = localActiveSideTab;
       state.pendingWager = snapshot.pendingWager || null;
@@ -4958,7 +4980,7 @@
       state.pressureDropAvailable = false;
       state.pressureDropArmed = false;
       state.pressureDropColumn = null;
-      const starter = randomStarter();
+      const starter = chooseStartingPlayer();
       preserveTiltLevel(() => resetMatch(starter));
       finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} starts.`, false);
     }
@@ -5348,9 +5370,9 @@
       const bet = prepareRound("normal", "reversi match");
       if (bet === null) return;
       state.reversi = createReversiState();
-      state.turn = SUB;
+      state.turn = chooseStartingPlayer();
       state.active = true;
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.sub} plays dark and moves first.`, false);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(state.turn)} plays dark and moves first.`, false);
     }
 
     function startReversiReclaimMatch() {
@@ -7939,7 +7961,7 @@
     function startCheckersNormalMatch() {
       const bet = prepareRound("normal");
       if (bet === null) return;
-      const starter = randomStarter();
+      const starter = chooseStartingPlayer();
       preserveTiltLevel(() => beginCheckersQueenSetup(starter));
       finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} will move first after the queen offer.`, false);
     }
@@ -8952,7 +8974,7 @@
         pendingNextBoard: false,
         lastBoardWinner: null
       });
-      state.turn = state.mode === "reclaim" ? DOM : randomStarter();
+      state.turn = state.mode === "reclaim" ? DOM : chooseStartingPlayer();
       state.active = true;
       if (message) addLog(message);
     }
@@ -9101,7 +9123,7 @@
     function startChessNormalMatch() {
       const bet = prepareRound("normal");
       if (bet === null) return;
-      const starter = randomStarter();
+      const starter = chooseStartingPlayer();
       preserveTiltLevel(() => resetChessMatch(starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB }));
       finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} plays white and starts.`, false);
     }
@@ -10069,7 +10091,7 @@
     function startCrazyEightsNormalMatch() {
       const bet = prepareRound("normal", "Tribute 8s game");
       if (bet === null) return;
-      const starter = randomStarter();
+      const starter = chooseStartingPlayer();
       dealCrazyEights(starter);
       finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} takes the first Tribute 8s turn.`, false);
     }
@@ -10309,7 +10331,7 @@
     function startDoubleSolitaireNormalMatch() {
       const bet = prepareRound("normal", "Solitaire Duel race");
       if (bet === null) return;
-      const starter = randomStarter();
+      const starter = chooseStartingPlayer();
       startDoubleSolitaireGame(starter, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} starts the Solitaire Duel race.`);
     }
 
@@ -11230,7 +11252,7 @@
     function startFleetNormalMatch() {
       const bet = prepareRound("normal");
       if (bet === null) return;
-      const starter = randomStarter();
+      const starter = chooseStartingPlayer();
       preserveTiltLevel(() => resetFleetMatch(starter));
       finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} opens fire first.`, false);
     }
@@ -11428,6 +11450,11 @@
       if (state.fleet.shots[attacker][row][col]) return;
       const hit = state.fleet.boards[target][row][col];
       state.fleet.shots[attacker][row][col] = hit ? "hit" : "miss";
+      if (!localOnlineRole() || localOnlineRole() === target) {
+        localFleetView = "fleet";
+        localFleetViewTurn = state.turn || null;
+        localFleetHoldUntil = Date.now() + 2000;
+      }
       if (attacker === SUB) resolveFocusTaxSuccess();
       addLog(hit
         ? `<strong>${labelFor(attacker)} scores a hit.</strong>`
@@ -11476,6 +11503,47 @@
         }
       }
       return true;
+    }
+
+    function localFleetViewer() {
+      const role = localOnlineRole();
+      if (role === DOM || role === SUB) return role;
+      return state.turn || SUB;
+    }
+
+    function defaultFleetViewMode(viewer = localFleetViewer()) {
+      return state.active && state.turn && state.turn !== viewer ? "fleet" : "target";
+    }
+
+    function fleetViewMode(viewer = localFleetViewer()) {
+      if (localFleetViewTurn !== state.turn) {
+        localFleetView = null;
+        localFleetHoldUntil = 0;
+        localFleetViewTurn = state.turn || null;
+      }
+      if (localFleetView === "fleet" && localFleetHoldUntil && Date.now() >= localFleetHoldUntil) {
+        localFleetView = null;
+        localFleetHoldUntil = 0;
+      }
+      return localFleetView === "fleet" || localFleetView === "target" ? localFleetView : defaultFleetViewMode(viewer);
+    }
+
+    function setFleetViewMode(mode) {
+      localFleetView = mode === "fleet" ? "fleet" : "target";
+      localFleetViewTurn = state.turn || null;
+      localFleetHoldUntil = 0;
+      render();
+    }
+
+    function fleetShotCount(attacker, result = "") {
+      let count = 0;
+      for (let row = 0; row < FLEET_SIZE; row += 1) {
+        for (let col = 0; col < FLEET_SIZE; col += 1) {
+          const shot = state.fleet.shots[attacker][row][col];
+          if (result ? shot === result : Boolean(shot)) count += 1;
+        }
+      }
+      return count;
     }
 
     function fleetScan() {
@@ -14042,55 +14110,88 @@
         renderFleetSpectatorBoard();
         return;
       }
-      const viewer = localOnlineRole() || state.turn || SUB;
+      const viewer = localFleetViewer();
       const target = otherRole(viewer);
-      els.board.className = "fleet-layout";
+      const view = fleetViewMode();
+      els.board.className = "fleet-layout fleet-switch-layout";
       els.board.innerHTML = "";
 
-      const targetPanel = document.createElement("div");
-      targetPanel.className = "fleet-panel";
-      targetPanel.innerHTML = `<h3>${labelFor(target)}'s waters</h3>`;
-      const targetGrid = document.createElement("div");
-      targetGrid.className = "fleet-grid";
+      const switchRow = document.createElement("div");
+      switchRow.className = "fleet-switch-row";
+      [
+        {
+          mode: "target",
+          kicker: "Attack",
+          label: `${labelFor(target)}'s waters`,
+          meta: `${fleetShotCount(viewer, "hit")} hits / ${fleetShotCount(viewer)} shots`
+        },
+        {
+          mode: "fleet",
+          kicker: "Your Fleet",
+          label: `${labelFor(viewer)}'s board`,
+          meta: `${fleetShotCount(target, "hit")} hits taken / ${fleetShotCount(target)} incoming`
+        }
+      ].forEach((item) => {
+        const button = document.createElement("button");
+        button.className = `fleet-switch-button ${item.mode} ${view === item.mode ? "viewing" : ""} ${state.turn === viewer && item.mode === "target" ? "active" : ""}`.trim();
+        button.type = "button";
+        button.innerHTML = `<small>${escapeHtml(item.kicker)}</small><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.meta)}</span>`;
+        button.addEventListener("click", () => setFleetViewMode(item.mode));
+        switchRow.appendChild(button);
+      });
+      els.board.appendChild(switchRow);
 
-      const ownPanel = document.createElement("div");
-      ownPanel.className = "fleet-panel";
-      ownPanel.innerHTML = `<h3>${labelFor(viewer)}'s fleet</h3>`;
-      const ownGrid = document.createElement("div");
-      ownGrid.className = "fleet-grid";
+      const panel = document.createElement("div");
+      panel.className = `fleet-panel fleet-panel-large ${view}`.trim();
+      const canFire = state.active && viewer === state.turn && view === "target";
+      panel.innerHTML = `
+        <div class="fleet-panel-title">
+          <h3>${escapeHtml(view === "target" ? `Enemy waters - ${labelFor(target)}` : `Your fleet - ${labelFor(viewer)}`)}</h3>
+          <span>${state.active ? `${escapeHtml(labelFor(state.turn))} to fire` : "Waiting for start"}</span>
+        </div>
+      `;
+      const grid = document.createElement("div");
+      grid.className = "fleet-grid";
 
       for (let row = 0; row < FLEET_SIZE; row += 1) {
         for (let col = 0; col < FLEET_SIZE; col += 1) {
-          const targetCell = document.createElement("button");
-          const shot = state.fleet.shots[viewer][row][col];
-          const revealed = viewer === DOM && state.fleet.scanReveals.some(([r, c]) => r === row && c === col);
-          targetCell.className = `fleet-cell ${shot || ""}`;
-          if (revealed && !shot) targetCell.classList.add("revealed");
-          if (viewer === SUB && isFleetTargetFogged(row, col)) targetCell.classList.add("fogged");
-          if (viewer === SUB && state.fleet.noisyWaters && !isFleetTargetNoisyAllowed(row, col)) targetCell.classList.add("noisy");
-          targetCell.setAttribute("aria-label", `${labelFor(target)} waters row ${row + 1}, column ${col + 1}`);
-          targetCell.disabled = !state.active
-            || viewer !== state.turn
-            || Boolean(shot)
-            || (viewer === SUB && isFleetTargetFogged(row, col))
-            || (viewer === SUB && !isFleetTargetNoisyAllowed(row, col))
-            || Boolean(localOnlineRole() && localOnlineRole() !== state.turn);
-          targetCell.addEventListener("click", () => fireFleetShot(row, col));
-          targetGrid.appendChild(targetCell);
-
-          const ownCell = document.createElement("button");
-          const incoming = state.fleet.shots[target][row][col];
-          ownCell.className = `fleet-cell ${state.fleet.boards[viewer][row][col] ? "ship" : ""} ${incoming || ""}`;
-          ownCell.setAttribute("aria-label", `${labelFor(viewer)} fleet row ${row + 1}, column ${col + 1}`);
-          ownCell.disabled = true;
-          ownGrid.appendChild(ownCell);
+          const cell = document.createElement("button");
+          if (view === "target") {
+            const shot = state.fleet.shots[viewer][row][col];
+            const revealed = viewer === DOM && state.fleet.scanReveals.some(([r, c]) => r === row && c === col);
+            cell.className = `fleet-cell ${shot || ""}`;
+            if (revealed && !shot) cell.classList.add("revealed");
+            if (viewer === SUB && isFleetTargetFogged(row, col)) cell.classList.add("fogged");
+            if (viewer === SUB && state.fleet.noisyWaters && !isFleetTargetNoisyAllowed(row, col)) cell.classList.add("noisy");
+            cell.setAttribute("aria-label", `${labelFor(target)} waters row ${row + 1}, column ${col + 1}`);
+            cell.disabled = !canFire
+              || Boolean(shot)
+              || (viewer === SUB && isFleetTargetFogged(row, col))
+              || (viewer === SUB && !isFleetTargetNoisyAllowed(row, col))
+              || Boolean(localOnlineRole() && localOnlineRole() !== state.turn);
+            cell.addEventListener("click", () => fireFleetShot(row, col));
+          } else {
+            const incoming = state.fleet.shots[target][row][col];
+            cell.className = `fleet-cell ${state.fleet.boards[viewer][row][col] ? "ship" : ""} ${incoming || ""}`;
+            cell.setAttribute("aria-label", `${labelFor(viewer)} fleet row ${row + 1}, column ${col + 1}`);
+            cell.disabled = true;
+          }
+          grid.appendChild(cell);
         }
       }
 
-      targetPanel.appendChild(targetGrid);
-      ownPanel.appendChild(ownGrid);
-      els.board.appendChild(targetPanel);
-      els.board.appendChild(ownPanel);
+      panel.appendChild(grid);
+      if (state.active && state.turn && viewer !== state.turn && view === "target") {
+        const turnOverlay = document.createElement("div");
+        turnOverlay.className = "fleet-turn-overlay";
+        turnOverlay.textContent = `${labelFor(state.turn)}'s turn`;
+        panel.appendChild(turnOverlay);
+      }
+      els.board.appendChild(panel);
+      if (localFleetHoldUntil && Date.now() < localFleetHoldUntil) {
+        window.clearTimeout(renderFleetBoard.holdTimer);
+        renderFleetBoard.holdTimer = window.setTimeout(render, Math.max(0, localFleetHoldUntil - Date.now()) + 30);
+      }
     }
 
     function renderFleetSpectatorBoard() {
@@ -14327,7 +14428,7 @@
 
     function renderReversiRules() {
       const rules = [
-        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. ${state.names.sub} plays dark and moves first.`,
+        `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. The lobby starting-player setting decides who plays dark and moves first.`,
         `<strong>Goal:</strong> finish the game with more discs than your opponent.`,
         `<strong>Moves:</strong> place a disc so one or more enemy discs are trapped in a straight line between your new disc and another of your discs.`,
         `<strong>Flip:</strong> all trapped discs in every direction become yours. Legal move hints can show how many discs would flip.`,
@@ -14537,6 +14638,7 @@
     function renderFleetRules() {
       const rules = [
         `<strong>Goal:</strong> sink every enemy ship segment to win.`,
+        `<strong>Board view:</strong> the board auto-switches locally: enemy waters on your turn, your fleet on their turn. You can still switch manually during the current turn. This does not reveal hidden enemy ships.`,
         `<strong>Normal start:</strong> a random player fires first.`,
         `<strong>Reclaim start:</strong> ${state.names.dom} fires first.`,
         `<strong>Power button:</strong> ${state.names.dom} uses the power screen to use Scan and inspect active modifiers.`,
@@ -14580,6 +14682,7 @@
       const isCrazyEights = state.currentGame === "tributeCrazyEights";
       const isDoubleSolitaire = state.currentGame === "doubleSolitaire";
       const throneWheelSpin = state.currentGame === "wheelSpin" && isThroneSession();
+      const throneCompactBoard = isThroneSession() && (state.currentGame === "tributeFour" || state.currentGame === "tributeFleet");
       const crazyEightsRoundActive = isCrazyEights && state.active;
       const doubleSolitaireRaceActive = isDoubleSolitaire && state.active;
       const wagerLayoutGame = state.screen === "game" && usesRoundFlow() && !isHigherLower;
@@ -14589,7 +14692,7 @@
       els.gameScreen.classList.toggle("higherlower-wide", isHigherLower);
       els.gameScreen.classList.toggle("crazy8-wide", crazyEightsRoundActive);
       els.gameScreen.classList.toggle("double-solitaire-wide", doubleSolitaireRaceActive);
-      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower || wagerLayoutGame || crazyEightsRoundActive || doubleSolitaireRaceActive || throneWheelSpin);
+      els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower || wagerLayoutGame || crazyEightsRoundActive || doubleSolitaireRaceActive || throneWheelSpin || throneCompactBoard);
       els.cashLedgerPanel.classList.toggle("blackjack-ledger", isBlackjack);
       els.trailBankAmount.textContent = money(state.trail && state.trail.tributeBank || 0);
       els.trailSpendingAmount.textContent = money(state.trail && state.trail.spendingMoney || 0);
@@ -14714,7 +14817,7 @@
         } else if (score.sub + score.dom > 4) {
           els.turnText.innerHTML = `<strong>Reversi draw.</strong> ${state.names.sub}: ${score.sub}, ${state.names.dom}: ${score.dom}.`;
         } else {
-          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> starts as dark after the bet is approved.`;
+          els.turnText.innerHTML = `<strong>${startingPlayerMode() === "random" ? "Random player" : labelFor(startingPlayerMode())}</strong> starts as dark after the bet is approved.`;
         }
       } else if (!state.active) {
         if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.queenSetup) {
@@ -14985,6 +15088,9 @@
     if (els.setupThroneAmountInput) {
       els.setupThroneAmountInput.addEventListener("change", () => updateSettings({ throneAmount: els.setupThroneAmountInput.value }));
       els.setupThroneAmountInput.addEventListener("input", () => updateSettings({ throneAmount: els.setupThroneAmountInput.value }));
+    }
+    if (els.setupStartingPlayerMode) {
+      els.setupStartingPlayerMode.addEventListener("change", () => updateSettings({ startingPlayerMode: els.setupStartingPlayerMode.value }));
     }
     if (els.setupDomAdvantageAlwaysInput) {
       els.setupDomAdvantageAlwaysInput.addEventListener("change", () => updateSettings({ reclaimPowersAlways: els.setupDomAdvantageAlwaysInput.checked }));

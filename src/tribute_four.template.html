@@ -197,6 +197,17 @@
           </label>
           <label class="settings-row">
             <span>
+              Starting player
+              <small class="settings-hint">Used by turn-based games. Wheel Spin and Blackjack ignore this.</small>
+            </span>
+            <select id="setupStartingPlayerMode">
+              <option value="random">Random starting player</option>
+              <option value="dom">Dom goes first</option>
+              <option value="sub">Sub goes first</option>
+            </select>
+          </label>
+          <label class="settings-row">
+            <span>
               Dom reclaim powers always on
               <small class="settings-hint">Lets supported games use reclaim-style dom powers outside reclaim rounds.</small>
             </span>

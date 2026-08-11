@@ -2353,9 +2353,108 @@
       gap: 14px;
     }
 
+    .fleet-layout.fleet-switch-layout {
+      grid-template-columns: minmax(0, 620px);
+      justify-content: center;
+    }
+
+    .fleet-switch-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .fleet-switch-button {
+      min-height: 70px;
+      display: grid;
+      gap: 4px;
+      align-content: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 199, 94, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--cream);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .fleet-switch-button small {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.68rem;
+      font-weight: 900;
+    }
+
+    .fleet-switch-button strong {
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.78rem;
+    }
+
+    .fleet-switch-button span {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .fleet-switch-button.viewing {
+      background: rgba(239, 199, 94, 0.1);
+      border-color: rgba(239, 199, 94, 0.46);
+    }
+
+    .fleet-switch-button.target.viewing {
+      background: linear-gradient(135deg, rgba(93, 24, 50, 0.34), rgba(35, 23, 42, 0.28));
+      border-color: rgba(255, 119, 158, 0.46);
+    }
+
+    .fleet-switch-button.fleet.viewing {
+      background: linear-gradient(135deg, rgba(18, 51, 69, 0.38), rgba(19, 38, 43, 0.3));
+      border-color: rgba(104, 201, 255, 0.42);
+    }
+
+    .fleet-switch-button.active {
+      box-shadow: 0 0 22px rgba(239, 199, 94, 0.14);
+    }
+
     .fleet-panel {
       display: grid;
       gap: 10px;
+      position: relative;
+    }
+
+    .fleet-panel-large {
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 199, 94, 0.12);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .fleet-panel-large.target {
+      border-color: rgba(255, 119, 158, 0.22);
+      background:
+        linear-gradient(135deg, rgba(95, 18, 47, 0.16), rgba(28, 13, 27, 0.26)),
+        rgba(255, 255, 255, 0.02);
+    }
+
+    .fleet-panel-large.fleet {
+      border-color: rgba(104, 201, 255, 0.22);
+      background:
+        linear-gradient(135deg, rgba(17, 62, 84, 0.2), rgba(13, 33, 38, 0.28)),
+        rgba(255, 255, 255, 0.02);
+    }
+
+    .fleet-panel-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .fleet-panel-title span {
+      color: var(--muted);
+      font-size: 0.86rem;
+      text-align: right;
     }
 
     .fleet-panel h3 {
@@ -2366,11 +2465,24 @@
       color: #dcc8b5;
     }
 
+    .fleet-panel-large.target h3 {
+      color: #ffb2c8;
+    }
+
+    .fleet-panel-large.fleet h3 {
+      color: #a9dcff;
+    }
+
     .fleet-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
       gap: 5px;
       aspect-ratio: 1;
+    }
+
+    .fleet-panel-large .fleet-grid {
+      width: min(100%, 560px);
+      justify-self: center;
     }
 
     .fleet-cell {
@@ -2419,6 +2531,22 @@
     .fleet-cell.blocked {
       border-color: rgba(239, 199, 94, 0.65);
       background: linear-gradient(135deg, rgba(48, 40, 25, 0.88), rgba(74, 53, 24, 0.88));
+    }
+
+    .fleet-turn-overlay {
+      position: absolute;
+      inset: 54px 14px 14px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(10, 6, 9, 0.72);
+      color: var(--gold);
+      font-family: Georgia, serif;
+      font-size: clamp(1.8rem, 4vw, 3.4rem);
+      font-weight: 900;
+      text-align: center;
+      pointer-events: none;
+      text-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
     }
 
     .twentyone-table {
