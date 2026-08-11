@@ -4340,7 +4340,12 @@
 
     function startThroneRoundOnOpen() {
       if (!isThroneSession()) return false;
-      startNormalMatch();
+      wagerStartBypass = true;
+      try {
+        startNormalMatch();
+      } finally {
+        wagerStartBypass = false;
+      }
       return true;
     }
 
