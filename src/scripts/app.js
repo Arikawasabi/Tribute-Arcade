@@ -3914,6 +3914,14 @@
     function mergeLatestSnapshotWithLocalAction(latestSnapshot, localSnapshot) {
       const latest = latestSnapshot || {};
       const local = localSnapshot || snapshotState();
+      const localRole = localOnlineRole();
+      const staleLocalGameSelection = Boolean(
+        state.online.room
+        && localRole
+        && localRole !== DOM
+        && latest.screen === "game"
+        && (!local.screen || local.screen !== "game" || local.currentGame !== latest.currentGame)
+      );
       const latestTrail = latest.trail || null;
       const localTrail = local.trail || null;
       const latestPendingCard = Boolean(latestTrail && latestTrail.pendingCardActivation);
@@ -3930,7 +3938,7 @@
       const trail = latestPendingCard && !localPendingCard && !localActivatesLatestCard
         ? latestTrail
         : (localTrail || latestTrail);
-      return {
+      const merged = {
         ...latest,
         ...local,
         settings: {
@@ -3943,6 +3951,49 @@
         trail,
         onlineLobby: latest.onlineLobby || local.onlineLobby
       };
+      if (staleLocalGameSelection) {
+        Object.assign(merged, {
+          screen: latest.screen,
+          pendingWager: latest.pendingWager,
+          currentGame: latest.currentGame,
+          board: latest.board,
+          turn: latest.turn,
+          active: latest.active,
+          mode: latest.mode,
+          pot: latest.pot,
+          domVault: latest.domVault,
+          lockedTribute: latest.lockedTribute,
+          tiltLevel: latest.tiltLevel,
+          blockedColumns: latest.blockedColumns,
+          skipAvailable: latest.skipAvailable,
+          skipArmed: latest.skipArmed,
+          reclaimPassAvailable: latest.reclaimPassAvailable,
+          lockColumnAvailable: latest.lockColumnAvailable,
+          lockColumnMode: latest.lockColumnMode,
+          lockedColumn: latest.lockedColumn,
+          pressureDropAvailable: latest.pressureDropAvailable,
+          pressureDropArmed: latest.pressureDropArmed,
+          pressureDropColumn: latest.pressureDropColumn,
+          domOpened: latest.domOpened,
+          winningCells: latest.winningCells,
+          fleet: latest.fleet,
+          twentyOne: latest.twentyOne,
+          higherLower: latest.higherLower,
+          crazyEights: latest.crazyEights,
+          doubleSolitaire: latest.doubleSolitaire,
+          ticTacToe: latest.ticTacToe,
+          dice: latest.dice,
+          wheel: latest.wheel,
+          trail: latest.trail,
+          obedience: latest.obedience,
+          checkers: latest.checkers,
+          reversi: latest.reversi,
+          chess: latest.chess,
+          ledger: latest.ledger,
+          logHtml: latest.logHtml
+        });
+      }
+      return merged;
     }
 
     async function publishState(retry = true, localSnapshot = null) {
@@ -12078,6 +12129,8 @@
     function renderBoard() {
       const boardWrap = els.board.closest(".board-wrap");
       if (boardWrap) boardWrap.classList.toggle("trail-board-wrap", state.currentGame === "tributeTrail");
+      if (boardWrap) boardWrap.classList.toggle("four-board-wrap", state.currentGame === "tributeFour");
+      if (boardWrap) boardWrap.classList.toggle("fleet-board-wrap", state.currentGame === "tributeFleet");
       if (boardWrap) boardWrap.classList.toggle("crazy8-board-wrap", state.currentGame === "tributeCrazyEights" && state.active);
       if (boardWrap) boardWrap.classList.toggle("double-solitaire-board-wrap", state.currentGame === "doubleSolitaire" && state.active);
       if (state.currentGame === "tributeChess") {
@@ -14679,6 +14732,8 @@
       const isTrail = state.currentGame === "tributeTrail";
       const isBlackjack = state.currentGame === "tributeTwentyOne";
       const isHigherLower = state.currentGame === "higherLower";
+      const isTributeFour = state.currentGame === "tributeFour";
+      const isFleet = state.currentGame === "tributeFleet";
       const isCrazyEights = state.currentGame === "tributeCrazyEights";
       const isDoubleSolitaire = state.currentGame === "doubleSolitaire";
       const throneWheelSpin = state.currentGame === "wheelSpin" && isThroneSession();
@@ -14690,6 +14745,8 @@
       els.gameScreen.classList.toggle("blackjack-wide", isBlackjack);
       els.gameScreen.classList.toggle("wager-wide", wagerLayoutGame);
       els.gameScreen.classList.toggle("higherlower-wide", isHigherLower);
+      els.gameScreen.classList.toggle("four-wide", isTributeFour);
+      els.gameScreen.classList.toggle("fleet-wide", isFleet);
       els.gameScreen.classList.toggle("crazy8-wide", crazyEightsRoundActive);
       els.gameScreen.classList.toggle("double-solitaire-wide", doubleSolitaireRaceActive);
       els.cashLedgerPanel.classList.toggle("hidden", isTrail || isHigherLower || wagerLayoutGame || crazyEightsRoundActive || doubleSolitaireRaceActive || throneWheelSpin || throneCompactBoard);

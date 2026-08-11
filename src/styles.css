@@ -1745,6 +1745,12 @@
       gap: 12px;
     }
 
+    .app.four-wide,
+    .app.fleet-wide {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
     .app.crazy8-wide {
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
@@ -1769,6 +1775,11 @@
     }
 
     .app.higherlower-wide .game-shell {
+      grid-column: 1 / -1;
+    }
+
+    .app.four-wide .game-shell,
+    .app.fleet-wide .game-shell {
       grid-column: 1 / -1;
     }
 
@@ -2305,6 +2316,16 @@
       overflow: visible;
     }
 
+    .board-wrap.four-board-wrap,
+    .board-wrap.fleet-board-wrap {
+      width: min(100%, 1040px);
+      justify-self: center;
+    }
+
+    .board-wrap.fleet-board-wrap {
+      width: min(100%, 900px);
+    }
+
     .board {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -2312,6 +2333,11 @@
       aspect-ratio: 7 / 6;
       max-height: min(68vh, 680px);
       margin: 0 auto;
+    }
+
+    .board-wrap.four-board-wrap .board {
+      width: min(100%, 980px);
+      max-height: min(72vh, 760px);
     }
 
     .cell {
@@ -2354,7 +2380,7 @@
     }
 
     .fleet-layout.fleet-switch-layout {
-      grid-template-columns: minmax(0, 620px);
+      grid-template-columns: minmax(0, 760px);
       justify-content: center;
     }
 
@@ -2481,7 +2507,7 @@
     }
 
     .fleet-panel-large .fleet-grid {
-      width: min(100%, 560px);
+      width: min(100%, 680px);
       justify-self: center;
     }
 
