@@ -280,6 +280,85 @@
       display: none;
     }
 
+    .piece-loss-spiral {
+      --piece-loss-spiral-opacity: 0.06;
+      position: fixed;
+      inset: 0;
+      z-index: 31;
+      pointer-events: none;
+      background-image: url("assets/chess/piece_loss_spiral.gif");
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      opacity: var(--piece-loss-spiral-opacity);
+      mix-blend-mode: screen;
+      filter: saturate(1.18) contrast(0.92);
+    }
+
+    .piece-loss-spiral.hidden {
+      display: none;
+    }
+
+    @media (hover: none), (pointer: coarse), (max-width: 760px) {
+      .piece-loss-spiral {
+        display: none !important;
+      }
+    }
+
+    .piece-loss-pulse {
+      --piece-loss-strength: 0.35;
+      --piece-loss-scale: 1.03;
+      --piece-loss-hot: 0.12;
+      --piece-loss-violet: 0.1;
+      --piece-loss-red: 0.08;
+      --piece-loss-purple: 0.1;
+      --piece-loss-peak: 0.42;
+      --piece-loss-dip: 0.22;
+      --piece-loss-mid: 0.28;
+      --piece-loss-saturate: 1.25;
+      position: fixed;
+      inset: 0;
+      z-index: 32;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 48%, rgba(255, 72, 128, var(--piece-loss-hot)), transparent 24rem),
+        radial-gradient(circle at 50% 50%, rgba(130, 50, 255, var(--piece-loss-violet)), transparent 42rem),
+        linear-gradient(135deg, rgba(255, 36, 96, var(--piece-loss-red)), rgba(90, 38, 164, var(--piece-loss-purple)));
+      mix-blend-mode: screen;
+      opacity: 0;
+      animation: pieceLossPulse 1450ms ease-out both;
+    }
+
+    .piece-loss-pulse.hidden {
+      display: none;
+    }
+
+    @keyframes pieceLossPulse {
+      0% {
+        opacity: 0;
+        transform: scale(1);
+        filter: saturate(1);
+      }
+      14% {
+        opacity: var(--piece-loss-peak);
+        transform: scale(var(--piece-loss-scale));
+        filter: saturate(var(--piece-loss-saturate));
+      }
+      32% {
+        opacity: var(--piece-loss-dip);
+        transform: scale(1.01);
+      }
+      52% {
+        opacity: var(--piece-loss-mid);
+        transform: scale(var(--piece-loss-scale));
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.06);
+        filter: saturate(1.25);
+      }
+    }
+
     .chess-capture-banner img {
       width: 100vw;
       max-width: none;

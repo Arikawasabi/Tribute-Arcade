@@ -12,6 +12,8 @@
   <div class="distraction-backdrop" id="distractionBackdrop"></div>
   <div class="distraction-overlay" id="distractionOverlay"></div>
   <div class="solitaire-card-preview hidden" id="solitaireCardPreview" aria-hidden="true"></div>
+  <div class="piece-loss-spiral hidden" id="pieceLossSpiral" aria-hidden="true"></div>
+  <div class="piece-loss-pulse hidden" id="pieceLossPulse" aria-hidden="true"></div>
   <div class="chess-capture-banner hidden" id="chessCaptureBanner" aria-hidden="true"></div>
   <div class="dom-trigger-overlay hidden" id="domTriggerOverlay">
     <div class="dom-trigger-card" id="domTriggerCard">
@@ -752,6 +754,11 @@
       </div>
       <div class="panel-body">
         <p class="chooser-line" id="leaveNoticeText">The other player left the room.</p>
+        <div class="share-links" id="leaveNoticeShareLinks">
+          <div class="share-link" id="leaveNoticeInviteLink">Invite link unavailable.</div>
+          <button id="copyLeaveInviteBtn">Copy Invite Link</button>
+          <p class="chooser-line" id="leaveNoticeCopyStatus"></p>
+        </div>
         <div class="role-row">
           <button id="hideLeaveNoticeBtn">Hide</button>
           <button id="takePlayerOneBtn" class="hidden">Take Player One</button>

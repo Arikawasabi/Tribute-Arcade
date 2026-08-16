@@ -224,6 +224,8 @@
       solitaireTableau: document.getElementById("solitaireTableau"),
       solitaireTable: document.getElementById("solitaireTable"),
       solitaireCardPreview: document.getElementById("solitaireCardPreview"),
+      pieceLossSpiral: document.getElementById("pieceLossSpiral"),
+      pieceLossPulse: document.getElementById("pieceLossPulse"),
       chessCaptureBanner: document.getElementById("chessCaptureBanner"),
       newSolitaireBtn: document.getElementById("newSolitaireBtn"),
       solitaireBackBtn: document.getElementById("solitaireBackBtn"),
@@ -444,6 +446,10 @@
       leaveRoomButtons: document.querySelectorAll(".leave-room-btn"),
       leaveNoticeModal: document.getElementById("leaveNoticeModal"),
       leaveNoticeText: document.getElementById("leaveNoticeText"),
+      leaveNoticeShareLinks: document.getElementById("leaveNoticeShareLinks"),
+      leaveNoticeInviteLink: document.getElementById("leaveNoticeInviteLink"),
+      copyLeaveInviteBtn: document.getElementById("copyLeaveInviteBtn"),
+      leaveNoticeCopyStatus: document.getElementById("leaveNoticeCopyStatus"),
       hideLeaveNoticeBtn: document.getElementById("hideLeaveNoticeBtn"),
       takePlayerOneBtn: document.getElementById("takePlayerOneBtn"),
       takePlayerTwoBtn: document.getElementById("takePlayerTwoBtn"),
@@ -601,6 +607,7 @@
         queenDrainBoost: false,
         queenSplashMessage: "",
         queenSplashUntil: 0,
+        captureBanner: null,
         powerUses: {
           crownPull: 3,
           marked: 3,
@@ -1074,6 +1081,8 @@
         queenStance: "none",
         queenTriggerUsed: false,
         captureBanner: null,
+        capturePulse: null,
+        subPiecesLostToDom: 0,
         charges: 0,
         outcome: ""
       };
@@ -1694,15 +1703,23 @@
         els.takePlayerOneBtn.classList.add("hidden");
         els.takePlayerTwoBtn.classList.add("hidden");
         els.returnLobbyNoticeBtn.classList.remove("hidden");
+        if (els.leaveNoticeCopyStatus) els.leaveNoticeCopyStatus.textContent = "";
         els.leaveNoticeModal.classList.add("hidden");
         return;
       }
+      state.online.inviteUrl = roomUrl();
       els.takePlayerOneBtn.classList.toggle("hidden", !(seat === SPECTATOR && availableSeats.includes("one")));
       els.takePlayerTwoBtn.classList.toggle("hidden", !(seat === SPECTATOR && availableSeats.includes("two")));
       els.returnLobbyNoticeBtn.classList.toggle("hidden", seat === SPECTATOR && canTakeSeat);
       els.leaveNoticeText.textContent = canTakeSeat
-        ? `${notice && notice.name ? `${notice.name} left the room. ` : ""}A player seat is open.`
-        : `${notice.name || "The other player"} left the room. You are alone.`;
+        ? `${notice && notice.name ? `${notice.name} left the room. ` : ""}A player seat is open. Send the invite link if you want them to rejoin.`
+        : `${notice.name || "The other player"} left the room. You are alone in the room. Send them this invite link to bring them back.`;
+      if (els.leaveNoticeInviteLink) {
+        els.leaveNoticeInviteLink.textContent = state.online.inviteUrl
+          ? `Invite link: ${state.online.inviteUrl}`
+          : "Invite link unavailable.";
+      }
+      if (els.leaveNoticeShareLinks) els.leaveNoticeShareLinks.classList.toggle("hidden", !state.online.inviteUrl);
       els.leaveNoticeModal.classList.remove("hidden");
     }
 
@@ -3997,13 +4014,13 @@
       renderSetupSettings();
     }
 
-    async function copyInviteLink() {
+    async function copyInviteLink(statusEl = els.setupRoomStatus) {
       if (!state.online.inviteUrl) return;
       try {
         await navigator.clipboard.writeText(state.online.inviteUrl);
-        els.setupRoomStatus.textContent = "Invite link copied.";
+        if (statusEl) statusEl.textContent = "Invite link copied.";
       } catch (error) {
-        els.setupRoomStatus.textContent = "Copy failed. Select the invite link and copy it manually.";
+        if (statusEl) statusEl.textContent = "Copy failed. Select the invite link and copy it manually.";
       }
     }
 
@@ -8374,6 +8391,7 @@
 
     function applyCheckersCaptureRewards(piece, capturedPiece, captureRow, captureCol) {
       if (!piece || piece.role !== DOM || !capturedPiece || capturedPiece.role !== SUB) return;
+      showCheckersCaptureBanner();
       state.checkers.claims = Number(state.checkers.claims || 0) + 1;
       addLog(`<strong>Claim taken.</strong> ${state.names.dom} gains 1 Claim from the captured piece.`);
       if (checkersCoordMatches(state.checkers.marked, captureRow, captureCol)) {
@@ -9435,16 +9453,29 @@
       "https://files.catbox.moe/ngiqcy.png",
       "https://files.catbox.moe/7we9vn.png",
       "https://files.catbox.moe/yi2peq.png",
-      "https://files.catbox.moe/c49iie.png"
+      "https://files.catbox.moe/c49iie.png",
+      "https://files.catbox.moe/be3iji.png",
+      "https://files.catbox.moe/k9ah90.png",
+      "https://files.catbox.moe/hxoart.png",
+      "https://files.catbox.moe/jyz348.png",
+      "https://files.catbox.moe/cl7h0g.png",
+      "https://files.catbox.moe/ylbua6.png",
+      "https://files.catbox.moe/y7p7iq.png",
+      "https://files.catbox.moe/nr1ky5.png",
+      "https://files.catbox.moe/rpdwhr.png",
+      "https://files.catbox.moe/5urzk7.png",
+      "https://files.catbox.moe/lht0a4.png",
+      "https://files.catbox.moe/s0172e.png",
+      "https://files.catbox.moe/kxznif.png"
     ];
     const CHESS_CAPTURE_BANNER_MS = 5800;
 
-    function randomChessCaptureBannerImage() {
+    function randomCaptureBannerImage() {
       return CHESS_CAPTURE_BANNER_IMAGES[Math.floor(Math.random() * CHESS_CAPTURE_BANNER_IMAGES.length)] || "";
     }
 
     function showChessCaptureBanner() {
-      const url = randomChessCaptureBannerImage();
+      const url = randomCaptureBannerImage();
       if (!url) return;
       state.chess.captureBanner = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -9453,11 +9484,35 @@
       };
     }
 
+    function showChessPieceLossPulse() {
+      if (!state.chess) return;
+      state.chess.subPiecesLostToDom = Number(state.chess.subPiecesLostToDom || 0) + 1;
+      const losses = state.chess.subPiecesLostToDom;
+      state.chess.capturePulse = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        losses,
+        strength: Math.min(1, 0.24 + losses * 0.075),
+        until: Date.now() + 1450
+      };
+    }
+
+    function showCheckersCaptureBanner() {
+      const url = randomCaptureBannerImage();
+      if (!url || !state.checkers) return;
+      state.checkers.captureBanner = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url,
+        until: Date.now() + CHESS_CAPTURE_BANNER_MS
+      };
+    }
+
     function renderChessCaptureBanner() {
       if (!els.chessCaptureBanner) return;
-      const banner = state.chess && state.chess.captureBanner;
+      const banner = state.currentGame === "tributeCheckers"
+        ? state.checkers && state.checkers.captureBanner
+        : state.chess && state.chess.captureBanner;
       const show = Boolean(
-        state.currentGame === "tributeChess"
+        (state.currentGame === "tributeChess" || state.currentGame === "tributeCheckers")
         && state.screen === "game"
         && banner
         && banner.url
@@ -9471,6 +9526,51 @@
       els.chessCaptureBanner.innerHTML = `<img src="${escapeHtml(banner.url)}" alt="" aria-hidden="true">`;
       window.clearTimeout(renderChessCaptureBanner.timer);
       renderChessCaptureBanner.timer = window.setTimeout(renderChessCaptureBanner, Math.max(80, Number(banner.until || 0) - Date.now() + 40));
+    }
+
+    function renderPieceLossPulse() {
+      if (!els.pieceLossPulse) return;
+      const pulse = state.currentGame === "tributeChess" && state.chess ? state.chess.capturePulse : null;
+      const show = Boolean(
+        state.screen === "game"
+        && pulse
+        && Number(pulse.until || 0) > Date.now()
+      );
+      els.pieceLossPulse.classList.toggle("hidden", !show);
+      if (!show) return;
+      const strength = Math.max(0.2, Math.min(1, Number(pulse.strength || 0.35)));
+      els.pieceLossPulse.style.setProperty("--piece-loss-strength", strength.toFixed(2));
+      els.pieceLossPulse.style.setProperty("--piece-loss-scale", (1 + strength * 0.08).toFixed(3));
+      els.pieceLossPulse.style.setProperty("--piece-loss-hot", (strength * 0.34).toFixed(3));
+      els.pieceLossPulse.style.setProperty("--piece-loss-violet", (strength * 0.28).toFixed(3));
+      els.pieceLossPulse.style.setProperty("--piece-loss-red", (strength * 0.22).toFixed(3));
+      els.pieceLossPulse.style.setProperty("--piece-loss-purple", (strength * 0.28).toFixed(3));
+      els.pieceLossPulse.style.setProperty("--piece-loss-peak", (0.28 + strength * 0.42).toFixed(3));
+      els.pieceLossPulse.style.setProperty("--piece-loss-dip", (0.12 + strength * 0.28).toFixed(3));
+      els.pieceLossPulse.style.setProperty("--piece-loss-mid", (0.18 + strength * 0.32).toFixed(3));
+      els.pieceLossPulse.style.setProperty("--piece-loss-saturate", (1.05 + strength * 0.55).toFixed(3));
+      els.pieceLossPulse.dataset.losses = String(pulse.losses || 1);
+      window.clearTimeout(renderPieceLossPulse.timer);
+      renderPieceLossPulse.timer = window.setTimeout(renderPieceLossPulse, Math.max(80, Number(pulse.until || 0) - Date.now() + 40));
+    }
+
+    function renderPieceLossSpiral() {
+      if (!els.pieceLossSpiral) return;
+      const mobileLike = (window.matchMedia && (
+        window.matchMedia("(hover: none)").matches
+        || window.matchMedia("(pointer: coarse)").matches
+      )) || (window.innerWidth || 0) < 760;
+      const losses = state.currentGame === "tributeChess" && state.chess
+        ? Number(state.chess.subPiecesLostToDom || 0)
+        : 0;
+      const show = Boolean(!mobileLike && state.screen === "game" && state.active && state.currentGame === "tributeChess" && losses >= 8);
+      els.pieceLossSpiral.classList.toggle("hidden", !show);
+      if (!show) {
+        els.pieceLossSpiral.style.removeProperty("--piece-loss-spiral-opacity");
+        return;
+      }
+      const opacity = Math.min(0.14, 0.045 + (losses - 8) * 0.012);
+      els.pieceLossSpiral.style.setProperty("--piece-loss-spiral-opacity", opacity.toFixed(3));
     }
 
     function queenAffectedTypes() {
@@ -9760,7 +9860,10 @@
       const capturedRole = capturedPiece
         ? roleForChessColor(capturedPiece.color)
         : (result.captured ? (movedRole === DOM ? SUB : DOM) : null);
-      if (capturedRole === SUB) showChessCaptureBanner();
+      if (capturedRole === SUB) {
+        showChessCaptureBanner();
+        if (movedRole === DOM || commandMove) showChessPieceLossPulse();
+      }
       if (movedRole === SUB && !commandMove) resolveFocusTaxSuccess();
       state.chess.fen = game.fen();
       if (state.chess.freezeSquare === fromSquare) {
@@ -15708,6 +15811,10 @@
         } else if (state.currentGame === "tributeFleet" && state.fleet && state.fleet.placementPending) {
           const owner = fleetPlacementOwner();
           els.turnText.innerHTML = `<strong>${labelFor(owner)}</strong> is placing ships.`;
+        } else if (isThroneSession() && state.normalReplayPrompt) {
+          els.turnText.innerHTML = `<strong>${currentGameLabel()} finished.</strong> Replay or go back to Game Select.`;
+        } else if (isThroneSession()) {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> starts the next throne game when ready.`;
         } else {
           els.turnText.innerHTML = state.domVault > 0
             ? `<strong>${state.names.sub}</strong> may make a normal bet or attempt reclaim.`
@@ -15916,6 +16023,8 @@
       renderHigherLowerMercyModal();
       renderCheckersQueenModal();
       renderCheckersQueenSplash();
+      renderPieceLossSpiral();
+      renderPieceLossPulse();
       renderChessCaptureBanner();
       renderNormalReplayModal();
       renderDomTriggerOverlay();
@@ -16310,8 +16419,9 @@
       });
     }
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
-    els.copyInviteBtn.addEventListener("click", copyInviteLink);
-    if (els.copySetupInviteBtn) els.copySetupInviteBtn.addEventListener("click", copyInviteLink);
+    els.copyInviteBtn.addEventListener("click", () => copyInviteLink());
+    if (els.copySetupInviteBtn) els.copySetupInviteBtn.addEventListener("click", () => copyInviteLink());
+    if (els.copyLeaveInviteBtn) els.copyLeaveInviteBtn.addEventListener("click", () => copyInviteLink(els.leaveNoticeCopyStatus));
     document.querySelectorAll(".role-btn[data-player]").forEach((button) => {
       button.addEventListener("click", () => setRole(button.dataset.player, button.dataset.role));
     });
