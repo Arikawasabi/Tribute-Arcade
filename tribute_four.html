@@ -7311,6 +7311,25 @@
     </section>
   </div>
 
+  <div class="modal-backdrop hidden" id="throneAmountConfirmModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Confirm Throne Amount</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="throneAmountConfirmText">Use this Throne amount for the first game?</p>
+        <label class="field-label">
+          Throne amount
+          <input id="throneAmountConfirmInput" type="number" min="1" step="1" value="5">
+        </label>
+        <div class="role-row">
+          <button id="cancelThroneAmountConfirmBtn">Back</button>
+          <button id="confirmThroneAmountBtn" class="primary">Confirm and Start</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <div class="modal-backdrop hidden" id="resetBankModal">
     <section class="panel role-modal">
       <div class="panel-header">
@@ -7406,7 +7425,7 @@
   <div class="modal-backdrop hidden" id="chessSettingsModal">
     <section class="panel role-modal">
       <div class="panel-header">
-        <h2 class="panel-title">Chess Settings</h2>
+        <h2 class="panel-title" id="turnTimerSettingsTitle">Chess Settings</h2>
       </div>
       <div class="panel-body">
         <p class="chooser-line" id="chessSettingsText">Choose whether this chess game uses a timer.</p>
@@ -7425,8 +7444,12 @@
           Custom minutes
           <input id="chessCustomTimerInput" type="number" min="1" max="60" step="1" value="10">
         </label>
+        <label class="toggle-row hidden" id="reversiHintToggleRow">
+          <input id="reversiHintToggle" type="checkbox" checked>
+          <span>Show legal move number hints</span>
+        </label>
         <div class="setup-actions">
-          <button id="chessSettingsConfirmBtn" class="primary">Start Chess</button>
+          <button id="chessSettingsConfirmBtn" class="primary">Start Game</button>
         </div>
       </div>
     </section>
@@ -8060,6 +8083,7 @@
         reclaimPowersAlways: false,
         throneReclaimPerks: false,
         throneAmount: 5,
+        throneAmountConfirmed: false,
         throneUrl: "",
         domTriggerEffect: null,
         focusTax: null,
@@ -8342,6 +8366,11 @@
       subLinkModalText: document.getElementById("subLinkModalText"),
       openSubLinkBtn: document.getElementById("openSubLinkBtn"),
       declineSubLinkBtn: document.getElementById("declineSubLinkBtn"),
+      throneAmountConfirmModal: document.getElementById("throneAmountConfirmModal"),
+      throneAmountConfirmText: document.getElementById("throneAmountConfirmText"),
+      throneAmountConfirmInput: document.getElementById("throneAmountConfirmInput"),
+      cancelThroneAmountConfirmBtn: document.getElementById("cancelThroneAmountConfirmBtn"),
+      confirmThroneAmountBtn: document.getElementById("confirmThroneAmountBtn"),
       wagerModal: document.getElementById("wagerModal"),
       wagerModalTitle: document.getElementById("wagerModalTitle"),
       wagerModalBody: document.getElementById("wagerModalBody"),
@@ -8351,10 +8380,13 @@
       blackjackSettingsText: document.getElementById("blackjackSettingsText"),
       blackjackSettingsConfirmBtn: document.getElementById("blackjackSettingsConfirmBtn"),
       chessSettingsModal: document.getElementById("chessSettingsModal"),
+      turnTimerSettingsTitle: document.getElementById("turnTimerSettingsTitle"),
       chessSettingsText: document.getElementById("chessSettingsText"),
       chessCustomTimerRow: document.getElementById("chessCustomTimerRow"),
       chessCustomTimerInput: document.getElementById("chessCustomTimerInput"),
       chessSettingsConfirmBtn: document.getElementById("chessSettingsConfirmBtn"),
+      reversiHintToggleRow: document.getElementById("reversiHintToggleRow"),
+      reversiHintToggle: document.getElementById("reversiHintToggle"),
       higherLowerMercyModal: document.getElementById("higherLowerMercyModal"),
       higherLowerMercyText: document.getElementById("higherLowerMercyText"),
       higherLowerMercyCollectBtn: document.getElementById("higherLowerMercyCollectBtn"),
@@ -8453,6 +8485,8 @@
     let localFleetView = null;
     let localFleetViewTurn = null;
     let localFleetHoldUntil = 0;
+    let pendingThroneAmountGame = null;
+    let pendingThroneAmountOpener = null;
     const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
     const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
     const THRONE_EXTENSION_FOCUS_CHECKOUT = "TRIBUTE_ARCADE_FOCUS_THRONE_CHECKOUT";
@@ -8545,6 +8579,17 @@
           if (row > 4) return { role: SUB, king: false };
           return null;
         })),
+        setupPending: false,
+        pendingStarter: SUB,
+        pendingIntro: "",
+        timerMode: "none",
+        timerTarget: "both",
+        customTimerMinutes: 10,
+        timers: {
+          sub: 0,
+          dom: 0
+        },
+        timerLastTick: 0,
         selected: null,
         legalMoves: [],
         mustContinue: false,
@@ -8964,6 +9009,18 @@
     function createReversiState() {
       return {
         board: createReversiBoard(),
+        setupPending: false,
+        pendingStarter: SUB,
+        pendingIntro: "",
+        timerMode: "none",
+        timerTarget: "both",
+        customTimerMinutes: 10,
+        timers: {
+          sub: 0,
+          dom: 0
+        },
+        timerLastTick: 0,
+        showNumberHints: true,
         passes: 0,
         lastMove: null,
         winner: null,
@@ -9401,6 +9458,59 @@
       if (els.sessionModeModal) els.sessionModeModal.classList.add("hidden");
     }
 
+    function renderThroneAmountConfirmModal() {
+      if (!els.throneAmountConfirmModal || els.throneAmountConfirmModal.classList.contains("hidden")) return;
+      const amount = currentThroneAmount();
+      if (els.throneAmountConfirmText) {
+        els.throneAmountConfirmText.textContent = `${state.names.dom || "Dom"}, the current Throne amount is ${money(amount)}. Use this for the first game?`;
+      }
+      if (els.throneAmountConfirmInput && document.activeElement !== els.throneAmountConfirmInput) {
+        els.throneAmountConfirmInput.value = amount;
+      }
+    }
+
+    function shouldConfirmThroneAmountBeforeGame() {
+      return state.screen === "select"
+        && isThroneSession()
+        && sessionModeControlsAllowed()
+        && !state.settings.throneAmountConfirmed;
+    }
+
+    function openThroneAmountConfirmModal(gameKey, opener) {
+      if (!els.throneAmountConfirmModal) return false;
+      pendingThroneAmountGame = gameKey || null;
+      pendingThroneAmountOpener = typeof opener === "function" ? opener : null;
+      els.throneAmountConfirmModal.classList.remove("hidden");
+      renderThroneAmountConfirmModal();
+      if (els.throneAmountConfirmInput) {
+        els.throneAmountConfirmInput.value = currentThroneAmount();
+        els.throneAmountConfirmInput.focus();
+        els.throneAmountConfirmInput.select();
+      }
+      return true;
+    }
+
+    function closeThroneAmountConfirmModal() {
+      pendingThroneAmountGame = null;
+      pendingThroneAmountOpener = null;
+      if (els.throneAmountConfirmModal) els.throneAmountConfirmModal.classList.add("hidden");
+    }
+
+    function confirmThroneAmountAndStart() {
+      if (!pendingThroneAmountGame) {
+        closeThroneAmountConfirmModal();
+        return;
+      }
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      const opener = pendingThroneAmountOpener;
+      const amount = normalizeBuyIn(Number(els.throneAmountConfirmInput && els.throneAmountConfirmInput.value || currentThroneAmount()));
+      pendingThroneAmountGame = null;
+      pendingThroneAmountOpener = null;
+      if (els.throneAmountConfirmModal) els.throneAmountConfirmModal.classList.add("hidden");
+      updateSettings({ throneAmount: amount, throneAmountConfirmed: true });
+      if (opener) opener();
+    }
+
     function chooseBankSessionMode() {
       if (!sessionModeControlsAllowed()) return;
       updateSettings({
@@ -9541,6 +9651,7 @@
       state.online.seatSecrets = { one: "", two: "" };
       state.online.spectators = {};
       state.settings.leaveNotice = null;
+      state.settings.throneAmountConfirmed = false;
       state.roles = { one: null, two: null };
       state.names = { dom: "", sub: "" };
       els.playerOneName.value = "";
@@ -9581,6 +9692,7 @@
       state.online.seats = { one: false, two: false };
       state.online.seatSecrets = { one: "", two: "" };
       state.online.spectators = {};
+      state.settings.throneAmountConfirmed = false;
       clearLocalRoomUrl();
       updateOnlineUi();
     }
@@ -10518,9 +10630,19 @@
     }
 
     function updateSettings(changes) {
+      const nextChanges = { ...(changes || {}) };
+      const amountChanged = Object.prototype.hasOwnProperty.call(nextChanges, "throneAmount")
+        && normalizeBuyIn(Number(nextChanges.throneAmount || 5)) !== currentThroneAmount();
+      const modeChanged = Object.prototype.hasOwnProperty.call(nextChanges, "sessionMode")
+        && (nextChanges.sessionMode === "bank" ? "bank" : "throne") !== sessionMode();
+      const urlChanged = Object.prototype.hasOwnProperty.call(nextChanges, "throneUrl")
+        && String(nextChanges.throneUrl || "") !== String(state.settings.throneUrl || "");
+      if ((amountChanged || modeChanged || urlChanged) && !Object.prototype.hasOwnProperty.call(nextChanges, "throneAmountConfirmed")) {
+        nextChanges.throneAmountConfirmed = false;
+      }
       state.settings = {
         ...state.settings,
-        ...changes
+        ...nextChanges
       };
       state.settings.subDefaultBet = normalizeBuyIn(Number(state.settings.subDefaultBet));
       state.settings.throneAmount = normalizeBuyIn(Number(state.settings.throneAmount || 5));
@@ -10530,6 +10652,7 @@
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
+      state.settings.throneAmountConfirmed = Boolean(state.settings.throneAmountConfirmed);
       state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
       state.settings.domSeePressureText = Boolean(state.settings.domSeePressureText);
       state.settings.domSeePressurePulse = Boolean(state.settings.domSeePressurePulse);
@@ -11973,6 +12096,7 @@
         state.online.ready = { one: false, two: false };
         state.online.spectators = {};
         state.settings.leaveNotice = null;
+        state.settings.throneAmountConfirmed = false;
         setScreen("setup");
         renderRoles();
         const response = await fetch("/api/create", {
@@ -13088,7 +13212,7 @@
           </div>
         `;
         els.wagerModalActions.innerHTML = `
-          <button class="primary" data-wager-action="pregame-normal">${isThroneSession() ? `Start ${money(roundThroneTributeAmount(amount))}` : "Start Bet"}</button>
+          <button class="primary" data-wager-action="pregame-normal">${isThroneSession() ? "Start" : "Start Bet"}</button>
           ${reclaimAvailable ? `<button data-wager-action="pregame-reclaim">Reclaim ${money(state.domVault)}</button>` : ""}
         `;
         bindWagerActionButtons();
@@ -13637,21 +13761,30 @@
     function startReversiNormalMatch() {
       const bet = prepareRound("normal", "reversi match");
       if (bet === null) return;
-      state.reversi = createReversiState();
-      state.turn = chooseStartingPlayer();
-      state.active = true;
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(state.turn)} plays dark and moves first.`, false);
+      const starter = chooseStartingPlayer();
+      startReversiSetup(starter, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} plays dark and moves first.`);
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.dom} chooses the Reversi settings.`, false);
     }
 
     function startReversiReclaimMatch() {
       const pot = prepareRound("reclaim", "reversi match");
       if (pot === null) return;
+      startReversiSetup(DOM, `<strong>Reclaim edge:</strong> ${state.names.dom} plays first as light. Tier ${state.tiltLevel} advantages stack.`);
+      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to win back ${money(pot)} on the Reversi board. ${state.names.dom} chooses the Reversi settings.`, false);
+    }
+
+    function startReversiSetup(starter, intro) {
       state.reversi = createReversiState();
       state.reversi.commandAvailable = reversiTierActive(5);
+      state.reversi.setupPending = true;
+      state.reversi.pendingStarter = starter;
+      state.reversi.pendingIntro = intro;
+      state.reversi.timerMode = "none";
+      state.reversi.timerTarget = "both";
+      state.reversi.customTimerMinutes = 10;
       state.turn = DOM;
       state.active = true;
-      addLog(`<strong>Reclaim edge:</strong> ${state.names.dom} plays first as light. Tier ${state.tiltLevel} advantages stack.`);
-      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to win back ${money(pot)} on the Reversi board.`, false);
+      render();
     }
 
     function reversiBoard() {
@@ -13680,6 +13813,7 @@
     }
 
     function reversiCanSeeFlipNumbers(viewer = localOnlineRole()) {
+      if (state.reversi && state.reversi.showNumberHints === false) return false;
       if (!reclaimPerksActive() || !domAdvantagesEnabled()) return true;
       if (Number(state.tiltLevel || 0) <= 0) return true;
       if (brattyReversiTrainingNumbers()) return true;
@@ -13753,6 +13887,7 @@
 
     function playReversiMove(row, col) {
       if (state.currentGame !== "tributeReversi" || !state.active) return;
+      if (state.reversi && state.reversi.setupPending) return;
       const commanded = Boolean(state.reversi && state.reversi.commandMode && state.turn === SUB);
       if (state.reversi && state.reversi.commandWindow && !commanded) return;
       if (localOnlineRole() && localOnlineRole() !== state.turn && !(commanded && localOnlineRole() === DOM)) return;
@@ -13862,13 +13997,13 @@
         && nextMoves.length > 0;
     }
 
-    function endReversiMatch() {
+    function endReversiMatch(forcedWinner = null, forcedReason = "") {
       const score = reversiScore();
-      const winner = score.sub > score.dom ? SUB : (score.dom > score.sub ? DOM : (reversiTierActive(5) ? DOM : null));
+      const winner = forcedWinner || (score.sub > score.dom ? SUB : (score.dom > score.sub ? DOM : (reversiTierActive(5) ? DOM : null)));
       state.reversi.winner = winner;
       state.active = false;
       const result = settleRoundBank(winner);
-      const scoreText = `${state.names.sub} ${score.sub}, ${state.names.dom} ${score.dom}.`;
+      const scoreText = forcedReason ? `${forcedReason} ${state.names.sub} ${score.sub}, ${state.names.dom} ${score.dom}.` : `${state.names.sub} ${score.sub}, ${state.names.dom} ${score.dom}.`;
       if (result.outcome === "subReclaim") {
         addLog(`<strong>${state.names.sub} wins Reversi reclaim.</strong> ${scoreText} ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
       } else if (result.outcome === "subNormal") {
@@ -15955,21 +16090,22 @@
     }
 
     function renderChessSettingsModal() {
-      const show = state.screen === "game"
-        && state.currentGame === "tributeChess"
-        && state.chess
-        && state.chess.setupPending;
       if (!els.chessSettingsModal) return;
+      const key = timerSetupActiveKey();
+      const game = timerGameState(key);
+      const show = Boolean(key && game);
       els.chessSettingsModal.classList.toggle("hidden", !show);
       if (!show) return;
       const role = localOnlineRole();
       const canChoose = !state.online.room || role === DOM;
-      const mode = state.chess.timerMode || "none";
-      const target = state.chess.timerTarget === "sub" ? "sub" : "both";
+      const label = timerGameLabel(key);
+      const mode = game.timerMode || "none";
+      const target = game.timerTarget === "sub" ? "sub" : "both";
+      if (els.turnTimerSettingsTitle) els.turnTimerSettingsTitle.textContent = `${label} Settings`;
       if (els.chessSettingsText) {
         els.chessSettingsText.textContent = canChoose
-          ? "Choose whether this chess game uses a timer."
-          : `${state.names.dom} is choosing the Chess settings.`;
+          ? `Choose whether this ${label} game uses a timer.`
+          : `${state.names.dom} is choosing the ${label} settings.`;
       }
       els.chessSettingsModal.querySelectorAll("[data-chess-timer]").forEach((button) => {
         button.classList.toggle("primary", (button.dataset.chessTimer || "none") === mode);
@@ -15981,10 +16117,18 @@
       });
       if (els.chessCustomTimerRow) els.chessCustomTimerRow.classList.toggle("hidden", mode !== "custom");
       if (els.chessCustomTimerInput) {
-        els.chessCustomTimerInput.value = chessTimerMinutes("custom", state.chess.customTimerMinutes);
+        els.chessCustomTimerInput.value = turnTimerMinutes("custom", game.customTimerMinutes);
         els.chessCustomTimerInput.disabled = !canChoose;
       }
-      if (els.chessSettingsConfirmBtn) els.chessSettingsConfirmBtn.disabled = !canChoose;
+      if (els.reversiHintToggleRow) els.reversiHintToggleRow.classList.toggle("hidden", key !== "reversi");
+      if (els.reversiHintToggle) {
+        els.reversiHintToggle.checked = game.showNumberHints !== false;
+        els.reversiHintToggle.disabled = !canChoose;
+      }
+      if (els.chessSettingsConfirmBtn) {
+        els.chessSettingsConfirmBtn.textContent = `Start ${label}`;
+        els.chessSettingsConfirmBtn.disabled = !canChoose;
+      }
     }
 
     function renderCheckersQueenModal() {
@@ -16285,16 +16429,28 @@
       const bet = prepareRound("normal");
       if (bet === null) return;
       const starter = chooseStartingPlayer();
-      preserveTiltLevel(() => beginCheckersQueenSetup(starter));
-      const queenPending = Boolean(state.checkers && state.checkers.queenSetup);
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} ${queenPending ? "will move first after the queen choice." : "moves first."}`, false);
+      preserveTiltLevel(() => startCheckersSetup(starter, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} moves first.`));
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.dom} chooses the Checkers settings.`, false);
     }
 
     function startCheckersReclaimMatch() {
       const pot = prepareRound("reclaim", "game");
       if (pot === null) return;
-      beginCheckersQueenSetup(DOM);
-      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} starts after the queen offer. Tilt level ${state.tiltLevel}.`, false);
+      startCheckersSetup(DOM, `<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} starts after settings. Tilt level ${state.tiltLevel}.`);
+      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} chooses the Checkers settings.`, false);
+    }
+
+    function startCheckersSetup(starter, intro) {
+      state.checkers = createCheckersState();
+      state.checkers.setupPending = true;
+      state.checkers.pendingStarter = starter;
+      state.checkers.pendingIntro = intro;
+      state.checkers.timerMode = "none";
+      state.checkers.timerTarget = "both";
+      state.checkers.customTimerMinutes = 10;
+      state.turn = DOM;
+      state.active = true;
+      render();
     }
 
     function beginCheckersQueenSetup(starter) {
@@ -16361,6 +16517,7 @@
       state.checkers.queenSetup = null;
       state.turn = starter;
       state.active = true;
+      resetChessClockTick();
       addLog(`<strong>Checkers begins.</strong> ${labelFor(starter)} moves first.`);
       render();
       publishState();
@@ -16610,6 +16767,7 @@
 
     function selectCheckersSquare(row, col) {
       if (state.currentGame !== "tributeCheckers" || !state.active) return;
+      if (state.checkers && state.checkers.setupPending) return;
       if (state.checkers.powerMode || state.checkers.lockMode) {
         if (state.checkers.lockMode) {
           lockCheckersPiece(row, col);
@@ -17536,57 +17694,128 @@
       render();
     }
 
-    function chessTimerMinutes(mode = state.chess && state.chess.timerMode, customMinutes = state.chess && state.chess.customTimerMinutes) {
+    function timerGameKey() {
+      if (state.currentGame === "tributeChess") return "chess";
+      if (state.currentGame === "tributeCheckers") return "checkers";
+      if (state.currentGame === "tributeReversi") return "reversi";
+      return "";
+    }
+
+    function timerGameLabel(key = timerGameKey()) {
+      if (key === "checkers") return "Checkers";
+      if (key === "reversi") return "Reversi";
+      return "Chess";
+    }
+
+    function timerGameState(key = timerGameKey()) {
+      if (key === "chess") return state.chess;
+      if (key === "checkers") return state.checkers;
+      if (key === "reversi") return state.reversi;
+      return null;
+    }
+
+    function timerSetupActiveKey() {
+      if (state.screen !== "game") return "";
+      return ["chess", "checkers", "reversi"].find((key) => {
+        const game = timerGameState(key);
+        if (!game || !game.setupPending) return false;
+        if (key === "chess") return state.currentGame === "tributeChess";
+        if (key === "checkers") return state.currentGame === "tributeCheckers";
+        return state.currentGame === "tributeReversi";
+      }) || "";
+    }
+
+    function turnTimerMinutes(mode, customMinutes) {
       if (mode === "custom") return Math.max(1, Math.min(60, Math.round(Number(customMinutes || 10))));
       if (mode === "5" || mode === "10" || mode === "15") return Number(mode);
       return 0;
     }
 
-    function setupChessTimers(mode = "none", customMinutes = 10, timerTarget = "both") {
-      const minutes = chessTimerMinutes(mode, customMinutes);
-      state.chess.timerMode = minutes > 0 ? (mode === "custom" ? "custom" : String(minutes)) : "none";
-      state.chess.timerTarget = timerTarget === "sub" ? "sub" : "both";
-      state.chess.customTimerMinutes = Math.max(1, Math.min(60, Math.round(Number(customMinutes || 10))));
+    function chessTimerMinutes(mode = state.chess && state.chess.timerMode, customMinutes = state.chess && state.chess.customTimerMinutes) {
+      return turnTimerMinutes(mode, customMinutes);
+    }
+
+    function setupTurnTimers(game, mode = "none", customMinutes = 10, timerTarget = "both") {
+      if (!game) return;
+      const minutes = turnTimerMinutes(mode, customMinutes);
+      game.timerMode = minutes > 0 ? (mode === "custom" ? "custom" : String(minutes)) : "none";
+      game.timerTarget = timerTarget === "sub" ? "sub" : "both";
+      game.customTimerMinutes = Math.max(1, Math.min(60, Math.round(Number(customMinutes || 10))));
       const ms = minutes * 60 * 1000;
-      state.chess.timers = { sub: ms, dom: state.chess.timerTarget === "sub" ? 0 : ms };
-      state.chess.timerLastTick = ms > 0 ? Date.now() : 0;
+      game.timers = { sub: ms, dom: game.timerTarget === "sub" ? 0 : ms };
+      game.timerLastTick = ms > 0 ? Date.now() : 0;
+    }
+
+    function setupChessTimers(mode = "none", customMinutes = 10, timerTarget = "both") {
+      setupTurnTimers(state.chess, mode, customMinutes, timerTarget);
+    }
+
+    function turnTimerActive() {
+      const key = timerGameKey();
+      const game = timerGameState(key);
+      if (!key || !game || !state.active || game.setupPending) return false;
+      if (key === "checkers" && game.queenSetup) return false;
+      return turnTimerMinutes(game.timerMode, game.customTimerMinutes) > 0;
     }
 
     function chessTimerActive() {
-      return Boolean(state.currentGame === "tributeChess" && state.active && state.chess && !state.chess.setupPending && chessTimerMinutes() > 0);
+      return Boolean(state.currentGame === "tributeChess" && turnTimerActive());
     }
 
-    function chessClockPaused() {
+    function turnClockPaused() {
+      const key = timerGameKey();
+      const game = timerGameState(key);
+      if (!turnTimerActive() || !game) return true;
+      if (key === "chess") {
+        return Boolean(
+          state.chess.freezeMode
+          || state.chess.commandMode
+          || state.chess.repositionMode
+          || (els.tributeFourPowerModal && !els.tributeFourPowerModal.classList.contains("hidden"))
+          || (els.chessSettingsModal && !els.chessSettingsModal.classList.contains("hidden"))
+        );
+      }
       return Boolean(
-        !chessTimerActive()
-        || state.chess.freezeMode
-        || state.chess.commandMode
-        || state.chess.repositionMode
-        || (els.tributeFourPowerModal && !els.tributeFourPowerModal.classList.contains("hidden"))
+        (els.tributeFourPowerModal && !els.tributeFourPowerModal.classList.contains("hidden"))
         || (els.chessSettingsModal && !els.chessSettingsModal.classList.contains("hidden"))
       );
     }
 
-    function syncChessClock() {
-      if (!chessTimerActive()) return;
-      if (chessClockPaused()) {
-        state.chess.timerLastTick = Date.now();
+    function chessClockPaused() {
+      return state.currentGame !== "tributeChess" || turnClockPaused();
+    }
+
+    function syncTurnClock() {
+      if (!turnTimerActive()) return;
+      const game = timerGameState();
+      if (!game) return;
+      if (turnClockPaused()) {
+        game.timerLastTick = Date.now();
         return;
       }
       const now = Date.now();
-      const last = Number(state.chess.timerLastTick || now);
+      const last = Number(game.timerLastTick || now);
       const elapsed = Math.max(0, now - last);
-      state.chess.timerLastTick = now;
+      game.timerLastTick = now;
       if (!elapsed || (state.turn !== SUB && state.turn !== DOM)) return;
-      if (state.chess.timerTarget === "sub" && state.turn !== SUB) return;
-      state.chess.timers[state.turn] = Math.max(0, Number(state.chess.timers[state.turn] || 0) - elapsed);
-      if (state.chess.timers[state.turn] <= 0) {
-        endChessMatch(otherRole(state.turn), `${labelFor(state.turn)} runs out of time.`);
+      if (game.timerTarget === "sub" && state.turn !== SUB) return;
+      game.timers[state.turn] = Math.max(0, Number(game.timers[state.turn] || 0) - elapsed);
+      if (game.timers[state.turn] <= 0) {
+        const winner = otherRole(state.turn);
+        const reason = `${labelFor(state.turn)} runs out of time.`;
+        if (state.currentGame === "tributeCheckers") endCheckersMatch(winner, reason);
+        else if (state.currentGame === "tributeReversi") endReversiMatch(winner, reason);
+        else endChessMatch(winner, reason);
       }
     }
 
+    function syncChessClock() {
+      syncTurnClock();
+    }
+
     function resetChessClockTick() {
-      if (state.chess && chessTimerMinutes() > 0) state.chess.timerLastTick = Date.now();
+      const game = timerGameState();
+      if (game && turnTimerMinutes(game.timerMode, game.customTimerMinutes) > 0) game.timerLastTick = Date.now();
     }
 
     function formatChessClock(ms) {
@@ -17597,40 +17826,67 @@
     }
 
     function setChessTimerMode(mode) {
-      if (state.currentGame !== "tributeChess" || !state.chess || !state.chess.setupPending) return;
+      const key = timerSetupActiveKey();
+      const game = timerGameState(key);
+      if (!key || !game) return;
       if (state.online.room && localOnlineRole() !== DOM) return;
-      state.chess.timerMode = ["none", "5", "10", "15", "custom"].includes(String(mode)) ? String(mode) : "none";
-      if (state.chess.timerMode === "none") state.chess.timerTarget = "both";
+      game.timerMode = ["none", "5", "10", "15", "custom"].includes(String(mode)) ? String(mode) : "none";
+      if (game.timerMode === "none") game.timerTarget = "both";
       if (els.chessCustomTimerInput) {
-        state.chess.customTimerMinutes = chessTimerMinutes("custom", els.chessCustomTimerInput.value);
+        game.customTimerMinutes = turnTimerMinutes("custom", els.chessCustomTimerInput.value);
       }
       render();
       publishState();
     }
 
     function setChessTimerTarget(target) {
-      if (state.currentGame !== "tributeChess" || !state.chess || !state.chess.setupPending) return;
+      const key = timerSetupActiveKey();
+      const game = timerGameState(key);
+      if (!key || !game) return;
       if (state.online.room && localOnlineRole() !== DOM) return;
-      if ((state.chess.timerMode || "none") === "none") return;
-      state.chess.timerTarget = target === "sub" ? "sub" : "both";
+      if ((game.timerMode || "none") === "none") return;
+      game.timerTarget = target === "sub" ? "sub" : "both";
       render();
       publishState();
     }
 
     function confirmChessSettings() {
-      if (state.currentGame !== "tributeChess" || !state.chess || !state.chess.setupPending) return;
+      const key = timerSetupActiveKey();
+      const game = timerGameState(key);
+      if (!key || !game) return;
       if (state.online.room && localOnlineRole() !== DOM) return;
-      const mode = state.chess.timerMode || "none";
-      const target = state.chess.timerTarget === "sub" ? "sub" : "both";
-      const customMinutes = chessTimerMinutes("custom", els.chessCustomTimerInput && els.chessCustomTimerInput.value);
-      const colors = state.chess.pendingColors || { w: SUB, b: DOM };
-      const intro = state.chess.pendingIntro || `${labelFor(colors.w)} plays white and starts.`;
-      resetChessMatch(colors, mode, customMinutes, target);
-      addLog(intro);
-      const minutes = chessTimerMinutes(mode, customMinutes);
+      const mode = game.timerMode || "none";
+      const target = game.timerTarget === "sub" ? "sub" : "both";
+      const customMinutes = turnTimerMinutes("custom", els.chessCustomTimerInput && els.chessCustomTimerInput.value);
+      const label = timerGameLabel(key);
+      if (key === "chess") {
+        const colors = state.chess.pendingColors || { w: SUB, b: DOM };
+        const intro = state.chess.pendingIntro || `${labelFor(colors.w)} plays white and starts.`;
+        resetChessMatch(colors, mode, customMinutes, target);
+        addLog(intro);
+      } else if (key === "checkers") {
+        const starter = state.checkers.pendingStarter || SUB;
+        const intro = state.checkers.pendingIntro || `${labelFor(starter)} moves first.`;
+        beginCheckersQueenSetup(starter);
+        setupTurnTimers(state.checkers, mode, customMinutes, target);
+        state.checkers.setupPending = false;
+        addLog(intro);
+      } else if (key === "reversi") {
+        const starter = state.reversi.pendingStarter || SUB;
+        const intro = state.reversi.pendingIntro || `${labelFor(starter)} plays dark and moves first.`;
+        const showNumberHints = els.reversiHintToggle ? els.reversiHintToggle.checked : state.reversi.showNumberHints !== false;
+        state.reversi = createReversiState();
+        state.reversi.showNumberHints = showNumberHints;
+        state.reversi.commandAvailable = reversiTierActive(5);
+        setupTurnTimers(state.reversi, mode, customMinutes, target);
+        state.turn = starter;
+        state.active = true;
+        addLog(intro);
+      }
+      const minutes = turnTimerMinutes(mode, customMinutes);
       addLog(minutes > 0
-        ? `<strong>Chess clock set.</strong> ${target === "sub" ? `${state.names.sub} has` : "Each player has"} ${minutes} minute${minutes === 1 ? "" : "s"}.`
-        : `<strong>No chess clock.</strong> This game has no timer.`);
+        ? `<strong>${label} clock set.</strong> ${target === "sub" ? `${state.names.sub} has` : "Each player has"} ${minutes} minute${minutes === 1 ? "" : "s"}.`
+        : `<strong>No ${label} clock.</strong> This game has no timer.`);
       render();
       publishState();
     }
@@ -20652,13 +20908,15 @@
         : `<strong>${labelFor(attacker)} misses.</strong>`);
       if (attacker === DOM && hit) {
         const sunk = fleetShipSunkByCell(target, row, col, attacker);
-        triggerSubLossPressure({
-          weight: sunk ? 3 : 1,
-          banner: true,
-          message: true,
-          strengthBoost: sunk ? 0.16 : 0,
-          source: sunk ? "fleet-sunk" : "fleet-hit"
-        });
+        if (sunk) {
+          triggerSubLossPressure({
+            weight: 2,
+            banner: true,
+            message: false,
+            pulse: false,
+            source: "fleet-sunk"
+          });
+        }
       }
       render();
       publishState();
@@ -23830,6 +24088,7 @@
     function renderReversiRules() {
       const rules = [
         `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. The lobby starting-player setting decides who plays dark and moves first.`,
+        `<strong>Table settings:</strong> before the board opens, ${state.names.dom} can set an optional timer and choose whether legal move number hints are visible.`,
         `<strong>Goal:</strong> finish the game with more discs than your opponent.`,
         `<strong>Moves:</strong> place a disc so one or more enemy discs are trapped in a straight line between your new disc and another of your discs.`,
         `<strong>Flip:</strong> all trapped discs in every direction become yours. Legal move hints can show how many discs would flip.`,
@@ -23968,9 +24227,11 @@
     function renderCheckersRules() {
       const rules = [
         `<strong>Goal:</strong> capture every opposing piece or leave the other player with no legal move.`,
+        `<strong>Table settings:</strong> before the board opens, ${state.names.dom} can set an optional timer.`,
         `<strong>Movement:</strong> regular pieces move diagonally forward one dark square. Kings move diagonally both ways.`,
         `<strong>Captures:</strong> jumps are forced. If another jump is available after a capture, the same piece must keep jumping.`,
         `<strong>Kings:</strong> a piece that reaches the far side becomes a king.`,
+        `<strong>Sub losses:</strong> when ${state.names.dom} captures a ${state.names.sub} piece, the sub-loss pressure layer can show banners, text, pulse, and spiral effects.`,
         `<strong>Dom queens:</strong> ${state.names.dom}'s kings are queens. When a queen captures a ${state.names.sub} piece, cash drains into ${state.names.dom}'s bank.`,
         `<strong>Claim:</strong> ${state.names.dom} gains 1 Claim whenever she captures a ${state.names.sub} piece. Queen's Drain scales with Claim: $1 at 0-2, $2 at 3-5, and $3 at 6+.`,
         `<strong>Starting queen:</strong> before the game starts, ${state.names.sub} is asked whether ${state.names.dom} may begin with a queen. If refused, ${state.names.dom} may take one anyway; doing so raises Queen's Drain to $2, $4, and $6 for that game.`,
@@ -24043,6 +24304,7 @@
         `<strong>Board view:</strong> the board auto-switches locally: enemy waters on your turn, your fleet on their turn. You can still switch manually during the current turn. This does not reveal hidden enemy ships.`,
         `<strong>Normal start:</strong> a random player fires first.`,
         `<strong>Reclaim start:</strong> ${state.names.dom} fires first.`,
+        `<strong>Sub losses:</strong> when ${state.names.dom} sinks one of ${state.names.sub}'s ships, a banner can flash as part of the sub-loss pressure settings.`,
         `<strong>Power button:</strong> ${state.names.dom} uses the power screen to use Scan and inspect active modifiers.`,
         `<strong>Scan:</strong> ${state.names.dom} can reveal one hidden ${state.names.sub} ship segment from Tilt 1 onward.`,
         `<strong>Modifiers:</strong> reclaim rounds can add passive effects such as Double Tap, Command Fog, Dom Counterfire, Noisy Waters, and Priority Intel.`,
@@ -24210,7 +24472,9 @@
         }
       } else if (state.currentGame === "tributeReversi") {
         const score = reversiScore();
-        if (state.active) {
+        if (state.reversi && state.reversi.setupPending) {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Reversi settings.`;
+        } else if (state.active) {
           const legal = reversiLegalMoves(state.turn).length;
           if (state.reversi && state.reversi.commandWindow) {
             els.turnText.innerHTML = `<strong>${state.names.dom}</strong> may Command Move or let ${state.names.sub} move.`;
@@ -24228,6 +24492,8 @@
         }
       } else if (state.currentGame === "tributeChess" && state.chess && state.chess.setupPending) {
         els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Chess timer settings.`;
+      } else if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.setupPending) {
+        els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Checkers settings.`;
       } else if (!state.active) {
         if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.queenSetup) {
           const stage = state.checkers.queenSetup.stage || "sub";
@@ -24371,23 +24637,24 @@
     }
 
     function renderChessClocks() {
-      const show = chessTimerActive();
+      const show = turnTimerActive();
+      const timerState = timerGameState();
       window.clearTimeout(renderChessClocks.timer);
       [els.chessSubClock, els.chessDomClock].forEach((clock) => {
         if (clock) clock.classList.toggle("hidden", !show);
       });
-      if (!show) return;
+      if (!show || !timerState) return;
       if (els.chessSubClock) {
         els.chessSubClock.classList.toggle("active", state.turn === SUB);
         const value = els.chessSubClock.querySelector("strong");
-        if (value) value.textContent = formatChessClock(state.chess.timers && state.chess.timers.sub);
+        if (value) value.textContent = formatChessClock(timerState.timers && timerState.timers.sub);
       }
       if (els.chessDomClock) {
-        const domUnlimited = state.chess && state.chess.timerTarget === "sub";
+        const domUnlimited = timerState.timerTarget === "sub";
         els.chessDomClock.classList.toggle("active", state.turn === DOM && !domUnlimited);
         els.chessDomClock.classList.toggle("unlimited", domUnlimited);
         const value = els.chessDomClock.querySelector("strong");
-        if (value) value.textContent = domUnlimited ? "--:--" : formatChessClock(state.chess.timers && state.chess.timers.dom);
+        if (value) value.textContent = domUnlimited ? "--:--" : formatChessClock(timerState.timers && timerState.timers.dom);
       }
       renderChessClocks.timer = window.setTimeout(() => {
         syncChessClock();
@@ -24475,6 +24742,7 @@
       renderLeaveRoomButtons();
       renderLeaveNotice();
       renderWagerApproval();
+      renderThroneAmountConfirmModal();
       renderTrailCardReveal();
       renderTrailShopModal();
       renderBlackjackSettingsModal();
@@ -24616,10 +24884,21 @@
     }
     if (els.chessCustomTimerInput) {
       els.chessCustomTimerInput.addEventListener("input", () => {
-        if (state.chess) state.chess.customTimerMinutes = chessTimerMinutes("custom", els.chessCustomTimerInput.value);
+        const game = timerGameState(timerSetupActiveKey());
+        if (game) game.customTimerMinutes = turnTimerMinutes("custom", els.chessCustomTimerInput.value);
       });
       els.chessCustomTimerInput.addEventListener("change", () => {
-        if (state.chess) state.chess.customTimerMinutes = chessTimerMinutes("custom", els.chessCustomTimerInput.value);
+        const game = timerGameState(timerSetupActiveKey());
+        if (game) game.customTimerMinutes = turnTimerMinutes("custom", els.chessCustomTimerInput.value);
+        render();
+        publishState();
+      });
+    }
+    if (els.reversiHintToggle) {
+      els.reversiHintToggle.addEventListener("change", () => {
+        if (state.currentGame !== "tributeReversi" || !state.reversi || !state.reversi.setupPending) return;
+        if (state.online.room && localOnlineRole() !== DOM) return;
+        state.reversi.showNumberHints = els.reversiHintToggle.checked;
         render();
         publishState();
       });
@@ -24862,6 +25141,13 @@
         if (event.key === "Enter") saveThroneSessionMode();
       });
     }
+    if (els.cancelThroneAmountConfirmBtn) els.cancelThroneAmountConfirmBtn.addEventListener("click", closeThroneAmountConfirmModal);
+    if (els.confirmThroneAmountBtn) els.confirmThroneAmountBtn.addEventListener("click", confirmThroneAmountAndStart);
+    if (els.throneAmountConfirmInput) {
+      els.throneAmountConfirmInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") confirmThroneAmountAndStart();
+      });
+    }
     els.openSubLinkBtn.addEventListener("click", openSubLinkRequest);
     els.declineSubLinkBtn.addEventListener("click", declineSubLinkRequest);
     els.cancelResetBankBtn.addEventListener("click", closeResetBankModal);
@@ -24899,7 +25185,9 @@
         const card = event.target.closest(".game-card[data-open-game]");
         if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
         const opener = gameOpeners[card.dataset.openGame];
-        if (opener) opener();
+        if (!opener) return;
+        if (shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
+        opener();
       });
     }
     els.createRoomBtn.addEventListener("click", createOnlineRoom);
