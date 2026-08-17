@@ -139,7 +139,11 @@
         throneExtensionStatus: null,
         brattyWelcomeSeen: false,
         queenPowerMode: "tiered",
-        queenPowerUsers: "dom"
+        queenPowerUsers: "dom",
+        domSeePressureBanners: false,
+        domSeePressureText: false,
+        domSeePressurePulse: false,
+        pressureViewPromptSeen: false
       },
       pendingWager: null,
       normalReplayPrompt: null,
@@ -207,6 +211,7 @@
       reversi: createReversiState(),
       chess: createChessState(),
       solitaire: createSolitaireState(),
+      lossPressure: createLossPressureState(),
       chat: [],
       ledger: []
     };
@@ -226,6 +231,7 @@
       solitaireCardPreview: document.getElementById("solitaireCardPreview"),
       pieceLossSpiral: document.getElementById("pieceLossSpiral"),
       pieceLossPulse: document.getElementById("pieceLossPulse"),
+      pieceLossMessage: document.getElementById("pieceLossMessage"),
       chessCaptureBanner: document.getElementById("chessCaptureBanner"),
       newSolitaireBtn: document.getElementById("newSolitaireBtn"),
       solitaireBackBtn: document.getElementById("solitaireBackBtn"),
@@ -304,6 +310,9 @@
       subSettingsPane: document.getElementById("subSettingsPane"),
       domToolsPane: document.getElementById("domToolsPane"),
       domAdvantageMode: document.getElementById("domAdvantageMode"),
+      domSeePressureBanners: document.getElementById("domSeePressureBanners"),
+      domSeePressureText: document.getElementById("domSeePressureText"),
+      domSeePressurePulse: document.getElementById("domSeePressurePulse"),
       domSubBetControl: document.getElementById("domSubBetControl"),
       subDefaultBetInput: document.getElementById("subDefaultBetInput"),
       subLinkWarningMode: document.getElementById("subLinkWarningMode"),
@@ -329,6 +338,11 @@
       brattyWelcomeText: document.getElementById("brattyWelcomeText"),
       declineBrattyWelcomeBtn: document.getElementById("declineBrattyWelcomeBtn"),
       acceptBrattyWelcomeBtn: document.getElementById("acceptBrattyWelcomeBtn"),
+      pressureViewPromptModal: document.getElementById("pressureViewPromptModal"),
+      promptPressureBanners: document.getElementById("promptPressureBanners"),
+      promptPressureText: document.getElementById("promptPressureText"),
+      promptPressurePulse: document.getElementById("promptPressurePulse"),
+      savePressurePromptBtn: document.getElementById("savePressurePromptBtn"),
       sideSettingsPane: document.getElementById("sideSettingsPane"),
       sideToolsPane: document.getElementById("sideToolsPane"),
       chatMessages: document.getElementById("chatMessages"),
@@ -406,6 +420,11 @@
       blackjackSettingsModal: document.getElementById("blackjackSettingsModal"),
       blackjackSettingsText: document.getElementById("blackjackSettingsText"),
       blackjackSettingsConfirmBtn: document.getElementById("blackjackSettingsConfirmBtn"),
+      chessSettingsModal: document.getElementById("chessSettingsModal"),
+      chessSettingsText: document.getElementById("chessSettingsText"),
+      chessCustomTimerRow: document.getElementById("chessCustomTimerRow"),
+      chessCustomTimerInput: document.getElementById("chessCustomTimerInput"),
+      chessSettingsConfirmBtn: document.getElementById("chessSettingsConfirmBtn"),
       higherLowerMercyModal: document.getElementById("higherLowerMercyModal"),
       higherLowerMercyText: document.getElementById("higherLowerMercyText"),
       higherLowerMercyCollectBtn: document.getElementById("higherLowerMercyCollectBtn"),
@@ -468,6 +487,8 @@
       turnOwedPill: document.getElementById("turnOwedPill"),
       turnOwedLabel: document.getElementById("turnOwedLabel"),
       turnOwed: document.getElementById("turnOwed"),
+      chessSubClock: document.getElementById("chessSubClock"),
+      chessDomClock: document.getElementById("chessDomClock"),
       modeLabel: document.getElementById("modeLabel"),
       potLabel: document.getElementById("potLabel"),
       pot: document.getElementById("pot"),
@@ -608,6 +629,7 @@
         queenSplashMessage: "",
         queenSplashUntil: 0,
         captureBanner: null,
+        recentCaptureBanners: [],
         powerUses: {
           crownPull: 3,
           marked: 3,
@@ -1065,6 +1087,17 @@
         },
         selected: null,
         legalMoves: [],
+        setupPending: false,
+        pendingColors: null,
+        pendingIntro: "",
+        timerMode: "none",
+        timerTarget: "both",
+        customTimerMinutes: 10,
+        timers: {
+          sub: 0,
+          dom: 0
+        },
+        timerLastTick: 0,
         freezeAvailable: false,
         freezeMode: false,
         freezeSquare: null,
@@ -1082,6 +1115,9 @@
         queenTriggerUsed: false,
         captureBanner: null,
         capturePulse: null,
+        captureMessage: null,
+        recentCaptureBanners: [],
+        recentCaptureMessages: [],
         subPiecesLostToDom: 0,
         charges: 0,
         outcome: ""
@@ -1899,6 +1935,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeFour";
       setScreen("game");
+      resetLossPressure();
       resetTributeFourBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -1913,6 +1950,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeFleet";
       setScreen("game");
+      resetLossPressure();
       resetTributeFleetBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -1927,6 +1965,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeTwentyOne";
       setScreen("game");
+      resetLossPressure();
       resetTributeTwentyOneBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -1941,6 +1980,7 @@
       state.pendingWager = null;
       state.currentGame = "higherLower";
       setScreen("game");
+      resetLossPressure();
       resetHigherLowerBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -1954,6 +1994,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeCrazyEights";
       setScreen("game");
+      resetLossPressure();
       resetCrazyEightsBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -1968,6 +2009,7 @@
       state.pendingWager = null;
       state.currentGame = "doubleSolitaire";
       setScreen("game");
+      resetLossPressure();
       resetDoubleSolitaireBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -1982,6 +2024,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeTicTacToe";
       setScreen("game");
+      resetLossPressure();
       resetTributeTicTacToeBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -1995,6 +2038,7 @@
       state.pendingWager = null;
       state.currentGame = "wheelSpin";
       setScreen("game");
+      resetLossPressure();
       resetWheelSpinBoard();
       els.log.innerHTML = "";
       addLog(isThroneSession()
@@ -2009,6 +2053,7 @@
       state.pendingWager = null;
       state.currentGame = "obedienceOrders";
       setScreen("game");
+      resetLossPressure();
       resetObedienceOrdersBoard();
       els.log.innerHTML = "";
       addLog(`<strong>Obedience Orders opened.</strong> ${state.names.dom} leads the duel. ${state.names.sub} survives by repeating her command tiles.`);
@@ -2021,6 +2066,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeReversi";
       setScreen("game");
+      resetLossPressure();
       resetTributeReversiBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -2035,6 +2081,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeTrail";
       setScreen("game");
+      resetLossPressure();
       resetTributeTrailBoard();
       els.log.innerHTML = "";
       addLog(`<strong>Tribute Trail opened.</strong> ${state.names.dom} chooses the Trail Tribute transfer before the first roll.`);
@@ -2047,6 +2094,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeChess";
       setScreen("game");
+      resetLossPressure();
       resetTributeChessBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -2061,6 +2109,7 @@
       state.pendingWager = null;
       state.currentGame = "tributeCheckers";
       setScreen("game");
+      resetLossPressure();
       resetTributeCheckersBoard();
       applyDefaultBet();
       els.log.innerHTML = "";
@@ -2320,6 +2369,9 @@
       if (els.domSettingsPane) els.domSettingsPane.classList.toggle("hidden", !showDomSettings);
       if (els.subSettingsPane) els.subSettingsPane.classList.toggle("hidden", !showSubSettings);
       if (els.domAdvantageMode) els.domAdvantageMode.value = state.settings.domAdvantageMode;
+      if (els.domSeePressureBanners) els.domSeePressureBanners.checked = Boolean(state.settings.domSeePressureBanners);
+      if (els.domSeePressureText) els.domSeePressureText.checked = Boolean(state.settings.domSeePressureText);
+      if (els.domSeePressurePulse) els.domSeePressurePulse.checked = Boolean(state.settings.domSeePressurePulse);
       if (els.domSubBetControl) els.domSubBetControl.value = state.settings.subBetControl === "locked" ? "locked" : "editable";
       if (els.subDefaultBetInput) els.subDefaultBetInput.value = state.settings.subDefaultBet;
       if (els.subLinkWarningMode) els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "auto";
@@ -2423,6 +2475,17 @@
         timer: false,
         createdAt: Date.now(),
         until: Date.now() + 2800
+      };
+    }
+
+    function createLossPressureState() {
+      return {
+        count: 0,
+        captureBanner: null,
+        capturePulse: null,
+        captureMessage: null,
+        recentCaptureBanners: [],
+        recentCaptureMessages: []
       };
     }
 
@@ -2537,6 +2600,10 @@
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
+      state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
+      state.settings.domSeePressureText = Boolean(state.settings.domSeePressureText);
+      state.settings.domSeePressurePulse = Boolean(state.settings.domSeePressurePulse);
+      state.settings.pressureViewPromptSeen = Boolean(state.settings.pressureViewPromptSeen);
       if (!state.active) applyDefaultBet();
       renderSettings();
       renderGameSelectTabs();
@@ -3080,6 +3147,35 @@
       publishState();
     }
 
+    function pressureViewPromptAllowed() {
+      if (!els.pressureViewPromptModal) return false;
+      if (state.settings.pressureViewPromptSeen) return false;
+      if (state.screen !== "game") return false;
+      if (!pressureEligibleGame(state.currentGame)) return false;
+      if (state.online.room && localOnlineRole() !== DOM) return false;
+      return true;
+    }
+
+    function renderPressureViewPromptModal() {
+      if (!els.pressureViewPromptModal) return;
+      const show = pressureViewPromptAllowed();
+      els.pressureViewPromptModal.classList.toggle("hidden", !show);
+      if (!show) return;
+      if (els.promptPressureBanners) els.promptPressureBanners.checked = Boolean(state.settings.domSeePressureBanners);
+      if (els.promptPressureText) els.promptPressureText.checked = Boolean(state.settings.domSeePressureText);
+      if (els.promptPressurePulse) els.promptPressurePulse.checked = Boolean(state.settings.domSeePressurePulse);
+    }
+
+    function savePressureViewPrompt() {
+      updateSettings({
+        pressureViewPromptSeen: true,
+        domSeePressureBanners: Boolean(els.promptPressureBanners && els.promptPressureBanners.checked),
+        domSeePressureText: Boolean(els.promptPressureText && els.promptPressureText.checked),
+        domSeePressurePulse: Boolean(els.promptPressurePulse && els.promptPressurePulse.checked)
+      });
+      if (els.pressureViewPromptModal) els.pressureViewPromptModal.classList.add("hidden");
+    }
+
     function renderSidePanel() {
       const soloMode = state.screen === "solitaire";
       const inGame = state.screen === "game";
@@ -3166,6 +3262,9 @@
       els.postDistractionBtn.disabled = !canUseDomSettings;
       els.clearDistractionBtn.disabled = !canUseDomSettings || !hasDistraction();
       if (els.domAdvantageMode) els.domAdvantageMode.disabled = !canUseDomSettings;
+      if (els.domSeePressureBanners) els.domSeePressureBanners.disabled = !canUseDomSettings;
+      if (els.domSeePressureText) els.domSeePressureText.disabled = !canUseDomSettings;
+      if (els.domSeePressurePulse) els.domSeePressurePulse.disabled = !canUseDomSettings;
       if (els.domSubBetControl) els.domSubBetControl.disabled = !canUseDomSettings;
       if (els.queenPowerMode) els.queenPowerMode.disabled = !canUseDomSettings;
       if (els.queenPowerUsers) els.queenPowerUsers.disabled = !canUseDomSettings;
@@ -3825,6 +3924,7 @@
         checkers: state.checkers,
         reversi: state.reversi,
         chess: state.chess,
+        lossPressure: state.lossPressure,
         chat: state.chat,
         ledger: state.ledger,
         onlineLobby: {
@@ -3856,6 +3956,10 @@
       state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
       state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
+      state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
+      state.settings.domSeePressureText = Boolean(state.settings.domSeePressureText);
+      state.settings.domSeePressurePulse = Boolean(state.settings.domSeePressurePulse);
+      state.settings.pressureViewPromptSeen = Boolean(state.settings.pressureViewPromptSeen);
       state.settings.sideOpen = localSideOpen;
       state.settings.activeSideTab = localActiveSideTab;
       state.pendingWager = snapshot.pendingWager || null;
@@ -3895,6 +3999,10 @@
       state.reversi = snapshot.reversi || state.reversi;
       normalizeTrailState();
       state.chess = normalizeChessState(snapshot.chess || state.chess);
+      state.lossPressure = {
+        ...createLossPressureState(),
+        ...(snapshot.lossPressure || {})
+      };
       state.chat = Array.isArray(snapshot.chat) ? snapshot.chat.slice(-100) : state.chat;
       const newestMessage = (state.chat || [])[Math.max(0, (state.chat || []).length - 1)];
       if (newestMessage
@@ -4553,6 +4661,7 @@
       state.winningCells = [];
       state.normalReplayPrompt = null;
       state.settings.focusTax = { active: false, uses: 0 };
+      state.lossPressure = createLossPressureState();
       return amount;
     }
 
@@ -4621,6 +4730,7 @@
         return result;
       }
       if (winner === DOM) {
+        triggerSubRoundLossPressure(3);
         if (state.mode !== "reclaim" && isThroneSession()) {
           const before = state.domVault;
           state.settings.pendingThroneDemand = {
@@ -5741,6 +5851,13 @@
       }
       addLog(`<strong>${labelFor(player)} places a disc.</strong> ${flips.length} ${flips.length === 1 ? "disc flips" : "discs flip"}.`);
       if (player === DOM) {
+        triggerSubLossPressure({
+          weight: Math.max(1, Math.min(3, Math.ceil(flips.length / 3))),
+          message: true,
+          messageThreshold: 5,
+          strengthBoost: flips.length >= 5 ? 0.1 : 0,
+          source: "reversi-flip"
+        });
         applyReversiDomFlipTiers(row, col, flips);
       }
       advanceReversiTurn();
@@ -6133,6 +6250,7 @@
 
     function closeTributeFourPowerModal() {
       els.tributeFourPowerModal.classList.add("hidden");
+      resetChessClockTick();
     }
 
     function renderTributeFourPowerModal() {
@@ -6286,8 +6404,10 @@
 
     function openChessPowerModal() {
       if (!canOpenChessPowerModal()) return;
+      syncChessClock();
       renderChessPowerModal();
       els.tributeFourPowerModal.classList.remove("hidden");
+      resetChessClockTick();
     }
 
     function renderChessPowerModal() {
@@ -7904,6 +8024,39 @@
       els.blackjackSettingsConfirmBtn.disabled = !canChoose;
     }
 
+    function renderChessSettingsModal() {
+      const show = state.screen === "game"
+        && state.currentGame === "tributeChess"
+        && state.chess
+        && state.chess.setupPending;
+      if (!els.chessSettingsModal) return;
+      els.chessSettingsModal.classList.toggle("hidden", !show);
+      if (!show) return;
+      const role = localOnlineRole();
+      const canChoose = !state.online.room || role === DOM;
+      const mode = state.chess.timerMode || "none";
+      const target = state.chess.timerTarget === "sub" ? "sub" : "both";
+      if (els.chessSettingsText) {
+        els.chessSettingsText.textContent = canChoose
+          ? "Choose whether this chess game uses a timer."
+          : `${state.names.dom} is choosing the Chess settings.`;
+      }
+      els.chessSettingsModal.querySelectorAll("[data-chess-timer]").forEach((button) => {
+        button.classList.toggle("primary", (button.dataset.chessTimer || "none") === mode);
+        button.disabled = !canChoose;
+      });
+      els.chessSettingsModal.querySelectorAll("[data-chess-timer-target]").forEach((button) => {
+        button.classList.toggle("primary", (button.dataset.chessTimerTarget || "both") === target);
+        button.disabled = !canChoose || mode === "none";
+      });
+      if (els.chessCustomTimerRow) els.chessCustomTimerRow.classList.toggle("hidden", mode !== "custom");
+      if (els.chessCustomTimerInput) {
+        els.chessCustomTimerInput.value = chessTimerMinutes("custom", state.chess.customTimerMinutes);
+        els.chessCustomTimerInput.disabled = !canChoose;
+      }
+      if (els.chessSettingsConfirmBtn) els.chessSettingsConfirmBtn.disabled = !canChoose;
+    }
+
     function renderCheckersQueenModal() {
       const setup = state.screen === "game" && state.currentGame === "tributeCheckers" && state.checkers
         ? state.checkers.queenSetup
@@ -8391,7 +8544,8 @@
 
     function applyCheckersCaptureRewards(piece, capturedPiece, captureRow, captureCol) {
       if (!piece || piece.role !== DOM || !capturedPiece || capturedPiece.role !== SUB) return;
-      showCheckersCaptureBanner();
+      triggerSubLossPressure({ weight: 1, banner: true, message: true, source: "checkers" });
+      if (state.checkers) state.checkers.captureBanner = state.lossPressure && state.lossPressure.captureBanner;
       state.checkers.claims = Number(state.checkers.claims || 0) + 1;
       addLog(`<strong>Claim taken.</strong> ${state.names.dom} gains 1 Claim from the captured piece.`);
       if (checkersCoordMatches(state.checkers.marked, captureRow, captureCol)) {
@@ -9308,6 +9462,15 @@
       const scoredWinner = boardWinner === "draw" && state.mode === "reclaim" ? DOM : boardWinner;
       if (scoredWinner === SUB || scoredWinner === DOM) {
         state.ticTacToe.scores[scoredWinner] += 1;
+        if (scoredWinner === DOM) {
+          triggerSubLossPressure({
+            weight: 1,
+            message: true,
+            messageThreshold: 3,
+            strengthBoost: 0.05,
+            source: "tic-tac-toe-board"
+          });
+        }
       } else {
         state.ticTacToe.scores.draws += 1;
       }
@@ -9406,26 +9569,140 @@
       const bet = prepareRound("normal");
       if (bet === null) return;
       const starter = chooseStartingPlayer();
-      preserveTiltLevel(() => resetChessMatch(starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB }));
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${labelFor(starter)} plays white and starts.`, false);
+      const colors = starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB };
+      preserveTiltLevel(() => startChessSetup(colors, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} plays white and starts.`));
+      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.dom} chooses the Chess settings.`, false);
     }
 
     function startChessReclaimMatch() {
       const pot = prepareRound("reclaim");
       if (pot === null) return;
-      resetChessMatch({ w: DOM, b: SUB });
-      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} plays white.`, false);
+      startChessSetup({ w: DOM, b: SUB }, `<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} plays white.`);
+      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} chooses the Chess settings.`, false);
     }
 
-    function resetChessMatch(colors) {
+    function startChessSetup(colors, intro) {
+      state.chess = createChessState();
+      state.chess.setupPending = true;
+      state.chess.pendingColors = colors;
+      state.chess.pendingIntro = intro;
+      state.chess.timerMode = "none";
+      state.chess.timerTarget = "both";
+      state.chess.customTimerMinutes = 10;
+      state.turn = DOM;
+      state.active = true;
+      render();
+    }
+
+    function resetChessMatch(colors, timerMode = "none", customMinutes = 10, timerTarget = "both") {
       const game = typeof window.Chess !== "function" ? null : new window.Chess();
       state.chess = createChessState();
       state.chess.fen = game ? game.fen() : "start";
       state.chess.colors = colors;
       state.chess.queenStance = chessQueenStancesActive() ? "none" : "";
+      setupChessTimers(timerMode, customMinutes, timerTarget);
       state.turn = colors.w;
       state.active = true;
       render();
+    }
+
+    function chessTimerMinutes(mode = state.chess && state.chess.timerMode, customMinutes = state.chess && state.chess.customTimerMinutes) {
+      if (mode === "custom") return Math.max(1, Math.min(60, Math.round(Number(customMinutes || 10))));
+      if (mode === "5" || mode === "10" || mode === "15") return Number(mode);
+      return 0;
+    }
+
+    function setupChessTimers(mode = "none", customMinutes = 10, timerTarget = "both") {
+      const minutes = chessTimerMinutes(mode, customMinutes);
+      state.chess.timerMode = minutes > 0 ? (mode === "custom" ? "custom" : String(minutes)) : "none";
+      state.chess.timerTarget = timerTarget === "sub" ? "sub" : "both";
+      state.chess.customTimerMinutes = Math.max(1, Math.min(60, Math.round(Number(customMinutes || 10))));
+      const ms = minutes * 60 * 1000;
+      state.chess.timers = { sub: ms, dom: state.chess.timerTarget === "sub" ? 0 : ms };
+      state.chess.timerLastTick = ms > 0 ? Date.now() : 0;
+    }
+
+    function chessTimerActive() {
+      return Boolean(state.currentGame === "tributeChess" && state.active && state.chess && !state.chess.setupPending && chessTimerMinutes() > 0);
+    }
+
+    function chessClockPaused() {
+      return Boolean(
+        !chessTimerActive()
+        || state.chess.freezeMode
+        || state.chess.commandMode
+        || state.chess.repositionMode
+        || (els.tributeFourPowerModal && !els.tributeFourPowerModal.classList.contains("hidden"))
+        || (els.chessSettingsModal && !els.chessSettingsModal.classList.contains("hidden"))
+      );
+    }
+
+    function syncChessClock() {
+      if (!chessTimerActive()) return;
+      if (chessClockPaused()) {
+        state.chess.timerLastTick = Date.now();
+        return;
+      }
+      const now = Date.now();
+      const last = Number(state.chess.timerLastTick || now);
+      const elapsed = Math.max(0, now - last);
+      state.chess.timerLastTick = now;
+      if (!elapsed || (state.turn !== SUB && state.turn !== DOM)) return;
+      if (state.chess.timerTarget === "sub" && state.turn !== SUB) return;
+      state.chess.timers[state.turn] = Math.max(0, Number(state.chess.timers[state.turn] || 0) - elapsed);
+      if (state.chess.timers[state.turn] <= 0) {
+        endChessMatch(otherRole(state.turn), `${labelFor(state.turn)} runs out of time.`);
+      }
+    }
+
+    function resetChessClockTick() {
+      if (state.chess && chessTimerMinutes() > 0) state.chess.timerLastTick = Date.now();
+    }
+
+    function formatChessClock(ms) {
+      const safe = Math.max(0, Math.ceil(Number(ms || 0) / 1000));
+      const minutes = Math.floor(safe / 60);
+      const seconds = safe % 60;
+      return `${minutes}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    function setChessTimerMode(mode) {
+      if (state.currentGame !== "tributeChess" || !state.chess || !state.chess.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      state.chess.timerMode = ["none", "5", "10", "15", "custom"].includes(String(mode)) ? String(mode) : "none";
+      if (state.chess.timerMode === "none") state.chess.timerTarget = "both";
+      if (els.chessCustomTimerInput) {
+        state.chess.customTimerMinutes = chessTimerMinutes("custom", els.chessCustomTimerInput.value);
+      }
+      render();
+      publishState();
+    }
+
+    function setChessTimerTarget(target) {
+      if (state.currentGame !== "tributeChess" || !state.chess || !state.chess.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      if ((state.chess.timerMode || "none") === "none") return;
+      state.chess.timerTarget = target === "sub" ? "sub" : "both";
+      render();
+      publishState();
+    }
+
+    function confirmChessSettings() {
+      if (state.currentGame !== "tributeChess" || !state.chess || !state.chess.setupPending) return;
+      if (state.online.room && localOnlineRole() !== DOM) return;
+      const mode = state.chess.timerMode || "none";
+      const target = state.chess.timerTarget === "sub" ? "sub" : "both";
+      const customMinutes = chessTimerMinutes("custom", els.chessCustomTimerInput && els.chessCustomTimerInput.value);
+      const colors = state.chess.pendingColors || { w: SUB, b: DOM };
+      const intro = state.chess.pendingIntro || `${labelFor(colors.w)} plays white and starts.`;
+      resetChessMatch(colors, mode, customMinutes, target);
+      addLog(intro);
+      const minutes = chessTimerMinutes(mode, customMinutes);
+      addLog(minutes > 0
+        ? `<strong>Chess clock set.</strong> ${target === "sub" ? `${state.names.sub} has` : "Each player has"} ${minutes} minute${minutes === 1 ? "" : "s"}.`
+        : `<strong>No chess clock.</strong> This game has no timer.`);
+      render();
+      publishState();
     }
 
     function roleForChessColor(color) {
@@ -9470,50 +9747,205 @@
     ];
     const CHESS_CAPTURE_BANNER_MS = 5800;
 
-    function randomCaptureBannerImage() {
-      return CHESS_CAPTURE_BANNER_IMAGES[Math.floor(Math.random() * CHESS_CAPTURE_BANNER_IMAGES.length)] || "";
+    function randomItemAvoidingRecent(pool, recent, maxRecent = 4) {
+      if (!Array.isArray(pool) || !pool.length) return "";
+      const avoidCount = Math.min(Math.max(0, maxRecent), Math.max(0, pool.length - 1));
+      const recentSet = new Set((Array.isArray(recent) ? recent : []).slice(-avoidCount));
+      const choices = pool.filter((item) => item && !recentSet.has(item));
+      const activePool = choices.length ? choices : pool;
+      return activePool[Math.floor(Math.random() * activePool.length)] || "";
     }
 
-    function showChessCaptureBanner() {
-      const url = randomCaptureBannerImage();
+    function rememberRecentItem(recent, item, maxRecent = 4) {
+      if (!item) return Array.isArray(recent) ? recent.slice(-maxRecent) : [];
+      return [...(Array.isArray(recent) ? recent : []), item].filter(Boolean).slice(-maxRecent);
+    }
+
+    function randomCaptureBannerImage(captureState) {
+      return randomItemAvoidingRecent(CHESS_CAPTURE_BANNER_IMAGES, captureState && captureState.recentCaptureBanners, 5);
+    }
+
+    function ensureLossPressure() {
+      if (!state.lossPressure) state.lossPressure = createLossPressureState();
+      return state.lossPressure;
+    }
+
+    function resetLossPressure() {
+      state.lossPressure = createLossPressureState();
+    }
+
+    function showLossPressureCaptureBanner() {
+      const pressure = ensureLossPressure();
+      const url = randomCaptureBannerImage(pressure);
       if (!url) return;
-      state.chess.captureBanner = {
+      pressure.recentCaptureBanners = rememberRecentItem(pressure.recentCaptureBanners, url, 5);
+      pressure.captureBanner = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url,
         until: Date.now() + CHESS_CAPTURE_BANNER_MS
+      };
+    }
+
+    function showChessCaptureBanner() {
+      showLossPressureCaptureBanner();
+      if (!state.chess) return;
+      state.chess.captureBanner = state.lossPressure && state.lossPressure.captureBanner;
+    }
+
+    function showLossPressurePulse(losses, strengthBoost = 0) {
+      const pressure = ensureLossPressure();
+      pressure.capturePulse = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        losses,
+        strength: Math.min(1, 0.24 + losses * 0.075 + strengthBoost),
+        until: Date.now() + 1450
       };
     }
 
     function showChessPieceLossPulse() {
       if (!state.chess) return;
       state.chess.subPiecesLostToDom = Number(state.chess.subPiecesLostToDom || 0) + 1;
-      const losses = state.chess.subPiecesLostToDom;
-      state.chess.capturePulse = {
+      ensureLossPressure().count = Math.max(Number(state.lossPressure.count || 0), Number(state.chess.subPiecesLostToDom || 0));
+      triggerSubLossPressure({
+        weight: 0,
+        message: true,
+        source: "chess"
+      });
+    }
+
+    function lossPressureMessageText(losses) {
+      const soft = [
+        "Another piece for her.",
+        "She noticed that one.",
+        "Give in.",
+        "For her.",
+        "One more.",
+        "Good loss.",
+        "Feed her.",
+        "Tribute her."
+      ];
+      const tempting = [
+        "Give her another. You know you want to.",
+        "Stop guarding them so carefully.",
+        "Sacrifice looks better every time.",
+        "Give up.",
+        "Surrender.",
+        "Send to her.",
+        "$end to her.",
+        "Let her win.",
+        "Drain for her.",
+        "Make her richer."
+      ];
+      const deep = [
+        "Feed her board. Empty yours.",
+        "Let her take until there is nothing left.",
+        "SURRENDER.",
+        "GIVE UP.",
+        "PAY HER.",
+        "EMPTY OUT.",
+        "LOSE FOR HER.",
+        "TRIBUTE BELONGS TO HER.",
+        "YOUR PIECES ARE HERS.",
+        "LET HER DRAIN YOU."
+      ];
+      const pool = losses >= 12 ? deep : (losses >= 9 ? tempting : soft);
+      const pressure = ensureLossPressure();
+      const text = randomItemAvoidingRecent(pool, pressure.recentCaptureMessages, Math.min(4, pool.length - 1));
+      pressure.recentCaptureMessages = rememberRecentItem(pressure.recentCaptureMessages, text, Math.min(4, pool.length - 1));
+      return text || soft[0];
+    }
+
+    function chessPieceLossMessageText(losses) {
+      return lossPressureMessageText(losses);
+    }
+
+    function showLossPressureMessage(losses, threshold = 5) {
+      if (losses < threshold) return;
+      const pressure = ensureLossPressure();
+      const tier = losses >= 12 ? 3 : (losses >= 9 ? 2 : 1);
+      const duration = 2600 + tier * 700 + Math.min(1200, Math.max(0, losses - 5) * 120);
+      const startX = 18 + Math.random() * 22;
+      const startY = 43 + Math.random() * 22;
+      const driftX = 20 + Math.random() * 24;
+      const driftY = -8 + Math.random() * 16;
+      pressure.captureMessage = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        text: lossPressureMessageText(losses),
+        tier,
         losses,
-        strength: Math.min(1, 0.24 + losses * 0.075),
-        until: Date.now() + 1450
+        startX,
+        startY,
+        driftX,
+        driftY,
+        duration,
+        until: Date.now() + duration
       };
     }
 
+    function showChessPieceLossMessage(losses) {
+      showLossPressureMessage(losses);
+      if (!state.chess) return;
+      state.chess.captureMessage = state.lossPressure && state.lossPressure.captureMessage;
+    }
+
+    function triggerSubLossPressure(options = {}) {
+      const pressure = ensureLossPressure();
+      const weight = Math.max(0, Math.round(Number(options.weight || 1)));
+      if (weight > 0) pressure.count = Number(pressure.count || 0) + weight;
+      const losses = Math.max(1, Number(pressure.count || 0));
+      if (options.banner) showLossPressureCaptureBanner();
+      showLossPressurePulse(losses, Number(options.strengthBoost || 0));
+      if (options.message !== false) showLossPressureMessage(losses, Number(options.messageThreshold || 5));
+    }
+
+    function pressureEligibleGame(game = state.currentGame) {
+      return [
+        "tributeFour",
+        "tributeFleet",
+        "tributeChess",
+        "tributeCheckers",
+        "tributeReversi",
+        "tributeTicTacToe",
+        "higherLower"
+      ].includes(game);
+    }
+
+    function triggerSubRoundLossPressure(weight = 3) {
+      if (!pressureEligibleGame()) return;
+      triggerSubLossPressure({
+        weight,
+        message: true,
+        messageThreshold: 1,
+        strengthBoost: 0.12,
+        source: "round-loss"
+      });
+    }
+
     function showCheckersCaptureBanner() {
-      const url = randomCaptureBannerImage();
-      if (!url || !state.checkers) return;
-      state.checkers.captureBanner = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        url,
-        until: Date.now() + CHESS_CAPTURE_BANNER_MS
-      };
+      showLossPressureCaptureBanner();
+      if (!state.checkers) return;
+      state.checkers.captureBanner = state.lossPressure && state.lossPressure.captureBanner;
+    }
+
+    function lossPressureEffectVisible(type) {
+      const role = localOnlineRole();
+      if (role !== DOM) return true;
+      if (type === "banner") return Boolean(state.settings.domSeePressureBanners);
+      if (type === "text") return Boolean(state.settings.domSeePressureText);
+      if (type === "pulse") return Boolean(state.settings.domSeePressurePulse);
+      return true;
     }
 
     function renderChessCaptureBanner() {
       if (!els.chessCaptureBanner) return;
-      const banner = state.currentGame === "tributeCheckers"
-        ? state.checkers && state.checkers.captureBanner
-        : state.chess && state.chess.captureBanner;
+      const banner = state.lossPressure && state.lossPressure.captureBanner
+        ? state.lossPressure.captureBanner
+        : (state.currentGame === "tributeCheckers"
+          ? state.checkers && state.checkers.captureBanner
+          : state.chess && state.chess.captureBanner);
       const show = Boolean(
-        (state.currentGame === "tributeChess" || state.currentGame === "tributeCheckers")
-        && state.screen === "game"
+        state.screen === "game"
+        && lossPressureEffectVisible("banner")
         && banner
         && banner.url
         && Number(banner.until || 0) > Date.now()
@@ -9530,9 +9962,12 @@
 
     function renderPieceLossPulse() {
       if (!els.pieceLossPulse) return;
-      const pulse = state.currentGame === "tributeChess" && state.chess ? state.chess.capturePulse : null;
+      const pulse = state.lossPressure && state.lossPressure.capturePulse
+        ? state.lossPressure.capturePulse
+        : (state.currentGame === "tributeChess" && state.chess ? state.chess.capturePulse : null);
       const show = Boolean(
         state.screen === "game"
+        && lossPressureEffectVisible("pulse")
         && pulse
         && Number(pulse.until || 0) > Date.now()
       );
@@ -9561,9 +9996,9 @@
         || window.matchMedia("(pointer: coarse)").matches
       )) || (window.innerWidth || 0) < 760;
       const losses = state.currentGame === "tributeChess" && state.chess
-        ? Number(state.chess.subPiecesLostToDom || 0)
-        : 0;
-      const show = Boolean(!mobileLike && state.screen === "game" && state.active && state.currentGame === "tributeChess" && losses >= 8);
+        ? Math.max(Number(state.chess.subPiecesLostToDom || 0), Number(state.lossPressure && state.lossPressure.count || 0))
+        : Number(state.lossPressure && state.lossPressure.count || 0);
+      const show = Boolean(!mobileLike && lossPressureEffectVisible("pulse") && state.screen === "game" && state.active && losses >= 8);
       els.pieceLossSpiral.classList.toggle("hidden", !show);
       if (!show) {
         els.pieceLossSpiral.style.removeProperty("--piece-loss-spiral-opacity");
@@ -9571,6 +10006,35 @@
       }
       const opacity = Math.min(0.14, 0.045 + (losses - 8) * 0.012);
       els.pieceLossSpiral.style.setProperty("--piece-loss-spiral-opacity", opacity.toFixed(3));
+    }
+
+    function renderPieceLossMessage() {
+      if (!els.pieceLossMessage) return;
+      const message = state.lossPressure && state.lossPressure.captureMessage
+        ? state.lossPressure.captureMessage
+        : (state.currentGame === "tributeChess" && state.chess ? state.chess.captureMessage : null);
+      const show = Boolean(
+        lossPressureEffectVisible("text")
+        && state.screen === "game"
+        && message
+        && message.text
+        && Number(message.until || 0) > Date.now()
+      );
+      els.pieceLossMessage.classList.toggle("hidden", !show);
+      if (!show) {
+        els.pieceLossMessage.textContent = "";
+        return;
+      }
+      const duration = Math.max(1800, Number(message.duration || 3200));
+      els.pieceLossMessage.textContent = message.text;
+      els.pieceLossMessage.className = `piece-loss-message tier-${message.tier || 1}`;
+      els.pieceLossMessage.style.setProperty("--piece-loss-message-x", `${Number(message.startX || 30).toFixed(1)}vw`);
+      els.pieceLossMessage.style.setProperty("--piece-loss-message-y", `${Number(message.startY || 54).toFixed(1)}vh`);
+      els.pieceLossMessage.style.setProperty("--piece-loss-message-drift-x", `${Number(message.driftX || 24).toFixed(1)}vw`);
+      els.pieceLossMessage.style.setProperty("--piece-loss-message-drift-y", `${Number(message.driftY || 0).toFixed(1)}vh`);
+      els.pieceLossMessage.style.setProperty("--piece-loss-message-duration", `${duration}ms`);
+      window.clearTimeout(renderPieceLossMessage.timer);
+      renderPieceLossMessage.timer = window.setTimeout(renderPieceLossMessage, Math.max(80, Number(message.until || 0) - Date.now() + 40));
     }
 
     function queenAffectedTypes() {
@@ -9808,6 +10272,8 @@
     function chessSquareClick(square) {
       const game = chessEngine();
       if (!game || !state.active) return;
+      syncChessClock();
+      if (!state.active) return;
       const movingRole = roleForChessColor(game.turn());
       const localRole = localOnlineRole();
       const commandMove = state.chess.commandMode && queenPowerControlsAllowed(localRole) && movingRole === SUB;
@@ -10200,6 +10666,7 @@
       }
       state.chess.queenTriggerUsed = false;
       activateQueuedChessPowers();
+      resetChessClockTick();
       render();
       publishState();
     }
@@ -10220,6 +10687,7 @@
         state.chess.freezeMode = false;
         state.chess.commandMode = false;
         addLog(`<strong>Skip.</strong> ${state.names.sub}'s turn is skipped. ${state.names.dom} moves again.`);
+        resetChessClockTick();
         return;
       }
       if (state.chess.commandQueued) {
@@ -11191,6 +11659,7 @@
       state.winningCells = [];
       state.normalReplayPrompt = null;
       state.settings.focusTax = { active: false, uses: 0 };
+      state.lossPressure = createLossPressureState();
       state.higherLower = createHigherLowerState();
       state.higherLower.queuedTargetStreak = target;
       state.higherLower.targetStreak = target;
@@ -11284,6 +11753,13 @@
       const pulseText = pulseAdded ? ` Tribute Pulse added ${money(pulseAdded)}.` : "";
       state.higherLower.result = `${shouldHideDrawnCard ? "The hidden card" : rankName(next.slice(0, -1))} was ${suitCall ? `a ${wrongActual}` : wrongActual}. Wrong streak ${state.higherLower.wrongStreak}. ${money(penalty)} added to the owed counter${leveledUp ? `, and wrong calls now add ${money(state.higherLower.wrongPenalty)}.` : "."}${pulseText}`;
       addLog(`<strong>Wrong.</strong> ${state.names.sub} called ${suitCall ? suitName(direction) : direction}, but the card was ${suitCall ? wrongActual : actual}. Pending owed rises to ${money(owed)}${leveledUp ? `; wrong calls now add ${money(state.higherLower.wrongPenalty)}.` : "."}${pulseText}`);
+      triggerSubLossPressure({
+        weight: 1,
+        message: true,
+        messageThreshold: 5,
+        strengthBoost: leveledUp ? 0.08 : 0,
+        source: "higher-lower-wrong"
+      });
       render();
       publishState();
     }
@@ -11324,6 +11800,7 @@
       state.higherLower.pulseActive = false;
       state.higherLower.powerMenuOpen = false;
       if (winner === DOM) {
+        triggerSubRoundLossPressure(2);
         const amount = higherLowerEndAmount(amountOverride);
         const usedOffer = amountOverride !== null && amountOverride !== undefined;
         if (isThroneSession()) {
@@ -12211,6 +12688,13 @@
       return !state.fleet.noisyWaters.some(([r, c]) => r === row && c === col);
     }
 
+    function fleetShipSunkByCell(owner, row, col, attacker = otherRole(owner)) {
+      const ships = state.fleet && state.fleet.ships && Array.isArray(state.fleet.ships[owner]) ? state.fleet.ships[owner] : [];
+      const ship = ships.find((candidate) => (candidate.cells || []).some((cell) => cell.row === row && cell.col === col));
+      if (!ship) return false;
+      return (ship.cells || []).every((cell) => state.fleet.shots[attacker][cell.row][cell.col] === "hit");
+    }
+
     function fireFleetShot(row, col) {
       if (!state.active) return;
       if (state.fleet.shotResolving) return;
@@ -12236,6 +12720,16 @@
       addLog(hit
         ? `<strong>${labelFor(attacker)} scores a hit.</strong>`
         : `<strong>${labelFor(attacker)} misses.</strong>`);
+      if (attacker === DOM && hit) {
+        const sunk = fleetShipSunkByCell(target, row, col, attacker);
+        triggerSubLossPressure({
+          weight: sunk ? 3 : 1,
+          banner: true,
+          message: true,
+          strengthBoost: sunk ? 0.16 : 0,
+          source: sunk ? "fleet-sunk" : "fleet-hit"
+        });
+      }
       render();
       publishState();
       window.setTimeout(() => finishFleetShotResolution(resolvingId), 1050);
@@ -13484,6 +13978,10 @@
     function renderChessBoard() {
       els.board.className = "chess-board";
       els.board.innerHTML = "";
+      if (state.chess && state.chess.setupPending) {
+        els.board.innerHTML = `<div class="entry">Chess settings are being chosen.</div>`;
+        return;
+      }
       const game = chessEngine();
       if (!game) {
         els.board.innerHTML = `<div class="entry">Chess engine unavailable. Check the chess.js script connection.</div>`;
@@ -15499,6 +15997,7 @@
     function renderChessRules() {
       const normalRules = [
         `<strong>Normal bet:</strong> ${state.names.sub} chooses any cash bet. A random player gets white and starts.`,
+        `<strong>Timer:</strong> before the game starts, ${state.names.dom} can choose no timer, 5 minutes, 10 minutes, 15 minutes, or a custom chess clock. The timer can apply to both players or only ${state.names.sub}. If a timed player's clock hits zero, the other player wins.`,
         `<strong>Normal result:</strong> standard chess decides the game. If ${state.names.dom} wins, the bet goes to her bank. Draws return the pot.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank. ${state.names.dom} plays white and wins drawn positions.`,
         `<strong>Queen power setting:</strong> Off disables queen powers. Always enables queen powers immediately. Tiered unlocks them from Tilt 1 onward.`,
@@ -15681,6 +16180,7 @@
       if (els.turnOwedPill) els.turnOwedPill.classList.toggle("hidden", !(isHigherLower || crazyEightsRoundActive || doubleSolitaireRaceActive));
       if (els.turnOwedLabel) els.turnOwedLabel.textContent = (crazyEightsRoundActive || doubleSolitaireRaceActive) ? "Pot" : "Owed";
       if (els.turnOwed) els.turnOwed.textContent = money(isHigherLower ? higherLowerDomPossibleWin() : ((crazyEightsRoundActive || doubleSolitaireRaceActive) ? state.pot : 0));
+      renderChessClocks();
       if (els.backToMenuBtn) {
         const role = localOnlineRole();
         const blocked = Boolean(state.online.room && role !== DOM);
@@ -15796,6 +16296,8 @@
         } else {
           els.turnText.innerHTML = `<strong>${startingPlayerMode() === "random" ? "Random player" : labelFor(startingPlayerMode())}</strong> starts as dark after the bet is approved.`;
         }
+      } else if (state.currentGame === "tributeChess" && state.chess && state.chess.setupPending) {
+        els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Chess timer settings.`;
       } else if (!state.active) {
         if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.queenSetup) {
           const stage = state.checkers.queenSetup.stage || "sub";
@@ -15938,6 +16440,31 @@
       }
     }
 
+    function renderChessClocks() {
+      const show = chessTimerActive();
+      window.clearTimeout(renderChessClocks.timer);
+      [els.chessSubClock, els.chessDomClock].forEach((clock) => {
+        if (clock) clock.classList.toggle("hidden", !show);
+      });
+      if (!show) return;
+      if (els.chessSubClock) {
+        els.chessSubClock.classList.toggle("active", state.turn === SUB);
+        const value = els.chessSubClock.querySelector("strong");
+        if (value) value.textContent = formatChessClock(state.chess.timers && state.chess.timers.sub);
+      }
+      if (els.chessDomClock) {
+        const domUnlimited = state.chess && state.chess.timerTarget === "sub";
+        els.chessDomClock.classList.toggle("active", state.turn === DOM && !domUnlimited);
+        els.chessDomClock.classList.toggle("unlimited", domUnlimited);
+        const value = els.chessDomClock.querySelector("strong");
+        if (value) value.textContent = domUnlimited ? "--:--" : formatChessClock(state.chess.timers && state.chess.timers.dom);
+      }
+      renderChessClocks.timer = window.setTimeout(() => {
+        syncChessClock();
+        renderText();
+      }, 250);
+    }
+
     function renderGameChrome() {
       if (state.currentGame === "tributeChess") {
         els.gameTitle.textContent = "Tribute Chess";
@@ -16006,6 +16533,7 @@
     }
 
     function render() {
+      syncChessClock();
       renderTrailCardReveal();
       renderBoard();
       renderControls();
@@ -16020,15 +16548,18 @@
       renderTrailCardReveal();
       renderTrailShopModal();
       renderBlackjackSettingsModal();
+      renderChessSettingsModal();
       renderHigherLowerMercyModal();
       renderCheckersQueenModal();
       renderCheckersQueenSplash();
       renderPieceLossSpiral();
       renderPieceLossPulse();
+      renderPieceLossMessage();
       renderChessCaptureBanner();
       renderNormalReplayModal();
       renderDomTriggerOverlay();
       renderBrattyWelcomeModal();
+      renderPressureViewPromptModal();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
@@ -16145,6 +16676,25 @@
       button.addEventListener("click", () => setBlackjackRounds(button.dataset.blackjackRounds));
     });
     els.blackjackSettingsConfirmBtn.addEventListener("click", confirmBlackjackSettings);
+    if (els.chessSettingsModal) {
+      els.chessSettingsModal.querySelectorAll("[data-chess-timer]").forEach((button) => {
+        button.addEventListener("click", () => setChessTimerMode(button.dataset.chessTimer));
+      });
+      els.chessSettingsModal.querySelectorAll("[data-chess-timer-target]").forEach((button) => {
+        button.addEventListener("click", () => setChessTimerTarget(button.dataset.chessTimerTarget));
+      });
+    }
+    if (els.chessCustomTimerInput) {
+      els.chessCustomTimerInput.addEventListener("input", () => {
+        if (state.chess) state.chess.customTimerMinutes = chessTimerMinutes("custom", els.chessCustomTimerInput.value);
+      });
+      els.chessCustomTimerInput.addEventListener("change", () => {
+        if (state.chess) state.chess.customTimerMinutes = chessTimerMinutes("custom", els.chessCustomTimerInput.value);
+        render();
+        publishState();
+      });
+    }
+    if (els.chessSettingsConfirmBtn) els.chessSettingsConfirmBtn.addEventListener("click", confirmChessSettings);
     els.checkersQueenYesBtn.addEventListener("click", () => {
       const stage = state.checkers && state.checkers.queenSetup && state.checkers.queenSetup.stage;
       if (stage === "domThrone") domStartsThroneCheckersWithQueen();
@@ -16202,6 +16752,9 @@
       if (event.key === "Enter") sendChatMessage();
     });
     if (els.domAdvantageMode) els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
+    if (els.domSeePressureBanners) els.domSeePressureBanners.addEventListener("change", () => updateSettings({ domSeePressureBanners: els.domSeePressureBanners.checked }));
+    if (els.domSeePressureText) els.domSeePressureText.addEventListener("change", () => updateSettings({ domSeePressureText: els.domSeePressureText.checked }));
+    if (els.domSeePressurePulse) els.domSeePressurePulse.addEventListener("change", () => updateSettings({ domSeePressurePulse: els.domSeePressurePulse.checked }));
     if (els.domSubBetControl) els.domSubBetControl.addEventListener("change", () => updateSettings({ subBetControl: els.domSubBetControl.value }));
     if (els.subDefaultBetInput) {
       els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
@@ -16385,6 +16938,7 @@
     els.confirmResetBankBtn.addEventListener("click", confirmResetBank);
     if (els.declineBrattyWelcomeBtn) els.declineBrattyWelcomeBtn.addEventListener("click", declineBrattyWelcome);
     if (els.acceptBrattyWelcomeBtn) els.acceptBrattyWelcomeBtn.addEventListener("click", acceptBrattyWelcome);
+    if (els.savePressurePromptBtn) els.savePressurePromptBtn.addEventListener("click", savePressureViewPrompt);
     if (els.higherLowerMercyCollectBtn) els.higherLowerMercyCollectBtn.addEventListener("click", () => decideHigherLowerMercy("collect"));
     if (els.higherLowerMercyDenyBtn) els.higherLowerMercyDenyBtn.addEventListener("click", () => decideHigherLowerMercy("deny"));
     if (els.higherLowerMercyPunishBtn) els.higherLowerMercyPunishBtn.addEventListener("click", () => decideHigherLowerMercy("punish"));

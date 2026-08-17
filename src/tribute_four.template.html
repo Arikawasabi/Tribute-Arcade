@@ -14,6 +14,7 @@
   <div class="solitaire-card-preview hidden" id="solitaireCardPreview" aria-hidden="true"></div>
   <div class="piece-loss-spiral hidden" id="pieceLossSpiral" aria-hidden="true"></div>
   <div class="piece-loss-pulse hidden" id="pieceLossPulse" aria-hidden="true"></div>
+  <div class="piece-loss-message hidden" id="pieceLossMessage" aria-hidden="true"></div>
   <div class="chess-capture-banner hidden" id="chessCaptureBanner" aria-hidden="true"></div>
   <div class="dom-trigger-overlay hidden" id="domTriggerOverlay">
     <div class="dom-trigger-card" id="domTriggerCard">
@@ -487,6 +488,8 @@
         <p class="turn-copy" id="turnText"><strong>Sub</strong> must make a normal bet to begin.</p>
         <div class="turn-bank-pill hidden" id="turnDomBankPill"><span>Dom Bank</span><strong id="turnDomBank">$0</strong></div>
         <div class="turn-bank-pill turn-owed-pill hidden" id="turnOwedPill"><span id="turnOwedLabel">Owed</span><strong id="turnOwed">$0</strong></div>
+        <div class="chess-clock-pill hidden" id="chessSubClock"><span>Sub</span><strong>--:--</strong></div>
+        <div class="chess-clock-pill hidden" id="chessDomClock"><span>Dom</span><strong>--:--</strong></div>
         <select id="queenStanceSelect" class="hidden" title="Choose the dom queen's stance">
           <option value="none">None</option>
           <option value="gaze">Gaze</option>
@@ -600,6 +603,34 @@
     </section>
   </div>
 
+  <div class="modal-backdrop hidden" id="pressureViewPromptModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Sub Loss Effects</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line">When the sub loses pieces, guesses, ships, boards, or rounds, the arcade can ramp pressure effects. These always play for the sub. Choose what the dom should see too.</p>
+        <div class="settings-pane compact-settings">
+          <label class="settings-row">
+            Banners
+            <input id="promptPressureBanners" type="checkbox">
+          </label>
+          <label class="settings-row">
+            Text
+            <input id="promptPressureText" type="checkbox">
+          </label>
+          <label class="settings-row">
+            Spiral and pulse
+            <input id="promptPressurePulse" type="checkbox">
+          </label>
+        </div>
+        <div class="setup-actions">
+          <button id="savePressurePromptBtn" class="primary">Save</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <div class="modal-backdrop hidden" id="wagerModal">
     <section class="panel wager-modal">
       <div class="panel-header">
@@ -629,6 +660,35 @@
         </div>
         <div class="setup-actions">
           <button id="blackjackSettingsConfirmBtn" class="primary">Start Blackjack</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="chessSettingsModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Chess Settings</h2>
+      </div>
+      <div class="panel-body">
+        <p class="chooser-line" id="chessSettingsText">Choose whether this chess game uses a timer.</p>
+        <div class="blackjack-round-grid chess-timer-grid">
+          <button data-chess-timer="none" class="primary">No Timer</button>
+          <button data-chess-timer="5">5 Min</button>
+          <button data-chess-timer="10">10 Min</button>
+          <button data-chess-timer="15">15 Min</button>
+          <button data-chess-timer="custom">Custom</button>
+        </div>
+        <div class="blackjack-round-grid chess-timer-target-grid" id="chessTimerTargetGrid">
+          <button data-chess-timer-target="both" class="primary">Both Players</button>
+          <button data-chess-timer-target="sub">Sub Only</button>
+        </div>
+        <label class="field-label hidden" id="chessCustomTimerRow">
+          Custom minutes
+          <input id="chessCustomTimerInput" type="number" min="1" max="60" step="1" value="10">
+        </label>
+        <div class="setup-actions">
+          <button id="chessSettingsConfirmBtn" class="primary">Start Chess</button>
         </div>
       </div>
     </section>
@@ -848,6 +908,18 @@
                 <option value="editable">Sub can change bet</option>
                 <option value="locked">Use default only</option>
               </select>
+            </label>
+            <label class="settings-row">
+              See pressure banners
+              <input id="domSeePressureBanners" type="checkbox">
+            </label>
+            <label class="settings-row">
+              See pressure text
+              <input id="domSeePressureText" type="checkbox">
+            </label>
+            <label class="settings-row">
+              See spiral and pulse
+              <input id="domSeePressurePulse" type="checkbox">
             </label>
             <label class="settings-row" id="queenPowerModeRow">
               Queen powers

@@ -271,13 +271,20 @@
       inset: 0;
       z-index: 33;
       display: grid;
-      place-items: start center;
-      padding: clamp(62px, 10vh, 110px) 0 0;
+      place-items: center;
+      padding: 0;
       pointer-events: none;
     }
 
     .chess-capture-banner.hidden {
       display: none;
+    }
+
+    @media (max-width: 760px) {
+      .chess-capture-banner {
+        place-items: start center;
+        padding-top: clamp(54px, 10vh, 86px);
+      }
     }
 
     .piece-loss-spiral {
@@ -333,6 +340,78 @@
       display: none;
     }
 
+    .piece-loss-message {
+      --piece-loss-message-x: 30vw;
+      --piece-loss-message-y: 54vh;
+      --piece-loss-message-drift-x: 24vw;
+      --piece-loss-message-drift-y: 0vh;
+      --piece-loss-message-duration: 3200ms;
+      position: fixed;
+      left: var(--piece-loss-message-x);
+      top: var(--piece-loss-message-y);
+      z-index: 34;
+      max-width: min(720px, 76vw);
+      pointer-events: none;
+      color: rgba(255, 238, 246, 0.96);
+      font-family: "Arial Black", Impact, sans-serif;
+      font-size: clamp(1.25rem, 3.2vw, 3rem);
+      font-weight: 900;
+      line-height: 1.04;
+      letter-spacing: 0;
+      text-align: center;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 12px rgba(255, 63, 146, 0.74),
+        0 0 28px rgba(110, 54, 255, 0.44),
+        0 8px 24px rgba(0, 0, 0, 0.72);
+      animation: pieceLossMessageDrift var(--piece-loss-message-duration) ease-in-out both;
+    }
+
+    .piece-loss-message.hidden {
+      display: none;
+    }
+
+    .piece-loss-message.tier-2 {
+      font-size: clamp(1.55rem, 4.3vw, 4rem);
+      color: rgba(255, 224, 242, 0.98);
+      text-shadow:
+        0 0 16px rgba(255, 63, 146, 0.9),
+        0 0 36px rgba(137, 74, 255, 0.58),
+        0 10px 28px rgba(0, 0, 0, 0.76);
+    }
+
+    .piece-loss-message.tier-3 {
+      font-size: clamp(1.9rem, 5.3vw, 5rem);
+      color: #fff;
+      text-shadow:
+        0 0 20px rgba(255, 63, 146, 1),
+        0 0 44px rgba(137, 74, 255, 0.78),
+        0 14px 34px rgba(0, 0, 0, 0.82);
+    }
+
+    @keyframes pieceLossMessageDrift {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translate3d(0, 8px, 0) scale(0.94);
+        filter: blur(3px);
+      }
+      18% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(1);
+        filter: blur(0);
+      }
+      76% {
+        opacity: 0.96;
+        transform: translate(-50%, -50%) translate3d(calc(var(--piece-loss-message-drift-x) * 0.74), calc(var(--piece-loss-message-drift-y) * 0.74), 0) scale(1.02);
+        filter: blur(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translate3d(var(--piece-loss-message-drift-x), var(--piece-loss-message-drift-y), 0) scale(1.06);
+        filter: blur(4px);
+      }
+    }
+
     @keyframes pieceLossPulse {
       0% {
         opacity: 0;
@@ -377,11 +456,11 @@
         transform: translateY(-10px) scale(0.98);
       }
       16% {
-        opacity: 0.92;
+        opacity: 1;
         transform: translateY(0) scale(1);
       }
       84% {
-        opacity: 0.86;
+        opacity: 1;
         transform: translateY(0) scale(1);
       }
       100% {
@@ -2299,6 +2378,50 @@
 
     .turn-owed-pill strong {
       color: #ff8caf;
+    }
+
+    .chess-clock-pill {
+      display: inline-grid;
+      min-width: 96px;
+      min-height: 42px;
+      padding: 6px 12px;
+      border: 1px solid rgba(244, 239, 232, 0.14);
+      border-radius: 8px;
+      background: rgba(8, 7, 9, 0.62);
+      color: var(--muted);
+      line-height: 1.05;
+    }
+
+    .chess-clock-pill span {
+      font-size: 0.7rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .chess-clock-pill strong {
+      color: var(--text);
+      font-size: 1.08rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chess-clock-pill.active {
+      border-color: rgba(255, 84, 143, 0.72);
+      background: linear-gradient(135deg, rgba(255, 46, 122, 0.2), rgba(241, 201, 101, 0.12));
+      box-shadow: 0 0 20px rgba(255, 46, 122, 0.16);
+    }
+
+    .chess-clock-pill.unlimited {
+      opacity: 0.68;
+    }
+
+    .chess-timer-grid {
+      margin-bottom: 12px;
+    }
+
+    .chess-timer-target-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-bottom: 12px;
     }
 
     .queen-charge-tray {
