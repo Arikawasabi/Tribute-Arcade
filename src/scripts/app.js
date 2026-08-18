@@ -389,6 +389,7 @@
       distractionChoicePreview: document.getElementById("distractionChoicePreview"),
       distractionChoiceText: document.getElementById("distractionChoiceText"),
       cancelDistractionChoiceBtn: document.getElementById("cancelDistractionChoiceBtn"),
+      saveDistractionChoiceBtn: document.getElementById("saveDistractionChoiceBtn"),
       distractionChoiceDuration: document.getElementById("distractionChoiceDuration"),
       subWallpaperDistractionChoiceBtn: document.getElementById("subWallpaperDistractionChoiceBtn"),
       bothWallpaperDistractionChoiceBtn: document.getElementById("bothWallpaperDistractionChoiceBtn"),
@@ -2745,7 +2746,7 @@
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
-      state.settings.goonerGallerySource = state.settings.goonerGallerySource === "redditery" ? "redditery" : "peekstr";
+      state.settings.goonerGallerySource = "peekstr";
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
       state.settings.throneAmountConfirmed = Boolean(state.settings.throneAmountConfirmed);
       state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
@@ -3680,6 +3681,42 @@
       if (els.distractionChoiceModal) els.distractionChoiceModal.classList.add("hidden");
     }
 
+    function imageDownloadName(url) {
+      try {
+        const parsed = new URL(url);
+        const clean = decodeURIComponent(parsed.pathname.split("/").filter(Boolean).pop() || "tribute-image");
+        return /\.[a-z0-9]{2,5}$/i.test(clean) ? clean : `${clean}.png`;
+      } catch (error) {
+        return "tribute-image.png";
+      }
+    }
+
+    function triggerImageDownload(href, filename) {
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = filename || "tribute-image.png";
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    async function saveChosenDistractionImage() {
+      const url = normalizeDistractionSource(pendingDistractionChoiceUrl);
+      if (!url) return;
+      const filename = imageDownloadName(url);
+      try {
+        const response = await fetch(url, { mode: "cors" });
+        if (!response.ok) throw new Error(`Image returned ${response.status}.`);
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        triggerImageDownload(objectUrl, filename);
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1200);
+      } catch (error) {
+        triggerImageDownload(url, filename);
+      }
+    }
+
     function postChosenDistraction(mode) {
       const url = normalizeDistractionSource(pendingDistractionChoiceUrl);
       if (!url) {
@@ -3970,7 +4007,7 @@
     }
 
     function goonerGallerySource() {
-      return state.settings.goonerGallerySource === "redditery" ? "redditery" : "peekstr";
+      return "peekstr";
     }
 
     function goonerGallerySourceLabel(source = goonerGallerySource()) {
@@ -17703,28 +17740,6 @@
     }
     if (els.redditeryRandomBtn) els.redditeryRandomBtn.addEventListener("click", loadRandomRedditeryImage);
     if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.addEventListener("click", resetGoonerGalleryToTop);
-    if (els.goonerGallerySource) {
-      els.goonerGallerySource.addEventListener("change", () => {
-        const source = els.goonerGallerySource.value === "redditery" ? "redditery" : "peekstr";
-        localRedditeryPage = -1;
-        localRedditeryAfter = "";
-        localRedditeryReachedEnd = false;
-        localRedditeryGalleryItems = [];
-        localRedditeryAutoPopupItems = [];
-        localRedditeryAutoPopupAfter = "";
-        localRedditeryAutoPopupRecentUrls = [];
-        localRedditeryAutoPopupNextAt = 0;
-        localRedditeryCooldownUntil = 0;
-        if (localRedditeryCooldownTimer) {
-          window.clearInterval(localRedditeryCooldownTimer);
-          localRedditeryCooldownTimer = null;
-        }
-        updateSettings({ goonerGallerySource: source });
-        updateRedditeryRandomButton();
-        renderRedditeryGallery();
-        els.sideDistractionStatus.textContent = `${goonerGallerySourceLabel(source)} selected. Press Random Recent to load a fresh set.`;
-      });
-    }
     if (els.redditeryAutoPopupToggle) {
       els.redditeryAutoPopupToggle.addEventListener("change", () => {
         setRedditeryAutoPopupEnabled(els.redditeryAutoPopupToggle.checked);
@@ -17768,6 +17783,7 @@
       });
     }
     if (els.cancelDistractionChoiceBtn) els.cancelDistractionChoiceBtn.addEventListener("click", closeDistractionChoice);
+    if (els.saveDistractionChoiceBtn) els.saveDistractionChoiceBtn.addEventListener("click", saveChosenDistractionImage);
     if (els.subWallpaperDistractionChoiceBtn) els.subWallpaperDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("background-sub"));
     if (els.bothWallpaperDistractionChoiceBtn) els.bothWallpaperDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("background-both"));
     if (els.popupDistractionChoiceBtn) els.popupDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("overlay-sub"));
