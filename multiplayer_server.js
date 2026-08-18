@@ -13,6 +13,7 @@ const BOORU_SOURCES = {
   hgoon: "https://hgoon.booru.org/index.php"
 };
 const REDDITERY_ENDPOINT = "https://www.redditery.com/load.php";
+const PEEKSTR_REDDIT_ENDPOINT = "https://www.peekstr.com/api/reddit";
 
 function send(res, status, data, type = "application/json") {
   const body = type === "application/json" ? JSON.stringify(data) : data;
@@ -169,6 +170,14 @@ function safeRedditerySubreddit(value) {
   return raw.slice(0, 32) || "gooninghentai";
 }
 
+function safeGoonerGallerySource(value) {
+  return String(value || "").toLowerCase() === "redditery" ? "redditery" : "peekstr";
+}
+
+function safeGoonerAfterToken(value) {
+  return String(value || "").replace(/[^a-z0-9_:-]+/gi, "").slice(0, 160);
+}
+
 function isRedditImageUrl(value) {
   return /^https?:\/\/(?:i|preview)\.redd\.it\/.+\.(?:png|jpe?g|gif|webp)(?:[?#].*)?$/i.test(String(value || ""));
 }
@@ -214,6 +223,94 @@ function normalizeRedditeryPost(match, index, allowTinyPreview = false) {
   };
 }
 
+function collectPeekstrImageCandidates(postOrMedia) {
+  const candidates = [];
+  const push = (value) => {
+    const decoded = decodeHtmlEntities(value);
+    if (decoded) candidates.push(decoded);
+  };
+  const item = postOrMedia || {};
+  push(item.url);
+  push(item.s && item.s.gif);
+  push(item.s && item.s.u);
+  if (Array.isArray(item.p)) {
+    item.p.slice().reverse().forEach((preview) => push(preview && preview.u));
+  }
+  if (Array.isArray(item.o)) {
+    item.o.forEach((original) => push(original && original.u));
+  }
+  const previews = item.preview && Array.isArray(item.preview.images) ? item.preview.images : [];
+  previews.forEach((image) => {
+    push(image && image.variants && image.variants.gif && image.variants.gif.source && image.variants.gif.source.url);
+    push(image && image.source && image.source.url);
+    if (Array.isArray(image && image.resolutions)) {
+      image.resolutions.slice().reverse().forEach((resolution) => push(resolution && resolution.url));
+    }
+  });
+  return candidates;
+}
+
+function normalizePeekstrMediaItem(post, media, id, title, index, galleryIndex = 0) {
+  const candidates = collectPeekstrImageCandidates(media);
+  const url = candidates.find((candidate) => isRedditImageUrl(candidate) && !isTinyRedditPreview(candidate));
+  if (!url) return null;
+  const previewUrl = candidates.find((candidate) => isRedditImageUrl(candidate)) || url;
+  return {
+    id: String(id || post.id || `peekstr-${index}-${galleryIndex}`),
+    url,
+    previewUrl,
+    title,
+    source: "peekstr",
+    index
+  };
+}
+
+function normalizePeekstrPost(child, index) {
+  const post = child && child.data ? child.data : child;
+  if (!post) return [];
+  const title = String(post.title || "Gooner gallery image").trim();
+  const metadata = post.media_metadata || {};
+  const galleryItems = post.gallery_data && Array.isArray(post.gallery_data.items)
+    ? post.gallery_data.items
+    : [];
+  if (galleryItems.length) {
+    return galleryItems
+      .map((galleryItem, galleryIndex) => {
+        const mediaId = galleryItem && galleryItem.media_id;
+        const media = mediaId && metadata[mediaId];
+        return normalizePeekstrMediaItem(post, media, `${post.id || "peekstr"}-${mediaId || galleryIndex}`, `${title} (${galleryIndex + 1})`, index, galleryIndex);
+      })
+      .filter(Boolean);
+  }
+  const metadataItems = Object.entries(metadata);
+  if (metadataItems.length) {
+    return metadataItems
+      .map(([mediaId, media], galleryIndex) => normalizePeekstrMediaItem(post, media, `${post.id || "peekstr"}-${mediaId || galleryIndex}`, `${title} (${galleryIndex + 1})`, index, galleryIndex))
+      .filter(Boolean);
+  }
+  const solo = normalizePeekstrMediaItem(post, post, post.id || `peekstr-${index}`, title, index, 0);
+  return solo ? [solo] : [];
+}
+
+function interleavePeekstrPostItems(children, limit) {
+  const groups = (Array.isArray(children) ? children : [])
+    .map((child, index) => normalizePeekstrPost(child, index))
+    .filter((group) => group.length);
+  const mixed = [];
+  for (let depth = 0; mixed.length < limit; depth += 1) {
+    let added = false;
+    for (const group of groups) {
+      if (group[depth]) {
+        mixed.push(group[depth]);
+        added = true;
+        if (mixed.length >= limit) break;
+      }
+    }
+    if (!added) break;
+  }
+  return mixed;
+}
+
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -249,17 +346,19 @@ async function fetchRedditeryGallery(searchParams) {
   if (typeof fetch !== "function") throw new Error("This server needs Node 20+ for Redditery fetches.");
   const subreddit = safeRedditerySubreddit(searchParams.get("subreddit"));
   const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 18) || 18));
-  const page = Math.max(0, Math.min(2, Number(searchParams.get("page") || 0) || 0));
+  const page = Math.max(0, Math.min(30, Number(searchParams.get("page") || 0) || 0));
+  const windowSize = Math.max(1, Math.min(5, Number(searchParams.get("window") || 1) || 1));
+  const cursorAfter = safeGoonerAfterToken(searchParams.get("after"));
   const body = new URLSearchParams({
     r: subreddit,
     t: "",
-    after: "",
+    after: cursorAfter,
     ID: "",
     likes: ""
   });
   let html = await fetchRedditeryHtml(body);
   let after = redditeryAfterToken(html);
-  for (let pageIndex = 0; pageIndex < page && after; pageIndex += 1) {
+  for (let pageIndex = cursorAfter ? page : 0; pageIndex < page && after; pageIndex += 1) {
     body.set("after", after);
     html = await fetchRedditeryHtml(body);
     after = redditeryAfterToken(html);
@@ -276,6 +375,52 @@ async function fetchRedditeryGallery(searchParams) {
       .slice(0, limit);
   }
   return { source: "redditery", subreddit, page, after, items: posts };
+}
+
+async function fetchPeekstrGallery(searchParams) {
+  if (typeof fetch !== "function") throw new Error("This server needs Node 20+ for gallery fetches.");
+  const subreddit = safeRedditerySubreddit(searchParams.get("subreddit"));
+  const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 18) || 18));
+  const page = Math.max(0, Math.min(30, Number(searchParams.get("page") || 0) || 0));
+  const cursorAfter = safeGoonerAfterToken(searchParams.get("after"));
+  const windowSize = Math.max(1, Math.min(5, Number(searchParams.get("window") || 1) || 1));
+  const params = new URLSearchParams({
+    subreddit,
+    sort: "hot",
+    time: "all",
+    limit: String(Math.max(limit, 18)),
+    includeNSFW: "true",
+    isMultireddit: "false"
+  });
+  if (cursorAfter) params.set("after", cursorAfter);
+  const collectedChildren = [];
+  let data = null;
+  let after = "";
+  const startPage = cursorAfter ? page : 0;
+  const endPage = Math.max(page, startPage + windowSize - 1);
+  for (let pageIndex = startPage; pageIndex <= endPage; pageIndex += 1) {
+    if (after) params.set("after", after);
+    const response = await fetch(`${PEEKSTR_REDDIT_ENDPOINT}?${params.toString()}`, {
+      headers: {
+        "Accept": "application/json",
+        "User-Agent": "TributeArcade/1.0"
+      }
+    });
+    data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(`Peekstr returned ${response.status}.`);
+    after = data && data.data && data.data.after ? String(data.data.after) : "";
+    const children = data && data.data && Array.isArray(data.data.children) ? data.data.children : [];
+    collectedChildren.push(...children);
+    if (!after) break;
+  }
+  const posts = interleavePeekstrPostItems(collectedChildren, limit);
+  return { source: "peekstr", subreddit, page, after, items: posts };
+}
+
+async function fetchGoonerGallery(searchParams) {
+  return safeGoonerGallerySource(searchParams.get("source")) === "redditery"
+    ? fetchRedditeryGallery(searchParams)
+    : fetchPeekstrGallery(searchParams);
 }
 
 function roomId() {
@@ -451,7 +596,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && url.pathname === "/api/redditery-gallery") {
-      const gallery = await fetchRedditeryGallery(url.searchParams);
+      const gallery = await fetchGoonerGallery(url.searchParams);
       return send(res, 200, gallery);
     }
 

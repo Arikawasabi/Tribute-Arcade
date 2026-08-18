@@ -124,7 +124,10 @@
         distractionOverlayY: 18,
         distractionOverlays: [],
         distractionGallery: [],
+        goonerGallerySource: "peekstr",
         redditeryAutoPopup: false,
+        redditeryAutoPopupDuration: 15,
+        redditeryAutoPopupInterval: 90,
         leaveNotice: null,
         linkRequest: null,
         sessionMode: "throne",
@@ -372,16 +375,23 @@
       booruLoadButtons: document.querySelectorAll("[data-booru-source]"),
       booruGallery: document.getElementById("booruGallery"),
       redditeryRandomBtn: document.getElementById("redditeryRandomBtn"),
+      goonerGalleryTopBtn: document.getElementById("goonerGalleryTopBtn"),
+      goonerGallerySource: document.getElementById("goonerGallerySource"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
+      redditeryAutoPopupDuration: document.getElementById("redditeryAutoPopupDuration"),
+      redditeryAutoPopupInterval: document.getElementById("redditeryAutoPopupInterval"),
       redditeryAutoPopupStatus: document.getElementById("redditeryAutoPopupStatus"),
       redditeryGallery: document.getElementById("redditeryGallery"),
+      savedDistractionGallerySection: document.getElementById("savedDistractionGallerySection"),
       distractionGallery: document.getElementById("distractionGallery"),
       sideDistractionStatus: document.getElementById("sideDistractionStatus"),
       distractionChoiceModal: document.getElementById("distractionChoiceModal"),
       distractionChoicePreview: document.getElementById("distractionChoicePreview"),
       distractionChoiceText: document.getElementById("distractionChoiceText"),
       cancelDistractionChoiceBtn: document.getElementById("cancelDistractionChoiceBtn"),
-      wallpaperDistractionChoiceBtn: document.getElementById("wallpaperDistractionChoiceBtn"),
+      distractionChoiceDuration: document.getElementById("distractionChoiceDuration"),
+      subWallpaperDistractionChoiceBtn: document.getElementById("subWallpaperDistractionChoiceBtn"),
+      bothWallpaperDistractionChoiceBtn: document.getElementById("bothWallpaperDistractionChoiceBtn"),
       popupDistractionChoiceBtn: document.getElementById("popupDistractionChoiceBtn"),
       queenPowerMode: document.getElementById("queenPowerMode"),
       queenPowerUsers: document.getElementById("queenPowerUsers"),
@@ -559,10 +569,16 @@
     let localRedditeryGalleryLoading = false;
     let localRedditeryCooldownUntil = 0;
     let localRedditeryCooldownTimer = null;
-    let localRedditeryPage = 0;
+    let localRedditeryPage = -1;
+    let localRedditeryAfter = "";
+    let localRedditeryReachedEnd = false;
+    let localRedditeryAutoPopupItems = [];
+    let localRedditeryAutoPopupAfter = "";
     let localRedditeryAutoPopupNextAt = 0;
     let localRedditeryAutoPopupLoading = false;
+    let localRedditeryAutoPopupRecentUrls = [];
     let pendingDistractionChoiceUrl = "";
+    const distractionImageSizeCache = new Map();
     const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
     const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
     const THRONE_EXTENSION_FOCUS_CHECKOUT = "TRIBUTE_ARCADE_FOCUS_THRONE_CHECKOUT";
@@ -1728,10 +1744,10 @@
       state.online.spectators = {};
       state.settings.leaveNotice = null;
       state.settings.throneAmountConfirmed = false;
-      state.roles = { one: null, two: null };
-      state.names = { dom: "", sub: "" };
-      els.playerOneName.value = "";
-      els.playerTwoName.value = "";
+      state.roles = { one: DOM, two: SUB };
+      state.names = { dom: "dom", sub: "sub" };
+      els.playerOneName.value = "dom";
+      els.playerTwoName.value = "sub";
       els.setupMessage.textContent = "";
       clearLocalRoomUrl();
       setScreen("setup");
@@ -2729,6 +2745,7 @@
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
+      state.settings.goonerGallerySource = state.settings.goonerGallerySource === "redditery" ? "redditery" : "peekstr";
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
       state.settings.throneAmountConfirmed = Boolean(state.settings.throneAmountConfirmed);
       state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
@@ -3402,11 +3419,15 @@
       els.sideSendDomLinkBtn.disabled = !canUseDomSettings;
       els.sideDomLinkInput.disabled = !canUseDomSettings;
       els.sideDistractionInput.disabled = !canUseDomSettings;
-      els.sideDistractionMode.disabled = !canUseDomSettings;
-      els.sideDistractionDuration.disabled = !canUseDomSettings;
       if (els.uploadDistractionBtn) els.uploadDistractionBtn.disabled = !canUseDomSettings;
-      els.postDistractionBtn.disabled = !canUseDomSettings;
-      els.clearDistractionBtn.disabled = !canUseDomSettings || !hasDistraction();
+      if (els.postDistractionBtn) els.postDistractionBtn.disabled = !canUseDomSettings;
+      if (els.goonerGallerySource) {
+        if (document.activeElement !== els.goonerGallerySource) {
+          els.goonerGallerySource.value = state.settings.goonerGallerySource || "peekstr";
+        }
+        els.goonerGallerySource.disabled = !canUseDomSettings;
+      }
+      if (els.clearDistractionBtn) els.clearDistractionBtn.disabled = !canUseDomSettings || !hasDistraction();
       if (els.domAdvantageMode) els.domAdvantageMode.disabled = !canUseDomSettings;
       if (els.domSeePressureBanners) els.domSeePressureBanners.disabled = !canUseDomSettings;
       if (els.domSeePressureText) els.domSeePressureText.disabled = !canUseDomSettings;
@@ -3425,9 +3446,8 @@
           ? (state.settings.distractionOverlayUrl || "")
           : (state.settings.distractionBackgroundUrl || state.settings.distractionUrl || "");
       }
-      els.sideDistractionMode.value = state.settings.distractionMode || "background-both";
-      els.sideDistractionDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
-      els.sideDistractionDurationRow.classList.toggle("hidden", els.sideDistractionMode.value !== "overlay-sub");
+      if (els.sideDistractionMode) els.sideDistractionMode.value = state.settings.distractionMode || "overlay-sub";
+      if (els.sideDistractionDuration) els.sideDistractionDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
       if (els.booruLoadButtons) {
         els.booruLoadButtons.forEach((button) => {
           button.disabled = !canUseDomSettings || localBooruGalleryLoading;
@@ -3590,6 +3610,27 @@
       return true;
     }
 
+    function addAutoDistractionOverlay(url) {
+      const normalized = normalizeDistractionSource(url);
+      if (!normalized) return false;
+      const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
+      const overlayUntil = Date.now() + duration * 1000;
+      state.settings.distractionOverlays = [{
+        id: `auto-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url: normalized,
+        until: overlayUntil,
+        jitterX: Math.round((Math.random() * 6 - 3) * 10) / 10,
+        jitterY: Math.round((Math.random() * 8 - 4) * 10) / 10
+      }];
+      state.settings.distractionUrl = "";
+      state.settings.distractionOverlayUrl = normalized;
+      state.settings.distractionOverlayUntil = overlayUntil;
+      state.settings.distractionOverlayX = 50;
+      state.settings.distractionOverlayY = 52;
+      state.settings.distractionUntil = overlayUntil;
+      return true;
+    }
+
     function postDistraction() {
       if (!domLinkControlsAllowed()) return;
       const url = normalizeDistractionSource(els.sideDistractionInput.value);
@@ -3597,8 +3638,12 @@
         els.sideDistractionStatus.textContent = "Enter a valid image/GIF link, or drop/paste a PNG, JPG, GIF, WebP, or BMP.";
         return;
       }
-      state.settings.distractionMode = els.sideDistractionMode.value || "background-both";
-      state.settings.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration.value);
+      if (!pendingDistractionChoiceUrl) {
+        openDistractionChoice(url, "How should this image appear?");
+        return;
+      }
+      state.settings.distractionMode = els.sideDistractionMode && els.sideDistractionMode.value || "overlay-sub";
+      state.settings.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration && els.sideDistractionDuration.value);
       if (state.settings.distractionMode === "overlay-sub") {
         addDistractionOverlay(url, state.settings.distractionDuration);
         els.sideDistractionStatus.textContent = `Overlay posted for ${state.settings.distractionDuration} seconds.`;
@@ -3623,6 +3668,9 @@
       if (els.distractionChoicePreview) {
         els.distractionChoicePreview.innerHTML = `<img src="${escapeHtml(normalized)}" alt="">`;
       }
+      if (els.distractionChoiceDuration && document.activeElement !== els.distractionChoiceDuration) {
+        els.distractionChoiceDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
+      }
       els.distractionChoiceModal.classList.remove("hidden");
     }
 
@@ -3639,9 +3687,14 @@
         return;
       }
       els.sideDistractionInput.value = url;
-      els.sideDistractionMode.value = mode === "wallpaper" ? "background-sub" : "overlay-sub";
-      closeDistractionChoice();
+      if (els.sideDistractionMode) els.sideDistractionMode.value = mode || "overlay-sub";
+      if (els.distractionChoiceDuration) {
+        const duration = normalizeDistractionDuration(els.distractionChoiceDuration.value);
+        if (els.sideDistractionDuration) els.sideDistractionDuration.value = duration;
+        state.settings.distractionDuration = duration;
+      }
       postDistraction();
+      closeDistractionChoice();
     }
 
     function imageFileFromItems(items) {
@@ -3837,6 +3890,12 @@
       return Math.min(60, Math.max(1, seconds));
     }
 
+    function normalizeAutoPopupInterval(value) {
+      const seconds = Math.round(Number(value));
+      if (!Number.isFinite(seconds)) return 90;
+      return Math.min(600, Math.max(15, seconds));
+    }
+
     function distractionGalleryItems() {
       return Array.isArray(state.settings.distractionGallery)
         ? state.settings.distractionGallery.filter((item) => item && normalizeDistractionSource(item.url)).slice(-6).reverse()
@@ -3867,6 +3926,9 @@
     function renderDistractionGallery() {
       if (!els.distractionGallery) return;
       const items = distractionGalleryItems();
+      if (els.savedDistractionGallerySection && items.length && !els.savedDistractionGallerySection.dataset.userToggled) {
+        els.savedDistractionGallerySection.open = true;
+      }
       els.distractionGallery.classList.toggle("hidden", !items.length);
       const selectedUrl = normalizeDistractionSource(els.sideDistractionInput.value);
       els.distractionGallery.innerHTML = items.map((item, index) => `
@@ -3898,12 +3960,30 @@
       els.redditeryGallery.innerHTML = localRedditeryGalleryItems.map((item, index) => {
         const url = normalizeDistractionSource(item.url);
         const previewUrl = normalizeDistractionSource(item.previewUrl || item.url);
+        const sourceLabel = goonerGallerySourceLabel(item.source);
         return `
-          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-redditery-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="${escapeHtml(item.title || "Redditery image")}">
-            <img src="${escapeHtml(previewUrl)}" alt="Redditery result ${index + 1}" loading="lazy">
+          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-redditery-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="${escapeHtml(item.title || `${sourceLabel} image`)}">
+            <img src="${escapeHtml(previewUrl)}" alt="${escapeHtml(sourceLabel)} result ${index + 1}" loading="lazy">
           </button>
         `;
       }).join("");
+    }
+
+    function goonerGallerySource() {
+      return state.settings.goonerGallerySource === "redditery" ? "redditery" : "peekstr";
+    }
+
+    function goonerGallerySourceLabel(source = goonerGallerySource()) {
+      return source === "redditery" ? "Redditery" : "Peekstr";
+    }
+
+    function shuffledGalleryItems(items) {
+      const list = Array.isArray(items) ? items.slice() : [];
+      for (let index = list.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [list[index], list[swapIndex]] = [list[swapIndex], list[index]];
+      }
+      return list;
     }
 
     async function loadBooruGallery(source = "gelbooru") {
@@ -3950,16 +4030,15 @@
       if (!domLinkControlsAllowed() || localRedditeryGalleryLoading || Date.now() < localRedditeryCooldownUntil) return;
       localRedditeryGalleryLoading = true;
       updateRedditeryRandomButton();
-      els.sideDistractionStatus.textContent = "Loading recent Redditery images...";
+      els.sideDistractionStatus.textContent = `Loading recent ${goonerGallerySourceLabel()} images...`;
       try {
-        const item = await fetchRandomRedditeryItem(true);
-        if (!item) return;
-        const index = localRedditeryGalleryItems.findIndex((entry) => entry && entry.url === item.url);
-        selectRedditeryGalleryImage(index >= 0 ? index : 0, true);
+        const items = await fetchRedditeryItems(true);
+        if (!items.length) return;
+        els.sideDistractionStatus.textContent = `Loaded ${items.length} ${goonerGallerySourceLabel()} image${items.length === 1 ? "" : "s"}. Pick one to choose how it appears.`;
         startRedditeryCooldown();
       } catch (error) {
         localRedditeryGalleryItems = [];
-        els.sideDistractionStatus.textContent = String(error && error.message || "Redditery gallery failed.");
+        els.sideDistractionStatus.textContent = String(error && error.message || `${goonerGallerySourceLabel()} gallery failed.`);
       } finally {
         localRedditeryGalleryLoading = false;
         updateRedditeryRandomButton();
@@ -3967,28 +4046,111 @@
       }
     }
 
-    async function fetchRandomRedditeryItem(updateGallery = false) {
-      const nextPage = (localRedditeryPage + 1 + (Math.random() < 0.25 ? 1 : 0)) % 3;
-      const response = await fetch(`/api/redditery-gallery?subreddit=gooninghentai&limit=18&page=${nextPage}&nonce=${Date.now()}`);
+    async function fetchRedditeryItems(updateGallery = false, options = {}) {
+      const source = goonerGallerySource();
+      const auto = Boolean(options && options.auto);
+      const after = auto ? localRedditeryAutoPopupAfter : localRedditeryAfter;
+      const nextPage = after ? 0 : Math.min(30, Math.max(0, localRedditeryPage + 1));
+      const params = new URLSearchParams({
+        source,
+        subreddit: "gooninghentai",
+        limit: updateGallery ? "24" : "18",
+        page: String(nextPage),
+        window: source === "peekstr" ? (auto ? "2" : "4") : "1",
+        nonce: String(Date.now())
+      });
+      if (after) params.set("after", after);
+      const response = await fetch(`/api/redditery-gallery?${params.toString()}`);
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Redditery gallery failed.");
+      if (!response.ok && source === "redditery") {
+        localRedditeryPage = -1;
+        localRedditeryAfter = "";
+        localRedditeryReachedEnd = false;
+        localRedditeryAutoPopupAfter = "";
+        localRedditeryAutoPopupItems = [];
+        updateSettings({ goonerGallerySource: "peekstr" });
+        if (els.goonerGallerySource) els.goonerGallerySource.value = "peekstr";
+        if (els.sideDistractionStatus) {
+          els.sideDistractionStatus.textContent = "Redditery could not load, so the gallery switched to Peekstr.";
+        }
+        return fetchRedditeryItems(updateGallery, options);
+      }
+      if (!response.ok) throw new Error(data.error || `${goonerGallerySourceLabel(source)} gallery failed.`);
       const items = Array.isArray(data.items)
-        ? data.items.filter((item) => item && normalizeDistractionSource(item.url)).slice(0, 18)
+        ? shuffledGalleryItems(data.items.filter((item) => item && normalizeDistractionSource(item.url))).slice(0, updateGallery ? 24 : 18)
         : [];
       if (!items.length) {
-        els.sideDistractionStatus.textContent = "Redditery returned no usable recent images.";
-        return null;
+        if (!auto) localRedditeryReachedEnd = true;
+        if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = `${goonerGallerySourceLabel(source)} returned no usable recent images.`;
+        return [];
       }
-      localRedditeryPage = Number.isFinite(Number(data.page)) ? Number(data.page) : nextPage;
+      if (auto) {
+        localRedditeryAutoPopupAfter = String(data.after || "");
+      } else {
+        localRedditeryPage = after ? localRedditeryPage + 1 : (Number.isFinite(Number(data.page)) ? Number(data.page) : nextPage);
+        localRedditeryAfter = String(data.after || "");
+        localRedditeryReachedEnd = !localRedditeryAfter;
+      }
       if (updateGallery) {
         localRedditeryGalleryItems = items;
         renderRedditeryGallery();
       }
+      return items;
+    }
+
+    function resetGoonerGalleryToTop() {
+      if (!domLinkControlsAllowed() || localRedditeryGalleryLoading) return;
+      localRedditeryPage = -1;
+      localRedditeryAfter = "";
+      localRedditeryReachedEnd = false;
+      localRedditeryGalleryItems = [];
+      localRedditeryAutoPopupItems = [];
+      localRedditeryAutoPopupAfter = "";
+      localRedditeryAutoPopupRecentUrls = [];
+      localRedditeryCooldownUntil = 0;
+      if (localRedditeryCooldownTimer) {
+        window.clearInterval(localRedditeryCooldownTimer);
+        localRedditeryCooldownTimer = null;
+      }
+      renderRedditeryGallery();
+      updateRedditeryRandomButton();
+      if (els.sideDistractionStatus) {
+        els.sideDistractionStatus.textContent = "Gooner gallery reset to the newest images. Press Random Recent to load from the top.";
+      }
+    }
+
+    async function fetchRandomRedditeryItem(updateGallery = false) {
+      const items = await fetchRedditeryItems(updateGallery);
+      if (!items.length) return null;
       return items[Math.floor(Math.random() * items.length)];
     }
 
+    async function takeNextRedditeryAutoPopupItem() {
+      if (!localRedditeryAutoPopupItems.length) {
+        const recent = new Set(localRedditeryAutoPopupRecentUrls);
+        let freshItems = [];
+        for (let attempt = 0; attempt < 4 && freshItems.length < 8; attempt += 1) {
+          const batch = await fetchRedditeryItems(false, { auto: true });
+          const unseen = batch.filter((item) => !recent.has(normalizeDistractionSource(item.url)));
+          freshItems = shuffledGalleryItems([...freshItems, ...unseen]);
+        }
+        localRedditeryAutoPopupItems = freshItems.length ? freshItems : await fetchRedditeryItems(false, { auto: true });
+      }
+      if (!localRedditeryAutoPopupItems.length) return null;
+      const index = Math.floor(Math.random() * localRedditeryAutoPopupItems.length);
+      const [item] = localRedditeryAutoPopupItems.splice(index, 1);
+      const url = item && normalizeDistractionSource(item.url);
+      if (url) {
+        localRedditeryAutoPopupRecentUrls = [
+          url,
+          ...localRedditeryAutoPopupRecentUrls.filter((recentUrl) => recentUrl !== url)
+        ].slice(0, 48);
+      }
+      return item || null;
+    }
+
     function startRedditeryCooldown() {
-      localRedditeryCooldownUntil = Date.now() + 90_000;
+      localRedditeryCooldownUntil = Date.now() + 60_000;
       updateRedditeryRandomButton();
       if (localRedditeryCooldownTimer) window.clearInterval(localRedditeryCooldownTimer);
       localRedditeryCooldownTimer = window.setInterval(() => {
@@ -4007,6 +4169,7 @@
       if (localRedditeryGalleryLoading) {
         els.redditeryRandomBtn.textContent = "Loading...";
         els.redditeryRandomBtn.disabled = true;
+        if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = true;
         return;
       }
       if (remainingSeconds > 0) {
@@ -4014,14 +4177,16 @@
         const seconds = remainingSeconds % 60;
         els.redditeryRandomBtn.textContent = minutes > 0 ? `Wait ${minutes}:${String(seconds).padStart(2, "0")}` : `Wait ${seconds}s`;
         els.redditeryRandomBtn.disabled = true;
+        if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !domLinkControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
         return;
       }
-      els.redditeryRandomBtn.textContent = "Random Recent";
-      els.redditeryRandomBtn.disabled = !domLinkControlsAllowed();
+      els.redditeryRandomBtn.textContent = localRedditeryReachedEnd ? "No More Found" : (localRedditeryPage >= 0 ? "Load Older" : "Random Recent");
+      els.redditeryRandomBtn.disabled = !domLinkControlsAllowed() || localRedditeryReachedEnd;
+      if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !domLinkControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
     }
 
     function scheduleNextRedditeryAutoPopup() {
-      localRedditeryAutoPopupNextAt = Date.now() + (60_000 + Math.floor(Math.random() * 60_000));
+      localRedditeryAutoPopupNextAt = Date.now() + normalizeAutoPopupInterval(state.settings.redditeryAutoPopupInterval) * 1000;
       updateRedditeryAutoPopupStatus();
     }
 
@@ -4051,15 +4216,21 @@
         toggle.checked = enabled;
         toggle.disabled = !canUse;
       });
+      if (els.redditeryAutoPopupDuration && document.activeElement !== els.redditeryAutoPopupDuration) {
+        els.redditeryAutoPopupDuration.value = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
+      }
+      if (els.redditeryAutoPopupInterval && document.activeElement !== els.redditeryAutoPopupInterval) {
+        els.redditeryAutoPopupInterval.value = normalizeAutoPopupInterval(state.settings.redditeryAutoPopupInterval);
+      }
       const statusEls = [els.redditeryAutoPopupStatus, els.soloRedditeryAutoPopupStatus].filter(Boolean);
       if (!statusEls.length) return;
       let statusText = "";
       if (!state.settings.redditeryAutoPopup) {
         statusText = state.screen === "solitaire"
-          ? "Off. When enabled, a random Redditery image pops up every 1-2 minutes."
+          ? "Off. When enabled, a random gallery image pops up on the selected timer."
           : state.screen === "select" && state.currentGame === "solitaire"
-            ? "Off. When enabled, a random Redditery image pops up every 1-2 minutes during solo games."
-          : "Off. When enabled, a random Redditery image pops up for the sub every 1-2 minutes.";
+            ? "Off. When enabled, a random gallery image pops up during solo games."
+          : "Off. When enabled, a random gallery image pops up for the sub on the selected timer.";
         statusEls.forEach((status) => { status.textContent = statusText; });
         return;
       }
@@ -4075,7 +4246,8 @@
       const seconds = Math.max(0, Math.ceil((localRedditeryAutoPopupNextAt - Date.now()) / 1000));
       const minutes = Math.floor(seconds / 60);
       const remainder = seconds % 60;
-      statusText = `On. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}.`;
+      const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
+      statusText = `On. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}. Shows for ${duration}s.`;
       statusEls.forEach((status) => { status.textContent = statusText; });
     }
 
@@ -4092,16 +4264,13 @@
       localRedditeryAutoPopupLoading = true;
       updateRedditeryAutoPopupStatus();
       try {
-        const item = await fetchRandomRedditeryItem(true);
+        const item = await takeNextRedditeryAutoPopupItem();
         const url = item && normalizeDistractionSource(item.url);
-        if (url && addDistractionOverlay(url, normalizeDistractionDuration(state.settings.distractionDuration))) {
-          rememberDistractionImage(url);
-          if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto Redditery popup posted.";
-          renderDistractionGallery();
-          publishSettingsState();
+        if (url && addAutoDistractionOverlay(url)) {
+          if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto gallery popup posted.";
         }
       } catch (error) {
-        const message = String(error && error.message || "Auto Redditery popup failed.");
+        const message = String(error && error.message || "Auto gallery popup failed.");
         if (els.redditeryAutoPopupStatus) els.redditeryAutoPopupStatus.textContent = message;
         if (els.soloRedditeryAutoPopupStatus) els.soloRedditeryAutoPopupStatus.textContent = message;
       } finally {
@@ -4118,9 +4287,9 @@
       if (!url) return;
       rememberDistractionImage(url);
       els.sideDistractionStatus.textContent = fromRandom
-        ? "Random Redditery image selected and saved."
-        : "Redditery image selected and saved.";
-      openDistractionChoice(url, "How should this Redditery image appear?");
+        ? "Random gallery image selected and saved."
+        : "Gallery image selected and saved.";
+      openDistractionChoice(url, "How should this gallery image appear?");
       renderRedditeryGallery();
       renderDistractionGallery();
     }
@@ -4157,10 +4326,71 @@
     function overlaySlot(index, count) {
       const slots = {
         1: [{ x: 50, y: 52 }],
-        2: [{ x: 32, y: 52 }, { x: 68, y: 52 }],
-        3: [{ x: 22, y: 52 }, { x: 50, y: 50 }, { x: 78, y: 52 }]
+        2: [{ x: 31, y: 52 }, { x: 69, y: 52 }],
+        3: [{ x: 21, y: 52 }, { x: 50, y: 50 }, { x: 79, y: 52 }]
       };
       return (slots[Math.min(3, Math.max(1, count))] || slots[1])[index] || slots[1][0];
+    }
+
+    function clampOverlayTopLeftPx(valuePercent, boxPx, viewportPx, marginPx = 14) {
+      const viewport = Math.max(1, Number(viewportPx || 1));
+      const box = Math.max(1, Math.min(Number(boxPx || 1), viewport - marginPx * 2));
+      const raw = viewport * (Number(valuePercent || 50) / 100) - box / 2;
+      const min = marginPx;
+      const max = viewport - marginPx - box;
+      return Math.round(Math.min(max, Math.max(min, raw)));
+    }
+
+    function visualViewportSize() {
+      const viewport = window.visualViewport;
+      return {
+        width: Math.max(1, Math.floor((viewport && viewport.width) || window.innerWidth || document.documentElement.clientWidth || 1280)),
+        height: Math.max(1, Math.floor((viewport && viewport.height) || window.innerHeight || document.documentElement.clientHeight || 720))
+      };
+    }
+
+    function rememberDistractionImageSize(url, width, height) {
+      const normalized = normalizeDistractionSource(url);
+      const naturalWidth = Number(width || 0);
+      const naturalHeight = Number(height || 0);
+      if (!normalized || naturalWidth <= 0 || naturalHeight <= 0) return;
+      const previous = distractionImageSizeCache.get(normalized);
+      if (previous && previous.width === naturalWidth && previous.height === naturalHeight) return;
+      distractionImageSizeCache.set(normalized, { width: naturalWidth, height: naturalHeight });
+      window.setTimeout(renderDistractionBackground, 0);
+    }
+
+    function ensureDistractionImageSize(url) {
+      const normalized = normalizeDistractionSource(url);
+      if (!normalized || distractionImageSizeCache.has(normalized)) return;
+      const image = new Image();
+      image.onload = () => rememberDistractionImageSize(normalized, image.naturalWidth, image.naturalHeight);
+      image.src = normalized;
+    }
+
+    function overlayBoxSizePx(overlay, count, viewportWidth, viewportHeight) {
+      const margin = count === 1 ? 24 : 18;
+      const maxWidth = Math.max(1, Math.min(viewportWidth - margin * 2, count === 1 ? 860 : (count === 2 ? 540 : 390), viewportWidth * (count === 1 ? 0.82 : (count === 2 ? 0.42 : 0.29))));
+      const maxHeight = Math.max(1, Math.min(viewportHeight - margin * 2, count === 1 ? 760 : (count === 2 ? 560 : 420), viewportHeight * (count === 1 ? 0.86 : (count === 2 ? 0.68 : 0.54))));
+      const size = distractionImageSizeCache.get(normalizeDistractionSource(overlay && overlay.url));
+      if (!size || !size.width || !size.height) {
+        return {
+          width: Math.round(Math.min(maxWidth, viewportWidth * (count === 1 ? 0.72 : (count === 2 ? 0.38 : 0.26)))),
+          height: Math.round(Math.min(maxHeight, viewportHeight * (count === 1 ? 0.64 : (count === 2 ? 0.54 : 0.46))))
+        };
+      }
+      const ratio = size.width / size.height;
+      const maxRatio = maxWidth / maxHeight;
+      if (ratio >= maxRatio) {
+        return {
+          width: Math.round(maxWidth),
+          height: Math.round(Math.max(1, maxWidth / ratio))
+        };
+      }
+      return {
+        width: Math.round(Math.max(1, maxHeight * ratio)),
+        height: Math.round(maxHeight)
+      };
     }
 
     function shouldShowSubOnlyMedia() {
@@ -4190,16 +4420,27 @@
           const slot = overlaySlot(index, overlays.length);
           const jitterX = Number(overlay.jitterX || 0);
           const jitterY = Number(overlay.jitterY || 0);
-          const x = Math.round(Math.min(84, Math.max(16, slot.x + jitterX)) * 10) / 10;
-          const y = Math.round(Math.min(70, Math.max(34, slot.y + jitterY)) * 10) / 10;
-          const width = overlays.length === 1 ? "76vw" : (overlays.length === 2 ? "40vw" : "28vw");
+          ensureDistractionImageSize(overlay.url);
+          const viewport = visualViewportSize();
+          const box = overlayBoxSizePx(overlay, overlays.length, viewport.width, viewport.height);
+          const x = clampOverlayTopLeftPx(slot.x + jitterX, box.width, viewport.width);
+          const y = clampOverlayTopLeftPx(slot.y + jitterY, box.height, viewport.height);
+          const width = `${box.width}px`;
+          const height = `${box.height}px`;
           return `
-            <div class="distraction-overlay-item" style="--distraction-overlay-left:${x}%; --distraction-overlay-top:${y}%; --distraction-overlay-width:${width};">
-              <img src="${escapeHtml(overlay.url)}" alt="" loading="eager">
+            <div class="distraction-overlay-item" style="--distraction-overlay-left:${x}px; --distraction-overlay-top:${y}px; --distraction-overlay-width:${width}; --distraction-overlay-height:${height};">
+              <img src="${escapeHtml(overlay.url)}" alt="" loading="eager" data-distraction-overlay-url="${escapeHtml(overlay.url)}">
             </div>
           `;
         }).join("")
         : "";
+      if (showOverlay) {
+        els.distractionOverlay.querySelectorAll("[data-distraction-overlay-url]").forEach((image) => {
+          const updateSize = () => rememberDistractionImageSize(image.dataset.distractionOverlayUrl, image.naturalWidth, image.naturalHeight);
+          if (image.complete && image.naturalWidth && image.naturalHeight) updateSize();
+          else image.addEventListener("load", updateSize, { once: true });
+        });
+      }
       if (showOverlay) {
         const overlayRemaining = Math.max(0, Math.min(...overlays.map((overlay) => Number(overlay.until || 0))) - Date.now());
         window.clearTimeout(renderDistractionBackground.timer);
@@ -17409,8 +17650,8 @@
     });
     if (els.sendDomLinkBtn) els.sendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
     els.sideSendDomLinkBtn.addEventListener("click", sendDomLinkRequest);
-    els.postDistractionBtn.addEventListener("click", postDistraction);
-    els.clearDistractionBtn.addEventListener("click", clearDistraction);
+    if (els.postDistractionBtn) els.postDistractionBtn.addEventListener("click", postDistraction);
+    if (els.clearDistractionBtn) els.clearDistractionBtn.addEventListener("click", clearDistraction);
     els.sideDistractionMode.addEventListener("change", () => {
       updateSettings({ distractionMode: els.sideDistractionMode.value });
     });
@@ -17461,9 +17702,45 @@
       });
     }
     if (els.redditeryRandomBtn) els.redditeryRandomBtn.addEventListener("click", loadRandomRedditeryImage);
+    if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.addEventListener("click", resetGoonerGalleryToTop);
+    if (els.goonerGallerySource) {
+      els.goonerGallerySource.addEventListener("change", () => {
+        const source = els.goonerGallerySource.value === "redditery" ? "redditery" : "peekstr";
+        localRedditeryPage = -1;
+        localRedditeryAfter = "";
+        localRedditeryReachedEnd = false;
+        localRedditeryGalleryItems = [];
+        localRedditeryAutoPopupItems = [];
+        localRedditeryAutoPopupAfter = "";
+        localRedditeryAutoPopupRecentUrls = [];
+        localRedditeryAutoPopupNextAt = 0;
+        localRedditeryCooldownUntil = 0;
+        if (localRedditeryCooldownTimer) {
+          window.clearInterval(localRedditeryCooldownTimer);
+          localRedditeryCooldownTimer = null;
+        }
+        updateSettings({ goonerGallerySource: source });
+        updateRedditeryRandomButton();
+        renderRedditeryGallery();
+        els.sideDistractionStatus.textContent = `${goonerGallerySourceLabel(source)} selected. Press Random Recent to load a fresh set.`;
+      });
+    }
     if (els.redditeryAutoPopupToggle) {
       els.redditeryAutoPopupToggle.addEventListener("change", () => {
         setRedditeryAutoPopupEnabled(els.redditeryAutoPopupToggle.checked);
+      });
+    }
+    if (els.redditeryAutoPopupDuration) {
+      els.redditeryAutoPopupDuration.addEventListener("input", () => {
+        updateSettings({ redditeryAutoPopupDuration: normalizeDistractionDuration(els.redditeryAutoPopupDuration.value) });
+        updateRedditeryAutoPopupStatus();
+      });
+    }
+    if (els.redditeryAutoPopupInterval) {
+      els.redditeryAutoPopupInterval.addEventListener("input", () => {
+        updateSettings({ redditeryAutoPopupInterval: normalizeAutoPopupInterval(els.redditeryAutoPopupInterval.value) });
+        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        else updateRedditeryAutoPopupStatus();
       });
     }
     if (els.soloRedditeryAutoPopupToggle) {
@@ -17485,9 +17762,25 @@
         selectDistractionFromGallery(button.dataset.distractionGalleryIndex);
       });
     }
+    if (els.savedDistractionGallerySection) {
+      els.savedDistractionGallerySection.addEventListener("toggle", () => {
+        els.savedDistractionGallerySection.dataset.userToggled = "true";
+      });
+    }
     if (els.cancelDistractionChoiceBtn) els.cancelDistractionChoiceBtn.addEventListener("click", closeDistractionChoice);
-    if (els.wallpaperDistractionChoiceBtn) els.wallpaperDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("wallpaper"));
-    if (els.popupDistractionChoiceBtn) els.popupDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("popup"));
+    if (els.subWallpaperDistractionChoiceBtn) els.subWallpaperDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("background-sub"));
+    if (els.bothWallpaperDistractionChoiceBtn) els.bothWallpaperDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("background-both"));
+    if (els.popupDistractionChoiceBtn) els.popupDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("overlay-sub"));
+    if (els.distractionChoiceDuration) {
+      els.distractionChoiceDuration.addEventListener("change", () => {
+        const duration = normalizeDistractionDuration(els.distractionChoiceDuration.value);
+        els.distractionChoiceDuration.value = duration;
+        updateSettings({ distractionDuration: duration });
+      });
+      els.distractionChoiceDuration.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") postChosenDistraction("overlay-sub");
+      });
+    }
     if (els.distractionChoiceModal) {
       els.distractionChoiceModal.addEventListener("click", (event) => {
         if (event.target === els.distractionChoiceModal) closeDistractionChoice();
@@ -17654,7 +17947,7 @@
         if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
         const opener = gameOpeners[card.dataset.openGame];
         if (!opener) return;
-        if (shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
+        if (card.dataset.openGame !== "solitaire" && shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
         opener();
       });
     }

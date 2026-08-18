@@ -112,14 +112,15 @@
 
     .distraction-overlay-item {
       position: absolute;
-      top: var(--distraction-overlay-top, 52%);
-      left: var(--distraction-overlay-left, 50%);
+      top: var(--distraction-overlay-top, 14px);
+      left: var(--distraction-overlay-left, 14px);
       display: grid;
       place-items: center;
       width: min(var(--distraction-overlay-width, 76vw), 760px);
-      max-width: calc(100vw - 28px);
-      height: min(76vh, 760px);
-      transform: translate(-50%, -50%);
+      max-width: calc(100dvw - 28px);
+      height: min(var(--distraction-overlay-height, 64vh), 620px);
+      max-height: calc(100dvh - 28px);
+      overflow: visible;
       filter: drop-shadow(0 22px 50px rgba(0, 0, 0, 0.58));
     }
 
@@ -3539,6 +3540,20 @@
       padding: 9px 10px;
     }
 
+    .distraction-choice-duration {
+      margin: 12px 0;
+    }
+
+    .distraction-choice-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .distraction-choice-actions button {
+      min-height: 44px;
+    }
+
     .higher-lower-give-up button {
       min-height: 44px;
       border-radius: 8px;
@@ -6300,6 +6315,48 @@
       background: rgba(8, 6, 7, 0.28);
     }
 
+    .booru-test-panel.compact {
+      gap: 6px;
+    }
+
+    .gallery-collapse {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid rgba(255, 79, 134, 0.16);
+      border-radius: 8px;
+      background: rgba(8, 6, 7, 0.28);
+    }
+
+    .gallery-collapse summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--gold);
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      list-style: none;
+      text-transform: uppercase;
+    }
+
+    .gallery-collapse summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .gallery-collapse summary::after {
+      content: "+";
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .gallery-collapse[open] summary::after {
+      content: "-";
+    }
+
     .booru-test-heading {
       display: flex;
       align-items: center;
@@ -6790,7 +6847,9 @@
 
       .distraction-overlay-item {
         width: min(var(--distraction-overlay-width, 76vw), 520px);
-        height: min(54vh, 430px);
+        height: min(var(--distraction-overlay-height, 50vh), 380px);
+        max-width: calc(100dvw - 20px);
+        max-height: calc(100dvh - 20px);
       }
 
       .status-pill {

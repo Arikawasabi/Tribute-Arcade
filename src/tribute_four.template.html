@@ -303,7 +303,7 @@
         <span>Random popups</span>
         <input id="soloRedditeryAutoPopupToggle" type="checkbox">
       </label>
-      <p class="chooser-line" id="soloRedditeryAutoPopupStatus">Off. When enabled, a random Redditery image pops up every 1-2 minutes during solo games.</p>
+      <p class="chooser-line" id="soloRedditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up every 1-2 minutes during solo games.</p>
     </section>
 
     <section class="game-grid" id="mainGamesGrid">
@@ -868,9 +868,14 @@
       <div class="panel-body">
         <div class="distraction-choice-preview" id="distractionChoicePreview"></div>
         <p class="chooser-line" id="distractionChoiceText">How should this image appear?</p>
-        <div class="role-row">
+        <label class="field-label distraction-choice-duration">
+          Popup seconds
+          <input id="distractionChoiceDuration" type="number" min="1" max="60" step="1" value="15">
+        </label>
+        <div class="distraction-choice-actions">
           <button id="cancelDistractionChoiceBtn">Cancel</button>
-          <button id="wallpaperDistractionChoiceBtn">Wallpaper</button>
+          <button id="subWallpaperDistractionChoiceBtn">Sub Wallpaper</button>
+          <button id="bothWallpaperDistractionChoiceBtn">Both Wallpaper</button>
           <button id="popupDistractionChoiceBtn" class="primary">Sub Popup</button>
         </div>
       </div>
@@ -915,48 +920,64 @@
             <button id="sideSendDomLinkBtn" class="primary">Open Link</button>
           </div>
           <p class="chooser-line" id="sideDomLinkStatus">Paste a link, then open it for the sub.</p>
-          <label class="field-label">
-            Distraction image or GIF
-            <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
-          </label>
-          <label class="field-label">
-            Display mode
-            <select id="sideDistractionMode">
-              <option value="background-both">Background for both players</option>
-              <option value="background-sub">Background for sub only</option>
-              <option value="overlay-sub">Timed overlay for sub only</option>
-            </select>
-          </label>
-          <label class="field-label" id="sideDistractionDurationRow">
-            Overlay seconds
-            <input id="sideDistractionDuration" type="number" min="1" max="60" step="1" value="15">
-          </label>
-          <div class="mode-grid">
-            <button id="uploadDistractionBtn">Upload Image</button>
-            <button id="postDistractionBtn" class="primary">Post</button>
-            <button id="clearDistractionBtn">Clear</button>
-          </div>
-          <input id="distractionFileInput" class="hidden-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/*">
-          <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
-        </div>
-        <div class="settings-pane hidden" id="sideGalleryPane">
-          <h3 class="panel-title">Image Gallery</h3>
-          <div class="booru-test-panel">
-            <div class="booru-test-heading">
-              <strong>Redditery test gallery</strong>
-              <span>recent r/gooninghentai</span>
-            </div>
-            <div class="mode-grid">
-              <button id="redditeryRandomBtn">Random Recent</button>
-            </div>
+          <input id="sideDistractionMode" type="hidden" value="overlay-sub">
+          <input id="sideDistractionDuration" type="hidden" value="15">
+          <div class="booru-test-panel compact">
             <label class="settings-row compact-toggle">
               Auto sub popup
               <input id="redditeryAutoPopupToggle" type="checkbox">
             </label>
-            <p class="chooser-line" id="redditeryAutoPopupStatus">Off. When enabled, a random Redditery image pops up for the sub every 1-2 minutes.</p>
-            <div class="booru-gallery hidden" id="redditeryGallery"></div>
+            <label class="field-label">
+              Popup seconds
+              <input id="redditeryAutoPopupDuration" type="number" min="1" max="60" step="1" value="15">
+            </label>
+            <label class="field-label">
+              Next image after seconds
+              <input id="redditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="90">
+            </label>
+            <p class="chooser-line" id="redditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up for the sub on the selected timer.</p>
           </div>
-          <div class="distraction-gallery" id="distractionGallery"></div>
+        </div>
+        <div class="settings-pane hidden" id="sideGalleryPane">
+          <h3 class="panel-title">Image Gallery</h3>
+          <details class="gallery-collapse" open>
+            <summary>
+              <span>Post image</span>
+            </summary>
+            <label class="field-label">
+              Distraction image or GIF
+              <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
+            </label>
+            <div class="mode-grid">
+              <button id="uploadDistractionBtn">Upload Image</button>
+              <button id="postDistractionBtn" class="primary">Post</button>
+            </div>
+            <input id="distractionFileInput" class="hidden-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/*">
+            <p class="chooser-line" id="sideDistractionStatus">Press Enter on an image URL, upload an image, or pick from a gallery.</p>
+          </details>
+          <details class="gallery-collapse booru-test-panel" open>
+            <summary>
+              <span>Gooner gallery</span>
+            </summary>
+            <label class="field-label">
+              Image source
+              <select id="goonerGallerySource">
+                <option value="peekstr">Peekstr</option>
+                <option value="redditery">Redditery</option>
+              </select>
+            </label>
+            <div class="mode-grid">
+              <button id="redditeryRandomBtn">Random Recent</button>
+              <button id="goonerGalleryTopBtn">Return to Top</button>
+            </div>
+            <div class="booru-gallery hidden" id="redditeryGallery"></div>
+          </details>
+          <details class="gallery-collapse" id="savedDistractionGallerySection">
+            <summary>
+              <span>Saved images</span>
+            </summary>
+            <div class="distraction-gallery" id="distractionGallery"></div>
+          </details>
         </div>
         <div class="side-utility-settings hidden" id="sideSettingsPane">
           <div class="settings-pane" id="domSettingsPane">
