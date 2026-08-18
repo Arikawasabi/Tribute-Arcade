@@ -362,6 +362,10 @@
       distractionFileInput: document.getElementById("distractionFileInput"),
       postDistractionBtn: document.getElementById("postDistractionBtn"),
       clearDistractionBtn: document.getElementById("clearDistractionBtn"),
+      booruLoadButtons: document.querySelectorAll("[data-booru-source]"),
+      booruGallery: document.getElementById("booruGallery"),
+      redditeryRandomBtn: document.getElementById("redditeryRandomBtn"),
+      redditeryGallery: document.getElementById("redditeryGallery"),
       distractionGallery: document.getElementById("distractionGallery"),
       sideDistractionStatus: document.getElementById("sideDistractionStatus"),
       queenPowerMode: document.getElementById("queenPowerMode"),
@@ -534,6 +538,12 @@
     let localFleetHoldUntil = 0;
     let pendingThroneAmountGame = null;
     let pendingThroneAmountOpener = null;
+    let localBooruGalleryItems = [];
+    let localBooruGalleryLoading = false;
+    let localRedditeryGalleryItems = [];
+    let localRedditeryGalleryLoading = false;
+    let localRedditeryCooldownUntil = 0;
+    let localRedditeryCooldownTimer = null;
     const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
     const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
     const THRONE_EXTENSION_FOCUS_CHECKOUT = "TRIBUTE_ARCADE_FOCUS_THRONE_CHECKOUT";
@@ -3382,6 +3392,14 @@
       els.sideDistractionMode.value = state.settings.distractionMode || "background-both";
       els.sideDistractionDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
       els.sideDistractionDurationRow.classList.toggle("hidden", els.sideDistractionMode.value !== "overlay-sub");
+      if (els.booruLoadButtons) {
+        els.booruLoadButtons.forEach((button) => {
+          button.disabled = !canUseDomSettings || localBooruGalleryLoading;
+        });
+      }
+      updateRedditeryRandomButton();
+      renderBooruGallery();
+      renderRedditeryGallery();
       renderDistractionGallery();
       renderDistractionBackground();
     }
@@ -3763,6 +3781,152 @@
           <img src="${escapeHtml(item.url)}" alt="Saved distraction ${index + 1}" loading="lazy">
         </button>
       `).join("");
+    }
+
+    function renderBooruGallery() {
+      if (!els.booruGallery) return;
+      els.booruGallery.classList.toggle("hidden", !localBooruGalleryItems.length);
+      const selectedUrl = normalizeDistractionSource(els.sideDistractionInput.value);
+      els.booruGallery.innerHTML = localBooruGalleryItems.map((item, index) => {
+        const url = normalizeDistractionSource(item.url);
+        const previewUrl = normalizeDistractionSource(item.previewUrl || item.url);
+        return `
+          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-booru-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Score ${Number(item.score || 0)}">
+            <img src="${escapeHtml(previewUrl)}" alt="Booru result ${index + 1}" loading="lazy">
+          </button>
+        `;
+      }).join("");
+    }
+
+    function renderRedditeryGallery() {
+      if (!els.redditeryGallery) return;
+      els.redditeryGallery.classList.toggle("hidden", !localRedditeryGalleryItems.length);
+      const selectedUrl = normalizeDistractionSource(els.sideDistractionInput.value);
+      els.redditeryGallery.innerHTML = localRedditeryGalleryItems.map((item, index) => {
+        const url = normalizeDistractionSource(item.url);
+        const previewUrl = normalizeDistractionSource(item.previewUrl || item.url);
+        return `
+          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-redditery-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="${escapeHtml(item.title || "Redditery image")}">
+            <img src="${escapeHtml(previewUrl)}" alt="Redditery result ${index + 1}" loading="lazy">
+          </button>
+        `;
+      }).join("");
+    }
+
+    async function loadBooruGallery(source = "gelbooru") {
+      if (!domLinkControlsAllowed() || localBooruGalleryLoading) return;
+      const safeSource = source === "hgoon" ? "hgoon" : "gelbooru";
+      localBooruGalleryLoading = true;
+      if (els.booruLoadButtons) els.booruLoadButtons.forEach((button) => button.disabled = true);
+      els.sideDistractionStatus.textContent = `Loading ${safeSource === "hgoon" ? "Hgoon" : "Gelbooru"} test gallery...`;
+      try {
+        const response = await fetch(`/api/booru-gallery?source=${encodeURIComponent(safeSource)}&tags=feet%20sort%3Ascore&limit=16`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Booru gallery failed.");
+        localBooruGalleryItems = Array.isArray(data.items)
+          ? data.items.filter((item) => item && normalizeDistractionSource(item.url)).slice(0, 16)
+          : [];
+        els.sideDistractionStatus.textContent = localBooruGalleryItems.length
+          ? `Loaded ${localBooruGalleryItems.length} ${safeSource === "hgoon" ? "Hgoon" : "Gelbooru"} result${localBooruGalleryItems.length === 1 ? "" : "s"}. Pick one, then choose display mode and Post.`
+          : `No usable ${safeSource === "hgoon" ? "Hgoon" : "Gelbooru"} image URLs came back for feet sort:score.`;
+      } catch (error) {
+        localBooruGalleryItems = [];
+        els.sideDistractionStatus.textContent = String(error && error.message || "Booru gallery failed.");
+      } finally {
+        localBooruGalleryLoading = false;
+        if (els.booruLoadButtons) {
+          els.booruLoadButtons.forEach((button) => {
+            button.disabled = !domLinkControlsAllowed();
+          });
+        }
+        renderBooruGallery();
+      }
+    }
+
+    function selectBooruGalleryImage(index) {
+      if (!domLinkControlsAllowed()) return;
+      const item = localBooruGalleryItems[Number(index)];
+      const url = item && normalizeDistractionSource(item.url);
+      if (!url) return;
+      els.sideDistractionInput.value = url;
+      els.sideDistractionStatus.textContent = "Booru image selected. Choose display mode, then Post.";
+      renderBooruGallery();
+    }
+
+    async function loadRandomRedditeryImage() {
+      if (!domLinkControlsAllowed() || localRedditeryGalleryLoading || Date.now() < localRedditeryCooldownUntil) return;
+      localRedditeryGalleryLoading = true;
+      updateRedditeryRandomButton();
+      els.sideDistractionStatus.textContent = "Loading recent Redditery images...";
+      try {
+        const response = await fetch("/api/redditery-gallery?subreddit=gooninghentai&limit=18");
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Redditery gallery failed.");
+        localRedditeryGalleryItems = Array.isArray(data.items)
+          ? data.items.filter((item) => item && normalizeDistractionSource(item.url)).slice(0, 18)
+          : [];
+        if (!localRedditeryGalleryItems.length) {
+          els.sideDistractionStatus.textContent = "Redditery returned no usable recent images.";
+          return;
+        }
+        const randomIndex = Math.floor(Math.random() * localRedditeryGalleryItems.length);
+        selectRedditeryGalleryImage(randomIndex, true);
+        startRedditeryCooldown();
+      } catch (error) {
+        localRedditeryGalleryItems = [];
+        els.sideDistractionStatus.textContent = String(error && error.message || "Redditery gallery failed.");
+      } finally {
+        localRedditeryGalleryLoading = false;
+        updateRedditeryRandomButton();
+        renderRedditeryGallery();
+      }
+    }
+
+    function startRedditeryCooldown() {
+      localRedditeryCooldownUntil = Date.now() + 90_000;
+      updateRedditeryRandomButton();
+      if (localRedditeryCooldownTimer) window.clearInterval(localRedditeryCooldownTimer);
+      localRedditeryCooldownTimer = window.setInterval(() => {
+        updateRedditeryRandomButton();
+        if (Date.now() >= localRedditeryCooldownUntil) {
+          window.clearInterval(localRedditeryCooldownTimer);
+          localRedditeryCooldownTimer = null;
+        }
+      }, 1000);
+    }
+
+    function updateRedditeryRandomButton() {
+      if (!els.redditeryRandomBtn) return;
+      const remainingMs = Math.max(0, localRedditeryCooldownUntil - Date.now());
+      const remainingSeconds = Math.ceil(remainingMs / 1000);
+      if (localRedditeryGalleryLoading) {
+        els.redditeryRandomBtn.textContent = "Loading...";
+        els.redditeryRandomBtn.disabled = true;
+        return;
+      }
+      if (remainingSeconds > 0) {
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        els.redditeryRandomBtn.textContent = minutes > 0 ? `Wait ${minutes}:${String(seconds).padStart(2, "0")}` : `Wait ${seconds}s`;
+        els.redditeryRandomBtn.disabled = true;
+        return;
+      }
+      els.redditeryRandomBtn.textContent = "Random Recent";
+      els.redditeryRandomBtn.disabled = !domLinkControlsAllowed();
+    }
+
+    function selectRedditeryGalleryImage(index, fromRandom = false) {
+      if (!domLinkControlsAllowed()) return;
+      const item = localRedditeryGalleryItems[Number(index)];
+      const url = item && normalizeDistractionSource(item.url);
+      if (!url) return;
+      els.sideDistractionInput.value = url;
+      rememberDistractionImage(url);
+      els.sideDistractionStatus.textContent = fromRandom
+        ? "Random Redditery image selected and saved. Choose display mode, then Post."
+        : "Redditery image selected and saved. Choose display mode, then Post.";
+      renderRedditeryGallery();
+      renderDistractionGallery();
     }
 
     function selectDistractionFromGallery(index) {
@@ -17066,6 +17230,26 @@
       els.sideDistractionInput.classList.remove("drop-ready");
     });
     els.sideDistractionInput.addEventListener("drop", handleDistractionDrop);
+    if (els.booruLoadButtons) {
+      els.booruLoadButtons.forEach((button) => {
+        button.addEventListener("click", () => loadBooruGallery(button.dataset.booruSource));
+      });
+    }
+    if (els.booruGallery) {
+      els.booruGallery.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-booru-gallery-index]");
+        if (!button) return;
+        selectBooruGalleryImage(button.dataset.booruGalleryIndex);
+      });
+    }
+    if (els.redditeryRandomBtn) els.redditeryRandomBtn.addEventListener("click", loadRandomRedditeryImage);
+    if (els.redditeryGallery) {
+      els.redditeryGallery.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-redditery-gallery-index]");
+        if (!button || button.disabled) return;
+        selectRedditeryGalleryImage(button.dataset.redditeryGalleryIndex);
+      });
+    }
     if (els.distractionGallery) {
       els.distractionGallery.addEventListener("click", (event) => {
         const button = event.target.closest("[data-distraction-gallery-index]");

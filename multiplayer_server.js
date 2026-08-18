@@ -8,6 +8,11 @@ const ROOM_TTL_MS = Number(process.env.ROOM_TTL_MS || 1000 * 60 * 60 * 6);
 const ROOM_EMPTY_TTL_MS = Number(process.env.ROOM_EMPTY_TTL_MS || 1000 * 60 * 5);
 const MAX_UPLOAD_IMAGE_BYTES = Number(process.env.MAX_UPLOAD_IMAGE_BYTES || 1_500_000);
 const rooms = new Map();
+const BOORU_SOURCES = {
+  gelbooru: "https://gelbooru.com/index.php",
+  hgoon: "https://hgoon.booru.org/index.php"
+};
+const REDDITERY_ENDPOINT = "https://www.redditery.com/load.php";
 
 function send(res, status, data, type = "application/json") {
   const body = type === "application/json" ? JSON.stringify(data) : data;
@@ -80,6 +85,162 @@ async function uploadImageToCatbox(body) {
     throw new Error(text || "Catbox upload failed.");
   }
   return text;
+}
+
+function safeBooruTags(value) {
+  const raw = String(value || "feet sort:score")
+    .replace(/[^\w:~.+\- ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return raw.slice(0, 160) || "feet sort:score";
+}
+
+function normalizeBooruPost(post) {
+  if (!post || typeof post !== "object") return null;
+  const fileUrl = String(post.file_url || post.fileUrl || post.image || post.source || "").trim();
+  const sampleUrl = String(post.sample_url || post.sampleUrl || post.preview_url || post.previewUrl || "").trim();
+  const previewUrl = String(post.preview_url || post.previewUrl || post.thumbnail_url || post.thumbnailUrl || sampleUrl || fileUrl).trim();
+  const url = sampleUrl || fileUrl || previewUrl;
+  if (!/^https?:\/\/.+\.(?:png|jpe?g|gif|webp)(?:[?#].*)?$/i.test(url)) return null;
+  return {
+    id: String(post.id || post.md5 || url),
+    url,
+    previewUrl: /^https?:\/\//i.test(previewUrl) ? previewUrl : url,
+    fileUrl: /^https?:\/\//i.test(fileUrl) ? fileUrl : url,
+    score: Number(post.score || 0) || 0,
+    rating: String(post.rating || ""),
+    tags: String(post.tags || "").slice(0, 300)
+  };
+}
+
+async function fetchBooruGallery(searchParams) {
+  if (typeof fetch !== "function") throw new Error("This server needs Node 20+ for booru fetches.");
+  const source = BOORU_SOURCES[searchParams.get("source") || "gelbooru"] ? (searchParams.get("source") || "gelbooru") : "gelbooru";
+  const tags = safeBooruTags(searchParams.get("tags"));
+  const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 12) || 12));
+  const endpoint = new URL(BOORU_SOURCES[source]);
+  endpoint.searchParams.set("page", "dapi");
+  endpoint.searchParams.set("s", "post");
+  endpoint.searchParams.set("q", "index");
+  endpoint.searchParams.set("json", "1");
+  endpoint.searchParams.set("limit", String(limit));
+  endpoint.searchParams.set("tags", tags);
+  if (source === "gelbooru") {
+    if (process.env.GELBOORU_USER_ID) endpoint.searchParams.set("user_id", process.env.GELBOORU_USER_ID);
+    if (process.env.GELBOORU_API_KEY) endpoint.searchParams.set("api_key", process.env.GELBOORU_API_KEY);
+  }
+  const response = await fetch(endpoint, {
+    headers: {
+      "Accept": "application/json,text/plain;q=0.8,*/*;q=0.5",
+      "User-Agent": "TributeArcade/1.0"
+    }
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`${source} returned ${response.status}. ${source === "gelbooru" ? "Gelbooru may require GELBOORU_USER_ID and GELBOORU_API_KEY on the server." : "The source may be blocking API access."}`);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new Error("The booru returned non-JSON content.");
+  }
+  const posts = Array.isArray(parsed)
+    ? parsed
+    : (Array.isArray(parsed.post) ? parsed.post : (Array.isArray(parsed.posts) ? parsed.posts : []));
+  return {
+    source,
+    tags,
+    items: posts.map(normalizeBooruPost).filter(Boolean)
+  };
+}
+
+function decodeHtmlEntities(value) {
+  return String(value || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function safeRedditerySubreddit(value) {
+  const raw = String(value || "gooninghentai").toLowerCase().replace(/[^a-z0-9_]+/g, "");
+  return raw.slice(0, 32) || "gooninghentai";
+}
+
+function isRedditImageUrl(value) {
+  return /^https?:\/\/(?:i|preview)\.redd\.it\/.+\.(?:png|jpe?g|gif|webp)(?:[?#].*)?$/i.test(String(value || ""));
+}
+
+function isTinyRedditPreview(value) {
+  const raw = String(value || "");
+  if (!/^https?:\/\/preview\.redd\.it\//i.test(raw)) return false;
+  let url;
+  try {
+    url = new URL(raw);
+  } catch (error) {
+    return true;
+  }
+  const width = Number(url.searchParams.get("width"));
+  const height = Number(url.searchParams.get("height"));
+  const hasSize = Number.isFinite(width) || Number.isFinite(height);
+  if (!hasSize) return false;
+  return Math.max(width || 0, height || 0) < 480;
+}
+
+function normalizeRedditeryPost(match, index) {
+  const id = String(match[1] || `redditery-${index}`);
+  const block = match[2] || "";
+  const imageMatches = [...block.matchAll(/<img\b[^>]*\bsrc=['"]([^'"]+)['"][^>]*>/gi)];
+  const hrefMatches = [...block.matchAll(/<a\b[^>]*\bhref=['"]([^'"]+)['"][^>]*>/gi)];
+  const directHref = hrefMatches
+    .map((item) => decodeHtmlEntities(item[1]))
+    .find((href) => isRedditImageUrl(href) && !isTinyRedditPreview(href));
+  const previewUrl = imageMatches
+    .map((item) => decodeHtmlEntities(item[1]))
+    .find((src) => isRedditImageUrl(src) && !isTinyRedditPreview(src));
+  const url = directHref || previewUrl;
+  if (!url) return null;
+  const titleMatch = block.match(/<h4[^>]*>\s*<a\b[^>]*>([\s\S]*?)<\/a>/i);
+  const title = decodeHtmlEntities(String(titleMatch && titleMatch[1] || "Redditery image").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+  return {
+    id,
+    url,
+    previewUrl: previewUrl || url,
+    title,
+    source: "redditery",
+    index
+  };
+}
+
+async function fetchRedditeryGallery(searchParams) {
+  if (typeof fetch !== "function") throw new Error("This server needs Node 20+ for Redditery fetches.");
+  const subreddit = safeRedditerySubreddit(searchParams.get("subreddit"));
+  const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 18) || 18));
+  const body = new URLSearchParams({
+    r: subreddit,
+    t: "",
+    after: "",
+    ID: "",
+    likes: ""
+  });
+  const response = await fetch(REDDITERY_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept": "text/html,*/*;q=0.8",
+      "User-Agent": "TributeArcade/1.0"
+    },
+    body
+  });
+  const html = await response.text();
+  if (!response.ok) throw new Error(`Redditery returned ${response.status}.`);
+  const posts = [...html.matchAll(/<div class=['"]nsfw['"] id=['"]([^'"]+)['"]>([\s\S]*?)(?=<div class=['"]nsfw['"] id=|<script\b|$)/gi)]
+    .map(normalizeRedditeryPost)
+    .filter(Boolean)
+    .slice(0, limit);
+  return { source: "redditery", subreddit, items: posts };
 }
 
 function roomId() {
@@ -247,6 +408,16 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const uploadedUrl = await uploadImageToCatbox(body);
       return send(res, 200, { url: uploadedUrl });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/booru-gallery") {
+      const gallery = await fetchBooruGallery(url.searchParams);
+      return send(res, 200, gallery);
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/redditery-gallery") {
+      const gallery = await fetchRedditeryGallery(url.searchParams);
+      return send(res, 200, gallery);
     }
 
     if (req.method === "GET" && url.pathname === "/api/state") {
