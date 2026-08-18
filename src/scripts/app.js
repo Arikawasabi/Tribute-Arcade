@@ -106,6 +106,7 @@
         activeGameTab: "main",
         activeSideTab: "chat",
         activeUtilityTab: "tools",
+        activeUtilityTabManual: false,
         sideOpen: false,
         domAdvantageMode: "dom",
         subDefaultBet: 10,
@@ -121,7 +122,9 @@
         distractionOverlayUntil: 0,
         distractionOverlayX: 50,
         distractionOverlayY: 18,
+        distractionOverlays: [],
         distractionGallery: [],
+        redditeryAutoPopup: false,
         leaveNotice: null,
         linkRequest: null,
         sessionMode: "throne",
@@ -236,6 +239,9 @@
       chessCaptureBanner: document.getElementById("chessCaptureBanner"),
       newSolitaireBtn: document.getElementById("newSolitaireBtn"),
       solitaireBackBtn: document.getElementById("solitaireBackBtn"),
+      soloRedditeryPanel: document.getElementById("soloRedditeryPanel"),
+      soloRedditeryAutoPopupToggle: document.getElementById("soloRedditeryAutoPopupToggle"),
+      soloRedditeryAutoPopupStatus: document.getElementById("soloRedditeryAutoPopupStatus"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
       domTriggerOverlay: document.getElementById("domTriggerOverlay"),
@@ -346,6 +352,7 @@
       savePressurePromptBtn: document.getElementById("savePressurePromptBtn"),
       sideSettingsPane: document.getElementById("sideSettingsPane"),
       sideToolsPane: document.getElementById("sideToolsPane"),
+      sideGalleryPane: document.getElementById("sideGalleryPane"),
       chatMessages: document.getElementById("chatMessages"),
       chatInput: document.getElementById("chatInput"),
       sendChatBtn: document.getElementById("sendChatBtn"),
@@ -365,9 +372,17 @@
       booruLoadButtons: document.querySelectorAll("[data-booru-source]"),
       booruGallery: document.getElementById("booruGallery"),
       redditeryRandomBtn: document.getElementById("redditeryRandomBtn"),
+      redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
+      redditeryAutoPopupStatus: document.getElementById("redditeryAutoPopupStatus"),
       redditeryGallery: document.getElementById("redditeryGallery"),
       distractionGallery: document.getElementById("distractionGallery"),
       sideDistractionStatus: document.getElementById("sideDistractionStatus"),
+      distractionChoiceModal: document.getElementById("distractionChoiceModal"),
+      distractionChoicePreview: document.getElementById("distractionChoicePreview"),
+      distractionChoiceText: document.getElementById("distractionChoiceText"),
+      cancelDistractionChoiceBtn: document.getElementById("cancelDistractionChoiceBtn"),
+      wallpaperDistractionChoiceBtn: document.getElementById("wallpaperDistractionChoiceBtn"),
+      popupDistractionChoiceBtn: document.getElementById("popupDistractionChoiceBtn"),
       queenPowerMode: document.getElementById("queenPowerMode"),
       queenPowerUsers: document.getElementById("queenPowerUsers"),
       queenPowerModeRow: document.getElementById("queenPowerModeRow"),
@@ -544,6 +559,10 @@
     let localRedditeryGalleryLoading = false;
     let localRedditeryCooldownUntil = 0;
     let localRedditeryCooldownTimer = null;
+    let localRedditeryPage = 0;
+    let localRedditeryAutoPopupNextAt = 0;
+    let localRedditeryAutoPopupLoading = false;
+    let pendingDistractionChoiceUrl = "";
     const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
     const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
     const THRONE_EXTENSION_FOCUS_CHECKOUT = "TRIBUTE_ARCADE_FOCUS_THRONE_CHECKOUT";
@@ -2348,6 +2367,8 @@
         button.classList.toggle("hidden", button.dataset.gameTab === "solo" ? !soloMenuOpen : soloMenuOpen);
         button.classList.toggle("active", button.dataset.gameTab === tab);
       });
+      if (els.soloRedditeryPanel) els.soloRedditeryPanel.classList.toggle("hidden", !soloMenuOpen);
+      updateRedditeryAutoPopupStatus();
       els.mainGamesGrid.classList.remove("hidden");
       els.miniGamesGrid.classList.add("hidden");
       els.testingGamesGrid.classList.add("hidden");
@@ -3299,7 +3320,8 @@
       els.sidePopout.classList.remove("hidden");
       const canOpenSettings = sideSettingsAllowed();
       const canOpenTools = domLinkControlsAllowed();
-      const canOpenUtility = canOpenSettings || canOpenTools;
+      const canOpenGallery = domLinkControlsAllowed();
+      const canOpenUtility = canOpenSettings || canOpenTools || canOpenGallery;
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
       const canOpenLedger = inGame || inGameSelect;
@@ -3313,8 +3335,21 @@
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
-      if (state.settings.activeUtilityTab === "settings" && !canOpenSettings) state.settings.activeUtilityTab = "tools";
-      if (state.settings.activeUtilityTab === "tools" && !canOpenTools && canOpenSettings) state.settings.activeUtilityTab = "settings";
+      if (state.settings.activeUtilityTab === "settings" && !canOpenSettings) {
+        state.settings.activeUtilityTab = "tools";
+        state.settings.activeUtilityTabManual = false;
+      }
+      if (state.settings.activeUtilityTab === "tools" && !canOpenTools && canOpenSettings) {
+        state.settings.activeUtilityTab = "settings";
+        state.settings.activeUtilityTabManual = false;
+      }
+      if (state.settings.activeUtilityTab === "gallery" && !canOpenGallery) {
+        state.settings.activeUtilityTab = canOpenTools ? "tools" : "settings";
+        state.settings.activeUtilityTabManual = false;
+      }
+      if (state.settings.activeUtilityTab === "settings" && canOpenTools && state.settings.activeUtilityTabManual !== true) {
+        state.settings.activeUtilityTab = "tools";
+      }
       const activeUtilityTab = state.settings.activeUtilityTab || "tools";
       const panelOpen = state.settings.sideOpen !== false;
       if (panelOpen && activeTab === "chat") markChatSeen();
@@ -3347,9 +3382,10 @@
       els.sideToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenUtility);
       els.sideSettingsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "settings" || !canOpenSettings);
       if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeUtilityTab !== "tools" || !canOpenTools);
+      if (els.sideGalleryPane) els.sideGalleryPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "gallery" || !canOpenGallery);
       els.utilityTabs.forEach((button) => {
         const tab = button.dataset.utilityTab || "tools";
-        const visible = tab === "settings" ? canOpenSettings : canOpenTools;
+        const visible = tab === "settings" ? canOpenSettings : (tab === "gallery" ? canOpenGallery : canOpenTools);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active", tab === activeUtilityTab);
       });
@@ -3398,6 +3434,7 @@
         });
       }
       updateRedditeryRandomButton();
+      updateRedditeryAutoPopupStatus();
       renderBooruGallery();
       renderRedditeryGallery();
       renderDistractionGallery();
@@ -3529,6 +3566,30 @@
       publishChatMessage(message);
     }
 
+    function addDistractionOverlay(url, duration = normalizeDistractionDuration(state.settings.distractionDuration)) {
+      const normalized = normalizeDistractionSource(url);
+      if (!normalized) return false;
+      const overlayUntil = Date.now() + normalizeDistractionDuration(duration) * 1000;
+      const existingOverlays = activeDistractionOverlays();
+      state.settings.distractionOverlays = [
+        ...existingOverlays,
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          url: normalized,
+          until: overlayUntil,
+          jitterX: Math.round((Math.random() * 10 - 5) * 10) / 10,
+          jitterY: Math.round((Math.random() * 14 - 7) * 10) / 10
+        }
+      ].slice(-3);
+      state.settings.distractionUrl = "";
+      state.settings.distractionOverlayUrl = normalized;
+      state.settings.distractionOverlayUntil = overlayUntil;
+      state.settings.distractionOverlayX = 50;
+      state.settings.distractionOverlayY = 52;
+      state.settings.distractionUntil = overlayUntil;
+      return true;
+    }
+
     function postDistraction() {
       if (!domLinkControlsAllowed()) return;
       const url = normalizeDistractionSource(els.sideDistractionInput.value);
@@ -3539,13 +3600,7 @@
       state.settings.distractionMode = els.sideDistractionMode.value || "background-both";
       state.settings.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration.value);
       if (state.settings.distractionMode === "overlay-sub") {
-        const overlayPosition = randomDistractionOverlayPosition();
-        state.settings.distractionUrl = "";
-        state.settings.distractionOverlayUrl = url;
-        state.settings.distractionOverlayUntil = Date.now() + state.settings.distractionDuration * 1000;
-        state.settings.distractionOverlayX = overlayPosition.x;
-        state.settings.distractionOverlayY = overlayPosition.y;
-        state.settings.distractionUntil = state.settings.distractionOverlayUntil;
+        addDistractionOverlay(url, state.settings.distractionDuration);
         els.sideDistractionStatus.textContent = `Overlay posted for ${state.settings.distractionDuration} seconds.`;
       } else {
         state.settings.distractionUrl = "";
@@ -3557,6 +3612,36 @@
       rememberDistractionImage(url);
       renderSidePanel();
       publishSettingsState();
+    }
+
+    function openDistractionChoice(url, message = "How should this image appear?") {
+      if (!domLinkControlsAllowed()) return;
+      const normalized = normalizeDistractionSource(url);
+      if (!normalized || !els.distractionChoiceModal) return;
+      pendingDistractionChoiceUrl = normalized;
+      if (els.distractionChoiceText) els.distractionChoiceText.textContent = message;
+      if (els.distractionChoicePreview) {
+        els.distractionChoicePreview.innerHTML = `<img src="${escapeHtml(normalized)}" alt="">`;
+      }
+      els.distractionChoiceModal.classList.remove("hidden");
+    }
+
+    function closeDistractionChoice() {
+      pendingDistractionChoiceUrl = "";
+      if (els.distractionChoicePreview) els.distractionChoicePreview.innerHTML = "";
+      if (els.distractionChoiceModal) els.distractionChoiceModal.classList.add("hidden");
+    }
+
+    function postChosenDistraction(mode) {
+      const url = normalizeDistractionSource(pendingDistractionChoiceUrl);
+      if (!url) {
+        closeDistractionChoice();
+        return;
+      }
+      els.sideDistractionInput.value = url;
+      els.sideDistractionMode.value = mode === "wallpaper" ? "background-sub" : "overlay-sub";
+      closeDistractionChoice();
+      postDistraction();
     }
 
     function imageFileFromItems(items) {
@@ -3683,11 +3768,17 @@
         try {
           const hostedUrl = await uploadDistractionImageToHost(result, file);
           els.sideDistractionInput.value = hostedUrl;
-          els.sideDistractionStatus.textContent = "Image uploaded. Press Post to show it.";
+          rememberDistractionImage(hostedUrl);
+          renderDistractionGallery();
+          openDistractionChoice(hostedUrl, "Image uploaded. How should it appear?");
+          els.sideDistractionStatus.textContent = "Image uploaded and saved to the gallery.";
         } catch (uploadError) {
           els.sideDistractionInput.value = result.dataUrl;
+          rememberDistractionImage(result.dataUrl);
+          renderDistractionGallery();
+          openDistractionChoice(result.dataUrl, "Image loaded locally. How should it appear?");
           const uploadMessage = String(uploadError && uploadError.message || "Catbox upload failed.");
-          els.sideDistractionStatus.textContent = `Catbox upload failed: ${uploadMessage} Using local fallback. Press Post to show it.`;
+          els.sideDistractionStatus.textContent = `Catbox upload failed: ${uploadMessage} Using local fallback.`;
         }
       } catch (error) {
         const message = String(error && error.message || "");
@@ -3723,7 +3814,8 @@
       state.settings.distractionOverlayUrl = "";
       state.settings.distractionOverlayUntil = 0;
       state.settings.distractionOverlayX = 50;
-      state.settings.distractionOverlayY = 18;
+      state.settings.distractionOverlayY = 52;
+      state.settings.distractionOverlays = [];
       els.sideDistractionInput.value = "";
       els.sideDistractionStatus.textContent = "Distraction cleared.";
       renderSidePanel();
@@ -3735,6 +3827,7 @@
         state.settings.distractionUrl
         || state.settings.distractionBackgroundUrl
         || state.settings.distractionOverlayUrl
+        || activeDistractionOverlays().length
       );
     }
 
@@ -3859,18 +3952,10 @@
       updateRedditeryRandomButton();
       els.sideDistractionStatus.textContent = "Loading recent Redditery images...";
       try {
-        const response = await fetch("/api/redditery-gallery?subreddit=gooninghentai&limit=18");
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "Redditery gallery failed.");
-        localRedditeryGalleryItems = Array.isArray(data.items)
-          ? data.items.filter((item) => item && normalizeDistractionSource(item.url)).slice(0, 18)
-          : [];
-        if (!localRedditeryGalleryItems.length) {
-          els.sideDistractionStatus.textContent = "Redditery returned no usable recent images.";
-          return;
-        }
-        const randomIndex = Math.floor(Math.random() * localRedditeryGalleryItems.length);
-        selectRedditeryGalleryImage(randomIndex, true);
+        const item = await fetchRandomRedditeryItem(true);
+        if (!item) return;
+        const index = localRedditeryGalleryItems.findIndex((entry) => entry && entry.url === item.url);
+        selectRedditeryGalleryImage(index >= 0 ? index : 0, true);
         startRedditeryCooldown();
       } catch (error) {
         localRedditeryGalleryItems = [];
@@ -3880,6 +3965,26 @@
         updateRedditeryRandomButton();
         renderRedditeryGallery();
       }
+    }
+
+    async function fetchRandomRedditeryItem(updateGallery = false) {
+      const nextPage = (localRedditeryPage + 1 + (Math.random() < 0.25 ? 1 : 0)) % 3;
+      const response = await fetch(`/api/redditery-gallery?subreddit=gooninghentai&limit=18&page=${nextPage}&nonce=${Date.now()}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Redditery gallery failed.");
+      const items = Array.isArray(data.items)
+        ? data.items.filter((item) => item && normalizeDistractionSource(item.url)).slice(0, 18)
+        : [];
+      if (!items.length) {
+        els.sideDistractionStatus.textContent = "Redditery returned no usable recent images.";
+        return null;
+      }
+      localRedditeryPage = Number.isFinite(Number(data.page)) ? Number(data.page) : nextPage;
+      if (updateGallery) {
+        localRedditeryGalleryItems = items;
+        renderRedditeryGallery();
+      }
+      return items[Math.floor(Math.random() * items.length)];
     }
 
     function startRedditeryCooldown() {
@@ -3915,16 +4020,107 @@
       els.redditeryRandomBtn.disabled = !domLinkControlsAllowed();
     }
 
+    function scheduleNextRedditeryAutoPopup() {
+      localRedditeryAutoPopupNextAt = Date.now() + (60_000 + Math.floor(Math.random() * 60_000));
+      updateRedditeryAutoPopupStatus();
+    }
+
+    function redditeryAutoPopupControlAllowed() {
+      return domLinkControlsAllowed() || (state.screen === "select" && state.currentGame === "solitaire") || state.screen === "solitaire";
+    }
+
+    function redditeryAutoPopupAllowed() {
+      return domLinkControlsAllowed() || state.screen === "solitaire";
+    }
+
+    function setRedditeryAutoPopupEnabled(enabled) {
+      updateSettings({ redditeryAutoPopup: Boolean(enabled) });
+      if (enabled) scheduleNextRedditeryAutoPopup();
+      else localRedditeryAutoPopupNextAt = 0;
+      updateRedditeryAutoPopupStatus();
+    }
+
+    function updateRedditeryAutoPopupStatus() {
+      const enabled = Boolean(state.settings.redditeryAutoPopup);
+      const allowed = redditeryAutoPopupControlAllowed();
+      [
+        [els.redditeryAutoPopupToggle, domLinkControlsAllowed()],
+        [els.soloRedditeryAutoPopupToggle, (state.screen === "select" && state.currentGame === "solitaire") || state.screen === "solitaire"]
+      ].forEach(([toggle, canUse]) => {
+        if (!toggle) return;
+        toggle.checked = enabled;
+        toggle.disabled = !canUse;
+      });
+      const statusEls = [els.redditeryAutoPopupStatus, els.soloRedditeryAutoPopupStatus].filter(Boolean);
+      if (!statusEls.length) return;
+      let statusText = "";
+      if (!state.settings.redditeryAutoPopup) {
+        statusText = state.screen === "solitaire"
+          ? "Off. When enabled, a random Redditery image pops up every 1-2 minutes."
+          : state.screen === "select" && state.currentGame === "solitaire"
+            ? "Off. When enabled, a random Redditery image pops up every 1-2 minutes during solo games."
+          : "Off. When enabled, a random Redditery image pops up for the sub every 1-2 minutes.";
+        statusEls.forEach((status) => { status.textContent = statusText; });
+        return;
+      }
+      if (!allowed) {
+        statusEls.forEach((status) => { status.textContent = "Unavailable here."; });
+        return;
+      }
+      if (localRedditeryAutoPopupLoading) {
+        statusEls.forEach((status) => { status.textContent = "Loading the next auto popup..."; });
+        return;
+      }
+      if (!localRedditeryAutoPopupNextAt) scheduleNextRedditeryAutoPopup();
+      const seconds = Math.max(0, Math.ceil((localRedditeryAutoPopupNextAt - Date.now()) / 1000));
+      const minutes = Math.floor(seconds / 60);
+      const remainder = seconds % 60;
+      statusText = `On. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}.`;
+      statusEls.forEach((status) => { status.textContent = statusText; });
+    }
+
+    async function resolveRedditeryAutoPopup() {
+      if (!state.settings.redditeryAutoPopup || !redditeryAutoPopupAllowed()) {
+        localRedditeryAutoPopupNextAt = 0;
+        localRedditeryAutoPopupLoading = false;
+        updateRedditeryAutoPopupStatus();
+        return;
+      }
+      if (!localRedditeryAutoPopupNextAt) scheduleNextRedditeryAutoPopup();
+      updateRedditeryAutoPopupStatus();
+      if (localRedditeryAutoPopupLoading || Date.now() < localRedditeryAutoPopupNextAt) return;
+      localRedditeryAutoPopupLoading = true;
+      updateRedditeryAutoPopupStatus();
+      try {
+        const item = await fetchRandomRedditeryItem(true);
+        const url = item && normalizeDistractionSource(item.url);
+        if (url && addDistractionOverlay(url, normalizeDistractionDuration(state.settings.distractionDuration))) {
+          rememberDistractionImage(url);
+          if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto Redditery popup posted.";
+          renderDistractionGallery();
+          publishSettingsState();
+        }
+      } catch (error) {
+        const message = String(error && error.message || "Auto Redditery popup failed.");
+        if (els.redditeryAutoPopupStatus) els.redditeryAutoPopupStatus.textContent = message;
+        if (els.soloRedditeryAutoPopupStatus) els.soloRedditeryAutoPopupStatus.textContent = message;
+      } finally {
+        localRedditeryAutoPopupLoading = false;
+        scheduleNextRedditeryAutoPopup();
+        renderSidePanel();
+      }
+    }
+
     function selectRedditeryGalleryImage(index, fromRandom = false) {
       if (!domLinkControlsAllowed()) return;
       const item = localRedditeryGalleryItems[Number(index)];
       const url = item && normalizeDistractionSource(item.url);
       if (!url) return;
-      els.sideDistractionInput.value = url;
       rememberDistractionImage(url);
       els.sideDistractionStatus.textContent = fromRandom
-        ? "Random Redditery image selected and saved. Choose display mode, then Post."
-        : "Redditery image selected and saved. Choose display mode, then Post.";
+        ? "Random Redditery image selected and saved."
+        : "Redditery image selected and saved.";
+      openDistractionChoice(url, "How should this Redditery image appear?");
       renderRedditeryGallery();
       renderDistractionGallery();
     }
@@ -3933,26 +4129,38 @@
       if (!domLinkControlsAllowed()) return;
       const item = distractionGalleryItems()[Number(index)];
       if (!item) return;
-      els.sideDistractionInput.value = item.url;
-      els.sideDistractionStatus.textContent = "Image selected. Choose the display mode, then Post.";
+      openDistractionChoice(item.url, "How should this saved image appear?");
+      els.sideDistractionStatus.textContent = "Saved image selected.";
       renderDistractionGallery();
     }
 
-    function randomDistractionOverlayPosition() {
-      const viewportWidth = Math.max(320, window.innerWidth || 1200);
-      const viewportHeight = Math.max(420, window.innerHeight || 800);
-      const isCompact = viewportWidth <= 820;
-      const overlayWidth = Math.min(isCompact ? 360 : 420, viewportWidth - (isCompact ? 24 : 36));
-      const overlayHeight = Math.min(isCompact ? 280 : 360, viewportHeight * (isCompact ? 0.38 : 0.46));
-      const xMargin = ((overlayWidth / 2 + 12) / viewportWidth) * 100;
-      const yMin = (12 / viewportHeight) * 100;
-      const yMax = Math.max(yMin, ((viewportHeight - overlayHeight - 12) / viewportHeight) * 100);
-      const xMin = Math.min(50, xMargin);
-      const xMax = Math.max(50, 100 - xMargin);
-      return {
-        x: Math.round((xMin + Math.random() * (xMax - xMin)) * 10) / 10,
-        y: Math.round((yMin + Math.random() * (yMax - yMin)) * 10) / 10
+    function activeDistractionOverlays() {
+      const now = Date.now();
+      const list = Array.isArray(state.settings.distractionOverlays) ? state.settings.distractionOverlays : [];
+      const active = list
+        .filter((item) => item && normalizeDistractionSource(item.url) && Number(item.until || 0) > now)
+        .slice(-3);
+      const oldUrl = normalizeDistractionSource(state.settings.distractionOverlayUrl || (state.settings.distractionMode === "overlay-sub" ? state.settings.distractionUrl : ""));
+      const oldUntil = Number(state.settings.distractionOverlayUntil || state.settings.distractionUntil || 0);
+      if (!active.length && oldUrl && oldUntil > now) {
+        active.push({
+          id: "legacy-overlay",
+          url: oldUrl,
+          until: oldUntil,
+          jitterX: 0,
+          jitterY: 0
+        });
+      }
+      return active;
+    }
+
+    function overlaySlot(index, count) {
+      const slots = {
+        1: [{ x: 50, y: 52 }],
+        2: [{ x: 32, y: 52 }, { x: 68, y: 52 }],
+        3: [{ x: 22, y: 52 }, { x: 50, y: 50 }, { x: 78, y: 52 }]
       };
+      return (slots[Math.min(3, Math.max(1, count))] || slots[1])[index] || slots[1][0];
     }
 
     function shouldShowSubOnlyMedia() {
@@ -3970,21 +4178,30 @@
       const oldMode = state.settings.distractionMode || "background-both";
       const backgroundUrl = state.settings.distractionBackgroundUrl || (oldMode === "overlay-sub" ? "" : oldUrl);
       const backgroundMode = state.settings.distractionBackgroundMode || (oldMode === "background-sub" ? "background-sub" : "background-both");
-      const overlayUrl = state.settings.distractionOverlayUrl || (oldMode === "overlay-sub" ? oldUrl : "");
-      const overlayUntil = Number(state.settings.distractionOverlayUntil || state.settings.distractionUntil || 0);
+      const overlays = activeDistractionOverlays();
       const showBackground = Boolean(backgroundUrl)
         && (backgroundMode === "background-both" || (backgroundMode === "background-sub" && shouldShowSubOnlyMedia()));
-      const overlayRemaining = Math.max(0, overlayUntil - Date.now());
-      const showOverlay = Boolean(overlayUrl)
-        && shouldShowSubOnlyMedia()
-        && overlayRemaining > 0;
+      const showOverlay = overlays.length > 0 && shouldShowSubOnlyMedia();
       els.distractionBackdrop.classList.toggle("active", showBackground);
       els.distractionBackdrop.style.backgroundImage = showBackground ? safeCssUrl(backgroundUrl) : "";
       els.distractionOverlay.classList.toggle("active", showOverlay);
-      els.distractionOverlay.style.backgroundImage = showOverlay ? safeCssUrl(overlayUrl) : "";
-      els.distractionOverlay.style.setProperty("--distraction-overlay-left", `${Number(state.settings.distractionOverlayX || 50)}%`);
-      els.distractionOverlay.style.setProperty("--distraction-overlay-top", `${Number(state.settings.distractionOverlayY || 18)}%`);
+      els.distractionOverlay.innerHTML = showOverlay
+        ? overlays.map((overlay, index) => {
+          const slot = overlaySlot(index, overlays.length);
+          const jitterX = Number(overlay.jitterX || 0);
+          const jitterY = Number(overlay.jitterY || 0);
+          const x = Math.round(Math.min(84, Math.max(16, slot.x + jitterX)) * 10) / 10;
+          const y = Math.round(Math.min(70, Math.max(34, slot.y + jitterY)) * 10) / 10;
+          const width = overlays.length === 1 ? "76vw" : (overlays.length === 2 ? "40vw" : "28vw");
+          return `
+            <div class="distraction-overlay-item" style="--distraction-overlay-left:${x}%; --distraction-overlay-top:${y}%; --distraction-overlay-width:${width};">
+              <img src="${escapeHtml(overlay.url)}" alt="" loading="eager">
+            </div>
+          `;
+        }).join("")
+        : "";
       if (showOverlay) {
+        const overlayRemaining = Math.max(0, Math.min(...overlays.map((overlay) => Number(overlay.until || 0))) - Date.now());
         window.clearTimeout(renderDistractionBackground.timer);
         renderDistractionBackground.timer = window.setTimeout(renderDistractionBackground, overlayRemaining + 80);
       }
@@ -17143,6 +17360,7 @@
         if (tab === "settings" && !sideSettingsAllowed()) return;
         if (tab === "tools" && !domLinkControlsAllowed()) return;
         state.settings.activeUtilityTab = tab;
+        state.settings.activeUtilityTabManual = true;
         renderSidePanel();
       });
     });
@@ -17243,6 +17461,16 @@
       });
     }
     if (els.redditeryRandomBtn) els.redditeryRandomBtn.addEventListener("click", loadRandomRedditeryImage);
+    if (els.redditeryAutoPopupToggle) {
+      els.redditeryAutoPopupToggle.addEventListener("change", () => {
+        setRedditeryAutoPopupEnabled(els.redditeryAutoPopupToggle.checked);
+      });
+    }
+    if (els.soloRedditeryAutoPopupToggle) {
+      els.soloRedditeryAutoPopupToggle.addEventListener("change", () => {
+        setRedditeryAutoPopupEnabled(els.soloRedditeryAutoPopupToggle.checked);
+      });
+    }
     if (els.redditeryGallery) {
       els.redditeryGallery.addEventListener("click", (event) => {
         const button = event.target.closest("[data-redditery-gallery-index]");
@@ -17255,6 +17483,14 @@
         const button = event.target.closest("[data-distraction-gallery-index]");
         if (!button || button.disabled) return;
         selectDistractionFromGallery(button.dataset.distractionGalleryIndex);
+      });
+    }
+    if (els.cancelDistractionChoiceBtn) els.cancelDistractionChoiceBtn.addEventListener("click", closeDistractionChoice);
+    if (els.wallpaperDistractionChoiceBtn) els.wallpaperDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("wallpaper"));
+    if (els.popupDistractionChoiceBtn) els.popupDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("popup"));
+    if (els.distractionChoiceModal) {
+      els.distractionChoiceModal.addEventListener("click", (event) => {
+        if (event.target === els.distractionChoiceModal) closeDistractionChoice();
       });
     }
     els.rulesBtn.addEventListener("click", openRulesModal);
@@ -17270,6 +17506,7 @@
       }
       renderDomTriggerOverlay();
       renderDomTriggerPanel();
+      resolveRedditeryAutoPopup();
     }, 400);
     els.tributeFourPowerOptions.addEventListener("click", (event) => {
       const button = event.target.closest("[data-tribute-four-power], [data-fleet-power], [data-chess-power], [data-checkers-power], [data-twenty-one-power]");

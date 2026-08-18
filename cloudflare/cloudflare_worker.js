@@ -206,16 +206,11 @@ function normalizeRedditeryPost(match, index, allowTinyPreview = false) {
   };
 }
 
-async function fetchRedditeryGallery(searchParams) {
-  const subreddit = safeRedditerySubreddit(searchParams.get("subreddit"));
-  const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 18) || 18));
-  const body = new URLSearchParams({
-    r: subreddit,
-    t: "",
-    after: "",
-    ID: "",
-    likes: ""
-  });
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchRedditeryHtml(body, attempt = 1) {
   const response = await fetch(REDDITERY_ENDPOINT, {
     method: "POST",
     headers: {
@@ -227,7 +222,39 @@ async function fetchRedditeryGallery(searchParams) {
   });
   const html = await response.text();
   if (!response.ok) throw new Error(`Redditery returned ${response.status}.`);
-  if (/Couldn't connect to www\.reddit\.com/i.test(html)) throw new Error("Redditery could not connect to Reddit. Try again in a minute.");
+  if (/Couldn't connect to www\.reddit\.com/i.test(html)) {
+    if (attempt < 3) {
+      await wait(800 * attempt);
+      return fetchRedditeryHtml(body, attempt + 1);
+    }
+    throw new Error("Redditery could not connect to Reddit after a few tries. Try again in a minute.");
+  }
+  return html;
+}
+
+function redditeryAfterToken(html) {
+  const match = String(html || "").match(/a\s*=\s*'([^']+)'/);
+  return match ? match[1] : "";
+}
+
+async function fetchRedditeryGallery(searchParams) {
+  const subreddit = safeRedditerySubreddit(searchParams.get("subreddit"));
+  const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 18) || 18));
+  const page = Math.max(0, Math.min(2, Number(searchParams.get("page") || 0) || 0));
+  const body = new URLSearchParams({
+    r: subreddit,
+    t: "",
+    after: "",
+    ID: "",
+    likes: ""
+  });
+  let html = await fetchRedditeryHtml(body);
+  let after = redditeryAfterToken(html);
+  for (let pageIndex = 0; pageIndex < page && after; pageIndex += 1) {
+    body.set("after", after);
+    html = await fetchRedditeryHtml(body);
+    after = redditeryAfterToken(html);
+  }
   const matches = [...html.matchAll(/<div class=['"]nsfw['"] id=['"]([^'"]+)['"]>([\s\S]*?)(?=<div class=['"]nsfw['"] id=|<script\b|$)/gi)];
   let posts = matches
     .map((match, index) => normalizeRedditeryPost(match, index, false))
@@ -239,7 +266,7 @@ async function fetchRedditeryGallery(searchParams) {
       .filter(Boolean)
       .slice(0, limit);
   }
-  return { source: "redditery", subreddit, items: posts };
+  return { source: "redditery", subreddit, page, after, items: posts };
 }
 
 function roomHasPlayers(snapshot) {

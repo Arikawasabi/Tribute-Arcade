@@ -298,6 +298,14 @@
       <button class="game-select-tab" data-game-tab="all">All</button>
     </div>
 
+    <section class="solo-redditery-panel hidden" id="soloRedditeryPanel">
+      <label class="settings-row compact-toggle">
+        <span>Random popups</span>
+        <input id="soloRedditeryAutoPopupToggle" type="checkbox">
+      </label>
+      <p class="chooser-line" id="soloRedditeryAutoPopupStatus">Off. When enabled, a random Redditery image pops up every 1-2 minutes during solo games.</p>
+    </section>
+
     <section class="game-grid" id="mainGamesGrid">
       <button class="panel game-card" id="tributeFourCard" data-open-game="tributeFour" data-game-categories="board all">
         <span>
@@ -852,6 +860,23 @@
     </section>
   </div>
 
+  <div class="modal-backdrop hidden" id="distractionChoiceModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Post Image</h2>
+      </div>
+      <div class="panel-body">
+        <div class="distraction-choice-preview" id="distractionChoicePreview"></div>
+        <p class="chooser-line" id="distractionChoiceText">How should this image appear?</p>
+        <div class="role-row">
+          <button id="cancelDistractionChoiceBtn">Cancel</button>
+          <button id="wallpaperDistractionChoiceBtn">Wallpaper</button>
+          <button id="popupDistractionChoiceBtn" class="primary">Sub Popup</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <aside class="side-popout" id="sidePopout">
     <div class="side-header">
       <h2 class="panel-title" id="sidePanelTitle">Room</h2>
@@ -877,6 +902,7 @@
       <section class="side-pane hidden" id="sideToolsPane">
         <div class="utility-tabs" id="utilityTabs">
           <button class="utility-tab active" data-utility-tab="tools">Tools</button>
+          <button class="utility-tab" data-utility-tab="gallery">Gallery</button>
           <button class="utility-tab" data-utility-tab="settings">Settings</button>
         </div>
         <div class="settings-pane" id="domToolsPane">
@@ -911,6 +937,10 @@
             <button id="clearDistractionBtn">Clear</button>
           </div>
           <input id="distractionFileInput" class="hidden-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/*">
+          <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
+        </div>
+        <div class="settings-pane hidden" id="sideGalleryPane">
+          <h3 class="panel-title">Image Gallery</h3>
           <div class="booru-test-panel">
             <div class="booru-test-heading">
               <strong>Redditery test gallery</strong>
@@ -919,10 +949,14 @@
             <div class="mode-grid">
               <button id="redditeryRandomBtn">Random Recent</button>
             </div>
+            <label class="settings-row compact-toggle">
+              Auto sub popup
+              <input id="redditeryAutoPopupToggle" type="checkbox">
+            </label>
+            <p class="chooser-line" id="redditeryAutoPopupStatus">Off. When enabled, a random Redditery image pops up for the sub every 1-2 minutes.</p>
             <div class="booru-gallery hidden" id="redditeryGallery"></div>
           </div>
           <div class="distraction-gallery" id="distractionGallery"></div>
-          <p class="chooser-line" id="sideDistractionStatus">Post an image or GIF to place it behind the game.</p>
         </div>
         <div class="side-utility-settings hidden" id="sideSettingsPane">
           <div class="settings-pane" id="domSettingsPane">

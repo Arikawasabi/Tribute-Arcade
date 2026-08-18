@@ -98,26 +98,38 @@
 
     .distraction-overlay {
       position: fixed;
-      top: var(--distraction-overlay-top, 18%);
-      left: var(--distraction-overlay-left, 50%);
-      width: min(620px, calc(100vw - 32px));
-      height: min(520px, 62vh);
+      inset: 0;
       z-index: 21;
       pointer-events: none;
-      background-position: center;
-      background-size: contain;
-      background-repeat: no-repeat;
       border: 0;
-      border-radius: 0;
-      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
       opacity: 0;
-      transform: translate(-50%, 10px);
-      transition: opacity 180ms ease, transform 180ms ease;
+      transition: opacity 180ms ease;
     }
 
     .distraction-overlay.active {
       opacity: 0.96;
-      transform: translate(-50%, 0);
+    }
+
+    .distraction-overlay-item {
+      position: absolute;
+      top: var(--distraction-overlay-top, 52%);
+      left: var(--distraction-overlay-left, 50%);
+      display: grid;
+      place-items: center;
+      width: min(var(--distraction-overlay-width, 76vw), 760px);
+      max-width: calc(100vw - 28px);
+      height: min(76vh, 760px);
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 22px 50px rgba(0, 0, 0, 0.58));
+    }
+
+    .distraction-overlay-item img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
 
     .dom-trigger-overlay {
@@ -4625,6 +4637,28 @@
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 20px 60px rgba(0, 0, 0, 0.34);
     }
 
+    .solo-redditery-panel {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(241, 201, 101, 0.12);
+      border-radius: 8px;
+      background: rgba(20, 13, 15, 0.72);
+    }
+
+    .solo-redditery-panel .settings-row {
+      margin: 0;
+      min-width: 190px;
+    }
+
+    .solo-redditery-panel .chooser-line {
+      margin: 0;
+      font-size: 0.88rem;
+      text-align: right;
+    }
+
     .solitaire-top-row {
       display: grid;
       grid-template-columns: repeat(2, minmax(118px, 150px)) minmax(18px, 1fr) repeat(4, minmax(118px, 150px));
@@ -5976,7 +6010,7 @@
 
     .utility-tabs {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
       position: sticky;
       top: 0;
@@ -5997,6 +6031,26 @@
     .side-utility-settings {
       display: grid;
       gap: 10px;
+    }
+
+    .distraction-choice-preview {
+      display: grid;
+      place-items: center;
+      min-height: 180px;
+      max-height: 42vh;
+      border: 1px solid rgba(239, 199, 94, 0.22);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.28);
+      overflow: hidden;
+    }
+
+    .distraction-choice-preview img {
+      display: block;
+      max-width: 100%;
+      max-height: 42vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
     }
 
     .chat-pane {
@@ -6727,8 +6781,16 @@
       }
 
       .distraction-overlay {
-        width: min(520px, calc(100vw - 18px));
-        height: min(430px, 58vh);
+        opacity: 0;
+      }
+
+      .distraction-overlay.active {
+        opacity: 0.94;
+      }
+
+      .distraction-overlay-item {
+        width: min(var(--distraction-overlay-width, 76vw), 520px);
+        height: min(54vh, 430px);
       }
 
       .status-pill {
