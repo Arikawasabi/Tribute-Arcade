@@ -181,17 +181,17 @@ function isTinyRedditPreview(value) {
   return Math.max(width || 0, height || 0) < 480;
 }
 
-function normalizeRedditeryPost(match, index) {
+function normalizeRedditeryPost(match, index, allowTinyPreview = false) {
   const id = String(match[1] || `redditery-${index}`);
   const block = match[2] || "";
   const imageMatches = [...block.matchAll(/<img\b[^>]*\bsrc=['"]([^'"]+)['"][^>]*>/gi)];
   const hrefMatches = [...block.matchAll(/<a\b[^>]*\bhref=['"]([^'"]+)['"][^>]*>/gi)];
   const directHref = hrefMatches
     .map((item) => decodeHtmlEntities(item[1]))
-    .find((href) => isRedditImageUrl(href) && !isTinyRedditPreview(href));
+    .find((href) => isRedditImageUrl(href) && (allowTinyPreview || !isTinyRedditPreview(href)));
   const previewUrl = imageMatches
     .map((item) => decodeHtmlEntities(item[1]))
-    .find((src) => isRedditImageUrl(src) && !isTinyRedditPreview(src));
+    .find((src) => isRedditImageUrl(src) && (allowTinyPreview || !isTinyRedditPreview(src)));
   const url = directHref || previewUrl;
   if (!url) return null;
   const titleMatch = block.match(/<h4[^>]*>\s*<a\b[^>]*>([\s\S]*?)<\/a>/i);
@@ -227,10 +227,18 @@ async function fetchRedditeryGallery(searchParams) {
   });
   const html = await response.text();
   if (!response.ok) throw new Error(`Redditery returned ${response.status}.`);
-  const posts = [...html.matchAll(/<div class=['"]nsfw['"] id=['"]([^'"]+)['"]>([\s\S]*?)(?=<div class=['"]nsfw['"] id=|<script\b|$)/gi)]
-    .map(normalizeRedditeryPost)
+  if (/Couldn't connect to www\.reddit\.com/i.test(html)) throw new Error("Redditery could not connect to Reddit. Try again in a minute.");
+  const matches = [...html.matchAll(/<div class=['"]nsfw['"] id=['"]([^'"]+)['"]>([\s\S]*?)(?=<div class=['"]nsfw['"] id=|<script\b|$)/gi)];
+  let posts = matches
+    .map((match, index) => normalizeRedditeryPost(match, index, false))
     .filter(Boolean)
     .slice(0, limit);
+  if (!posts.length) {
+    posts = matches
+      .map((match, index) => normalizeRedditeryPost(match, index, true))
+      .filter(Boolean)
+      .slice(0, limit);
+  }
   return { source: "redditery", subreddit, items: posts };
 }
 
