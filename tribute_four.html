@@ -136,9 +136,9 @@
       left: var(--distraction-overlay-left, 14px);
       display: grid;
       place-items: center;
-      width: min(var(--distraction-overlay-width, 76vw), 760px);
+      width: var(--distraction-overlay-width, 76vw);
       max-width: calc(100dvw - 28px);
-      height: min(var(--distraction-overlay-height, 64vh), 620px);
+      height: var(--distraction-overlay-height, 64vh);
       max-height: calc(100dvh - 28px);
       overflow: hidden;
       filter: drop-shadow(0 22px 50px rgba(0, 0, 0, 0.58));
@@ -7443,8 +7443,8 @@
       }
 
       .distraction-overlay-item {
-        width: min(var(--distraction-overlay-width, 76vw), 520px);
-        height: min(var(--distraction-overlay-height, 50vh), 380px);
+        width: var(--distraction-overlay-width, 76vw);
+        height: var(--distraction-overlay-height, 50vh);
         max-width: calc(100dvw - 20px);
         max-height: calc(100dvh - 20px);
       }
