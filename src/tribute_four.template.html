@@ -335,6 +335,7 @@
         <select id="soloBooruDateFilter">
           <option value="all">All time</option>
           <option value="12m">Last 12 months</option>
+          <option value="6m">Last 6 months</option>
           <option value="3m">Last 3 months</option>
           <option value="1m">Last 1 month</option>
         </select>
@@ -1104,15 +1105,24 @@
                 <option value="mixed">Mixed</option>
               </select>
             </label>
+            <label class="field-label" id="booruAutoPopupTagRow">
+              Booru tag
+              <input id="autoDanbooruTagInput" type="text" placeholder="boobs, feet, armpits...">
+            </label>
+            <div class="danbooru-suggestions hidden" id="autoDanbooruSuggestions"></div>
             <label class="field-label" id="booruDateFilterRow">
               Upload date
               <select id="booruDateFilter">
                 <option value="all">All time</option>
                 <option value="12m">Last 12 months</option>
+                <option value="6m">Last 6 months</option>
                 <option value="3m">Last 3 months</option>
                 <option value="1m">Last 1 month</option>
               </select>
             </label>
+            <div class="danbooru-toggle-row" id="booruAutoPopupVideoRow">
+              <button id="danbooruFullVideos" type="button" class="toggle-button" aria-pressed="false">Full Videos</button>
+            </div>
             <label class="field-label">
               Popup seconds
               <input id="redditeryAutoPopupDuration" type="number" min="1" max="60" step="1" value="15">
@@ -1157,13 +1167,13 @@
             <div class="danbooru-toggle-row">
               <button id="danbooruIncludeVideos" type="button" class="toggle-button" aria-pressed="false">Include Videos</button>
               <button id="danbooruUnmuteVideos" type="button" class="toggle-button" aria-pressed="false">Unmute Videos</button>
-              <button id="danbooruFullVideos" type="button" class="toggle-button" aria-pressed="false">Full Videos</button>
             </div>
             <label class="field-label">
               Upload date
               <select id="danbooruDateFilter">
                 <option value="all">All time</option>
                 <option value="12m">Last 12 months</option>
+                <option value="6m">Last 6 months</option>
                 <option value="3m">Last 3 months</option>
                 <option value="1m">Last 1 month</option>
               </select>

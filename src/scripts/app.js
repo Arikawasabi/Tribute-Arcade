@@ -443,6 +443,10 @@
       redditeryAutoPopupSource: document.getElementById("redditeryAutoPopupSource"),
       redditeryAutoPopupCategoryRow: document.getElementById("redditeryAutoPopupCategoryRow"),
       redditeryAutoPopupCategory: document.getElementById("redditeryAutoPopupCategory"),
+      booruAutoPopupTagRow: document.getElementById("booruAutoPopupTagRow"),
+      autoDanbooruTagInput: document.getElementById("autoDanbooruTagInput"),
+      autoDanbooruSuggestions: document.getElementById("autoDanbooruSuggestions"),
+      booruAutoPopupVideoRow: document.getElementById("booruAutoPopupVideoRow"),
       booruDateFilterRow: document.getElementById("booruDateFilterRow"),
       booruDateFilter: document.getElementById("booruDateFilter"),
       redditeryAutoPopupDuration: document.getElementById("redditeryAutoPopupDuration"),
@@ -4319,13 +4323,17 @@
 
     function normalizeBooruDateFilter(value) {
       const key = String(value || "all").toLowerCase();
-      return ["all", "12m", "3m", "1m"].includes(key) ? key : "all";
+      return ["all", "12m", "10m", "8m", "6m", "4m", "3m", "1m"].includes(key) ? key : "all";
     }
 
     function booruDateFilterLabel(value = state.settings.booruDateFilter) {
       const labels = {
         all: "all time",
         "12m": "last 12 months",
+        "10m": "last 10 months",
+        "8m": "last 8 months",
+        "6m": "last 6 months",
+        "4m": "last 4 months",
         "3m": "last 3 months",
         "1m": "last 1 month"
       };
@@ -4507,6 +4515,10 @@
       if (els.danbooruGalleryStatus) {
         els.danbooruGalleryStatus.textContent = `Booru upload date set to ${booruDateFilterLabel(next)}.`;
       }
+      if (domLinkControlsAllowed() && !localDanbooruGalleryLoading) {
+        const tag = String((document.activeElement === els.danbooruTagInput ? els.danbooruTagInput.value : "") || (els.danbooruTagInput && els.danbooruTagInput.value) || localDanbooruCustomTag || "").trim();
+        loadDanbooruGallery({ tag, next: false });
+      }
       if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
     }
 
@@ -4555,6 +4567,10 @@
 
     function renderDanbooruSuggestions() {
       renderDanbooruSuggestionList(els.danbooruSuggestions, true);
+      renderDanbooruSuggestionList(
+        els.autoDanbooruSuggestions,
+        domLinkControlsAllowed() && autoPopupSourceKey() === "booru"
+      );
       renderDanbooruSuggestionList(
         els.soloDanbooruSuggestions,
         soloAutoPopupControlsAllowed() && autoPopupSourceKey() === "booru"
@@ -4728,6 +4744,18 @@
       if (els.redditeryAutoPopupSource) els.redditeryAutoPopupSource.disabled = !domAllowed;
       if (els.redditeryAutoPopupCategory) els.redditeryAutoPopupCategory.disabled = !domAllowed || source !== "reddit";
       if (els.redditeryAutoPopupCategoryRow) els.redditeryAutoPopupCategoryRow.classList.toggle("hidden", source !== "reddit");
+      if (els.booruAutoPopupTagRow) els.booruAutoPopupTagRow.classList.toggle("hidden", source !== "booru");
+      if (els.autoDanbooruTagInput) {
+        els.autoDanbooruTagInput.disabled = !domAllowed || source !== "booru";
+        if (document.activeElement !== els.autoDanbooruTagInput) {
+          els.autoDanbooruTagInput.value = localDanbooruCustomTag || "";
+        }
+      }
+      if (els.autoDanbooruSuggestions && source !== "booru") {
+        els.autoDanbooruSuggestions.classList.add("hidden");
+        els.autoDanbooruSuggestions.innerHTML = "";
+      }
+      if (els.booruAutoPopupVideoRow) els.booruAutoPopupVideoRow.classList.toggle("hidden", source !== "booru");
       if (els.booruDateFilterRow) els.booruDateFilterRow.classList.toggle("hidden", source !== "booru");
       if (els.soloRedditeryAutoPopupSource) els.soloRedditeryAutoPopupSource.disabled = !soloAllowed;
       if (els.soloRedditeryAutoPopupCategory) els.soloRedditeryAutoPopupCategory.disabled = !soloAllowed || source !== "reddit";
@@ -4882,12 +4910,13 @@
       const tag = item && String(item.value || "").trim();
       if (!tag) return;
       if (els.danbooruTagInput) els.danbooruTagInput.value = tag;
+      if (els.autoDanbooruTagInput) els.autoDanbooruTagInput.value = tag;
       if (els.soloDanbooruTagInput) els.soloDanbooruTagInput.value = tag;
       localDanbooruCustomTag = tag;
       localDanbooruSuggestions = [];
       renderDanbooruSuggestions();
       resetAutoPopupFeedCursors();
-      if (target === "solo") {
+      if (target === "solo" || target === "auto") {
         updateRedditeryAutoPopupStatus();
         if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
         return;
@@ -5048,9 +5077,10 @@
 
     function currentBooruAutoPopupSearch() {
       const soloTag = String(els.soloDanbooruTagInput && els.soloDanbooruTagInput.value || "").trim();
+      const autoTag = String(els.autoDanbooruTagInput && els.autoDanbooruTagInput.value || "").trim();
       const inputTag = soloAutoPopupControlsAllowed() && autoPopupSourceKey() === "booru"
         ? soloTag
-        : String(els.danbooruTagInput && els.danbooruTagInput.value || "").trim();
+        : autoTag || String(els.danbooruTagInput && els.danbooruTagInput.value || "").trim();
       const tag = inputTag || localDanbooruCustomTag || "";
       const category = String(localDanbooruCategory || (els.danbooruGalleryCategory && els.danbooruGalleryCategory.value) || "feet").toLowerCase();
       const dateFilter = normalizeBooruDateFilter(state.settings.booruDateFilter);
@@ -19486,6 +19516,22 @@
       if (!select) return;
       select.addEventListener("change", () => setBooruDateFilter(select.value));
     });
+    if (els.autoDanbooruTagInput) {
+      els.autoDanbooruTagInput.addEventListener("input", () => {
+        localDanbooruCustomTag = String(els.autoDanbooruTagInput.value || "").trim();
+        resetAutoPopupFeedCursors();
+        updateRedditeryAutoPopupStatus();
+        queueDanbooruSuggestions(els.autoDanbooruTagInput);
+      });
+      els.autoDanbooruTagInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        localDanbooruCustomTag = String(els.autoDanbooruTagInput.value || "").trim();
+        resetAutoPopupFeedCursors();
+        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        updateRedditeryAutoPopupStatus();
+      });
+    }
     if (els.soloDanbooruTagInput) {
       els.soloDanbooruTagInput.addEventListener("input", () => {
         localDanbooruCustomTag = String(els.soloDanbooruTagInput.value || "").trim();
@@ -19507,6 +19553,13 @@
         const button = event.target.closest("[data-danbooru-suggestion-index]");
         if (!button) return;
         selectDanbooruSuggestion(button.dataset.danbooruSuggestionIndex);
+      });
+    }
+    if (els.autoDanbooruSuggestions) {
+      els.autoDanbooruSuggestions.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-danbooru-suggestion-index]");
+        if (!button) return;
+        selectDanbooruSuggestion(button.dataset.danbooruSuggestionIndex, "auto");
       });
     }
     if (els.soloDanbooruSuggestions) {

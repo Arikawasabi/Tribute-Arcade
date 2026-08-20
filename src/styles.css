@@ -6870,18 +6870,21 @@
       font-weight: 900;
     }
 
-    #soloDanbooruSuggestions {
+    #soloDanbooruSuggestions,
+    #autoDanbooruSuggestions {
       grid-column: 1 / -1;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       max-height: 190px;
     }
 
-    #soloDanbooruSuggestions button {
+    #soloDanbooruSuggestions button,
+    #autoDanbooruSuggestions button {
       min-height: 40px;
       padding: 8px 10px;
     }
 
-    #soloDanbooruSuggestions span {
+    #soloDanbooruSuggestions span,
+    #autoDanbooruSuggestions span {
       white-space: normal;
       line-height: 1.15;
     }

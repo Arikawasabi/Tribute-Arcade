@@ -127,15 +127,20 @@ function safeDanbooruAutocompleteQuery(value) {
 
 function safeDanbooruDateFilter(value) {
   const key = String(value || "all").toLowerCase();
-  return ["all", "12m", "3m", "1m"].includes(key) ? key : "all";
+  return ["all", "12m", "10m", "8m", "6m", "4m", "3m", "1m"].includes(key) ? key : "all";
 }
 
 function danbooruDateFilterTag(value) {
   const key = safeDanbooruDateFilter(value);
-  if (key === "12m") return "age:<1year";
-  if (key === "3m") return "age:<3months";
-  if (key === "1m") return "age:<1month";
+  if (/^\d+m$/.test(key)) return `age:<${key.replace("m", "months")}`;
   return "";
+}
+
+function danbooruDateFallbacks(value) {
+  const key = safeDanbooruDateFilter(value);
+  const ordered = ["all", "12m", "10m", "8m", "6m", "4m", "3m", "1m"];
+  const start = Math.max(0, ordered.indexOf(key));
+  return ordered.slice(start);
 }
 
 function applyDanbooruDateFilter(tags, dateFilter) {
@@ -238,41 +243,56 @@ async function fetchDanbooruGallery(searchParams) {
   const page = safeDanbooruPage(searchParams.get("page"));
   const customTag = safeDanbooruAutocompleteQuery(searchParams.get("tag"));
   const dateFilter = safeDanbooruDateFilter(searchParams.get("dateFilter"));
-  const rawTags = searchParams.get("tags") || (customTag ? danbooruTagsForCustomTag(customTag, dateFilter) : danbooruTagsForCategory(category, page, dateFilter));
-  const tags = applyDanbooruDateFilter(rawTags, dateFilter);
   const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 16) || 16));
   const includeVideos = String(searchParams.get("includeVideos") || "").toLowerCase() === "true";
   const requestLimit = Math.max(limit * 4, 80);
-  const endpoint = new URL(DANBOORU_ENDPOINT);
-  endpoint.searchParams.set("tags", tags);
-  endpoint.searchParams.set("limit", String(Math.min(100, requestLimit)));
-  endpoint.searchParams.set("page", String(page));
-  if (process.env.DANBOORU_LOGIN) endpoint.searchParams.set("login", process.env.DANBOORU_LOGIN);
-  if (process.env.DANBOORU_API_KEY) endpoint.searchParams.set("api_key", process.env.DANBOORU_API_KEY);
-  const response = await fetch(endpoint, {
-    headers: {
-      "Accept": "application/json,text/plain;q=0.8,*/*;q=0.5",
-      "User-Agent": "TributeArcade/1.0"
+  const explicitTags = searchParams.get("tags");
+  let lastError = null;
+  for (const activeDateFilter of danbooruDateFallbacks(dateFilter)) {
+    const rawTags = explicitTags || (customTag ? danbooruTagsForCustomTag(customTag, activeDateFilter) : danbooruTagsForCategory(category, page, activeDateFilter));
+    const tags = applyDanbooruDateFilter(rawTags, activeDateFilter);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const endpoint = new URL(DANBOORU_ENDPOINT);
+      endpoint.searchParams.set("tags", tags);
+      endpoint.searchParams.set("limit", String(Math.min(100, requestLimit)));
+      endpoint.searchParams.set("page", String(page));
+      if (process.env.DANBOORU_LOGIN) endpoint.searchParams.set("login", process.env.DANBOORU_LOGIN);
+      if (process.env.DANBOORU_API_KEY) endpoint.searchParams.set("api_key", process.env.DANBOORU_API_KEY);
+      const response = await fetch(endpoint, {
+        headers: {
+          "Accept": "application/json,text/plain;q=0.8,*/*;q=0.5",
+          "User-Agent": "TributeArcade/1.0"
+        }
+      });
+      const text = await response.text();
+      if (!response.ok) {
+        lastError = new Error(`Danbooru returned ${response.status}.`);
+        if (response.status === 500) continue;
+        throw lastError;
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (error) {
+        throw new Error("Danbooru returned non-JSON content.");
+      }
+      const posts = Array.isArray(parsed) ? parsed : [];
+      const items = posts.map((post) => normalizeBooruPost(post, { includeVideos })).filter(Boolean).slice(0, limit);
+      if (!items.length && activeDateFilter !== "1m") break;
+      return {
+        source: "danbooru",
+        category,
+        page,
+        tags,
+        dateFilter: activeDateFilter,
+        requestedDateFilter: dateFilter,
+        includeVideos,
+        items
+      };
     }
-  });
-  const text = await response.text();
-  if (!response.ok) throw new Error(`Danbooru returned ${response.status}.`);
-  let parsed;
-  try {
-    parsed = JSON.parse(text);
-  } catch (error) {
-    throw new Error("Danbooru returned non-JSON content.");
   }
-  const posts = Array.isArray(parsed) ? parsed : [];
-  return {
-    source: "danbooru",
-    category,
-    page,
-    tags,
-    dateFilter,
-    includeVideos,
-    items: posts.map((post) => normalizeBooruPost(post, { includeVideos })).filter(Boolean).slice(0, limit)
-  };
+  if (lastError) throw lastError;
+  throw new Error("No usable Booru results came back.");
 }
 
 async function fetchDanbooruAutocomplete(searchParams) {
