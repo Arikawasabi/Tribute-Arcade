@@ -127,10 +127,12 @@
         goonerGallerySource: "peekstr",
         goonerGalleryCategory: "captions",
         redditeryAutoPopup: false,
-        redditeryAutoPopupSource: "reddit",
+        redditeryAutoPopupSource: "booru",
         redditeryAutoPopupCategory: "captions",
         redditeryAutoPopupDuration: 15,
         redditeryAutoPopupInterval: 90,
+        booruDateFilter: "all",
+        booruAutoPopupFullVideos: false,
         leaveNotice: null,
         linkRequest: null,
         sessionMode: "throne",
@@ -282,10 +284,13 @@
       soloRedditeryAutoPopupCategory: document.getElementById("soloRedditeryAutoPopupCategory"),
       soloBooruAutoPopupTagRow: document.getElementById("soloBooruAutoPopupTagRow"),
       soloBooruAutoPopupVideoRow: document.getElementById("soloBooruAutoPopupVideoRow"),
+      soloBooruDateFilterRow: document.getElementById("soloBooruDateFilterRow"),
+      soloBooruDateFilter: document.getElementById("soloBooruDateFilter"),
       soloDanbooruTagInput: document.getElementById("soloDanbooruTagInput"),
       soloDanbooruSuggestions: document.getElementById("soloDanbooruSuggestions"),
       soloDanbooruIncludeVideos: document.getElementById("soloDanbooruIncludeVideos"),
       soloDanbooruUnmuteVideos: document.getElementById("soloDanbooruUnmuteVideos"),
+      soloDanbooruFullVideos: document.getElementById("soloDanbooruFullVideos"),
       soloRedditeryAutoPopupDuration: document.getElementById("soloRedditeryAutoPopupDuration"),
       soloRedditeryAutoPopupInterval: document.getElementById("soloRedditeryAutoPopupInterval"),
       soloRedditeryAutoPopupStatus: document.getElementById("soloRedditeryAutoPopupStatus"),
@@ -420,11 +425,13 @@
       booruLoadButtons: document.querySelectorAll("[data-booru-source]"),
       booruGallery: document.getElementById("booruGallery"),
       danbooruGalleryCategory: document.getElementById("danbooruGalleryCategory"),
+      danbooruDateFilter: document.getElementById("danbooruDateFilter"),
       danbooruLoadBtn: document.getElementById("danbooruLoadBtn"),
       danbooruNextBtn: document.getElementById("danbooruNextBtn"),
       danbooruTagInput: document.getElementById("danbooruTagInput"),
       danbooruIncludeVideos: document.getElementById("danbooruIncludeVideos"),
       danbooruUnmuteVideos: document.getElementById("danbooruUnmuteVideos"),
+      danbooruFullVideos: document.getElementById("danbooruFullVideos"),
       danbooruSuggestions: document.getElementById("danbooruSuggestions"),
       danbooruGalleryStatus: document.getElementById("danbooruGalleryStatus"),
       danbooruGallery: document.getElementById("danbooruGallery"),
@@ -436,6 +443,8 @@
       redditeryAutoPopupSource: document.getElementById("redditeryAutoPopupSource"),
       redditeryAutoPopupCategoryRow: document.getElementById("redditeryAutoPopupCategoryRow"),
       redditeryAutoPopupCategory: document.getElementById("redditeryAutoPopupCategory"),
+      booruDateFilterRow: document.getElementById("booruDateFilterRow"),
+      booruDateFilter: document.getElementById("booruDateFilter"),
       redditeryAutoPopupDuration: document.getElementById("redditeryAutoPopupDuration"),
       redditeryAutoPopupInterval: document.getElementById("redditeryAutoPopupInterval"),
       redditeryAutoPopupStatus: document.getElementById("redditeryAutoPopupStatus"),
@@ -2870,10 +2879,12 @@
       state.settings.goonerGalleryCategory = GOONER_GALLERY_CATEGORIES[String(state.settings.goonerGalleryCategory || "").toLowerCase()]
         ? String(state.settings.goonerGalleryCategory || "").toLowerCase()
         : "captions";
-      state.settings.redditeryAutoPopupSource = state.settings.redditeryAutoPopupSource === "booru" ? "booru" : "reddit";
+      state.settings.redditeryAutoPopupSource = state.settings.redditeryAutoPopupSource === "reddit" ? "reddit" : "booru";
       state.settings.redditeryAutoPopupCategory = GOONER_GALLERY_CATEGORIES[String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()]
         ? String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()
         : "captions";
+      state.settings.booruDateFilter = normalizeBooruDateFilter(state.settings.booruDateFilter);
+      state.settings.booruAutoPopupFullVideos = Boolean(state.settings.booruAutoPopupFullVideos);
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
       state.settings.throneAmountConfirmed = Boolean(state.settings.throneAmountConfirmed);
       state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
@@ -3608,6 +3619,13 @@
         els.danbooruGalleryCategory.value = localDanbooruCategory || "feet";
       }
       if (els.danbooruGalleryCategory) els.danbooruGalleryCategory.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
+      [els.danbooruDateFilter, els.booruDateFilter, els.soloBooruDateFilter].forEach((select) => {
+        if (!select) return;
+        if (document.activeElement !== select) select.value = normalizeBooruDateFilter(state.settings.booruDateFilter);
+      });
+      if (els.danbooruDateFilter) els.danbooruDateFilter.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
+      if (els.booruDateFilter) els.booruDateFilter.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
+      if (els.soloBooruDateFilter) els.soloBooruDateFilter.disabled = !soloAutoPopupControlsAllowed() || autoPopupSourceKey() !== "booru" || localDanbooruGalleryLoading;
       if (els.danbooruTagInput) els.danbooruTagInput.disabled = !canUseDomSettings || localDanbooruGalleryLoading || localDanbooruSuggesting;
       syncDanbooruVideoToggleButtons(canUseDomSettings);
       if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
@@ -3789,13 +3807,16 @@
       if (!normalized) return false;
       const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
       const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
-      const overlayUntil = Date.now() + duration * 1000;
+      const wantsFullVideo = mediaType === "video" && options.autoFullVideo;
+      const overlayUntil = Date.now() + (wantsFullVideo ? normalizeFullVideoDuration(options.fullDuration || 1800) : duration) * 1000;
       state.settings.distractionOverlays = [{
         id: `auto-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url: normalized,
         mediaType,
         muted: mediaType === "video" ? options.muted !== false : true,
-        loop: true,
+        loop: mediaType === "video" && wantsFullVideo ? false : true,
+        autoFullVideo: wantsFullVideo,
+        minDuration: duration,
         until: overlayUntil,
         jitterX: Math.round((Math.random() * 6 - 3) * 10) / 10,
         jitterY: Math.round((Math.random() * 8 - 4) * 10) / 10
@@ -4296,6 +4317,21 @@
       return Math.min(600, Math.max(15, seconds));
     }
 
+    function normalizeBooruDateFilter(value) {
+      const key = String(value || "all").toLowerCase();
+      return ["all", "12m", "3m", "1m"].includes(key) ? key : "all";
+    }
+
+    function booruDateFilterLabel(value = state.settings.booruDateFilter) {
+      const labels = {
+        all: "all time",
+        "12m": "last 12 months",
+        "3m": "last 3 months",
+        "1m": "last 1 month"
+      };
+      return labels[normalizeBooruDateFilter(value)] || labels.all;
+    }
+
     function distractionGalleryItems() {
       return Array.isArray(state.settings.distractionGallery)
         ? state.settings.distractionGallery.filter((item) => item && normalizeDistractionSource(item.url)).slice(-6).reverse()
@@ -4415,11 +4451,21 @@
         button.classList.toggle("active", localDanbooruUnmuteVideos);
         button.setAttribute("aria-pressed", localDanbooruUnmuteVideos ? "true" : "false");
       });
+      [
+        [els.danbooruFullVideos, canUseDomSettings],
+        [els.soloDanbooruFullVideos, soloAutoPopupControlsAllowed()]
+      ].forEach(([button, canUse]) => {
+        if (!button) return;
+        button.disabled = !canUse || localDanbooruGalleryLoading || !localDanbooruIncludeVideos;
+        button.classList.toggle("active", Boolean(state.settings.booruAutoPopupFullVideos));
+        button.setAttribute("aria-pressed", state.settings.booruAutoPopupFullVideos ? "true" : "false");
+      });
     }
 
     function setDanbooruIncludeVideos(enabled) {
       localDanbooruIncludeVideos = Boolean(enabled);
       if (!localDanbooruIncludeVideos) localDanbooruUnmuteVideos = false;
+      if (!localDanbooruIncludeVideos && state.settings.booruAutoPopupFullVideos) updateSettings({ booruAutoPopupFullVideos: false });
       resetAutoPopupFeedCursors();
       syncDanbooruVideoToggleButtons();
       if (els.danbooruGalleryStatus) {
@@ -4432,6 +4478,12 @@
       }
     }
 
+    function setBooruAutoPopupFullVideos(enabled) {
+      updateSettings({ booruAutoPopupFullVideos: Boolean(enabled) && localDanbooruIncludeVideos });
+      syncDanbooruVideoToggleButtons();
+      updateRedditeryAutoPopupStatus();
+    }
+
     function setDanbooruUnmuteVideos(enabled) {
       if (!localDanbooruIncludeVideos) return;
       localDanbooruUnmuteVideos = Boolean(enabled);
@@ -4441,6 +4493,21 @@
           ? "Video popups will try to play with audio when the browser allows it."
           : "Video popups will play muted.";
       }
+    }
+
+    function setBooruDateFilter(value) {
+      const next = normalizeBooruDateFilter(value);
+      if (next === normalizeBooruDateFilter(state.settings.booruDateFilter)) return;
+      updateSettings({ booruDateFilter: next });
+      resetAutoPopupFeedCursors();
+      localDanbooruPage = 1;
+      localDanbooruGalleryItems = [];
+      renderDanbooruGallery();
+      updateRedditeryAutoPopupStatus();
+      if (els.danbooruGalleryStatus) {
+        els.danbooruGalleryStatus.textContent = `Booru upload date set to ${booruDateFilterLabel(next)}.`;
+      }
+      if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
     }
 
     function renderDanbooruGallery() {
@@ -4661,11 +4728,13 @@
       if (els.redditeryAutoPopupSource) els.redditeryAutoPopupSource.disabled = !domAllowed;
       if (els.redditeryAutoPopupCategory) els.redditeryAutoPopupCategory.disabled = !domAllowed || source !== "reddit";
       if (els.redditeryAutoPopupCategoryRow) els.redditeryAutoPopupCategoryRow.classList.toggle("hidden", source !== "reddit");
+      if (els.booruDateFilterRow) els.booruDateFilterRow.classList.toggle("hidden", source !== "booru");
       if (els.soloRedditeryAutoPopupSource) els.soloRedditeryAutoPopupSource.disabled = !soloAllowed;
       if (els.soloRedditeryAutoPopupCategory) els.soloRedditeryAutoPopupCategory.disabled = !soloAllowed || source !== "reddit";
       if (els.soloRedditeryAutoPopupCategoryRow) els.soloRedditeryAutoPopupCategoryRow.classList.toggle("hidden", source !== "reddit");
       if (els.soloBooruAutoPopupTagRow) els.soloBooruAutoPopupTagRow.classList.toggle("hidden", source !== "booru");
       if (els.soloBooruAutoPopupVideoRow) els.soloBooruAutoPopupVideoRow.classList.toggle("hidden", source !== "booru");
+      if (els.soloBooruDateFilterRow) els.soloBooruDateFilterRow.classList.toggle("hidden", source !== "booru");
       if (els.soloDanbooruSuggestions && source !== "booru") {
         els.soloDanbooruSuggestions.classList.add("hidden");
         els.soloDanbooruSuggestions.innerHTML = "";
@@ -4747,6 +4816,7 @@
         });
         if (customTag) params.set("tag", customTag);
         if (localDanbooruIncludeVideos) params.set("includeVideos", "true");
+        params.set("dateFilter", normalizeBooruDateFilter(state.settings.booruDateFilter));
         const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Booru gallery failed.");
@@ -4755,8 +4825,8 @@
           : [];
         if (els.danbooruGalleryStatus) {
           els.danbooruGalleryStatus.textContent = localDanbooruGalleryItems.length
-            ? `Loaded ${localDanbooruGalleryItems.length} Booru result${localDanbooruGalleryItems.length === 1 ? "" : "s"} for ${data.tags || danbooruCategoryLabel(selectedCategory)}.`
-            : `No usable Booru images came back for ${data.tags || danbooruCategoryLabel(selectedCategory)}.`;
+            ? `Loaded ${localDanbooruGalleryItems.length} Booru result${localDanbooruGalleryItems.length === 1 ? "" : "s"} for ${data.tags || danbooruCategoryLabel(selectedCategory)} (${booruDateFilterLabel(data.dateFilter)}).`
+            : `No usable Booru images came back for ${data.tags || danbooruCategoryLabel(selectedCategory)} (${booruDateFilterLabel(data.dateFilter)}).`;
         }
       } catch (error) {
         localDanbooruGalleryItems = [];
@@ -4983,8 +5053,10 @@
         : String(els.danbooruTagInput && els.danbooruTagInput.value || "").trim();
       const tag = inputTag || localDanbooruCustomTag || "";
       const category = String(localDanbooruCategory || (els.danbooruGalleryCategory && els.danbooruGalleryCategory.value) || "feet").toLowerCase();
-      const key = tag ? `tag:${tag}` : `category:${category}`;
-      return { tag, category, key };
+      const dateFilter = normalizeBooruDateFilter(state.settings.booruDateFilter);
+      const videos = localDanbooruIncludeVideos ? "videos" : "images";
+      const key = `${tag ? `tag:${tag}` : `category:${category}`}|date:${dateFilter}|${videos}`;
+      return { tag, category, dateFilter, key };
     }
 
     async function fetchBooruAutoPopupItems() {
@@ -5004,6 +5076,7 @@
       });
       if (search.tag) params.set("tag", search.tag);
       if (localDanbooruIncludeVideos) params.set("includeVideos", "true");
+      params.set("dateFilter", search.dateFilter);
       const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Booru auto popup failed.");
@@ -5147,9 +5220,12 @@
       const remainder = seconds % 60;
       const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
       const sourceLabel = autoPopupSourceKey() === "booru"
-        ? "current Booru search"
+        ? `Booru search, ${booruDateFilterLabel()}`
         : `${goonerGalleryCategoryLabel(autoPopupRedditCategoryKey())} Reddit`;
-      statusText = `On. ${sourceLabel}. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}. Shows for ${duration}s.`;
+      const videoNote = autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && state.settings.booruAutoPopupFullVideos
+        ? " Videos can play full length."
+        : "";
+      statusText = `On. ${sourceLabel}. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}. Shows for ${duration}s.${videoNote}`;
       statusEls.forEach((status) => { status.textContent = statusText; });
     }
 
@@ -5170,7 +5246,8 @@
         const url = item && normalizeDistractionSource(item.url);
         const media = {
           mediaType: item && mediaTypeForDistraction(url, item.mediaType),
-          muted: !(autoPopupSourceKey() === "booru" && localDanbooruUnmuteVideos)
+          muted: !(autoPopupSourceKey() === "booru" && localDanbooruUnmuteVideos),
+          autoFullVideo: autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && Boolean(state.settings.booruAutoPopupFullVideos)
         };
         if (url && addAutoDistractionOverlay(url, media)) {
           if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto gallery popup posted.";
@@ -5400,7 +5477,10 @@
         media.dataset.sizeBound = "true";
       }
       if (media.dataset.distractionOverlayVideo && !media.dataset.sizeBound) {
-        const updateSize = () => rememberDistractionVideoSize(media);
+        const updateSize = () => {
+          rememberDistractionVideoSize(media);
+          adjustAutoFullVideoOverlay(media);
+        };
         if (media.videoWidth && media.videoHeight) updateSize();
         else media.addEventListener("loadedmetadata", updateSize, { once: true });
         media.dataset.sizeBound = "true";
@@ -5426,6 +5506,29 @@
         });
         media.dataset.endedBound = "true";
       }
+    }
+
+    function adjustAutoFullVideoOverlay(media) {
+      if (!media || media.dataset.distractionOverlayAutoFull !== "true") return;
+      const overlayId = media.dataset.distractionOverlayId || "";
+      const duration = Number(media.duration || 0);
+      if (!overlayId || !Number.isFinite(duration) || duration <= 0 || media.dataset.autoFullAdjusted === "true") return;
+      const minDuration = normalizeDistractionDuration(media.dataset.distractionOverlayMinDuration || state.settings.redditeryAutoPopupDuration);
+      const now = Date.now();
+      const shouldLoopForTimer = duration < minDuration;
+      const nextOverlays = activeDistractionOverlays().map((overlay) => {
+        if (!overlay || overlay.id !== overlayId) return overlay;
+        return {
+          ...overlay,
+          loop: shouldLoopForTimer,
+          until: now + (shouldLoopForTimer ? minDuration : duration) * 1000
+        };
+      });
+      state.settings.distractionOverlays = nextOverlays;
+      media.loop = shouldLoopForTimer;
+      media.dataset.distractionOverlayLoop = shouldLoopForTimer ? "true" : "false";
+      media.dataset.autoFullAdjusted = "true";
+      window.setTimeout(renderDistractionBackground, 0);
     }
 
     function updateDistractionOverlayNode(node, overlay, index, count, viewport) {
@@ -5463,6 +5566,8 @@
           media.dataset.distractionOverlayLoop = overlay.loop === false ? "false" : "true";
           media.dataset.distractionOverlayLoopCount = overlay.loopCount ? String(normalizeVideoLoopCount(overlay.loopCount)) : "0";
           media.dataset.distractionOverlayLoopsPlayed = "0";
+          media.dataset.distractionOverlayAutoFull = overlay.autoFullVideo ? "true" : "false";
+          media.dataset.distractionOverlayMinDuration = overlay.minDuration ? String(normalizeDistractionDuration(overlay.minDuration)) : "";
         } else {
           media.src = normalizedUrl;
           media.alt = "";
@@ -5479,6 +5584,8 @@
         existing.dataset.distractionOverlayId = overlay.id || "";
         existing.dataset.distractionOverlayLoop = overlay.loop === false ? "false" : "true";
         existing.dataset.distractionOverlayLoopCount = overlay.loopCount ? String(normalizeVideoLoopCount(overlay.loopCount)) : "0";
+        existing.dataset.distractionOverlayAutoFull = overlay.autoFullVideo ? "true" : "false";
+        existing.dataset.distractionOverlayMinDuration = overlay.minDuration ? String(normalizeDistractionDuration(overlay.minDuration)) : "";
       }
       bindDistractionOverlayMediaEvents(existing);
     }
@@ -19353,6 +19460,11 @@
         setDanbooruUnmuteVideos(!localDanbooruUnmuteVideos);
       });
     }
+    if (els.danbooruFullVideos) {
+      els.danbooruFullVideos.addEventListener("click", () => {
+        setBooruAutoPopupFullVideos(!state.settings.booruAutoPopupFullVideos);
+      });
+    }
     if (els.soloDanbooruIncludeVideos) {
       els.soloDanbooruIncludeVideos.addEventListener("click", () => {
         setDanbooruIncludeVideos(!localDanbooruIncludeVideos);
@@ -19365,6 +19477,15 @@
         updateRedditeryAutoPopupStatus();
       });
     }
+    if (els.soloDanbooruFullVideos) {
+      els.soloDanbooruFullVideos.addEventListener("click", () => {
+        setBooruAutoPopupFullVideos(!state.settings.booruAutoPopupFullVideos);
+      });
+    }
+    [els.danbooruDateFilter, els.booruDateFilter, els.soloBooruDateFilter].forEach((select) => {
+      if (!select) return;
+      select.addEventListener("change", () => setBooruDateFilter(select.value));
+    });
     if (els.soloDanbooruTagInput) {
       els.soloDanbooruTagInput.addEventListener("input", () => {
         localDanbooruCustomTag = String(els.soloDanbooruTagInput.value || "").trim();

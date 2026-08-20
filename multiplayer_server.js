@@ -125,18 +125,38 @@ function safeDanbooruAutocompleteQuery(value) {
   return raw.slice(0, 80);
 }
 
-function danbooruTagsForCategory(category, page) {
-  const tags = DANBOORU_CATEGORY_TAGS[safeDanbooruCategory(category)] || DANBOORU_CATEGORY_TAGS.feet;
-  const tag = tags[(Math.max(1, Number(page) || 1) - 1) % tags.length] || tags[0];
-  return /\s/.test(tag) ? tag : `${tag} order:score`;
+function safeDanbooruDateFilter(value) {
+  const key = String(value || "all").toLowerCase();
+  return ["all", "12m", "3m", "1m"].includes(key) ? key : "all";
 }
 
-function danbooruTagsForCustomTag(tag) {
+function danbooruDateFilterTag(value) {
+  const key = safeDanbooruDateFilter(value);
+  if (key === "12m") return "age:<1year";
+  if (key === "3m") return "age:<3months";
+  if (key === "1m") return "age:<1month";
+  return "";
+}
+
+function applyDanbooruDateFilter(tags, dateFilter) {
+  const baseTags = safeBooruTags(tags)
+    .split(/\s+/)
+    .filter((tag) => !/^age:/i.test(tag))
+    .join(" ");
+  const dateTag = danbooruDateFilterTag(dateFilter);
+  return safeBooruTags(dateTag ? `${baseTags} ${dateTag}` : baseTags);
+}
+
+function danbooruTagsForCategory(category, page, dateFilter = "all") {
+  const tags = DANBOORU_CATEGORY_TAGS[safeDanbooruCategory(category)] || DANBOORU_CATEGORY_TAGS.feet;
+  const tag = tags[(Math.max(1, Number(page) || 1) - 1) % tags.length] || tags[0];
+  return applyDanbooruDateFilter(/\s/.test(tag) ? tag : `${tag} order:score`, dateFilter);
+}
+
+function danbooruTagsForCustomTag(tag, dateFilter = "all") {
   const cleanTag = safeBooruTags(tag).split(/\s+/)[0] || "feet";
-  if (cleanTag === "large_breasts") return "large_breasts order:score age:<1month";
-  if (cleanTag === "breasts") return "large_breasts order:score age:<1month";
-  if (cleanTag === "boobs") return "large_breasts order:score age:<1month";
-  return `${cleanTag} order:score`;
+  const mappedTag = cleanTag === "breasts" || cleanTag === "boobs" ? "large_breasts" : cleanTag;
+  return applyDanbooruDateFilter(`${mappedTag} order:score`, dateFilter);
 }
 
 function isImageMediaUrl(value) {
@@ -217,7 +237,9 @@ async function fetchDanbooruGallery(searchParams) {
   const category = safeDanbooruCategory(searchParams.get("category"));
   const page = safeDanbooruPage(searchParams.get("page"));
   const customTag = safeDanbooruAutocompleteQuery(searchParams.get("tag"));
-  const tags = safeBooruTags(searchParams.get("tags") || (customTag ? danbooruTagsForCustomTag(customTag) : danbooruTagsForCategory(category, page)));
+  const dateFilter = safeDanbooruDateFilter(searchParams.get("dateFilter"));
+  const rawTags = searchParams.get("tags") || (customTag ? danbooruTagsForCustomTag(customTag, dateFilter) : danbooruTagsForCategory(category, page, dateFilter));
+  const tags = applyDanbooruDateFilter(rawTags, dateFilter);
   const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 16) || 16));
   const includeVideos = String(searchParams.get("includeVideos") || "").toLowerCase() === "true";
   const requestLimit = Math.max(limit * 4, 80);
@@ -247,6 +269,7 @@ async function fetchDanbooruGallery(searchParams) {
     category,
     page,
     tags,
+    dateFilter,
     includeVideos,
     items: posts.map((post) => normalizeBooruPost(post, { includeVideos })).filter(Boolean).slice(0, limit)
   };
