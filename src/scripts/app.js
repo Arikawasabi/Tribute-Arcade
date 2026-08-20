@@ -125,7 +125,10 @@
         distractionOverlays: [],
         distractionGallery: [],
         goonerGallerySource: "peekstr",
+        goonerGalleryCategory: "captions",
         redditeryAutoPopup: false,
+        redditeryAutoPopupSource: "reddit",
+        redditeryAutoPopupCategory: "captions",
         redditeryAutoPopupDuration: 15,
         redditeryAutoPopupInterval: 90,
         leaveNotice: null,
@@ -218,6 +221,8 @@
       reversi: createReversiState(),
       chess: createChessState(),
       solitaire: createSolitaireState(),
+      memoryMatch: createMemoryMatchState(),
+      brainDrainSnap: createBrainDrainSnapState(),
       lossPressure: createLossPressureState(),
       chat: [],
       ledger: []
@@ -236,6 +241,33 @@
       solitaireTableau: document.getElementById("solitaireTableau"),
       solitaireTable: document.getElementById("solitaireTable"),
       solitaireCardPreview: document.getElementById("solitaireCardPreview"),
+      memoryMatchScreen: document.getElementById("memoryMatchScreen"),
+      memoryMatchCard: document.getElementById("memoryMatchCard"),
+      memoryMatchStatus: document.getElementById("memoryMatchStatus"),
+      memoryMatchTable: document.getElementById("memoryMatchTable"),
+      memoryMatchGrid: document.getElementById("memoryMatchGrid"),
+      memoryMatchReveal: document.getElementById("memoryMatchReveal"),
+      memoryMatchRevealImage: document.getElementById("memoryMatchRevealImage"),
+      memoryMatchMoves: document.getElementById("memoryMatchMoves"),
+      memoryMatchMatches: document.getElementById("memoryMatchMatches"),
+      memoryMatchSizeControls: document.getElementById("memoryMatchSizeControls"),
+      memoryMatchNewImagesBtn: document.getElementById("memoryMatchNewImagesBtn"),
+      memoryMatchRestartBtn: document.getElementById("memoryMatchRestartBtn"),
+      memoryMatchBackBtn: document.getElementById("memoryMatchBackBtn"),
+      brainDrainSnapScreen: document.getElementById("brainDrainSnapScreen"),
+      brainDrainSnapCard: document.getElementById("brainDrainSnapCard"),
+      brainDrainSnapStatus: document.getElementById("brainDrainSnapStatus"),
+      brainDrainSnapTable: document.getElementById("brainDrainSnapTable"),
+      brainDrainSnapScore: document.getElementById("brainDrainSnapScore"),
+      brainDrainSnapStreak: document.getElementById("brainDrainSnapStreak"),
+      brainDrainSnapIq: document.getElementById("brainDrainSnapIq"),
+      brainDrainSnapTimerBar: document.getElementById("brainDrainSnapTimerBar"),
+      brainDrainSnapCardView: document.getElementById("brainDrainSnapCardView"),
+      brainDrainSnapNextBtn: document.getElementById("brainDrainSnapNextBtn"),
+      brainDrainSnapSnapBtn: document.getElementById("brainDrainSnapSnapBtn"),
+      brainDrainSnapNewBtn: document.getElementById("brainDrainSnapNewBtn"),
+      brainDrainSnapBackBtn: document.getElementById("brainDrainSnapBackBtn"),
+      brainDrainSnapHint: document.getElementById("brainDrainSnapHint"),
       pieceLossSpiral: document.getElementById("pieceLossSpiral"),
       pieceLossPulse: document.getElementById("pieceLossPulse"),
       pieceLossMessage: document.getElementById("pieceLossMessage"),
@@ -243,7 +275,19 @@
       newSolitaireBtn: document.getElementById("newSolitaireBtn"),
       solitaireBackBtn: document.getElementById("solitaireBackBtn"),
       soloRedditeryPanel: document.getElementById("soloRedditeryPanel"),
+      soloGoonerGalleryCategory: document.getElementById("soloGoonerGalleryCategory"),
       soloRedditeryAutoPopupToggle: document.getElementById("soloRedditeryAutoPopupToggle"),
+      soloRedditeryAutoPopupSource: document.getElementById("soloRedditeryAutoPopupSource"),
+      soloRedditeryAutoPopupCategoryRow: document.getElementById("soloRedditeryAutoPopupCategoryRow"),
+      soloRedditeryAutoPopupCategory: document.getElementById("soloRedditeryAutoPopupCategory"),
+      soloBooruAutoPopupTagRow: document.getElementById("soloBooruAutoPopupTagRow"),
+      soloBooruAutoPopupVideoRow: document.getElementById("soloBooruAutoPopupVideoRow"),
+      soloDanbooruTagInput: document.getElementById("soloDanbooruTagInput"),
+      soloDanbooruSuggestions: document.getElementById("soloDanbooruSuggestions"),
+      soloDanbooruIncludeVideos: document.getElementById("soloDanbooruIncludeVideos"),
+      soloDanbooruUnmuteVideos: document.getElementById("soloDanbooruUnmuteVideos"),
+      soloRedditeryAutoPopupDuration: document.getElementById("soloRedditeryAutoPopupDuration"),
+      soloRedditeryAutoPopupInterval: document.getElementById("soloRedditeryAutoPopupInterval"),
       soloRedditeryAutoPopupStatus: document.getElementById("soloRedditeryAutoPopupStatus"),
       distractionBackdrop: document.getElementById("distractionBackdrop"),
       distractionOverlay: document.getElementById("distractionOverlay"),
@@ -323,6 +367,7 @@
       domSeePressureBanners: document.getElementById("domSeePressureBanners"),
       domSeePressureText: document.getElementById("domSeePressureText"),
       domSeePressurePulse: document.getElementById("domSeePressurePulse"),
+      clearPopupsBtn: document.getElementById("clearPopupsBtn"),
       domSubBetControl: document.getElementById("domSubBetControl"),
       subDefaultBetInput: document.getElementById("subDefaultBetInput"),
       subLinkWarningMode: document.getElementById("subLinkWarningMode"),
@@ -374,16 +419,31 @@
       clearDistractionBtn: document.getElementById("clearDistractionBtn"),
       booruLoadButtons: document.querySelectorAll("[data-booru-source]"),
       booruGallery: document.getElementById("booruGallery"),
+      danbooruGalleryCategory: document.getElementById("danbooruGalleryCategory"),
+      danbooruLoadBtn: document.getElementById("danbooruLoadBtn"),
+      danbooruNextBtn: document.getElementById("danbooruNextBtn"),
+      danbooruTagInput: document.getElementById("danbooruTagInput"),
+      danbooruIncludeVideos: document.getElementById("danbooruIncludeVideos"),
+      danbooruUnmuteVideos: document.getElementById("danbooruUnmuteVideos"),
+      danbooruSuggestions: document.getElementById("danbooruSuggestions"),
+      danbooruGalleryStatus: document.getElementById("danbooruGalleryStatus"),
+      danbooruGallery: document.getElementById("danbooruGallery"),
       redditeryRandomBtn: document.getElementById("redditeryRandomBtn"),
       goonerGalleryTopBtn: document.getElementById("goonerGalleryTopBtn"),
       goonerGallerySource: document.getElementById("goonerGallerySource"),
+      goonerGalleryCategory: document.getElementById("goonerGalleryCategory"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
+      redditeryAutoPopupSource: document.getElementById("redditeryAutoPopupSource"),
+      redditeryAutoPopupCategoryRow: document.getElementById("redditeryAutoPopupCategoryRow"),
+      redditeryAutoPopupCategory: document.getElementById("redditeryAutoPopupCategory"),
       redditeryAutoPopupDuration: document.getElementById("redditeryAutoPopupDuration"),
       redditeryAutoPopupInterval: document.getElementById("redditeryAutoPopupInterval"),
       redditeryAutoPopupStatus: document.getElementById("redditeryAutoPopupStatus"),
       redditeryGallery: document.getElementById("redditeryGallery"),
       savedDistractionGallerySection: document.getElementById("savedDistractionGallerySection"),
+      savedVideoGallerySection: document.getElementById("savedVideoGallerySection"),
       distractionGallery: document.getElementById("distractionGallery"),
+      distractionVideoGallery: document.getElementById("distractionVideoGallery"),
       sideDistractionStatus: document.getElementById("sideDistractionStatus"),
       distractionChoiceModal: document.getElementById("distractionChoiceModal"),
       distractionChoicePreview: document.getElementById("distractionChoicePreview"),
@@ -394,6 +454,24 @@
       subWallpaperDistractionChoiceBtn: document.getElementById("subWallpaperDistractionChoiceBtn"),
       bothWallpaperDistractionChoiceBtn: document.getElementById("bothWallpaperDistractionChoiceBtn"),
       popupDistractionChoiceBtn: document.getElementById("popupDistractionChoiceBtn"),
+      videoDistractionChoiceModal: document.getElementById("videoDistractionChoiceModal"),
+      videoDistractionChoicePreview: document.getElementById("videoDistractionChoicePreview"),
+      videoDistractionChoiceText: document.getElementById("videoDistractionChoiceText"),
+      videoDistractionChoiceLength: document.getElementById("videoDistractionChoiceLength"),
+      videoLoopTimeRow: document.getElementById("videoLoopTimeRow"),
+      videoLoopCountRow: document.getElementById("videoLoopCountRow"),
+      videoLoopConfirmActions: document.getElementById("videoLoopConfirmActions"),
+      videoDistractionChoiceDuration: document.getElementById("videoDistractionChoiceDuration"),
+      videoDistractionChoiceLoopCount: document.getElementById("videoDistractionChoiceLoopCount"),
+      cancelVideoDistractionChoiceBtn: document.getElementById("cancelVideoDistractionChoiceBtn"),
+      saveVideoDistractionChoiceBtn: document.getElementById("saveVideoDistractionChoiceBtn"),
+      subWallpaperVideoDistractionChoiceBtn: document.getElementById("subWallpaperVideoDistractionChoiceBtn"),
+      bothWallpaperVideoDistractionChoiceBtn: document.getElementById("bothWallpaperVideoDistractionChoiceBtn"),
+      playFullVideoDistractionChoiceBtn: document.getElementById("playFullVideoDistractionChoiceBtn"),
+      loopTimedVideoDistractionChoiceBtn: document.getElementById("loopTimedVideoDistractionChoiceBtn"),
+      loopCountVideoDistractionChoiceBtn: document.getElementById("loopCountVideoDistractionChoiceBtn"),
+      confirmLoopTimedVideoDistractionChoiceBtn: document.getElementById("confirmLoopTimedVideoDistractionChoiceBtn"),
+      confirmLoopCountVideoDistractionChoiceBtn: document.getElementById("confirmLoopCountVideoDistractionChoiceBtn"),
       queenPowerMode: document.getElementById("queenPowerMode"),
       queenPowerUsers: document.getElementById("queenPowerUsers"),
       queenPowerModeRow: document.getElementById("queenPowerModeRow"),
@@ -566,20 +644,44 @@
     let pendingThroneAmountOpener = null;
     let localBooruGalleryItems = [];
     let localBooruGalleryLoading = false;
+    let localDanbooruGalleryItems = [];
+    let localDanbooruGalleryLoading = false;
+    let localDanbooruPage = 1;
+    let localDanbooruCategory = "feet";
+    let localDanbooruCustomTag = "";
+    let localDanbooruSuggestions = [];
+    let localDanbooruSuggesting = false;
+    let localDanbooruSuggestTimer = null;
+    let localDanbooruIncludeVideos = false;
+    let localDanbooruUnmuteVideos = false;
+    let localDanbooruAutoPopupItems = [];
+    let localDanbooruAutoPopupPage = 0;
+    let localDanbooruAutoPopupKey = "";
+    let localDanbooruAutoPopupRecentUrls = [];
     let localRedditeryGalleryItems = [];
     let localRedditeryGalleryLoading = false;
     let localRedditeryCooldownUntil = 0;
     let localRedditeryCooldownTimer = null;
     let localRedditeryPage = -1;
     let localRedditeryAfter = "";
+    let localRedditeryActiveSubreddit = "";
     let localRedditeryReachedEnd = false;
     let localRedditeryAutoPopupItems = [];
     let localRedditeryAutoPopupAfter = "";
+    let localRedditeryAutoPopupSubreddit = "";
     let localRedditeryAutoPopupNextAt = 0;
     let localRedditeryAutoPopupLoading = false;
     let localRedditeryAutoPopupRecentUrls = [];
+    let localMemoryMatchAfter = "";
+    let localMemoryMatchSubreddit = "";
+    let localMemoryMatchRecentUrls = [];
+    let localBrainDrainSnapPools = {};
+    let localBrainDrainSnapAfter = {};
+    let brainDrainSnapTimerId = null;
     let pendingDistractionChoiceUrl = "";
+    let pendingDistractionChoiceMedia = null;
     const distractionImageSizeCache = new Map();
+    let renderedDistractionOverlaySignature = "";
     const THRONE_EXTENSION_REQUEST = "TRIBUTE_ARCADE_THRONE_STATUS_REQUEST";
     const THRONE_EXTENSION_RESPONSE = "TRIBUTE_ARCADE_THRONE_STATUS";
     const THRONE_EXTENSION_FOCUS_CHECKOUT = "TRIBUTE_ARCADE_FOCUS_THRONE_CHECKOUT";
@@ -1669,6 +1771,8 @@
       els.gameSelectScreen.classList.toggle("hidden", screen !== "select");
       els.gameScreen.classList.toggle("hidden", screen !== "game");
       if (els.solitaireScreen) els.solitaireScreen.classList.toggle("hidden", screen !== "solitaire");
+      if (els.memoryMatchScreen) els.memoryMatchScreen.classList.toggle("hidden", screen !== "memoryMatch");
+      if (els.brainDrainSnapScreen) els.brainDrainSnapScreen.classList.toggle("hidden", screen !== "brainDrainSnap");
       renderControlGlow();
       renderMenu();
     }
@@ -2261,7 +2365,20 @@
       renderSolitaire();
     }
 
+    function openMemoryMatch() {
+      state.currentGame = "memoryMatch";
+      setScreen("memoryMatch");
+      startMemoryMatch({ newImages: true });
+    }
+
+    function openBrainDrainSnap() {
+      state.currentGame = "brainDrainSnap";
+      setScreen("brainDrainSnap");
+      startBrainDrainSnap();
+    }
+
     function backToMenuFromSolo() {
+      stopBrainDrainSnapTimer();
       setScreen("select");
       renderMenu();
     }
@@ -2320,6 +2437,8 @@
       els.tributeFleetCard.disabled = domPickBlocked;
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       if (els.higherLowerCard) els.higherLowerCard.disabled = domPickBlocked;
+      if (els.memoryMatchCard) els.memoryMatchCard.disabled = false;
+      if (els.brainDrainSnapCard) els.brainDrainSnapCard.disabled = false;
       if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.disabled = domPickBlocked;
       if (els.doubleSolitaireCard) els.doubleSolitaireCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
@@ -2374,7 +2493,8 @@
         control: "chance"
       };
       const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
-      const soloMenuOpen = state.screen === "select" && state.currentGame === "solitaire";
+      const soloGameIds = ["solitaire", "memoryMatch", "brainDrainSnap"];
+      const soloMenuOpen = state.screen === "select" && soloGameIds.includes(state.currentGame);
       const allowedTabs = soloMenuOpen
         ? ["solo"]
         : ["board", "cards", "chance", "wip", "all"];
@@ -2747,6 +2867,13 @@
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
       state.settings.goonerGallerySource = "peekstr";
+      state.settings.goonerGalleryCategory = GOONER_GALLERY_CATEGORIES[String(state.settings.goonerGalleryCategory || "").toLowerCase()]
+        ? String(state.settings.goonerGalleryCategory || "").toLowerCase()
+        : "captions";
+      state.settings.redditeryAutoPopupSource = state.settings.redditeryAutoPopupSource === "booru" ? "booru" : "reddit";
+      state.settings.redditeryAutoPopupCategory = GOONER_GALLERY_CATEGORIES[String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()]
+        ? String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()
+        : "captions";
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
       state.settings.throneAmountConfirmed = Boolean(state.settings.throneAmountConfirmed);
       state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
@@ -2798,6 +2925,15 @@
       if (!raw) return "";
       if (/^data:image\/(?:png|jpe?g|gif|webp|bmp);base64,/i.test(raw)) return raw;
       return normalizeDomLink(raw);
+    }
+
+    function isVideoDistractionSource(value) {
+      return /^https?:\/\/.+\.(?:mp4|webm)(?:[?#].*)?$/i.test(String(value || ""));
+    }
+
+    function mediaTypeForDistraction(url, fallback = "") {
+      if (fallback === "video" || isVideoDistractionSource(url)) return "video";
+      return "image";
     }
 
     function currentDomLinkInputValue() {
@@ -3326,7 +3462,7 @@
     }
 
     function renderSidePanel() {
-      const soloMode = state.screen === "solitaire";
+      const soloMode = state.screen === "solitaire" || state.screen === "memoryMatch" || state.screen === "brainDrainSnap";
       const inGame = state.screen === "game";
       const inGameSelect = state.screen === "select";
       if (soloMode || (!inGame && !inGameSelect)) {
@@ -3349,10 +3485,15 @@
       }
       if (state.settings.activeSideTab === "settings") state.settings.activeSideTab = "tools";
       if (!canOpenLedger && state.settings.activeSideTab === "ledger") state.settings.activeSideTab = "chat";
+      if (!canOpenGallery && state.settings.activeSideTab === "gallery") state.settings.activeSideTab = "chat";
       if (!canOpenUtility && state.settings.activeSideTab === "tools") {
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
+      if (activeTab === "tools" && state.settings.activeUtilityTab === "gallery") {
+        state.settings.activeUtilityTab = canOpenTools ? "tools" : "settings";
+        state.settings.activeUtilityTabManual = false;
+      }
       if (state.settings.activeUtilityTab === "settings" && !canOpenSettings) {
         state.settings.activeUtilityTab = "tools";
         state.settings.activeUtilityTabManual = false;
@@ -3374,6 +3515,8 @@
       const easterEgg = activeNameEasterEgg();
       els.sidePanelTitle.textContent = activeTab === "ledger"
         ? (easterEgg ? easterEgg.commandTitle : "Command Center")
+        : activeTab === "gallery"
+          ? "Gallery"
         : activeTab === "tools"
           ? "Tools & Settings"
         : (state.online.room ? `Room ${state.online.room}` : "Room");
@@ -3381,6 +3524,7 @@
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
         const visible = (tab !== "ledger" || canOpenLedger)
+          && (tab !== "gallery" || canOpenGallery)
           && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active-restore", panelOpen && tab === activeTab);
@@ -3390,6 +3534,7 @@
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
         const visible = (button.dataset.sideTab !== "ledger" || canOpenLedger)
+          && (button.dataset.sideTab !== "gallery" || canOpenGallery)
           && (button.dataset.sideTab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
         button.classList.toggle("active", button.dataset.sideTab === activeTab);
@@ -3397,10 +3542,13 @@
       });
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
       els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");
-      els.sideToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenUtility);
+      els.sideToolsPane.classList.toggle("hidden", !((activeTab === "tools" && canOpenUtility) || (activeTab === "gallery" && canOpenGallery)));
+      if (els.utilityTabs && els.utilityTabs.length) {
+        els.utilityTabs.forEach((button) => button.closest(".utility-tabs")?.classList.toggle("hidden", activeTab === "gallery"));
+      }
       els.sideSettingsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "settings" || !canOpenSettings);
-      if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeUtilityTab !== "tools" || !canOpenTools);
-      if (els.sideGalleryPane) els.sideGalleryPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "gallery" || !canOpenGallery);
+      if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "tools" || !canOpenTools);
+      if (els.sideGalleryPane) els.sideGalleryPane.classList.toggle("hidden", activeTab !== "gallery" || !canOpenGallery);
       els.utilityTabs.forEach((button) => {
         const tab = button.dataset.utilityTab || "tools";
         const visible = tab === "settings" ? canOpenSettings : (tab === "gallery" ? canOpenGallery : canOpenTools);
@@ -3428,11 +3576,13 @@
         }
         els.goonerGallerySource.disabled = !canUseDomSettings;
       }
+      syncGoonerGalleryCategoryControls();
       if (els.clearDistractionBtn) els.clearDistractionBtn.disabled = !canUseDomSettings || !hasDistraction();
       if (els.domAdvantageMode) els.domAdvantageMode.disabled = !canUseDomSettings;
       if (els.domSeePressureBanners) els.domSeePressureBanners.disabled = !canUseDomSettings;
       if (els.domSeePressureText) els.domSeePressureText.disabled = !canUseDomSettings;
       if (els.domSeePressurePulse) els.domSeePressurePulse.disabled = !canUseDomSettings;
+      if (els.clearPopupsBtn) els.clearPopupsBtn.disabled = !canUseDomSettings || !hasDistractionPopups();
       if (els.domSubBetControl) els.domSubBetControl.disabled = !canUseDomSettings;
       if (els.queenPowerMode) els.queenPowerMode.disabled = !canUseDomSettings;
       if (els.queenPowerUsers) els.queenPowerUsers.disabled = !canUseDomSettings;
@@ -3454,9 +3604,19 @@
           button.disabled = !canUseDomSettings || localBooruGalleryLoading;
         });
       }
+      if (els.danbooruGalleryCategory && document.activeElement !== els.danbooruGalleryCategory) {
+        els.danbooruGalleryCategory.value = localDanbooruCategory || "feet";
+      }
+      if (els.danbooruGalleryCategory) els.danbooruGalleryCategory.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
+      if (els.danbooruTagInput) els.danbooruTagInput.disabled = !canUseDomSettings || localDanbooruGalleryLoading || localDanbooruSuggesting;
+      syncDanbooruVideoToggleButtons(canUseDomSettings);
+      if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
+      if (els.danbooruNextBtn) els.danbooruNextBtn.disabled = !canUseDomSettings || localDanbooruGalleryLoading || !localDanbooruGalleryItems.length;
       updateRedditeryRandomButton();
       updateRedditeryAutoPopupStatus();
       renderBooruGallery();
+      renderDanbooruGallery();
+      renderDanbooruSuggestions();
       renderRedditeryGallery();
       renderDistractionGallery();
       renderDistractionBackground();
@@ -3510,6 +3670,7 @@
     function setSideTab(tab) {
       if (tab === "settings") tab = "tools";
       if (tab === "ledger" && state.screen !== "game" && state.screen !== "select") return;
+      if (tab === "gallery" && !domLinkControlsAllowed()) return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       if (state.settings.sideOpen !== false && state.settings.activeSideTab === tab) {
         state.settings.sideOpen = false;
@@ -3525,6 +3686,7 @@
     function openSidePanel(tab = state.settings.activeSideTab || "chat") {
       if (tab === "settings") tab = "tools";
       if (tab === "ledger" && state.screen !== "game" && state.screen !== "select") return;
+      if (tab === "gallery" && !domLinkControlsAllowed()) return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       if (state.settings.sideOpen !== false && state.settings.activeSideTab === tab) {
         state.settings.sideOpen = false;
@@ -3587,16 +3749,27 @@
       publishChatMessage(message);
     }
 
-    function addDistractionOverlay(url, duration = normalizeDistractionDuration(state.settings.distractionDuration)) {
+    function addDistractionOverlay(url, duration = normalizeDistractionDuration(state.settings.distractionDuration), options = {}) {
       const normalized = normalizeDistractionSource(url);
       if (!normalized) return false;
-      const overlayUntil = Date.now() + normalizeDistractionDuration(duration) * 1000;
+      const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
+      const requestedDuration = options.playFull
+        ? normalizeFullVideoDuration(options.fullDuration || duration)
+        : options.loopCount
+          ? normalizeFullVideoDuration(options.fullDuration || 1800)
+        : normalizeDistractionDuration(duration);
+      const overlayUntil = Date.now() + requestedDuration * 1000;
       const existingOverlays = activeDistractionOverlays();
       state.settings.distractionOverlays = [
         ...existingOverlays,
         {
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           url: normalized,
+          mediaType,
+          muted: mediaType === "video" ? options.muted !== false : true,
+          loop: mediaType === "video" ? options.loop !== false : true,
+          loopCount: mediaType === "video" && options.loopCount ? normalizeVideoLoopCount(options.loopCount) : 0,
+          playFull: mediaType === "video" ? Boolean(options.playFull) : false,
           until: overlayUntil,
           jitterX: Math.round((Math.random() * 10 - 5) * 10) / 10,
           jitterY: Math.round((Math.random() * 14 - 7) * 10) / 10
@@ -3611,14 +3784,18 @@
       return true;
     }
 
-    function addAutoDistractionOverlay(url) {
+    function addAutoDistractionOverlay(url, options = {}) {
       const normalized = normalizeDistractionSource(url);
       if (!normalized) return false;
+      const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
       const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
       const overlayUntil = Date.now() + duration * 1000;
       state.settings.distractionOverlays = [{
         id: `auto-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url: normalized,
+        mediaType,
+        muted: mediaType === "video" ? options.muted !== false : true,
+        loop: true,
         until: overlayUntil,
         jitterX: Math.round((Math.random() * 6 - 3) * 10) / 10,
         jitterY: Math.round((Math.random() * 8 - 4) * 10) / 10
@@ -3640,31 +3817,44 @@
         return;
       }
       if (!pendingDistractionChoiceUrl) {
-        openDistractionChoice(url, "How should this image appear?");
+        openDistractionChoice(url, `How should this ${mediaTypeForDistraction(url)} appear?`);
         return;
       }
       state.settings.distractionMode = els.sideDistractionMode && els.sideDistractionMode.value || "overlay-sub";
       state.settings.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration && els.sideDistractionDuration.value);
-      if (state.settings.distractionMode === "overlay-sub") {
-        addDistractionOverlay(url, state.settings.distractionDuration);
+      const pendingMediaType = mediaTypeForDistraction(url, pendingDistractionChoiceMedia && pendingDistractionChoiceMedia.mediaType);
+      if (state.settings.distractionMode === "overlay-sub" || pendingMediaType === "video") {
+        addDistractionOverlay(url, state.settings.distractionDuration, pendingDistractionChoiceMedia || {});
         els.sideDistractionStatus.textContent = `Overlay posted for ${state.settings.distractionDuration} seconds.`;
       } else {
         state.settings.distractionUrl = "";
         state.settings.distractionBackgroundUrl = url;
         state.settings.distractionBackgroundMode = state.settings.distractionMode;
+        state.settings.distractionBackgroundMediaType = "image";
+        state.settings.distractionBackgroundMuted = true;
         state.settings.distractionUntil = 0;
         els.sideDistractionStatus.textContent = "Background posted.";
       }
-      rememberDistractionImage(url);
+      rememberDistractionImage(url, pendingDistractionChoiceMedia || {});
       renderSidePanel();
       publishSettingsState();
     }
 
-    function openDistractionChoice(url, message = "How should this image appear?") {
+    function openDistractionChoice(url, message = "How should this image appear?", media = {}) {
       if (!domLinkControlsAllowed()) return;
       const normalized = normalizeDistractionSource(url);
       if (!normalized || !els.distractionChoiceModal) return;
+      const mediaType = mediaTypeForDistraction(normalized, media.mediaType);
+      if (mediaType === "video") {
+        openVideoDistractionChoice(normalized, message || "How should this video play?", media);
+        return;
+      }
       pendingDistractionChoiceUrl = normalized;
+      pendingDistractionChoiceMedia = {
+        mediaType,
+        previewUrl: normalizeDistractionSource(media.previewUrl || ""),
+        muted: true
+      };
       if (els.distractionChoiceText) els.distractionChoiceText.textContent = message;
       if (els.distractionChoicePreview) {
         els.distractionChoicePreview.innerHTML = `<img src="${escapeHtml(normalized)}" alt="">`;
@@ -3677,8 +3867,74 @@
 
     function closeDistractionChoice() {
       pendingDistractionChoiceUrl = "";
+      pendingDistractionChoiceMedia = null;
       if (els.distractionChoicePreview) els.distractionChoicePreview.innerHTML = "";
+      [els.subWallpaperDistractionChoiceBtn, els.bothWallpaperDistractionChoiceBtn].forEach((button) => {
+        if (button) button.disabled = false;
+      });
       if (els.distractionChoiceModal) els.distractionChoiceModal.classList.add("hidden");
+    }
+
+    function openVideoDistractionChoice(url, message = "How should this video play?", media = {}) {
+      if (!domLinkControlsAllowed()) return;
+      const normalized = normalizeDistractionSource(url);
+      if (!normalized || !els.videoDistractionChoiceModal) return;
+      pendingDistractionChoiceUrl = normalized;
+      pendingDistractionChoiceMedia = {
+        mediaType: "video",
+        previewUrl: normalizeDistractionSource(media.previewUrl || ""),
+        muted: media.muted !== false
+      };
+      if (els.videoDistractionChoiceText) els.videoDistractionChoiceText.textContent = message;
+      if (els.videoDistractionChoiceLength) els.videoDistractionChoiceLength.textContent = "Video length: loading...";
+      if (els.videoDistractionChoicePreview) {
+        els.videoDistractionChoicePreview.innerHTML = `<video src="${escapeHtml(normalized)}" ${pendingDistractionChoiceMedia.muted ? "muted" : ""} autoplay loop controls playsinline poster="${escapeHtml(pendingDistractionChoiceMedia.previewUrl || "")}"></video>`;
+        const previewVideo = els.videoDistractionChoicePreview.querySelector("video");
+        if (previewVideo && els.videoDistractionChoiceLength) {
+          const updateLength = () => {
+            const duration = formatMediaDuration(previewVideo.duration);
+            els.videoDistractionChoiceLength.textContent = duration
+              ? `Video length: ${duration}`
+              : "Video length: unavailable";
+          };
+          if (Number.isFinite(previewVideo.duration) && previewVideo.duration > 0) updateLength();
+          else {
+            previewVideo.addEventListener("loadedmetadata", updateLength, { once: true });
+            previewVideo.addEventListener("error", () => {
+              if (els.videoDistractionChoiceLength) els.videoDistractionChoiceLength.textContent = "Video length: unavailable";
+            }, { once: true });
+          }
+        }
+      }
+      if (els.videoDistractionChoiceDuration && document.activeElement !== els.videoDistractionChoiceDuration) {
+        els.videoDistractionChoiceDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
+      }
+      if (els.videoDistractionChoiceLoopCount && document.activeElement !== els.videoDistractionChoiceLoopCount) {
+        els.videoDistractionChoiceLoopCount.value = normalizeVideoLoopCount(els.videoDistractionChoiceLoopCount.value || 3);
+      }
+      setVideoLoopChoiceMode("");
+      els.videoDistractionChoiceModal.classList.remove("hidden");
+    }
+
+    function closeVideoDistractionChoice() {
+      pendingDistractionChoiceUrl = "";
+      pendingDistractionChoiceMedia = null;
+      if (els.videoDistractionChoicePreview) els.videoDistractionChoicePreview.innerHTML = "";
+      if (els.videoDistractionChoiceLength) els.videoDistractionChoiceLength.textContent = "Video length: loading...";
+      setVideoLoopChoiceMode("");
+      if (els.videoDistractionChoiceModal) els.videoDistractionChoiceModal.classList.add("hidden");
+    }
+
+    function setVideoLoopChoiceMode(mode = "") {
+      const timeMode = mode === "time";
+      const countMode = mode === "count";
+      if (els.videoLoopTimeRow) els.videoLoopTimeRow.classList.toggle("hidden", !timeMode);
+      if (els.videoLoopCountRow) els.videoLoopCountRow.classList.toggle("hidden", !countMode);
+      if (els.videoLoopConfirmActions) els.videoLoopConfirmActions.classList.toggle("hidden", !timeMode && !countMode);
+      if (els.confirmLoopTimedVideoDistractionChoiceBtn) els.confirmLoopTimedVideoDistractionChoiceBtn.classList.toggle("hidden", !timeMode);
+      if (els.confirmLoopCountVideoDistractionChoiceBtn) els.confirmLoopCountVideoDistractionChoiceBtn.classList.toggle("hidden", !countMode);
+      if (els.loopTimedVideoDistractionChoiceBtn) els.loopTimedVideoDistractionChoiceBtn.classList.toggle("active", timeMode);
+      if (els.loopCountVideoDistractionChoiceBtn) els.loopCountVideoDistractionChoiceBtn.classList.toggle("active", countMode);
     }
 
     function imageDownloadName(url) {
@@ -3732,6 +3988,68 @@
       }
       postDistraction();
       closeDistractionChoice();
+    }
+
+    function postChosenVideoDistraction(mode) {
+      const url = normalizeDistractionSource(pendingDistractionChoiceUrl);
+      if (!url) {
+        closeVideoDistractionChoice();
+        return;
+      }
+      const media = {
+        ...(pendingDistractionChoiceMedia || {}),
+        mediaType: "video"
+      };
+      const isFullVideo = mode === "full";
+      const isWallpaper = mode === "background-sub" || mode === "background-both";
+      const isLoopCount = mode === "loop-count";
+      const duration = isFullVideo
+        ? normalizeFullVideoDuration(600)
+        : normalizeDistractionDuration(els.videoDistractionChoiceDuration && els.videoDistractionChoiceDuration.value);
+      const loopCount = normalizeVideoLoopCount(els.videoDistractionChoiceLoopCount && els.videoDistractionChoiceLoopCount.value);
+      if (!isFullVideo && !isWallpaper) {
+        state.settings.distractionDuration = duration;
+        if (els.sideDistractionDuration) els.sideDistractionDuration.value = duration;
+      }
+      if (isWallpaper) {
+        state.settings.distractionUrl = "";
+        state.settings.distractionBackgroundUrl = url;
+        state.settings.distractionBackgroundMode = mode;
+        state.settings.distractionBackgroundMediaType = "video";
+        state.settings.distractionBackgroundMuted = true;
+        state.settings.distractionUntil = 0;
+        if (els.sideDistractionInput) els.sideDistractionInput.value = url;
+        if (els.sideDistractionStatus) {
+          els.sideDistractionStatus.textContent = mode === "background-sub"
+            ? "Muted experimental video wallpaper posted for the sub."
+            : "Muted experimental video wallpaper posted for both players.";
+        }
+        rememberDistractionImage(url, media);
+        renderSidePanel();
+        publishSettingsState();
+        closeVideoDistractionChoice();
+        return;
+      }
+      if (addDistractionOverlay(url, duration, {
+        ...media,
+        loop: !isFullVideo && !isLoopCount,
+        loopCount: isLoopCount ? loopCount : 0,
+        playFull: isFullVideo,
+        fullDuration: isLoopCount ? normalizeFullVideoDuration(1800) : (isFullVideo ? duration : undefined)
+      })) {
+        if (els.sideDistractionInput) els.sideDistractionInput.value = url;
+        if (els.sideDistractionStatus) {
+          els.sideDistractionStatus.textContent = isFullVideo
+            ? "Video posted until it finishes."
+            : isLoopCount
+              ? `Video posted for ${loopCount} loop${loopCount === 1 ? "" : "s"}.`
+            : `Video loop posted for ${duration} seconds.`;
+        }
+        rememberDistractionImage(url, media);
+        renderSidePanel();
+        publishSettingsState();
+      }
+      closeVideoDistractionChoice();
     }
 
     function imageFileFromItems(items) {
@@ -3901,6 +4219,8 @@
       state.settings.distractionUrl = "";
       state.settings.distractionUntil = 0;
       state.settings.distractionBackgroundUrl = "";
+      state.settings.distractionBackgroundMediaType = "";
+      state.settings.distractionBackgroundMuted = true;
       state.settings.distractionOverlayUrl = "";
       state.settings.distractionOverlayUntil = 0;
       state.settings.distractionOverlayX = 50;
@@ -3908,6 +4228,19 @@
       state.settings.distractionOverlays = [];
       els.sideDistractionInput.value = "";
       els.sideDistractionStatus.textContent = "Distraction cleared.";
+      renderSidePanel();
+      publishSettingsState();
+    }
+
+    function clearDistractionPopups() {
+      if (!domLinkControlsAllowed()) return;
+      state.settings.distractionOverlayUrl = "";
+      state.settings.distractionOverlayUntil = 0;
+      state.settings.distractionOverlayX = 50;
+      state.settings.distractionOverlayY = 52;
+      state.settings.distractionOverlays = [];
+      if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Popups cleared.";
+      renderDistractionBackground();
       renderSidePanel();
       publishSettingsState();
     }
@@ -3921,10 +4254,40 @@
       );
     }
 
+    function hasDistractionPopups() {
+      return Boolean(
+        state.settings.distractionOverlayUrl
+        || activeDistractionOverlays().length
+      );
+    }
+
     function normalizeDistractionDuration(value) {
       const seconds = Math.round(Number(value));
       if (!Number.isFinite(seconds)) return 15;
       return Math.min(60, Math.max(1, seconds));
+    }
+
+    function normalizeFullVideoDuration(value) {
+      const seconds = Math.round(Number(value));
+      if (!Number.isFinite(seconds)) return 600;
+      return Math.min(1800, Math.max(10, seconds));
+    }
+
+    function normalizeVideoLoopCount(value) {
+      const count = Math.round(Number(value));
+      if (!Number.isFinite(count)) return 3;
+      return Math.min(20, Math.max(1, count));
+    }
+
+    function formatMediaDuration(value) {
+      const seconds = Math.floor(Number(value || 0));
+      if (!Number.isFinite(seconds) || seconds <= 0) return "";
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const remainder = seconds % 60;
+      return hours
+        ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
+        : `${minutes}:${String(remainder).padStart(2, "0")}`;
     }
 
     function normalizeAutoPopupInterval(value) {
@@ -3939,10 +4302,17 @@
         : [];
     }
 
-    function rememberDistractionImage(url) {
+    function savedDistractionItemById(id) {
+      const items = Array.isArray(state.settings.distractionGallery) ? state.settings.distractionGallery : [];
+      return items.find((item) => item && item.id === id && normalizeDistractionSource(item.url));
+    }
+
+    function rememberDistractionImage(url, media = {}) {
       const normalized = normalizeDistractionSource(url);
       if (!normalized) return;
       const isInlineUpload = normalized.startsWith("data:");
+      const mediaType = mediaTypeForDistraction(normalized, media.mediaType);
+      const previewUrl = normalizeDistractionSource(media.previewUrl || "");
       const existing = Array.isArray(state.settings.distractionGallery) ? state.settings.distractionGallery : [];
       const inlineKept = existing
         .filter((item) => item && String(item.url || "").startsWith("data:") && item.url !== normalized)
@@ -3954,6 +4324,8 @@
         {
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           url: normalized,
+          mediaType,
+          previewUrl,
           savedAt: Date.now()
         }
       ];
@@ -3961,18 +4333,35 @@
     }
 
     function renderDistractionGallery() {
-      if (!els.distractionGallery) return;
+      if (!els.distractionGallery && !els.distractionVideoGallery) return;
       const items = distractionGalleryItems();
-      if (els.savedDistractionGallerySection && items.length && !els.savedDistractionGallerySection.dataset.userToggled) {
+      const imageItems = items.filter((item) => mediaTypeForDistraction(item.url, item.mediaType) !== "video");
+      const videoItems = items.filter((item) => mediaTypeForDistraction(item.url, item.mediaType) === "video");
+      if (els.savedDistractionGallerySection && imageItems.length && !els.savedDistractionGallerySection.dataset.userToggled) {
         els.savedDistractionGallerySection.open = true;
       }
-      els.distractionGallery.classList.toggle("hidden", !items.length);
+      if (els.savedVideoGallerySection && videoItems.length && !els.savedVideoGallerySection.dataset.userToggled) {
+        els.savedVideoGallerySection.open = true;
+      }
       const selectedUrl = normalizeDistractionSource(els.sideDistractionInput.value);
-      els.distractionGallery.innerHTML = items.map((item, index) => `
-        <button type="button" class="distraction-thumb ${selectedUrl && selectedUrl === normalizeDistractionSource(item.url) ? "selected" : ""}" data-distraction-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Select image">
-          <img src="${escapeHtml(item.url)}" alt="Saved distraction ${index + 1}" loading="lazy">
+      const renderSavedItems = (savedItems, label) => savedItems.map((item, index) => {
+        const mediaType = mediaTypeForDistraction(item.url, item.mediaType);
+        const thumbUrl = normalizeDistractionSource(item.previewUrl || item.url);
+        return `
+        <button type="button" class="distraction-thumb ${selectedUrl && selectedUrl === normalizeDistractionSource(item.url) ? "selected" : ""}" data-distraction-gallery-id="${escapeHtml(item.id || "")}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Select ${mediaType}">
+          <img src="${escapeHtml(thumbUrl)}" alt="Saved ${label} ${index + 1}" loading="lazy">
+          ${mediaType === "video" ? "<span class=\"media-pill\">Video</span>" : ""}
         </button>
-      `).join("");
+      `;
+      }).join("");
+      if (els.distractionGallery) {
+        els.distractionGallery.classList.toggle("hidden", !imageItems.length);
+        els.distractionGallery.innerHTML = renderSavedItems(imageItems, "image");
+      }
+      if (els.distractionVideoGallery) {
+        els.distractionVideoGallery.classList.toggle("hidden", !videoItems.length);
+        els.distractionVideoGallery.innerHTML = renderSavedItems(videoItems, "video");
+      }
     }
 
     function renderBooruGallery() {
@@ -3988,6 +4377,121 @@
           </button>
         `;
       }).join("");
+    }
+
+    function danbooruCategoryLabel(category = localDanbooruCategory) {
+      const labels = {
+        feet: "Feet",
+        boobs: "Boobs",
+        butt: "Butt",
+        armpits: "Armpits",
+        femboys: "Femboys"
+      };
+      return labels[String(category || "").toLowerCase()] || "Feet";
+    }
+
+    function soloAutoPopupControlsAllowed() {
+      return (state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame))
+        || ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen);
+    }
+
+    function syncDanbooruVideoToggleButtons(canUseDomSettings = domLinkControlsAllowed()) {
+      const pairs = [
+        [els.danbooruIncludeVideos, canUseDomSettings],
+        [els.soloDanbooruIncludeVideos, soloAutoPopupControlsAllowed()]
+      ];
+      pairs.forEach(([button, canUse]) => {
+        if (!button) return;
+        button.disabled = !canUse || localDanbooruGalleryLoading;
+        button.classList.toggle("active", localDanbooruIncludeVideos);
+        button.setAttribute("aria-pressed", localDanbooruIncludeVideos ? "true" : "false");
+      });
+      [
+        [els.danbooruUnmuteVideos, canUseDomSettings],
+        [els.soloDanbooruUnmuteVideos, soloAutoPopupControlsAllowed()]
+      ].forEach(([button, canUse]) => {
+        if (!button) return;
+        button.disabled = !canUse || localDanbooruGalleryLoading || !localDanbooruIncludeVideos;
+        button.classList.toggle("active", localDanbooruUnmuteVideos);
+        button.setAttribute("aria-pressed", localDanbooruUnmuteVideos ? "true" : "false");
+      });
+    }
+
+    function setDanbooruIncludeVideos(enabled) {
+      localDanbooruIncludeVideos = Boolean(enabled);
+      if (!localDanbooruIncludeVideos) localDanbooruUnmuteVideos = false;
+      resetAutoPopupFeedCursors();
+      syncDanbooruVideoToggleButtons();
+      if (els.danbooruGalleryStatus) {
+        els.danbooruGalleryStatus.textContent = localDanbooruIncludeVideos
+          ? "Videos enabled for Booru results."
+          : "Videos disabled for Booru results.";
+      }
+      if (localDanbooruCustomTag && !localDanbooruGalleryLoading) {
+        loadDanbooruGallery({ tag: localDanbooruCustomTag, next: false });
+      }
+    }
+
+    function setDanbooruUnmuteVideos(enabled) {
+      if (!localDanbooruIncludeVideos) return;
+      localDanbooruUnmuteVideos = Boolean(enabled);
+      syncDanbooruVideoToggleButtons();
+      if (els.danbooruGalleryStatus) {
+        els.danbooruGalleryStatus.textContent = localDanbooruUnmuteVideos
+          ? "Video popups will try to play with audio when the browser allows it."
+          : "Video popups will play muted.";
+      }
+    }
+
+    function renderDanbooruGallery() {
+      if (!els.danbooruGallery) return;
+      els.danbooruGallery.classList.toggle("hidden", !localDanbooruGalleryItems.length);
+      const selectedUrl = normalizeDistractionSource(els.sideDistractionInput.value);
+      els.danbooruGallery.innerHTML = localDanbooruGalleryItems.map((item, index) => {
+        const url = normalizeDistractionSource(item.url);
+        const previewUrl = normalizeDistractionSource(item.previewUrl || item.url);
+        const mediaType = mediaTypeForDistraction(url, item.mediaType);
+        return `
+          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-danbooru-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="${escapeHtml(item.tags || `Danbooru score ${Number(item.score || 0)}`)}">
+            <img src="${escapeHtml(previewUrl)}" alt="Booru result ${index + 1}" loading="lazy">
+            ${mediaType === "video" ? "<span class=\"media-pill\">Video</span>" : ""}
+          </button>
+        `;
+      }).join("");
+    }
+
+    function formatDanbooruCount(count = 0) {
+      const value = Number(count || 0);
+      if (!Number.isFinite(value) || value <= 0) return "";
+      if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}m`;
+      if (value >= 1_000) return `${Math.round(value / 1_000)}k`;
+      return String(value);
+    }
+
+    function renderDanbooruSuggestionList(container, visible = true) {
+      if (!container) return;
+      const hasSuggestions = Array.isArray(localDanbooruSuggestions) && localDanbooruSuggestions.length;
+      container.classList.toggle("hidden", !visible || !hasSuggestions);
+      container.innerHTML = visible && hasSuggestions
+        ? localDanbooruSuggestions.map((item, index) => {
+          const label = item.label || item.value || "tag";
+          const count = formatDanbooruCount(item.postCount);
+          return `
+            <button type="button" data-danbooru-suggestion-index="${index}" title="${escapeHtml(item.value)}">
+              <span>${escapeHtml(label)}</span>
+              ${count ? `<small>${escapeHtml(count)}</small>` : ""}
+            </button>
+          `;
+        }).join("")
+        : "";
+    }
+
+    function renderDanbooruSuggestions() {
+      renderDanbooruSuggestionList(els.danbooruSuggestions, true);
+      renderDanbooruSuggestionList(
+        els.soloDanbooruSuggestions,
+        soloAutoPopupControlsAllowed() && autoPopupSourceKey() === "booru"
+      );
     }
 
     function renderRedditeryGallery() {
@@ -4010,8 +4514,173 @@
       return "peekstr";
     }
 
+    const GOONER_GALLERY_CATEGORIES = {
+      captions: {
+        label: "Captions",
+        subreddits: ["gooninghentai"]
+      },
+      femboys: {
+        label: "Femboys",
+        subreddits: ["femboyhentai"]
+      },
+      butt: {
+        label: "Butt",
+        subreddits: ["bootyhentai", "animebooty", "buttfangs"]
+      },
+      bnwo: {
+        label: "BNWO",
+        subreddits: ["hentai_bnwo", "hentaibnwohaven"]
+      },
+      feet: {
+        label: "Feet",
+        subreddits: ["besthentaifeet", "animefeet", "hentaifeetlover"]
+      },
+      boobs: {
+        label: "Boobs",
+        subreddits: ["oppaihentai", "biganimetiddies", "underoppai", "sideoppai", "overoppai"]
+      },
+      armpits: {
+        label: "Armpits",
+        subreddits: ["animearmpits"]
+      }
+    };
+
+    GOONER_GALLERY_CATEGORIES.mixed = {
+      label: "Mixed",
+      subreddits: Object.values(GOONER_GALLERY_CATEGORIES).flatMap((category) => category.subreddits)
+    };
+
+    function goonerGalleryCategoryKey() {
+      const key = String(state.settings.goonerGalleryCategory || "captions").toLowerCase();
+      return GOONER_GALLERY_CATEGORIES[key] ? key : "captions";
+    }
+
+    function autoPopupSourceKey() {
+      return state.settings.redditeryAutoPopupSource === "booru" ? "booru" : "reddit";
+    }
+
+    function autoPopupRedditCategoryKey() {
+      const key = String(state.settings.redditeryAutoPopupCategory || state.settings.goonerGalleryCategory || "captions").toLowerCase();
+      return GOONER_GALLERY_CATEGORIES[key] ? key : "captions";
+    }
+
+    function goonerGalleryCategoryLabel(key = goonerGalleryCategoryKey()) {
+      return (GOONER_GALLERY_CATEGORIES[key] || GOONER_GALLERY_CATEGORIES.captions).label;
+    }
+
+    function pickGoonerSubreddit(previous = "", categoryKey = goonerGalleryCategoryKey()) {
+      const category = GOONER_GALLERY_CATEGORIES[categoryKey] || GOONER_GALLERY_CATEGORIES.captions;
+      const subreddits = category.subreddits.length ? category.subreddits : GOONER_GALLERY_CATEGORIES.captions.subreddits;
+      if (previous && subreddits.includes(previous)) return previous;
+      return subreddits[Math.floor(Math.random() * subreddits.length)] || "gooninghentai";
+    }
+
+    function goonerCategoryForSubreddit(subreddit = "") {
+      const normalized = String(subreddit || "").toLowerCase();
+      const match = Object.entries(GOONER_GALLERY_CATEGORIES)
+        .filter(([key]) => key !== "mixed")
+        .find(([, category]) => category.subreddits.includes(normalized));
+      return match ? match[0] : "captions";
+    }
+
+    function randomSnapCategoryKey(previous = "", repeatChance = 0.36) {
+      const categories = Object.keys(GOONER_GALLERY_CATEGORIES).filter((key) => key !== "mixed");
+      if (previous && categories.includes(previous) && Math.random() < repeatChance) return previous;
+      const choices = previous ? categories.filter((key) => key !== previous) : categories;
+      return choices[Math.floor(Math.random() * choices.length)] || "captions";
+    }
+
+    function resetGoonerFeedCursors() {
+      localRedditeryPage = -1;
+      localRedditeryAfter = "";
+      localRedditeryActiveSubreddit = "";
+      localRedditeryReachedEnd = false;
+      localRedditeryGalleryItems = [];
+      resetAutoPopupFeedCursors();
+      localMemoryMatchAfter = "";
+      localMemoryMatchSubreddit = "";
+      localMemoryMatchRecentUrls = [];
+      localBrainDrainSnapPools = {};
+      localBrainDrainSnapAfter = {};
+    }
+
+    function resetAutoPopupFeedCursors() {
+      localRedditeryAutoPopupItems = [];
+      localRedditeryAutoPopupAfter = "";
+      localRedditeryAutoPopupSubreddit = "";
+      localRedditeryAutoPopupRecentUrls = [];
+      localDanbooruAutoPopupItems = [];
+      localDanbooruAutoPopupPage = 0;
+      localDanbooruAutoPopupKey = "";
+      localDanbooruAutoPopupRecentUrls = [];
+    }
+
+    function setGoonerGalleryCategory(value) {
+      const category = GOONER_GALLERY_CATEGORIES[String(value || "").toLowerCase()] ? String(value || "").toLowerCase() : "captions";
+      if (category === goonerGalleryCategoryKey()) return;
+      updateSettings({ goonerGalleryCategory: category });
+      resetGoonerFeedCursors();
+      if (localRedditeryCooldownTimer) {
+        window.clearInterval(localRedditeryCooldownTimer);
+        localRedditeryCooldownTimer = null;
+      }
+      localRedditeryCooldownUntil = 0;
+      renderRedditeryGallery();
+      updateRedditeryRandomButton();
+      updateRedditeryAutoPopupStatus();
+      if (els.sideDistractionStatus) {
+        els.sideDistractionStatus.textContent = `${goonerGalleryCategoryLabel(category)} selected. Press Random Recent to load images.`;
+      }
+    }
+
+    function syncGoonerGalleryCategoryControls() {
+      [els.goonerGalleryCategory, els.soloGoonerGalleryCategory].forEach((select) => {
+        if (!select || document.activeElement === select) return;
+        select.value = goonerGalleryCategoryKey();
+      });
+      if (els.goonerGalleryCategory) els.goonerGalleryCategory.disabled = !domLinkControlsAllowed();
+      if (els.soloGoonerGalleryCategory) {
+        const soloAllowed = (state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame)) || ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen);
+        els.soloGoonerGalleryCategory.disabled = !soloAllowed;
+      }
+    }
+
+    function syncAutoPopupSourceControls() {
+      const source = autoPopupSourceKey();
+      const category = autoPopupRedditCategoryKey();
+      const domAllowed = domLinkControlsAllowed();
+      const soloAllowed = soloAutoPopupControlsAllowed();
+      [els.redditeryAutoPopupSource, els.soloRedditeryAutoPopupSource].forEach((select) => {
+        if (!select || document.activeElement === select) return;
+        select.value = source;
+      });
+      [els.redditeryAutoPopupCategory, els.soloRedditeryAutoPopupCategory].forEach((select) => {
+        if (!select || document.activeElement === select) return;
+        select.value = category;
+      });
+      if (els.redditeryAutoPopupSource) els.redditeryAutoPopupSource.disabled = !domAllowed;
+      if (els.redditeryAutoPopupCategory) els.redditeryAutoPopupCategory.disabled = !domAllowed || source !== "reddit";
+      if (els.redditeryAutoPopupCategoryRow) els.redditeryAutoPopupCategoryRow.classList.toggle("hidden", source !== "reddit");
+      if (els.soloRedditeryAutoPopupSource) els.soloRedditeryAutoPopupSource.disabled = !soloAllowed;
+      if (els.soloRedditeryAutoPopupCategory) els.soloRedditeryAutoPopupCategory.disabled = !soloAllowed || source !== "reddit";
+      if (els.soloRedditeryAutoPopupCategoryRow) els.soloRedditeryAutoPopupCategoryRow.classList.toggle("hidden", source !== "reddit");
+      if (els.soloBooruAutoPopupTagRow) els.soloBooruAutoPopupTagRow.classList.toggle("hidden", source !== "booru");
+      if (els.soloBooruAutoPopupVideoRow) els.soloBooruAutoPopupVideoRow.classList.toggle("hidden", source !== "booru");
+      if (els.soloDanbooruSuggestions && source !== "booru") {
+        els.soloDanbooruSuggestions.classList.add("hidden");
+        els.soloDanbooruSuggestions.innerHTML = "";
+      }
+      if (els.soloDanbooruTagInput) {
+        els.soloDanbooruTagInput.disabled = !soloAllowed || source !== "booru";
+        if (document.activeElement !== els.soloDanbooruTagInput) {
+          els.soloDanbooruTagInput.value = localDanbooruCustomTag || "";
+        }
+      }
+    }
+
     function goonerGallerySourceLabel(source = goonerGallerySource()) {
-      return source === "redditery" ? "Redditery" : "Peekstr";
+      const sourceLabel = source === "redditery" ? "Redditery" : "Peekstr";
+      return `${goonerGalleryCategoryLabel()} ${sourceLabel}`;
     }
 
     function shuffledGalleryItems(items) {
@@ -4053,6 +4722,127 @@
       }
     }
 
+    async function loadDanbooruGallery(options = {}) {
+      if (!domLinkControlsAllowed() || localDanbooruGalleryLoading) return;
+      const selectedCategory = String(els.danbooruGalleryCategory && els.danbooruGalleryCategory.value || localDanbooruCategory || "feet").toLowerCase();
+      const customTag = String(options.tag || (options.next ? localDanbooruCustomTag : "") || "").trim();
+      const nextPage = options.next ? localDanbooruPage + 1 : 1;
+      localDanbooruGalleryLoading = true;
+      localDanbooruCategory = selectedCategory;
+      localDanbooruCustomTag = customTag;
+      localDanbooruPage = nextPage;
+      if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = true;
+      if (els.danbooruNextBtn) els.danbooruNextBtn.disabled = true;
+      if (els.danbooruGalleryStatus) {
+        els.danbooruGalleryStatus.textContent = customTag
+          ? `Loading Booru tag ${customTag} page ${nextPage}...`
+          : `Loading ${danbooruCategoryLabel(selectedCategory)} Booru page ${nextPage}...`;
+      }
+      try {
+        const params = new URLSearchParams({
+          category: selectedCategory,
+          page: String(nextPage),
+          limit: "18",
+          nonce: String(Date.now())
+        });
+        if (customTag) params.set("tag", customTag);
+        if (localDanbooruIncludeVideos) params.set("includeVideos", "true");
+        const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Booru gallery failed.");
+        localDanbooruGalleryItems = Array.isArray(data.items)
+          ? data.items.filter((item) => item && normalizeDistractionSource(item.url)).slice(0, 18)
+          : [];
+        if (els.danbooruGalleryStatus) {
+          els.danbooruGalleryStatus.textContent = localDanbooruGalleryItems.length
+            ? `Loaded ${localDanbooruGalleryItems.length} Booru result${localDanbooruGalleryItems.length === 1 ? "" : "s"} for ${data.tags || danbooruCategoryLabel(selectedCategory)}.`
+            : `No usable Booru images came back for ${data.tags || danbooruCategoryLabel(selectedCategory)}.`;
+        }
+      } catch (error) {
+        localDanbooruGalleryItems = [];
+        if (els.danbooruGalleryStatus) els.danbooruGalleryStatus.textContent = String(error && error.message || "Booru gallery failed.");
+      } finally {
+        localDanbooruGalleryLoading = false;
+        const canUse = domLinkControlsAllowed();
+        if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = !canUse;
+        if (els.danbooruNextBtn) els.danbooruNextBtn.disabled = !canUse;
+        renderDanbooruGallery();
+      }
+    }
+
+    async function loadDanbooruSuggestions(query) {
+      const normalized = String(query || "").trim();
+      const canSuggest = domLinkControlsAllowed() || soloAutoPopupControlsAllowed();
+      if (!canSuggest || normalized.length < 2) {
+        localDanbooruSuggestions = [];
+        renderDanbooruSuggestions();
+        return;
+      }
+      localDanbooruSuggesting = true;
+      if (els.danbooruGalleryStatus) els.danbooruGalleryStatus.textContent = `Finding Booru tags for ${normalized}...`;
+      try {
+        const params = new URLSearchParams({ query: normalized, limit: "10", nonce: String(Date.now()) });
+        const response = await fetch(`/api/danbooru-autocomplete?${params.toString()}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Booru suggestions failed.");
+        localDanbooruSuggestions = Array.isArray(data.items) ? data.items : [];
+        if (els.danbooruGalleryStatus) {
+          els.danbooruGalleryStatus.textContent = localDanbooruSuggestions.length
+            ? `Pick a Booru tag for ${normalized}.`
+            : `No Booru tag suggestions found for ${normalized}.`;
+        }
+      } catch (error) {
+        localDanbooruSuggestions = [];
+        if (els.danbooruGalleryStatus) els.danbooruGalleryStatus.textContent = String(error && error.message || "Booru suggestions failed.");
+      } finally {
+        localDanbooruSuggesting = false;
+        renderDanbooruSuggestions();
+      }
+    }
+
+    function queueDanbooruSuggestions(input = els.danbooruTagInput) {
+      if (localDanbooruSuggestTimer) window.clearTimeout(localDanbooruSuggestTimer);
+      localDanbooruSuggestTimer = window.setTimeout(() => {
+        loadDanbooruSuggestions(input && input.value);
+      }, 280);
+    }
+
+    function selectDanbooruSuggestion(index, target = "gallery") {
+      const item = localDanbooruSuggestions[Number(index)];
+      const tag = item && String(item.value || "").trim();
+      if (!tag) return;
+      if (els.danbooruTagInput) els.danbooruTagInput.value = tag;
+      if (els.soloDanbooruTagInput) els.soloDanbooruTagInput.value = tag;
+      localDanbooruCustomTag = tag;
+      localDanbooruSuggestions = [];
+      renderDanbooruSuggestions();
+      resetAutoPopupFeedCursors();
+      if (target === "solo") {
+        updateRedditeryAutoPopupStatus();
+        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        return;
+      }
+      loadDanbooruGallery({ tag, next: false });
+    }
+
+    function selectDanbooruGalleryImage(index) {
+      if (!domLinkControlsAllowed()) return;
+      const item = localDanbooruGalleryItems[Number(index)];
+      const url = item && normalizeDistractionSource(item.url);
+      if (!url) return;
+      const media = {
+        mediaType: mediaTypeForDistraction(url, item.mediaType),
+        previewUrl: normalizeDistractionSource(item.previewUrl || ""),
+        muted: !localDanbooruUnmuteVideos
+      };
+      els.sideDistractionInput.value = url;
+      rememberDistractionImage(url, media);
+      if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = `Booru ${media.mediaType} selected and saved.`;
+      openDistractionChoice(url, `How should this Booru ${media.mediaType} appear?`, media);
+      renderDanbooruGallery();
+      renderDistractionGallery();
+    }
+
     function selectBooruGalleryImage(index) {
       if (!domLinkControlsAllowed()) return;
       const item = localBooruGalleryItems[Number(index)];
@@ -4086,11 +4876,15 @@
     async function fetchRedditeryItems(updateGallery = false, options = {}) {
       const source = goonerGallerySource();
       const auto = Boolean(options && options.auto);
+      const categoryKey = options && options.category ? String(options.category).toLowerCase() : goonerGalleryCategoryKey();
       const after = auto ? localRedditeryAutoPopupAfter : localRedditeryAfter;
+      const activeSubreddit = auto
+        ? pickGoonerSubreddit(localRedditeryAutoPopupSubreddit, categoryKey)
+        : pickGoonerSubreddit(localRedditeryActiveSubreddit, categoryKey);
       const nextPage = after ? 0 : Math.min(30, Math.max(0, localRedditeryPage + 1));
       const params = new URLSearchParams({
         source,
-        subreddit: "gooninghentai",
+        subreddit: activeSubreddit,
         limit: updateGallery ? "24" : "18",
         page: String(nextPage),
         window: source === "peekstr" ? (auto ? "2" : "4") : "1",
@@ -4123,9 +4917,11 @@
       }
       if (auto) {
         localRedditeryAutoPopupAfter = String(data.after || "");
+        localRedditeryAutoPopupSubreddit = activeSubreddit;
       } else {
         localRedditeryPage = after ? localRedditeryPage + 1 : (Number.isFinite(Number(data.page)) ? Number(data.page) : nextPage);
         localRedditeryAfter = String(data.after || "");
+        localRedditeryActiveSubreddit = activeSubreddit;
         localRedditeryReachedEnd = !localRedditeryAfter;
       }
       if (updateGallery) {
@@ -4137,13 +4933,7 @@
 
     function resetGoonerGalleryToTop() {
       if (!domLinkControlsAllowed() || localRedditeryGalleryLoading) return;
-      localRedditeryPage = -1;
-      localRedditeryAfter = "";
-      localRedditeryReachedEnd = false;
-      localRedditeryGalleryItems = [];
-      localRedditeryAutoPopupItems = [];
-      localRedditeryAutoPopupAfter = "";
-      localRedditeryAutoPopupRecentUrls = [];
+      resetGoonerFeedCursors();
       localRedditeryCooldownUntil = 0;
       if (localRedditeryCooldownTimer) {
         window.clearInterval(localRedditeryCooldownTimer);
@@ -4152,7 +4942,7 @@
       renderRedditeryGallery();
       updateRedditeryRandomButton();
       if (els.sideDistractionStatus) {
-        els.sideDistractionStatus.textContent = "Gooner gallery reset to the newest images. Press Random Recent to load from the top.";
+        els.sideDistractionStatus.textContent = "Reddit gallery reset to the newest images. Press Random Recent to load from the top.";
       }
     }
 
@@ -4167,11 +4957,11 @@
         const recent = new Set(localRedditeryAutoPopupRecentUrls);
         let freshItems = [];
         for (let attempt = 0; attempt < 4 && freshItems.length < 8; attempt += 1) {
-          const batch = await fetchRedditeryItems(false, { auto: true });
+          const batch = await fetchRedditeryItems(false, { auto: true, category: autoPopupRedditCategoryKey() });
           const unseen = batch.filter((item) => !recent.has(normalizeDistractionSource(item.url)));
           freshItems = shuffledGalleryItems([...freshItems, ...unseen]);
         }
-        localRedditeryAutoPopupItems = freshItems.length ? freshItems : await fetchRedditeryItems(false, { auto: true });
+        localRedditeryAutoPopupItems = freshItems.length ? freshItems : await fetchRedditeryItems(false, { auto: true, category: autoPopupRedditCategoryKey() });
       }
       if (!localRedditeryAutoPopupItems.length) return null;
       const index = Math.floor(Math.random() * localRedditeryAutoPopupItems.length);
@@ -4184,6 +4974,73 @@
         ].slice(0, 48);
       }
       return item || null;
+    }
+
+    function currentBooruAutoPopupSearch() {
+      const soloTag = String(els.soloDanbooruTagInput && els.soloDanbooruTagInput.value || "").trim();
+      const inputTag = soloAutoPopupControlsAllowed() && autoPopupSourceKey() === "booru"
+        ? soloTag
+        : String(els.danbooruTagInput && els.danbooruTagInput.value || "").trim();
+      const tag = inputTag || localDanbooruCustomTag || "";
+      const category = String(localDanbooruCategory || (els.danbooruGalleryCategory && els.danbooruGalleryCategory.value) || "feet").toLowerCase();
+      const key = tag ? `tag:${tag}` : `category:${category}`;
+      return { tag, category, key };
+    }
+
+    async function fetchBooruAutoPopupItems() {
+      const search = currentBooruAutoPopupSearch();
+      if (localDanbooruAutoPopupKey !== search.key) {
+        localDanbooruAutoPopupItems = [];
+        localDanbooruAutoPopupPage = 0;
+        localDanbooruAutoPopupRecentUrls = [];
+        localDanbooruAutoPopupKey = search.key;
+      }
+      const page = Math.min(30, localDanbooruAutoPopupPage + 1);
+      const params = new URLSearchParams({
+        category: search.category,
+        page: String(page),
+        limit: "18",
+        nonce: String(Date.now())
+      });
+      if (search.tag) params.set("tag", search.tag);
+      if (localDanbooruIncludeVideos) params.set("includeVideos", "true");
+      const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Booru auto popup failed.");
+      localDanbooruAutoPopupPage = page;
+      return Array.isArray(data.items)
+        ? shuffledGalleryItems(data.items.filter((item) => item && normalizeDistractionSource(item.url))).slice(0, 18)
+        : [];
+    }
+
+    async function takeNextBooruAutoPopupItem() {
+      if (!localDanbooruAutoPopupItems.length) {
+        const recent = new Set(localDanbooruAutoPopupRecentUrls);
+        let freshItems = [];
+        for (let attempt = 0; attempt < 4 && freshItems.length < 8; attempt += 1) {
+          const batch = await fetchBooruAutoPopupItems();
+          const unseen = batch.filter((item) => !recent.has(normalizeDistractionSource(item.url)));
+          freshItems = shuffledGalleryItems([...freshItems, ...unseen]);
+        }
+        localDanbooruAutoPopupItems = freshItems.length ? freshItems : await fetchBooruAutoPopupItems();
+      }
+      if (!localDanbooruAutoPopupItems.length) return null;
+      const index = Math.floor(Math.random() * localDanbooruAutoPopupItems.length);
+      const [item] = localDanbooruAutoPopupItems.splice(index, 1);
+      const url = item && normalizeDistractionSource(item.url);
+      if (url) {
+        localDanbooruAutoPopupRecentUrls = [
+          url,
+          ...localDanbooruAutoPopupRecentUrls.filter((recentUrl) => recentUrl !== url)
+        ].slice(0, 48);
+      }
+      return item || null;
+    }
+
+    async function takeNextAutoPopupItem() {
+      return autoPopupSourceKey() === "booru"
+        ? takeNextBooruAutoPopupItem()
+        : takeNextRedditeryAutoPopupItem();
     }
 
     function startRedditeryCooldown() {
@@ -4228,11 +5085,13 @@
     }
 
     function redditeryAutoPopupControlAllowed() {
-      return domLinkControlsAllowed() || (state.screen === "select" && state.currentGame === "solitaire") || state.screen === "solitaire";
+      const soloScreens = ["solitaire", "memoryMatch", "brainDrainSnap"];
+      const soloMenuOpen = state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame);
+      return domLinkControlsAllowed() || soloMenuOpen || soloScreens.includes(state.screen);
     }
 
     function redditeryAutoPopupAllowed() {
-      return domLinkControlsAllowed() || state.screen === "solitaire";
+      return domLinkControlsAllowed() || ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen);
     }
 
     function setRedditeryAutoPopupEnabled(enabled) {
@@ -4245,27 +5104,30 @@
     function updateRedditeryAutoPopupStatus() {
       const enabled = Boolean(state.settings.redditeryAutoPopup);
       const allowed = redditeryAutoPopupControlAllowed();
+      syncGoonerGalleryCategoryControls();
+      syncAutoPopupSourceControls();
       [
         [els.redditeryAutoPopupToggle, domLinkControlsAllowed()],
-        [els.soloRedditeryAutoPopupToggle, (state.screen === "select" && state.currentGame === "solitaire") || state.screen === "solitaire"]
+        [els.soloRedditeryAutoPopupToggle, (state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame)) || ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen)]
       ].forEach(([toggle, canUse]) => {
         if (!toggle) return;
-        toggle.checked = enabled;
         toggle.disabled = !canUse;
+        toggle.classList.toggle("active", enabled);
+        toggle.setAttribute("aria-pressed", enabled ? "true" : "false");
       });
-      if (els.redditeryAutoPopupDuration && document.activeElement !== els.redditeryAutoPopupDuration) {
-        els.redditeryAutoPopupDuration.value = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
-      }
-      if (els.redditeryAutoPopupInterval && document.activeElement !== els.redditeryAutoPopupInterval) {
-        els.redditeryAutoPopupInterval.value = normalizeAutoPopupInterval(state.settings.redditeryAutoPopupInterval);
-      }
+      [els.redditeryAutoPopupDuration, els.soloRedditeryAutoPopupDuration].forEach((input) => {
+        if (input && document.activeElement !== input) input.value = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
+      });
+      [els.redditeryAutoPopupInterval, els.soloRedditeryAutoPopupInterval].forEach((input) => {
+        if (input && document.activeElement !== input) input.value = normalizeAutoPopupInterval(state.settings.redditeryAutoPopupInterval);
+      });
       const statusEls = [els.redditeryAutoPopupStatus, els.soloRedditeryAutoPopupStatus].filter(Boolean);
       if (!statusEls.length) return;
       let statusText = "";
       if (!state.settings.redditeryAutoPopup) {
-        statusText = state.screen === "solitaire"
+        statusText = ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen)
           ? "Off. When enabled, a random gallery image pops up on the selected timer."
-          : state.screen === "select" && state.currentGame === "solitaire"
+          : state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame)
             ? "Off. When enabled, a random gallery image pops up during solo games."
           : "Off. When enabled, a random gallery image pops up for the sub on the selected timer.";
         statusEls.forEach((status) => { status.textContent = statusText; });
@@ -4284,7 +5146,10 @@
       const minutes = Math.floor(seconds / 60);
       const remainder = seconds % 60;
       const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
-      statusText = `On. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}. Shows for ${duration}s.`;
+      const sourceLabel = autoPopupSourceKey() === "booru"
+        ? "current Booru search"
+        : `${goonerGalleryCategoryLabel(autoPopupRedditCategoryKey())} Reddit`;
+      statusText = `On. ${sourceLabel}. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}. Shows for ${duration}s.`;
       statusEls.forEach((status) => { status.textContent = statusText; });
     }
 
@@ -4301,9 +5166,13 @@
       localRedditeryAutoPopupLoading = true;
       updateRedditeryAutoPopupStatus();
       try {
-        const item = await takeNextRedditeryAutoPopupItem();
+        const item = await takeNextAutoPopupItem();
         const url = item && normalizeDistractionSource(item.url);
-        if (url && addAutoDistractionOverlay(url)) {
+        const media = {
+          mediaType: item && mediaTypeForDistraction(url, item.mediaType),
+          muted: !(autoPopupSourceKey() === "booru" && localDanbooruUnmuteVideos)
+        };
+        if (url && addAutoDistractionOverlay(url, media)) {
           if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto gallery popup posted.";
         }
       } catch (error) {
@@ -4331,12 +5200,14 @@
       renderDistractionGallery();
     }
 
-    function selectDistractionFromGallery(index) {
+    function selectDistractionFromGallery(id) {
       if (!domLinkControlsAllowed()) return;
-      const item = distractionGalleryItems()[Number(index)];
+      const item = savedDistractionItemById(id);
       if (!item) return;
-      openDistractionChoice(item.url, "How should this saved image appear?");
-      els.sideDistractionStatus.textContent = "Saved image selected.";
+      openDistractionChoice(item.url, `How should this saved ${mediaTypeForDistraction(item.url, item.mediaType)} appear?`, item);
+      els.sideDistractionStatus.textContent = mediaTypeForDistraction(item.url, item.mediaType) === "video"
+        ? "Saved video selected."
+        : "Saved image selected.";
       renderDistractionGallery();
     }
 
@@ -4358,6 +5229,20 @@
         });
       }
       return active;
+    }
+
+    function removeDistractionOverlayById(id) {
+      if (!id) return;
+      const list = Array.isArray(state.settings.distractionOverlays) ? state.settings.distractionOverlays : [];
+      const next = list.filter((item) => item && item.id !== id);
+      if (next.length === list.length) return;
+      state.settings.distractionOverlays = next;
+      if (state.settings.distractionOverlayUrl && !next.length) {
+        state.settings.distractionOverlayUrl = "";
+        state.settings.distractionOverlayUntil = 0;
+      }
+      renderDistractionBackground();
+      if (domLinkControlsAllowed()) publishSettingsState();
     }
 
     function overlaySlot(index, count) {
@@ -4397,6 +5282,13 @@
       window.setTimeout(renderDistractionBackground, 0);
     }
 
+    function rememberDistractionVideoSize(video) {
+      const url = normalizeDistractionSource(video && video.dataset && (video.dataset.distractionOverlayVideo || video.dataset.distractionBackgroundVideo));
+      const width = Number(video && video.videoWidth || 0);
+      const height = Number(video && video.videoHeight || 0);
+      rememberDistractionImageSize(url, width, height);
+    }
+
     function ensureDistractionImageSize(url) {
       const normalized = normalizeDistractionSource(url);
       if (!normalized || distractionImageSizeCache.has(normalized)) return;
@@ -4410,6 +5302,21 @@
       const maxWidth = Math.max(1, Math.min(viewportWidth - margin * 2, count === 1 ? 860 : (count === 2 ? 540 : 390), viewportWidth * (count === 1 ? 0.82 : (count === 2 ? 0.42 : 0.29))));
       const maxHeight = Math.max(1, Math.min(viewportHeight - margin * 2, count === 1 ? 760 : (count === 2 ? 560 : 420), viewportHeight * (count === 1 ? 0.86 : (count === 2 ? 0.68 : 0.54))));
       const size = distractionImageSizeCache.get(normalizeDistractionSource(overlay && overlay.url));
+      if (overlay && overlay.mediaType === "video") {
+        const videoMaxHeight = Math.max(1, Math.min(maxHeight, viewportHeight - margin * 2 - 18));
+        const videoMaxWidth = Math.max(1, Math.min(maxWidth, viewportWidth - margin * 2));
+        const videoRatio = size && size.width && size.height ? size.width / size.height : 16 / 9;
+        let width = videoMaxWidth;
+        let height = width / videoRatio;
+        if (height > videoMaxHeight) {
+          height = videoMaxHeight;
+          width = height * videoRatio;
+        }
+        return {
+          width: Math.round(width),
+          height: Math.round(height)
+        };
+      }
       if (!size || !size.width || !size.height) {
         return {
           width: Math.round(Math.min(maxWidth, viewportWidth * (count === 1 ? 0.72 : (count === 2 ? 0.38 : 0.26)))),
@@ -4440,43 +5347,179 @@
       return `url("${String(url || "").replace(/"/g, "%22")}")`;
     }
 
+    function renderDistractionVideoBackground(url, muted = true) {
+      if (!els.distractionBackdrop) return;
+      const normalized = normalizeDistractionSource(url);
+      const existing = els.distractionBackdrop.querySelector("[data-distraction-background-video]");
+      if (!normalized) {
+        if (existing) existing.remove();
+        return;
+      }
+      if (existing && existing.dataset.distractionBackgroundVideo === normalized) {
+        existing.muted = muted !== false;
+        if (existing.videoWidth && existing.videoHeight) rememberDistractionVideoSize(existing);
+        return;
+      }
+      els.distractionBackdrop.innerHTML = `<video src="${escapeHtml(normalized)}" ${muted !== false ? "muted" : ""} autoplay loop playsinline data-distraction-background-video="${escapeHtml(normalized)}"></video>`;
+      const video = els.distractionBackdrop.querySelector("[data-distraction-background-video]");
+      if (video) {
+        const updateSize = () => rememberDistractionVideoSize(video);
+        if (video.videoWidth && video.videoHeight) updateSize();
+        else video.addEventListener("loadedmetadata", updateSize, { once: true });
+      }
+    }
+
+    function distractionOverlaySignature(overlays, viewport) {
+      return overlays.map((overlay, index) => {
+        const slot = overlaySlot(index, overlays.length);
+        const box = overlayBoxSizePx(overlay, overlays.length, viewport.width, viewport.height);
+        return [
+          overlay.id || "",
+          normalizeDistractionSource(overlay.url),
+          overlay.mediaType || "",
+          overlay.muted === false ? "audio" : "muted",
+          overlay.loop === false ? "once" : "loop",
+          Number(overlay.loopCount || 0),
+          Number(overlay.until || 0),
+          Number(overlay.jitterX || 0),
+          Number(overlay.jitterY || 0),
+          Math.round(slot.x * 10) / 10,
+          Math.round(slot.y * 10) / 10,
+          box.width,
+          box.height
+        ].join("|");
+      }).join(";");
+    }
+
+    function bindDistractionOverlayMediaEvents(media) {
+      if (!media) return;
+      if (media.dataset.distractionOverlayUrl && !media.dataset.sizeBound) {
+        const updateSize = () => rememberDistractionImageSize(media.dataset.distractionOverlayUrl, media.naturalWidth, media.naturalHeight);
+        if (media.complete && media.naturalWidth && media.naturalHeight) updateSize();
+        else media.addEventListener("load", updateSize, { once: true });
+        media.dataset.sizeBound = "true";
+      }
+      if (media.dataset.distractionOverlayVideo && !media.dataset.sizeBound) {
+        const updateSize = () => rememberDistractionVideoSize(media);
+        if (media.videoWidth && media.videoHeight) updateSize();
+        else media.addEventListener("loadedmetadata", updateSize, { once: true });
+        media.dataset.sizeBound = "true";
+      }
+      if (media.dataset.distractionOverlayVideo && media.dataset.distractionOverlayLoop === "false" && !media.dataset.endedBound) {
+        media.addEventListener("ended", () => {
+          const loopTarget = normalizeVideoLoopCount(media.dataset.distractionOverlayLoopCount || 0);
+          if (Number(media.dataset.distractionOverlayLoopCount || 0) > 0) {
+            const played = Math.max(1, Number(media.dataset.distractionOverlayLoopsPlayed || 0) + 1);
+            media.dataset.distractionOverlayLoopsPlayed = String(played);
+            if (played < loopTarget) {
+              try {
+                media.currentTime = 0;
+                const playPromise = media.play();
+                if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
+              } catch (error) {
+                removeDistractionOverlayById(media.dataset.distractionOverlayId);
+              }
+              return;
+            }
+          }
+          removeDistractionOverlayById(media.dataset.distractionOverlayId);
+        });
+        media.dataset.endedBound = "true";
+      }
+    }
+
+    function updateDistractionOverlayNode(node, overlay, index, count, viewport) {
+      const normalizedUrl = normalizeDistractionSource(overlay && overlay.url);
+      const slot = overlaySlot(index, count);
+      const jitterX = Number(overlay.jitterX || 0);
+      const jitterY = Number(overlay.jitterY || 0);
+      ensureDistractionImageSize(normalizedUrl);
+      const box = overlayBoxSizePx(overlay, count, viewport.width, viewport.height);
+      const x = clampOverlayTopLeftPx(slot.x + jitterX, box.width, viewport.width);
+      const y = clampOverlayTopLeftPx(slot.y + jitterY, box.height, viewport.height);
+      node.style.setProperty("--distraction-overlay-left", `${x}px`);
+      node.style.setProperty("--distraction-overlay-top", `${y}px`);
+      node.style.setProperty("--distraction-overlay-width", `${box.width}px`);
+      node.style.setProperty("--distraction-overlay-height", `${box.height}px`);
+
+      const isVideo = overlay.mediaType === "video" || isVideoDistractionSource(normalizedUrl);
+      const existing = node.firstElementChild;
+      const existingUrl = existing && (existing.dataset.distractionOverlayVideo || existing.dataset.distractionOverlayUrl);
+      const needsMedia = !existing
+        || existingUrl !== normalizedUrl
+        || (isVideo && existing.tagName !== "VIDEO")
+        || (!isVideo && existing.tagName !== "IMG");
+      if (needsMedia) {
+        const media = document.createElement(isVideo ? "video" : "img");
+        if (isVideo) {
+          media.src = normalizedUrl;
+          media.autoplay = true;
+          media.loop = overlay.loop !== false;
+          media.muted = overlay.muted !== false;
+          media.playsInline = true;
+          media.controls = true;
+          media.dataset.distractionOverlayVideo = normalizedUrl;
+          media.dataset.distractionOverlayId = overlay.id || "";
+          media.dataset.distractionOverlayLoop = overlay.loop === false ? "false" : "true";
+          media.dataset.distractionOverlayLoopCount = overlay.loopCount ? String(normalizeVideoLoopCount(overlay.loopCount)) : "0";
+          media.dataset.distractionOverlayLoopsPlayed = "0";
+        } else {
+          media.src = normalizedUrl;
+          media.alt = "";
+          media.loading = "eager";
+          media.dataset.distractionOverlayUrl = normalizedUrl;
+        }
+        node.replaceChildren(media);
+        bindDistractionOverlayMediaEvents(media);
+        return;
+      }
+      if (isVideo) {
+        existing.loop = overlay.loop !== false;
+        existing.muted = overlay.muted !== false;
+        existing.dataset.distractionOverlayId = overlay.id || "";
+        existing.dataset.distractionOverlayLoop = overlay.loop === false ? "false" : "true";
+        existing.dataset.distractionOverlayLoopCount = overlay.loopCount ? String(normalizeVideoLoopCount(overlay.loopCount)) : "0";
+      }
+      bindDistractionOverlayMediaEvents(existing);
+    }
+
     function renderDistractionBackground() {
       const oldUrl = state.settings.distractionUrl || "";
       const oldMode = state.settings.distractionMode || "background-both";
       const backgroundUrl = state.settings.distractionBackgroundUrl || (oldMode === "overlay-sub" ? "" : oldUrl);
       const backgroundMode = state.settings.distractionBackgroundMode || (oldMode === "background-sub" ? "background-sub" : "background-both");
+      const backgroundMediaType = mediaTypeForDistraction(backgroundUrl, state.settings.distractionBackgroundMediaType);
+      const backgroundIsVideo = backgroundMediaType === "video";
       const overlays = activeDistractionOverlays();
       const showBackground = Boolean(backgroundUrl)
         && (backgroundMode === "background-both" || (backgroundMode === "background-sub" && shouldShowSubOnlyMedia()));
       const showOverlay = overlays.length > 0 && shouldShowSubOnlyMedia();
       els.distractionBackdrop.classList.toggle("active", showBackground);
-      els.distractionBackdrop.style.backgroundImage = showBackground ? safeCssUrl(backgroundUrl) : "";
+      els.distractionBackdrop.classList.toggle("video-active", showBackground && backgroundIsVideo);
+      els.distractionBackdrop.style.backgroundImage = showBackground && !backgroundIsVideo ? safeCssUrl(backgroundUrl) : "";
+      renderDistractionVideoBackground(showBackground && backgroundIsVideo ? backgroundUrl : "", true);
       els.distractionOverlay.classList.toggle("active", showOverlay);
-      els.distractionOverlay.innerHTML = showOverlay
-        ? overlays.map((overlay, index) => {
-          const slot = overlaySlot(index, overlays.length);
-          const jitterX = Number(overlay.jitterX || 0);
-          const jitterY = Number(overlay.jitterY || 0);
-          ensureDistractionImageSize(overlay.url);
-          const viewport = visualViewportSize();
-          const box = overlayBoxSizePx(overlay, overlays.length, viewport.width, viewport.height);
-          const x = clampOverlayTopLeftPx(slot.x + jitterX, box.width, viewport.width);
-          const y = clampOverlayTopLeftPx(slot.y + jitterY, box.height, viewport.height);
-          const width = `${box.width}px`;
-          const height = `${box.height}px`;
-          return `
-            <div class="distraction-overlay-item" style="--distraction-overlay-left:${x}px; --distraction-overlay-top:${y}px; --distraction-overlay-width:${width}; --distraction-overlay-height:${height};">
-              <img src="${escapeHtml(overlay.url)}" alt="" loading="eager" data-distraction-overlay-url="${escapeHtml(overlay.url)}">
-            </div>
-          `;
-        }).join("")
-        : "";
-      if (showOverlay) {
-        els.distractionOverlay.querySelectorAll("[data-distraction-overlay-url]").forEach((image) => {
-          const updateSize = () => rememberDistractionImageSize(image.dataset.distractionOverlayUrl, image.naturalWidth, image.naturalHeight);
-          if (image.complete && image.naturalWidth && image.naturalHeight) updateSize();
-          else image.addEventListener("load", updateSize, { once: true });
+      const viewport = visualViewportSize();
+      if (!showOverlay) {
+        els.distractionOverlay.replaceChildren();
+        renderedDistractionOverlaySignature = "";
+      } else {
+        const activeIds = new Set(overlays.map((overlay, index) => overlay.id || `overlay-${index}`));
+        els.distractionOverlay.querySelectorAll("[data-distraction-overlay-item-id]").forEach((node) => {
+          if (!activeIds.has(node.dataset.distractionOverlayItemId || "")) node.remove();
         });
+        overlays.forEach((overlay, index) => {
+          const id = overlay.id || `overlay-${index}`;
+          let node = els.distractionOverlay.querySelector(`[data-distraction-overlay-item-id="${CSS.escape(id)}"]`);
+          if (!node) {
+            node = document.createElement("div");
+            node.className = "distraction-overlay-item";
+            node.dataset.distractionOverlayItemId = id;
+          }
+          updateDistractionOverlayNode(node, overlay, index, overlays.length, viewport);
+          els.distractionOverlay.appendChild(node);
+        });
+        renderedDistractionOverlaySignature = distractionOverlaySignature(overlays, viewport);
       }
       if (showOverlay) {
         const overlayRemaining = Math.max(0, Math.min(...overlays.map((overlay) => Number(overlay.until || 0))) - Date.now());
@@ -11738,6 +12781,37 @@
       };
     }
 
+    function createMemoryMatchState() {
+      return {
+        size: "4x3",
+        cards: [],
+        flipped: [],
+        moves: 0,
+        matches: 0,
+        loading: false,
+        locked: false,
+        reveal: null,
+        message: "Pick a size, then match every pair."
+      };
+    }
+
+    function createBrainDrainSnapState() {
+      return {
+        status: "idle",
+        previous: null,
+        current: null,
+        score: 0,
+        streak: 0,
+        iq: 3,
+        round: 0,
+        deadline: 0,
+        roundMs: 5200,
+        timeRatio: 1,
+        loading: false,
+        message: "Tap Snap when the new image matches the last category."
+      };
+    }
+
     function createDoubleSolitaireState() {
       return {
         boards: {
@@ -15593,6 +16667,508 @@
       return panel;
     }
 
+    const MEMORY_MATCH_SIZES = {
+      "4x3": { columns: 4, rows: 3, pairs: 6 },
+      "4x4": { columns: 4, rows: 4, pairs: 8 },
+      "5x4": { columns: 5, rows: 4, pairs: 10 }
+    };
+
+    function memoryMatchConfig(size = state.memoryMatch && state.memoryMatch.size) {
+      return MEMORY_MATCH_SIZES[size] || MEMORY_MATCH_SIZES["4x3"];
+    }
+
+    function memoryMatchPlaceholder() {
+      const placeholder = document.createElement("div");
+      placeholder.className = "memory-match-placeholder";
+      placeholder.innerHTML = `
+        <span class="memory-match-placeholder-mark">?</span>
+        <span class="memory-match-placeholder-text">Match</span>
+      `;
+      return placeholder;
+    }
+
+    function memoryMatchAspectScore(item) {
+      const width = Number(item && item.width || 0);
+      const height = Number(item && item.height || 0);
+      if (!width || !height) return 0.42;
+      const ratio = width / height;
+      const targetRatio = 5 / 7;
+      const distance = Math.abs(ratio - targetRatio);
+      const portraitBonus = height >= width ? 0 : -0.18;
+      return Math.max(0, 1 - distance * 2.2) + portraitBonus;
+    }
+
+    function memoryMatchUniqueItems(items, needed) {
+      const seen = new Set(localMemoryMatchRecentUrls);
+      const unique = [];
+      (Array.isArray(items) ? items : []).forEach((item) => {
+        const url = normalizeDistractionSource(item && item.url);
+        if (!url || seen.has(url) || unique.some((candidate) => normalizeDistractionSource(candidate.url) === url)) return;
+        unique.push({ ...item, url });
+      });
+      return unique
+        .sort((a, b) => memoryMatchAspectScore(b) - memoryMatchAspectScore(a))
+        .slice(0, needed);
+    }
+
+    async function fetchMemoryMatchImages(pairCount) {
+      let collected = [];
+      for (let attempt = 0; attempt < 3 && collected.length < pairCount; attempt += 1) {
+        const activeSubreddit = pickGoonerSubreddit(localMemoryMatchSubreddit);
+        const params = new URLSearchParams({
+          source: "peekstr",
+          subreddit: activeSubreddit,
+          limit: String(Math.max(24, pairCount * 3)),
+          page: "0",
+          window: "5",
+          nonce: `${Date.now()}-${attempt}`
+        });
+        if (localMemoryMatchAfter) params.set("after", localMemoryMatchAfter);
+        const response = await fetch(`/api/redditery-gallery?${params.toString()}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Brain Drain Match images failed to load.");
+        localMemoryMatchAfter = String(data.after || "");
+        localMemoryMatchSubreddit = activeSubreddit;
+        const nextItems = memoryMatchUniqueItems(data.items, pairCount - collected.length);
+        collected = [...collected, ...nextItems];
+        if (!localMemoryMatchAfter && collected.length < pairCount) {
+          localMemoryMatchAfter = "";
+          localMemoryMatchSubreddit = "";
+          localMemoryMatchRecentUrls = [];
+        }
+      }
+      if (collected.length < pairCount) throw new Error("Not enough fresh images came back. Try New Images again.");
+      localMemoryMatchRecentUrls = [
+        ...collected.map((item) => normalizeDistractionSource(item.url)),
+        ...localMemoryMatchRecentUrls
+      ].filter(Boolean).slice(0, 80);
+      return collected.slice(0, pairCount);
+    }
+
+    function buildMemoryMatchDeck(items) {
+      const deck = [];
+      items.forEach((item, pair) => {
+        const url = normalizeDistractionSource(item.url);
+        const title = item.title || `Brain Drain image ${pair + 1}`;
+        deck.push({ id: `${pair}-a`, pair, url, title, matched: false });
+        deck.push({ id: `${pair}-b`, pair, url, title, matched: false });
+      });
+      return shuffleDeck(deck);
+    }
+
+    function preloadMemoryMatchImage(url) {
+      const source = normalizeDistractionSource(url);
+      if (!source) return Promise.resolve(false);
+      return new Promise((resolve) => {
+        const image = new Image();
+        image.decoding = "async";
+        image.referrerPolicy = "no-referrer";
+        image.onload = async () => {
+          try {
+            if (typeof image.decode === "function") await image.decode();
+          } catch (error) {
+            // Loaded images can still reject decode on some remote hosts; keep the usable cache entry.
+          }
+          resolve(true);
+        };
+        image.onerror = () => resolve(false);
+        image.src = source;
+      });
+    }
+
+    async function preloadMemoryMatchImages(items) {
+      const uniqueUrls = [...new Set((Array.isArray(items) ? items : [])
+        .map((item) => normalizeDistractionSource(item && item.url))
+        .filter(Boolean))];
+      if (!uniqueUrls.length) return;
+      await Promise.allSettled(uniqueUrls.map(preloadMemoryMatchImage));
+    }
+
+    function brainDrainSnapCategoryKeys() {
+      return Object.keys(GOONER_GALLERY_CATEGORIES).filter((key) => key !== "mixed");
+    }
+
+    function brainDrainSnapSubredditForCategory(categoryKey = "captions") {
+      const category = GOONER_GALLERY_CATEGORIES[categoryKey] || GOONER_GALLERY_CATEGORIES.captions;
+      const subreddits = Array.isArray(category.subreddits) && category.subreddits.length
+        ? category.subreddits
+        : GOONER_GALLERY_CATEGORIES.captions.subreddits;
+      return subreddits[Math.floor(Math.random() * subreddits.length)] || "gooninghentai";
+    }
+
+    function brainDrainSnapRoundDuration(round = 1) {
+      return Math.max(2400, 5200 - Math.max(0, Number(round) || 0) * 110);
+    }
+
+    async function fetchBrainDrainSnapBatch(categoryKey = "captions") {
+      const safeCategory = GOONER_GALLERY_CATEGORIES[categoryKey] && categoryKey !== "mixed" ? categoryKey : "captions";
+      const subreddit = brainDrainSnapSubredditForCategory(safeCategory);
+      const afterKey = `${safeCategory}:${subreddit}`;
+      const params = new URLSearchParams({
+        source: "peekstr",
+        subreddit,
+        limit: "18",
+        page: "0",
+        window: "4",
+        nonce: String(Date.now())
+      });
+      if (localBrainDrainSnapAfter[afterKey]) params.set("after", localBrainDrainSnapAfter[afterKey]);
+      const response = await fetch(`/api/redditery-gallery?${params.toString()}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Brain Drain Snap images failed to load.");
+      localBrainDrainSnapAfter[afterKey] = String(data.after || "");
+      return shuffledGalleryItems(Array.isArray(data.items) ? data.items : [])
+        .map((item) => ({
+          ...item,
+          url: normalizeDistractionSource(item && item.url),
+          categoryKey: safeCategory,
+          categoryLabel: goonerGalleryCategoryLabel(safeCategory),
+          subreddit
+        }))
+        .filter((item) => item.url);
+    }
+
+    async function takeBrainDrainSnapItem(preferredCategory = "") {
+      const preferred = GOONER_GALLERY_CATEGORIES[preferredCategory] && preferredCategory !== "mixed"
+        ? preferredCategory
+        : "";
+      const categories = preferred
+        ? [preferred, ...shuffleDeck(brainDrainSnapCategoryKeys().filter((key) => key !== preferred))]
+        : shuffleDeck(brainDrainSnapCategoryKeys());
+      for (const categoryKey of categories) {
+        if (!localBrainDrainSnapPools[categoryKey] || !localBrainDrainSnapPools[categoryKey].length) {
+          localBrainDrainSnapPools[categoryKey] = await fetchBrainDrainSnapBatch(categoryKey);
+        }
+        if (localBrainDrainSnapPools[categoryKey] && localBrainDrainSnapPools[categoryKey].length) {
+          return localBrainDrainSnapPools[categoryKey].shift();
+        }
+      }
+      return null;
+    }
+
+    function stopBrainDrainSnapTimer() {
+      if (brainDrainSnapTimerId) {
+        window.clearInterval(brainDrainSnapTimerId);
+        brainDrainSnapTimerId = null;
+      }
+    }
+
+    function brainDrainSnapIsMatch(game = state.brainDrainSnap || createBrainDrainSnapState()) {
+      return Boolean(game.previous && game.current && game.previous.categoryKey === game.current.categoryKey);
+    }
+
+    function brainDrainSnapExpectedAction(game = state.brainDrainSnap || createBrainDrainSnapState()) {
+      return brainDrainSnapIsMatch(game) ? "snap" : "next";
+    }
+
+    async function startBrainDrainSnap() {
+      stopBrainDrainSnapTimer();
+      state.brainDrainSnap = {
+        ...createBrainDrainSnapState(),
+        status: "loading",
+        loading: true,
+        message: "Loading a fresh snap stream..."
+      };
+      renderBrainDrainSnap();
+      try {
+        const firstCategory = randomSnapCategoryKey("");
+        const first = await takeBrainDrainSnapItem(firstCategory);
+        if (!first) throw new Error("Brain Drain Snap could not find images.");
+        await preloadMemoryMatchImage(first.url);
+        const roundMs = brainDrainSnapRoundDuration(1);
+        state.brainDrainSnap = {
+          ...createBrainDrainSnapState(),
+          status: "playing",
+          current: first,
+          round: 1,
+          roundMs,
+          deadline: Date.now() + roundMs,
+          message: "First image. Hit Next."
+        };
+        startBrainDrainSnapTimer();
+      } catch (error) {
+        state.brainDrainSnap = {
+          ...createBrainDrainSnapState(),
+          status: "idle",
+          message: String(error && error.message || "Brain Drain Snap could not start.")
+        };
+      }
+      renderBrainDrainSnap();
+    }
+
+    function startBrainDrainSnapTimer() {
+      stopBrainDrainSnapTimer();
+      brainDrainSnapTimerId = window.setInterval(() => {
+        const game = state.brainDrainSnap || createBrainDrainSnapState();
+        if (state.screen !== "brainDrainSnap" || game.status !== "playing" || game.loading) {
+          stopBrainDrainSnapTimer();
+          return;
+        }
+        const remaining = Math.max(0, game.deadline - Date.now());
+        game.timeRatio = game.roundMs ? remaining / game.roundMs : 0;
+        if (remaining <= 0) {
+          answerBrainDrainSnap("timeout");
+          return;
+        }
+        renderBrainDrainSnap();
+      }, 100);
+    }
+
+    function endBrainDrainSnap(message = "Brain drained.") {
+      stopBrainDrainSnapTimer();
+      state.brainDrainSnap = {
+        ...(state.brainDrainSnap || createBrainDrainSnapState()),
+        status: "gameover",
+        loading: false,
+        timeRatio: 0,
+        message
+      };
+      renderBrainDrainSnap();
+    }
+
+    async function dealNextBrainDrainSnap(message = "") {
+      const game = state.brainDrainSnap || createBrainDrainSnapState();
+      const previous = game.current;
+      const nextCategory = randomSnapCategoryKey(previous && previous.categoryKey);
+      game.loading = true;
+      game.message = "Loading next image...";
+      renderBrainDrainSnap();
+      try {
+        const current = await takeBrainDrainSnapItem(nextCategory);
+        if (!current) throw new Error("No more usable snap images came back.");
+        await preloadMemoryMatchImage(current.url);
+        game.previous = previous;
+        game.current = current;
+        game.round += 1;
+        game.roundMs = brainDrainSnapRoundDuration(game.round);
+        game.deadline = Date.now() + game.roundMs;
+        game.timeRatio = 1;
+        game.loading = false;
+        game.status = "playing";
+        game.message = message || "Snap if the category matches the last image.";
+        startBrainDrainSnapTimer();
+      } catch (error) {
+        endBrainDrainSnap(String(error && error.message || "Brain Drain Snap ran out of images."));
+        return;
+      }
+      renderBrainDrainSnap();
+    }
+
+    async function answerBrainDrainSnap(action = "next") {
+      const game = state.brainDrainSnap || createBrainDrainSnapState();
+      if (game.status !== "playing" || game.loading || !game.current) return;
+      stopBrainDrainSnapTimer();
+      const expected = brainDrainSnapExpectedAction(game);
+      const correct = action === expected;
+      if (correct) {
+        game.score += 10 + Math.min(30, game.streak * 2);
+        game.streak += 1;
+        await dealNextBrainDrainSnap(expected === "snap" ? "Snapped. Keep up." : "Skipped. Stay sharp.");
+        return;
+      }
+      game.iq = Math.max(0, game.iq - 1);
+      game.streak = 0;
+      if (game.iq <= 0) {
+        endBrainDrainSnap(action === "timeout" ? "Timed out. Brain drained." : "Wrong choice. Brain drained.");
+        return;
+      }
+      await dealNextBrainDrainSnap(action === "timeout"
+        ? `Too slow. ${game.iq} IQ left.`
+        : `Wrong. It was ${expected === "snap" ? "a match" : "not a match"}. ${game.iq} IQ left.`);
+    }
+
+    function renderBrainDrainSnap() {
+      if (!els.brainDrainSnapScreen || !els.brainDrainSnapCardView) return;
+      const game = state.brainDrainSnap || createBrainDrainSnapState();
+      if (els.brainDrainSnapStatus) els.brainDrainSnapStatus.textContent = game.message || "Tap Snap when the new image matches the last category.";
+      if (els.brainDrainSnapScore) els.brainDrainSnapScore.textContent = String(game.score || 0);
+      if (els.brainDrainSnapStreak) els.brainDrainSnapStreak.textContent = String(game.streak || 0);
+      if (els.brainDrainSnapIq) els.brainDrainSnapIq.textContent = String(game.iq || 0);
+      if (els.brainDrainSnapTimerBar) {
+        const ratio = game.status === "playing" ? Math.max(0, Math.min(1, game.timeRatio || 0)) : 0;
+        els.brainDrainSnapTimerBar.style.width = `${Math.round(ratio * 100)}%`;
+      }
+      els.brainDrainSnapCardView.innerHTML = "";
+      if (game.loading) {
+        const loading = document.createElement("div");
+        loading.className = "brain-snap-placeholder";
+        loading.textContent = "Loading...";
+        els.brainDrainSnapCardView.appendChild(loading);
+      } else if (game.current && game.current.url) {
+        const image = document.createElement("img");
+        image.src = normalizeDistractionSource(game.current.url);
+        image.alt = "Brain Drain Snap image";
+        image.loading = "eager";
+        image.decoding = "async";
+        image.referrerPolicy = "no-referrer";
+        els.brainDrainSnapCardView.appendChild(image);
+        const round = document.createElement("span");
+        round.className = "brain-snap-round";
+        round.textContent = game.status === "gameover" ? "Done" : `Round ${game.round || 1}`;
+        els.brainDrainSnapCardView.appendChild(round);
+      } else {
+        const empty = document.createElement("div");
+        empty.className = "brain-snap-placeholder";
+        empty.textContent = "Press New Run";
+        els.brainDrainSnapCardView.appendChild(empty);
+      }
+      const canAnswer = game.status === "playing" && !game.loading && Boolean(game.current);
+      if (els.brainDrainSnapNextBtn) els.brainDrainSnapNextBtn.disabled = !canAnswer;
+      if (els.brainDrainSnapSnapBtn) els.brainDrainSnapSnapBtn.disabled = !canAnswer;
+      if (els.brainDrainSnapHint) {
+        els.brainDrainSnapHint.textContent = game.previous
+          ? "Match means the new image belongs to the same hidden category as the last one."
+          : "First image is free information. Hit Next to begin the chain.";
+      }
+    }
+
+    async function startMemoryMatch(options = {}) {
+      const previous = state.memoryMatch || createMemoryMatchState();
+      const size = options.size || previous.size || "4x3";
+      const config = memoryMatchConfig(size);
+      const reusedItems = !options.newImages && Array.isArray(previous.cards)
+        ? previous.cards.filter((card, index, list) => card && card.url && list.findIndex((candidate) => candidate && candidate.pair === card.pair) === index)
+        : [];
+      state.memoryMatch = {
+        ...createMemoryMatchState(),
+        size,
+        loading: true,
+        message: options.newImages ? "Loading a fresh image set..." : "Resetting the board..."
+      };
+      renderMemoryMatch();
+      try {
+        const items = reusedItems.length >= config.pairs
+          ? reusedItems.slice(0, config.pairs)
+          : await fetchMemoryMatchImages(config.pairs);
+        state.memoryMatch.message = "Warming up the images...";
+        renderMemoryMatch();
+        await preloadMemoryMatchImages(items);
+        state.memoryMatch = {
+          ...createMemoryMatchState(),
+          size,
+          cards: buildMemoryMatchDeck(items),
+          message: "Find every matching pair."
+        };
+      } catch (error) {
+        state.memoryMatch = {
+          ...createMemoryMatchState(),
+          size,
+        message: String(error && error.message || "Brain Drain Match could not load images.")
+        };
+      }
+      renderMemoryMatch();
+    }
+
+    function handleMemoryMatchFlip(index) {
+      const game = state.memoryMatch || createMemoryMatchState();
+      const card = game.cards[index];
+      if (!card || game.loading || game.locked || card.matched || game.flipped.includes(index) || game.flipped.length >= 2) return;
+      game.flipped = [...game.flipped, index];
+      game.message = "Pick one more.";
+      if (game.flipped.length === 2) {
+        game.moves += 1;
+        const [firstIndex, secondIndex] = game.flipped;
+        const first = game.cards[firstIndex];
+        const second = game.cards[secondIndex];
+        if (first && second && first.pair === second.pair) {
+          first.matched = true;
+          second.matched = true;
+          game.matches += 1;
+          game.flipped = [];
+          game.reveal = { url: first.url, title: first.title || "Matched image" };
+          const config = memoryMatchConfig(game.size);
+          game.message = game.matches >= config.pairs
+            ? `Cleared in ${game.moves} move${game.moves === 1 ? "" : "s"}.`
+            : "Matched. Keep going.";
+        } else {
+          game.locked = true;
+          game.message = "No match.";
+          window.setTimeout(() => {
+            const current = state.memoryMatch || createMemoryMatchState();
+            current.flipped = [];
+            current.locked = false;
+            current.message = "Try another pair.";
+            renderMemoryMatch();
+          }, 850);
+        }
+      }
+      renderMemoryMatch();
+    }
+
+    function renderMemoryMatch() {
+      if (!els.memoryMatchScreen || !els.memoryMatchGrid) return;
+      const game = state.memoryMatch || createMemoryMatchState();
+      const config = memoryMatchConfig(game.size);
+      if (els.memoryMatchStatus) {
+        els.memoryMatchStatus.textContent = game.loading
+          ? game.message
+          : `${game.message || "Find every matching pair."} Moves: ${game.moves || 0}.`;
+      }
+      if (els.memoryMatchMoves) els.memoryMatchMoves.textContent = `${game.moves || 0} move${game.moves === 1 ? "" : "s"}`;
+      if (els.memoryMatchMatches) els.memoryMatchMatches.textContent = `${game.matches || 0} / ${config.pairs} pairs`;
+      if (els.memoryMatchGrid) {
+        els.memoryMatchGrid.style.setProperty("--memory-match-columns", String(config.columns));
+        const boardWidth = config.rows >= 4
+          ? (config.columns >= 5 ? "780px" : "680px")
+          : "760px";
+        els.memoryMatchGrid.style.setProperty("--memory-match-board-width", boardWidth);
+        els.memoryMatchGrid.innerHTML = "";
+        if (game.loading) {
+          const loading = document.createElement("div");
+          loading.className = "memory-match-empty";
+          loading.textContent = "Loading images...";
+          els.memoryMatchGrid.appendChild(loading);
+        } else if (!game.cards.length) {
+          const empty = document.createElement("div");
+          empty.className = "memory-match-empty";
+          empty.textContent = "Press New Images to deal a board.";
+          els.memoryMatchGrid.appendChild(empty);
+        } else {
+          game.cards.forEach((card, index) => {
+            const faceUp = card.matched || game.flipped.includes(index);
+            const button = document.createElement("button");
+            button.className = `memory-match-tile ${faceUp ? "face-up" : ""} ${card.matched ? "matched" : ""}`.trim();
+            button.type = "button";
+            button.dataset.memoryIndex = String(index);
+            button.disabled = game.locked || card.matched;
+            button.setAttribute("aria-label", faceUp ? card.title || "Matched image" : "Face-down memory card");
+            if (faceUp) {
+              const image = document.createElement("img");
+              image.src = card.url;
+              image.alt = card.title || "Memory match image";
+              image.loading = "eager";
+              image.decoding = "async";
+              image.referrerPolicy = "no-referrer";
+              button.appendChild(image);
+            } else {
+              button.appendChild(memoryMatchPlaceholder());
+            }
+            els.memoryMatchGrid.appendChild(button);
+          });
+        }
+      }
+      if (els.memoryMatchSizeControls) {
+        els.memoryMatchSizeControls.querySelectorAll("[data-memory-size]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.memorySize === game.size);
+          button.disabled = Boolean(game.loading);
+        });
+      }
+      if (els.memoryMatchNewImagesBtn) els.memoryMatchNewImagesBtn.disabled = Boolean(game.loading);
+      if (els.memoryMatchRestartBtn) els.memoryMatchRestartBtn.disabled = Boolean(game.loading || !game.cards.length);
+      if (els.memoryMatchReveal && els.memoryMatchRevealImage) {
+        const reveal = game.reveal && normalizeDistractionSource(game.reveal.url) ? game.reveal : null;
+        els.memoryMatchReveal.classList.toggle("hidden", !reveal);
+        if (reveal) {
+          els.memoryMatchRevealImage.referrerPolicy = "no-referrer";
+          els.memoryMatchRevealImage.src = reveal.url;
+          els.memoryMatchRevealImage.alt = reveal.title || "Matched image";
+        } else {
+          els.memoryMatchRevealImage.removeAttribute("src");
+          els.memoryMatchRevealImage.alt = "Matched image";
+        }
+      }
+    }
+
     const SOLITAIRE_FOUNDATION_SUITS = ["S", "H", "C", "D"];
     const SOLITAIRE_FOUNDATION_LABELS = ["♠", "♡", "♣", "♢"];
     const SOLITAIRE_PREVIEW_DELAY_MS = 1000;
@@ -17439,6 +19015,8 @@
       syncChessClock();
       renderTrailCardReveal();
       renderBoard();
+      renderMemoryMatch();
+      renderBrainDrainSnap();
       renderControls();
       renderRules();
       renderText();
@@ -17671,6 +19249,7 @@
     if (els.domSeePressureBanners) els.domSeePressureBanners.addEventListener("change", () => updateSettings({ domSeePressureBanners: els.domSeePressureBanners.checked }));
     if (els.domSeePressureText) els.domSeePressureText.addEventListener("change", () => updateSettings({ domSeePressureText: els.domSeePressureText.checked }));
     if (els.domSeePressurePulse) els.domSeePressurePulse.addEventListener("change", () => updateSettings({ domSeePressurePulse: els.domSeePressurePulse.checked }));
+    if (els.clearPopupsBtn) els.clearPopupsBtn.addEventListener("click", clearDistractionPopups);
     if (els.domSubBetControl) els.domSubBetControl.addEventListener("change", () => updateSettings({ subBetControl: els.domSubBetControl.value }));
     if (els.subDefaultBetInput) {
       els.subDefaultBetInput.addEventListener("change", () => updateSettings({ subDefaultBet: els.subDefaultBetInput.value }));
@@ -17738,13 +19317,119 @@
         selectBooruGalleryImage(button.dataset.booruGalleryIndex);
       });
     }
-    if (els.redditeryRandomBtn) els.redditeryRandomBtn.addEventListener("click", loadRandomRedditeryImage);
-    if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.addEventListener("click", resetGoonerGalleryToTop);
-    if (els.redditeryAutoPopupToggle) {
-      els.redditeryAutoPopupToggle.addEventListener("change", () => {
-        setRedditeryAutoPopupEnabled(els.redditeryAutoPopupToggle.checked);
+    if (els.danbooruLoadBtn) els.danbooruLoadBtn.addEventListener("click", () => loadDanbooruGallery({ next: false }));
+    if (els.danbooruNextBtn) els.danbooruNextBtn.addEventListener("click", () => loadDanbooruGallery({ next: true }));
+    if (els.danbooruGalleryCategory) {
+      els.danbooruGalleryCategory.addEventListener("change", () => {
+        localDanbooruCategory = String(els.danbooruGalleryCategory.value || "feet").toLowerCase();
+        localDanbooruPage = 1;
+        localDanbooruCustomTag = "";
+        localDanbooruGalleryItems = [];
+        if (els.danbooruGalleryStatus) els.danbooruGalleryStatus.textContent = `${danbooruCategoryLabel(localDanbooruCategory)} selected. Press Preset.`;
+        renderDanbooruGallery();
+        renderControls();
       });
     }
+    if (els.danbooruTagInput) {
+      els.danbooruTagInput.addEventListener("input", () => queueDanbooruSuggestions(els.danbooruTagInput));
+      els.danbooruTagInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        const tag = String(els.danbooruTagInput.value || "").trim();
+        if (tag) {
+          localDanbooruSuggestions = [];
+          renderDanbooruSuggestions();
+          loadDanbooruGallery({ tag, next: false });
+        }
+      });
+    }
+    if (els.danbooruIncludeVideos) {
+      els.danbooruIncludeVideos.addEventListener("click", () => {
+        setDanbooruIncludeVideos(!localDanbooruIncludeVideos);
+      });
+    }
+    if (els.danbooruUnmuteVideos) {
+      els.danbooruUnmuteVideos.addEventListener("click", () => {
+        setDanbooruUnmuteVideos(!localDanbooruUnmuteVideos);
+      });
+    }
+    if (els.soloDanbooruIncludeVideos) {
+      els.soloDanbooruIncludeVideos.addEventListener("click", () => {
+        setDanbooruIncludeVideos(!localDanbooruIncludeVideos);
+        updateRedditeryAutoPopupStatus();
+      });
+    }
+    if (els.soloDanbooruUnmuteVideos) {
+      els.soloDanbooruUnmuteVideos.addEventListener("click", () => {
+        setDanbooruUnmuteVideos(!localDanbooruUnmuteVideos);
+        updateRedditeryAutoPopupStatus();
+      });
+    }
+    if (els.soloDanbooruTagInput) {
+      els.soloDanbooruTagInput.addEventListener("input", () => {
+        localDanbooruCustomTag = String(els.soloDanbooruTagInput.value || "").trim();
+        resetAutoPopupFeedCursors();
+        updateRedditeryAutoPopupStatus();
+        queueDanbooruSuggestions(els.soloDanbooruTagInput);
+      });
+      els.soloDanbooruTagInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        localDanbooruCustomTag = String(els.soloDanbooruTagInput.value || "").trim();
+        resetAutoPopupFeedCursors();
+        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        updateRedditeryAutoPopupStatus();
+      });
+    }
+    if (els.danbooruSuggestions) {
+      els.danbooruSuggestions.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-danbooru-suggestion-index]");
+        if (!button) return;
+        selectDanbooruSuggestion(button.dataset.danbooruSuggestionIndex);
+      });
+    }
+    if (els.soloDanbooruSuggestions) {
+      els.soloDanbooruSuggestions.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-danbooru-suggestion-index]");
+        if (!button) return;
+        selectDanbooruSuggestion(button.dataset.danbooruSuggestionIndex, "solo");
+      });
+    }
+    if (els.danbooruGallery) {
+      els.danbooruGallery.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-danbooru-gallery-index]");
+        if (!button) return;
+        selectDanbooruGalleryImage(button.dataset.danbooruGalleryIndex);
+      });
+    }
+    if (els.redditeryRandomBtn) els.redditeryRandomBtn.addEventListener("click", loadRandomRedditeryImage);
+    if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.addEventListener("click", resetGoonerGalleryToTop);
+    [els.goonerGalleryCategory, els.soloGoonerGalleryCategory].forEach((select) => {
+      if (!select) return;
+      select.addEventListener("change", () => setGoonerGalleryCategory(select.value));
+    });
+    if (els.redditeryAutoPopupToggle) {
+      els.redditeryAutoPopupToggle.addEventListener("click", () => {
+        setRedditeryAutoPopupEnabled(!state.settings.redditeryAutoPopup);
+      });
+    }
+    [els.redditeryAutoPopupSource, els.soloRedditeryAutoPopupSource].forEach((select) => {
+      if (!select) return;
+      select.addEventListener("change", () => {
+        resetAutoPopupFeedCursors();
+        updateSettings({ redditeryAutoPopupSource: select.value === "booru" ? "booru" : "reddit" });
+        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+      });
+    });
+    [els.redditeryAutoPopupCategory, els.soloRedditeryAutoPopupCategory].forEach((select) => {
+      if (!select) return;
+      select.addEventListener("change", () => {
+        const category = GOONER_GALLERY_CATEGORIES[String(select.value || "").toLowerCase()] ? String(select.value || "").toLowerCase() : "captions";
+        resetAutoPopupFeedCursors();
+        updateSettings({ redditeryAutoPopupCategory: category });
+        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+      });
+    });
     if (els.redditeryAutoPopupDuration) {
       els.redditeryAutoPopupDuration.addEventListener("input", () => {
         updateSettings({ redditeryAutoPopupDuration: normalizeDistractionDuration(els.redditeryAutoPopupDuration.value) });
@@ -17759,8 +19444,21 @@
       });
     }
     if (els.soloRedditeryAutoPopupToggle) {
-      els.soloRedditeryAutoPopupToggle.addEventListener("change", () => {
-        setRedditeryAutoPopupEnabled(els.soloRedditeryAutoPopupToggle.checked);
+      els.soloRedditeryAutoPopupToggle.addEventListener("click", () => {
+        setRedditeryAutoPopupEnabled(!state.settings.redditeryAutoPopup);
+      });
+    }
+    if (els.soloRedditeryAutoPopupDuration) {
+      els.soloRedditeryAutoPopupDuration.addEventListener("input", () => {
+        updateSettings({ redditeryAutoPopupDuration: normalizeDistractionDuration(els.soloRedditeryAutoPopupDuration.value) });
+        updateRedditeryAutoPopupStatus();
+      });
+    }
+    if (els.soloRedditeryAutoPopupInterval) {
+      els.soloRedditeryAutoPopupInterval.addEventListener("input", () => {
+        updateSettings({ redditeryAutoPopupInterval: normalizeAutoPopupInterval(els.soloRedditeryAutoPopupInterval.value) });
+        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        else updateRedditeryAutoPopupStatus();
       });
     }
     if (els.redditeryGallery) {
@@ -17772,14 +19470,26 @@
     }
     if (els.distractionGallery) {
       els.distractionGallery.addEventListener("click", (event) => {
-        const button = event.target.closest("[data-distraction-gallery-index]");
+        const button = event.target.closest("[data-distraction-gallery-id]");
         if (!button || button.disabled) return;
-        selectDistractionFromGallery(button.dataset.distractionGalleryIndex);
+        selectDistractionFromGallery(button.dataset.distractionGalleryId);
+      });
+    }
+    if (els.distractionVideoGallery) {
+      els.distractionVideoGallery.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-distraction-gallery-id]");
+        if (!button || button.disabled) return;
+        selectDistractionFromGallery(button.dataset.distractionGalleryId);
       });
     }
     if (els.savedDistractionGallerySection) {
       els.savedDistractionGallerySection.addEventListener("toggle", () => {
         els.savedDistractionGallerySection.dataset.userToggled = "true";
+      });
+    }
+    if (els.savedVideoGallerySection) {
+      els.savedVideoGallerySection.addEventListener("toggle", () => {
+        els.savedVideoGallerySection.dataset.userToggled = "true";
       });
     }
     if (els.cancelDistractionChoiceBtn) els.cancelDistractionChoiceBtn.addEventListener("click", closeDistractionChoice);
@@ -17800,6 +19510,38 @@
     if (els.distractionChoiceModal) {
       els.distractionChoiceModal.addEventListener("click", (event) => {
         if (event.target === els.distractionChoiceModal) closeDistractionChoice();
+      });
+    }
+    if (els.cancelVideoDistractionChoiceBtn) els.cancelVideoDistractionChoiceBtn.addEventListener("click", closeVideoDistractionChoice);
+    if (els.saveVideoDistractionChoiceBtn) els.saveVideoDistractionChoiceBtn.addEventListener("click", saveChosenDistractionImage);
+    if (els.subWallpaperVideoDistractionChoiceBtn) els.subWallpaperVideoDistractionChoiceBtn.addEventListener("click", () => postChosenVideoDistraction("background-sub"));
+    if (els.bothWallpaperVideoDistractionChoiceBtn) els.bothWallpaperVideoDistractionChoiceBtn.addEventListener("click", () => postChosenVideoDistraction("background-both"));
+    if (els.playFullVideoDistractionChoiceBtn) els.playFullVideoDistractionChoiceBtn.addEventListener("click", () => postChosenVideoDistraction("full"));
+    if (els.loopTimedVideoDistractionChoiceBtn) els.loopTimedVideoDistractionChoiceBtn.addEventListener("click", () => setVideoLoopChoiceMode("time"));
+    if (els.loopCountVideoDistractionChoiceBtn) els.loopCountVideoDistractionChoiceBtn.addEventListener("click", () => setVideoLoopChoiceMode("count"));
+    if (els.confirmLoopTimedVideoDistractionChoiceBtn) els.confirmLoopTimedVideoDistractionChoiceBtn.addEventListener("click", () => postChosenVideoDistraction("loop"));
+    if (els.confirmLoopCountVideoDistractionChoiceBtn) els.confirmLoopCountVideoDistractionChoiceBtn.addEventListener("click", () => postChosenVideoDistraction("loop-count"));
+    if (els.videoDistractionChoiceDuration) {
+      els.videoDistractionChoiceDuration.addEventListener("change", () => {
+        const duration = normalizeDistractionDuration(els.videoDistractionChoiceDuration.value);
+        els.videoDistractionChoiceDuration.value = duration;
+        updateSettings({ distractionDuration: duration });
+      });
+      els.videoDistractionChoiceDuration.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") postChosenVideoDistraction("loop");
+      });
+    }
+    if (els.videoDistractionChoiceLoopCount) {
+      els.videoDistractionChoiceLoopCount.addEventListener("change", () => {
+        els.videoDistractionChoiceLoopCount.value = normalizeVideoLoopCount(els.videoDistractionChoiceLoopCount.value);
+      });
+      els.videoDistractionChoiceLoopCount.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") postChosenVideoDistraction("loop-count");
+      });
+    }
+    if (els.videoDistractionChoiceModal) {
+      els.videoDistractionChoiceModal.addEventListener("click", (event) => {
+        if (event.target === els.videoDistractionChoiceModal) closeVideoDistractionChoice();
       });
     }
     els.rulesBtn.addEventListener("click", openRulesModal);
@@ -17869,6 +19611,38 @@
     if (els.queenPowerUsers) els.queenPowerUsers.addEventListener("change", () => updateSettings({ queenPowerUsers: els.queenPowerUsers.value }));
     els.backToMenuBtn.addEventListener("click", backToMenu);
     if (els.solitaireBackBtn) els.solitaireBackBtn.addEventListener("click", backToMenuFromSolo);
+    if (els.memoryMatchBackBtn) els.memoryMatchBackBtn.addEventListener("click", backToMenuFromSolo);
+    if (els.brainDrainSnapBackBtn) els.brainDrainSnapBackBtn.addEventListener("click", backToMenuFromSolo);
+    if (els.brainDrainSnapNewBtn) els.brainDrainSnapNewBtn.addEventListener("click", startBrainDrainSnap);
+    if (els.brainDrainSnapNextBtn) els.brainDrainSnapNextBtn.addEventListener("click", () => answerBrainDrainSnap("next"));
+    if (els.brainDrainSnapSnapBtn) els.brainDrainSnapSnapBtn.addEventListener("click", () => answerBrainDrainSnap("snap"));
+    if (els.memoryMatchNewImagesBtn) {
+      els.memoryMatchNewImagesBtn.addEventListener("click", () => startMemoryMatch({ newImages: true }));
+    }
+    if (els.memoryMatchRestartBtn) {
+      els.memoryMatchRestartBtn.addEventListener("click", () => startMemoryMatch({ newImages: false }));
+    }
+    if (els.memoryMatchSizeControls) {
+      els.memoryMatchSizeControls.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-memory-size]");
+        if (!button || button.disabled) return;
+        startMemoryMatch({ size: button.dataset.memorySize, newImages: true });
+      });
+    }
+    if (els.memoryMatchGrid) {
+      els.memoryMatchGrid.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-memory-index]");
+        if (!button || !els.memoryMatchGrid.contains(button)) return;
+        handleMemoryMatchFlip(Number(button.dataset.memoryIndex));
+      });
+    }
+    if (els.memoryMatchReveal) {
+      els.memoryMatchReveal.addEventListener("click", () => {
+        if (!state.memoryMatch) return;
+        state.memoryMatch.reveal = null;
+        renderMemoryMatch();
+      });
+    }
     if (els.newSolitaireBtn) {
       els.newSolitaireBtn.addEventListener("click", () => {
         newSolitaireDeal();
@@ -17949,6 +19723,8 @@
       tributeCrazyEights: openTributeCrazyEights,
       doubleSolitaire: openDoubleSolitaire,
       solitaire: openSolitaire,
+      memoryMatch: openMemoryMatch,
+      brainDrainSnap: openBrainDrainSnap,
       tributeTicTacToe: openTributeTicTacToe,
       wheelSpin: openWheelSpin,
       obedienceOrders: openObedienceOrders,
@@ -17963,7 +19739,8 @@
         if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
         const opener = gameOpeners[card.dataset.openGame];
         if (!opener) return;
-        if (card.dataset.openGame !== "solitaire" && shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
+        const soloOpeners = new Set(["solitaire", "memoryMatch", "brainDrainSnap"]);
+        if (!soloOpeners.has(card.dataset.openGame) && shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
         opener();
       });
     }

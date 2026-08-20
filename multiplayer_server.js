@@ -14,6 +14,18 @@ const BOORU_SOURCES = {
 };
 const REDDITERY_ENDPOINT = "https://www.redditery.com/load.php";
 const PEEKSTR_REDDIT_ENDPOINT = "https://www.peekstr.com/api/reddit";
+const DANBOORU_ENDPOINT = "https://danbooru.donmai.us/posts.json";
+const DANBOORU_AUTOCOMPLETE_ENDPOINT = "https://danbooru.donmai.us/autocomplete.json";
+const BLOCKED_GOONER_IMAGE_TOKENS = new Set([
+  "nlcgqrfwvvfh1"
+]);
+const DANBOORU_CATEGORY_TAGS = {
+  feet: ["feet", "soles", "barefoot"],
+  boobs: ["huge_breasts order:score", "large_breasts order:score age:<1month", "large_breasts order:score age:<3months", "large_breasts score:>100", "sideboob order:score", "underboob order:score", "breast_focus order:score"],
+  butt: ["ass", "ass_focus"],
+  armpits: ["armpits"],
+  femboys: ["femboy"]
+};
 
 function send(res, status, data, type = "application/json") {
   const body = type === "application/json" ? JSON.stringify(data) : data;
@@ -90,27 +102,71 @@ async function uploadImageToCatbox(body) {
 
 function safeBooruTags(value) {
   const raw = String(value || "feet sort:score")
-    .replace(/[^\w:~.+\- ]+/g, " ")
+    .replace(/[^\w:~.+\-<> ]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   return raw.slice(0, 160) || "feet sort:score";
 }
 
-function normalizeBooruPost(post) {
+function safeDanbooruCategory(value) {
+  const key = String(value || "feet").toLowerCase().replace(/[^a-z0-9_]+/g, "");
+  return DANBOORU_CATEGORY_TAGS[key] ? key : "feet";
+}
+
+function safeDanbooruPage(value) {
+  return Math.max(1, Math.min(50, Number(value || 1) || 1));
+}
+
+function safeDanbooruAutocompleteQuery(value) {
+  const raw = String(value || "")
+    .replace(/[^\w +\-:~.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return raw.slice(0, 80);
+}
+
+function danbooruTagsForCategory(category, page) {
+  const tags = DANBOORU_CATEGORY_TAGS[safeDanbooruCategory(category)] || DANBOORU_CATEGORY_TAGS.feet;
+  const tag = tags[(Math.max(1, Number(page) || 1) - 1) % tags.length] || tags[0];
+  return /\s/.test(tag) ? tag : `${tag} order:score`;
+}
+
+function danbooruTagsForCustomTag(tag) {
+  const cleanTag = safeBooruTags(tag).split(/\s+/)[0] || "feet";
+  if (cleanTag === "large_breasts") return "large_breasts order:score age:<1month";
+  if (cleanTag === "breasts") return "large_breasts order:score age:<1month";
+  if (cleanTag === "boobs") return "large_breasts order:score age:<1month";
+  return `${cleanTag} order:score`;
+}
+
+function isImageMediaUrl(value) {
+  return /^https?:\/\/.+\.(?:png|jpe?g|gif|webp)(?:[?#].*)?$/i.test(String(value || ""));
+}
+
+function isVideoMediaUrl(value) {
+  return /^https?:\/\/.+\.(?:mp4|webm)(?:[?#].*)?$/i.test(String(value || ""));
+}
+
+function normalizeBooruPost(post, options = {}) {
   if (!post || typeof post !== "object") return null;
-  const fileUrl = String(post.file_url || post.fileUrl || post.image || post.source || "").trim();
-  const sampleUrl = String(post.sample_url || post.sampleUrl || post.preview_url || post.previewUrl || "").trim();
-  const previewUrl = String(post.preview_url || post.previewUrl || post.thumbnail_url || post.thumbnailUrl || sampleUrl || fileUrl).trim();
+  const includeVideos = Boolean(options.includeVideos);
+  const fileUrl = String(post.file_url || post.large_file_url || post.fileUrl || post.image || post.source || "").trim();
+  const sampleUrl = String(post.sample_url || post.large_file_url || post.sampleUrl || post.preview_file_url || post.preview_url || post.previewUrl || "").trim();
+  const previewUrl = String(post.preview_file_url || post.preview_url || post.previewUrl || post.thumbnail_url || post.thumbnailUrl || sampleUrl || fileUrl).trim();
   const url = sampleUrl || fileUrl || previewUrl;
-  if (!/^https?:\/\/.+\.(?:png|jpe?g|gif|webp)(?:[?#].*)?$/i.test(url)) return null;
+  const isVideo = isVideoMediaUrl(url);
+  if (!isImageMediaUrl(url) && !(includeVideos && isVideo)) return null;
   return {
     id: String(post.id || post.md5 || url),
     url,
     previewUrl: /^https?:\/\//i.test(previewUrl) ? previewUrl : url,
     fileUrl: /^https?:\/\//i.test(fileUrl) ? fileUrl : url,
+    mediaType: isVideo ? "video" : "image",
     score: Number(post.score || 0) || 0,
     rating: String(post.rating || ""),
-    tags: String(post.tags || "").slice(0, 300)
+    tags: String(post.tags || post.tag_string || "").slice(0, 300),
+    width: Number(post.image_width || post.width || 0) || 0,
+    height: Number(post.image_height || post.height || 0) || 0
   };
 }
 
@@ -156,6 +212,82 @@ async function fetchBooruGallery(searchParams) {
   };
 }
 
+async function fetchDanbooruGallery(searchParams) {
+  if (typeof fetch !== "function") throw new Error("This server needs Node 20+ for Danbooru fetches.");
+  const category = safeDanbooruCategory(searchParams.get("category"));
+  const page = safeDanbooruPage(searchParams.get("page"));
+  const customTag = safeDanbooruAutocompleteQuery(searchParams.get("tag"));
+  const tags = safeBooruTags(searchParams.get("tags") || (customTag ? danbooruTagsForCustomTag(customTag) : danbooruTagsForCategory(category, page)));
+  const limit = Math.max(1, Math.min(24, Number(searchParams.get("limit") || 16) || 16));
+  const includeVideos = String(searchParams.get("includeVideos") || "").toLowerCase() === "true";
+  const requestLimit = Math.max(limit * 4, 80);
+  const endpoint = new URL(DANBOORU_ENDPOINT);
+  endpoint.searchParams.set("tags", tags);
+  endpoint.searchParams.set("limit", String(Math.min(100, requestLimit)));
+  endpoint.searchParams.set("page", String(page));
+  if (process.env.DANBOORU_LOGIN) endpoint.searchParams.set("login", process.env.DANBOORU_LOGIN);
+  if (process.env.DANBOORU_API_KEY) endpoint.searchParams.set("api_key", process.env.DANBOORU_API_KEY);
+  const response = await fetch(endpoint, {
+    headers: {
+      "Accept": "application/json,text/plain;q=0.8,*/*;q=0.5",
+      "User-Agent": "TributeArcade/1.0"
+    }
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`Danbooru returned ${response.status}.`);
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new Error("Danbooru returned non-JSON content.");
+  }
+  const posts = Array.isArray(parsed) ? parsed : [];
+  return {
+    source: "danbooru",
+    category,
+    page,
+    tags,
+    includeVideos,
+    items: posts.map((post) => normalizeBooruPost(post, { includeVideos })).filter(Boolean).slice(0, limit)
+  };
+}
+
+async function fetchDanbooruAutocomplete(searchParams) {
+  if (typeof fetch !== "function") throw new Error("This server needs Node 20+ for Danbooru autocomplete.");
+  const query = safeDanbooruAutocompleteQuery(searchParams.get("query"));
+  const limit = Math.max(1, Math.min(16, Number(searchParams.get("limit") || 10) || 10));
+  if (!query) return { source: "danbooru", query, items: [] };
+  const endpoint = new URL(DANBOORU_AUTOCOMPLETE_ENDPOINT);
+  endpoint.searchParams.set("search[query]", query);
+  endpoint.searchParams.set("search[type]", "tag_query");
+  endpoint.searchParams.set("limit", String(limit));
+  const response = await fetch(endpoint, {
+    headers: {
+      "Accept": "application/json,text/plain;q=0.8,*/*;q=0.5",
+      "User-Agent": "TributeArcade/1.0"
+    }
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`Danbooru autocomplete returned ${response.status}.`);
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new Error("Danbooru autocomplete returned non-JSON content.");
+  }
+  const items = (Array.isArray(parsed) ? parsed : [])
+    .map((item) => ({
+      label: String(item.label || item.value || "").replace(/\s+/g, " ").trim(),
+      value: safeDanbooruAutocompleteQuery(item.value || item.label),
+      postCount: Number(item.post_count || item.tag && item.tag.post_count || 0) || 0,
+      antecedent: String(item.antecedent || "").slice(0, 80),
+      category: Number(item.category || item.tag && item.tag.category || 0) || 0
+    }))
+    .filter((item) => item.value)
+    .slice(0, limit);
+  return { source: "danbooru", query, items };
+}
+
 function decodeHtmlEntities(value) {
   return String(value || "")
     .replace(/&amp;/g, "&")
@@ -182,6 +314,18 @@ function isRedditImageUrl(value) {
   return /^https?:\/\/(?:i|preview)\.redd\.it\/.+\.(?:png|jpe?g|gif|webp)(?:[?#].*)?$/i.test(String(value || ""));
 }
 
+function isBlockedGoonerImageUrl(value) {
+  let raw = String(value || "").toLowerCase();
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      raw = decodeURIComponent(raw);
+    } catch (error) {
+      break;
+    }
+  }
+  return [...BLOCKED_GOONER_IMAGE_TOKENS].some((token) => raw.includes(token));
+}
+
 function isTinyRedditPreview(value) {
   const raw = String(value || "");
   if (!/^https?:\/\/preview\.redd\.it\//i.test(raw)) return false;
@@ -198,6 +342,32 @@ function isTinyRedditPreview(value) {
   return Math.max(width || 0, height || 0) < 480;
 }
 
+function dimensionsFromRedditImageUrl(value) {
+  let url;
+  try {
+    url = new URL(String(value || ""));
+  } catch (error) {
+    return { width: 0, height: 0 };
+  }
+  const width = Number(url.searchParams.get("width"));
+  const height = Number(url.searchParams.get("height"));
+  return {
+    width: Number.isFinite(width) ? width : 0,
+    height: Number.isFinite(height) ? height : 0
+  };
+}
+
+function peekstrMediaDimensions(media, fallbackUrl = "") {
+  const item = media || {};
+  const source = item.s || {};
+  const width = Number(source.x || item.width || item.w || 0);
+  const height = Number(source.y || item.height || item.h || 0);
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    return { width, height };
+  }
+  return dimensionsFromRedditImageUrl(fallbackUrl);
+}
+
 function normalizeRedditeryPost(match, index, allowTinyPreview = false) {
   const id = String(match[1] || `redditery-${index}`);
   const block = match[2] || "";
@@ -205,10 +375,10 @@ function normalizeRedditeryPost(match, index, allowTinyPreview = false) {
   const hrefMatches = [...block.matchAll(/<a\b[^>]*\bhref=['"]([^'"]+)['"][^>]*>/gi)];
   const directHref = hrefMatches
     .map((item) => decodeHtmlEntities(item[1]))
-    .find((href) => isRedditImageUrl(href) && (allowTinyPreview || !isTinyRedditPreview(href)));
+    .find((href) => isRedditImageUrl(href) && !isBlockedGoonerImageUrl(href) && (allowTinyPreview || !isTinyRedditPreview(href)));
   const previewUrl = imageMatches
     .map((item) => decodeHtmlEntities(item[1]))
-    .find((src) => isRedditImageUrl(src) && (allowTinyPreview || !isTinyRedditPreview(src)));
+    .find((src) => isRedditImageUrl(src) && !isBlockedGoonerImageUrl(src) && (allowTinyPreview || !isTinyRedditPreview(src)));
   const url = directHref || previewUrl;
   if (!url) return null;
   const titleMatch = block.match(/<h4[^>]*>\s*<a\b[^>]*>([\s\S]*?)<\/a>/i);
@@ -217,6 +387,7 @@ function normalizeRedditeryPost(match, index, allowTinyPreview = false) {
     id,
     url,
     previewUrl: previewUrl || url,
+    ...dimensionsFromRedditImageUrl(url),
     title,
     source: "redditery",
     index
@@ -252,13 +423,16 @@ function collectPeekstrImageCandidates(postOrMedia) {
 
 function normalizePeekstrMediaItem(post, media, id, title, index, galleryIndex = 0) {
   const candidates = collectPeekstrImageCandidates(media);
-  const url = candidates.find((candidate) => isRedditImageUrl(candidate) && !isTinyRedditPreview(candidate));
+  const url = candidates.find((candidate) => isRedditImageUrl(candidate) && !isBlockedGoonerImageUrl(candidate) && !isTinyRedditPreview(candidate));
   if (!url) return null;
-  const previewUrl = candidates.find((candidate) => isRedditImageUrl(candidate)) || url;
+  const previewUrl = candidates.find((candidate) => isRedditImageUrl(candidate) && !isBlockedGoonerImageUrl(candidate)) || url;
+  const dimensions = peekstrMediaDimensions(media, url);
   return {
     id: String(id || post.id || `peekstr-${index}-${galleryIndex}`),
     url,
     previewUrl,
+    width: dimensions.width,
+    height: dimensions.height,
     title,
     source: "peekstr",
     index
@@ -593,6 +767,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/booru-gallery") {
       const gallery = await fetchBooruGallery(url.searchParams);
       return send(res, 200, gallery);
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/danbooru-gallery") {
+      const gallery = await fetchDanbooruGallery(url.searchParams);
+      return send(res, 200, gallery);
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/danbooru-autocomplete") {
+      const suggestions = await fetchDanbooruAutocomplete(url.searchParams);
+      return send(res, 200, suggestions);
     }
 
     if (req.method === "GET" && url.pathname === "/api/redditery-gallery") {

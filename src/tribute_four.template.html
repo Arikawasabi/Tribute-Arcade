@@ -299,9 +299,43 @@
     </div>
 
     <section class="solo-redditery-panel hidden" id="soloRedditeryPanel">
-      <label class="settings-row compact-toggle">
-        <span>Random popups</span>
-        <input id="soloRedditeryAutoPopupToggle" type="checkbox">
+      <button id="soloRedditeryAutoPopupToggle" type="button" class="toggle-button" aria-pressed="false">Random Popups</button>
+      <label class="field-label compact-field">
+        Popup source
+        <select id="soloRedditeryAutoPopupSource">
+          <option value="reddit">Reddit page</option>
+          <option value="booru">Current Booru search</option>
+        </select>
+      </label>
+      <label class="field-label compact-field" id="soloRedditeryAutoPopupCategoryRow">
+        Reddit page
+        <select id="soloRedditeryAutoPopupCategory">
+          <option value="captions">Captions</option>
+          <option value="femboys">Femboys</option>
+          <option value="butt">Butt</option>
+          <option value="bnwo">BNWO</option>
+          <option value="feet">Feet</option>
+          <option value="boobs">Boobs</option>
+          <option value="armpits">Armpits</option>
+          <option value="mixed">Mixed</option>
+        </select>
+      </label>
+      <label class="field-label compact-field hidden" id="soloBooruAutoPopupTagRow">
+        Booru tag
+        <input id="soloDanbooruTagInput" type="text" placeholder="boobs, feet, armpits...">
+      </label>
+      <div class="danbooru-suggestions hidden" id="soloDanbooruSuggestions"></div>
+      <div class="danbooru-toggle-row hidden" id="soloBooruAutoPopupVideoRow">
+        <button id="soloDanbooruIncludeVideos" type="button" class="toggle-button" aria-pressed="false">Include Videos</button>
+        <button id="soloDanbooruUnmuteVideos" type="button" class="toggle-button" aria-pressed="false">Unmute Videos</button>
+      </div>
+      <label class="field-label compact-field">
+        Popup seconds
+        <input id="soloRedditeryAutoPopupDuration" type="number" min="1" max="60" step="1" value="15">
+      </label>
+      <label class="field-label compact-field">
+        Next image after seconds
+        <input id="soloRedditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="90">
       </label>
       <p class="chooser-line" id="soloRedditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up every 1-2 minutes during solo games.</p>
     </section>
@@ -403,6 +437,22 @@
         <strong class="status-pill">Play Solo</strong>
       </button>
 
+      <button class="panel game-card" id="memoryMatchCard" data-open-game="memoryMatch" data-game-categories="solo">
+        <span>
+          <span class="game-card-title">Brain Drain Match</span>
+          <span class="game-card-copy">Flip paired gooner images before your focus melts out of your head.</span>
+        </span>
+        <strong class="status-pill">Play Solo</strong>
+      </button>
+
+      <button class="panel game-card" id="brainDrainSnapCard" data-open-game="brainDrainSnap" data-game-categories="solo">
+        <span>
+          <span class="game-card-title">Brain Drain Snap</span>
+          <span class="game-card-copy">A one-thumb category reflex test. Snap matches, skip everything else.</span>
+        </span>
+        <strong class="status-pill">Play Solo</strong>
+      </button>
+
       <button class="panel game-card" id="obedienceOrdersCard" data-open-game="obedienceOrders" data-game-categories="wip all" data-game-hidden="true">
         <span>
           <span class="game-card-title">Obedience Orders</span>
@@ -449,6 +499,70 @@
         <button class="solitaire-slot foundation" data-solitaire-location="foundation" data-foundation-index="3" aria-label="Diamonds foundation"></button>
       </div>
       <div class="solitaire-tableau" id="solitaireTableau"></div>
+    </section>
+  </main>
+
+  <main class="screen memory-match-screen hidden" id="memoryMatchScreen">
+    <header class="topbar">
+      <div>
+        <h1>Brain Drain Match</h1>
+        <p class="subtitle" id="memoryMatchStatus">Pick a size, then match every pair.</p>
+      </div>
+      <div class="setup-actions">
+        <button id="memoryMatchNewImagesBtn">New Images</button>
+        <button id="memoryMatchRestartBtn">Restart</button>
+        <button id="memoryMatchBackBtn">Games</button>
+      </div>
+    </header>
+
+    <section class="memory-match-table" id="memoryMatchTable">
+      <div class="memory-match-controls">
+        <div>
+          <strong id="memoryMatchMoves">0 moves</strong>
+          <span id="memoryMatchMatches">0 / 0 pairs</span>
+        </div>
+        <div class="segmented-control" id="memoryMatchSizeControls" aria-label="Brain Drain Match size">
+          <button class="active" data-memory-size="4x3">12</button>
+          <button data-memory-size="4x4">16</button>
+          <button data-memory-size="5x4">20</button>
+        </div>
+      </div>
+      <div class="memory-match-grid" id="memoryMatchGrid" aria-label="Brain Drain Match board"></div>
+    </section>
+    <button class="memory-match-reveal hidden" id="memoryMatchReveal" type="button" aria-label="Hide matched image">
+      <img id="memoryMatchRevealImage" alt="Matched image">
+    </button>
+  </main>
+
+  <main class="screen brain-snap-screen hidden" id="brainDrainSnapScreen">
+    <header class="topbar brain-snap-topbar">
+      <div>
+        <h1>Brain Drain Snap</h1>
+        <p class="subtitle" id="brainDrainSnapStatus">Tap Snap when the new image matches the last category.</p>
+      </div>
+      <div class="setup-actions">
+        <button id="brainDrainSnapNewBtn" class="primary">New Run</button>
+        <button id="brainDrainSnapBackBtn">Games</button>
+      </div>
+    </header>
+
+    <section class="brain-snap-table" id="brainDrainSnapTable">
+      <div class="brain-snap-stats">
+        <div><span>Score</span><strong id="brainDrainSnapScore">0</strong></div>
+        <div><span>Streak</span><strong id="brainDrainSnapStreak">0</strong></div>
+        <div><span>IQ</span><strong id="brainDrainSnapIq">3</strong></div>
+      </div>
+      <div class="brain-snap-timer" aria-label="Round timer">
+        <span id="brainDrainSnapTimerBar"></span>
+      </div>
+      <div class="brain-snap-card" id="brainDrainSnapCardView">
+        <div class="brain-snap-placeholder">Press New Run</div>
+      </div>
+      <div class="brain-snap-actions">
+        <button id="brainDrainSnapNextBtn">Next</button>
+        <button id="brainDrainSnapSnapBtn" class="primary">Snap</button>
+      </div>
+      <p class="chooser-line" id="brainDrainSnapHint">Brain Drain Snap uses a mixed category stream so every choice matters.</p>
     </section>
   </main>
 
@@ -883,6 +997,41 @@
     </section>
   </div>
 
+  <div class="modal-backdrop hidden" id="videoDistractionChoiceModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Post Video</h2>
+      </div>
+      <div class="panel-body">
+        <div class="distraction-choice-preview" id="videoDistractionChoicePreview"></div>
+        <p class="chooser-line" id="videoDistractionChoiceText">How should this video play?</p>
+        <p class="chooser-line video-duration-line" id="videoDistractionChoiceLength">Video length: loading...</p>
+        <p class="muted-note">Video wallpapers are experimental, muted, and keep looping until a new wallpaper is posted.</p>
+        <label class="field-label distraction-choice-duration hidden" id="videoLoopTimeRow">
+          Loop seconds
+          <input id="videoDistractionChoiceDuration" type="number" min="1" max="60" step="1" value="15">
+        </label>
+        <label class="field-label distraction-choice-duration hidden" id="videoLoopCountRow">
+          Loop count
+          <input id="videoDistractionChoiceLoopCount" type="number" min="1" max="20" step="1" value="3">
+        </label>
+        <div class="distraction-choice-actions hidden" id="videoLoopConfirmActions">
+          <button id="confirmLoopTimedVideoDistractionChoiceBtn" class="primary">Post Timed Loop</button>
+          <button id="confirmLoopCountVideoDistractionChoiceBtn" class="primary">Post Count Loop</button>
+        </div>
+        <div class="distraction-choice-actions">
+          <button id="cancelVideoDistractionChoiceBtn">Cancel</button>
+          <button id="saveVideoDistractionChoiceBtn">Save Video</button>
+          <button id="subWallpaperVideoDistractionChoiceBtn">Sub Wallpaper</button>
+          <button id="bothWallpaperVideoDistractionChoiceBtn">Both Wallpaper</button>
+          <button id="playFullVideoDistractionChoiceBtn">Play Full Video</button>
+          <button id="loopTimedVideoDistractionChoiceBtn">Loop For Time</button>
+          <button id="loopCountVideoDistractionChoiceBtn">Loop Count</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <aside class="side-popout" id="sidePopout">
     <div class="side-header">
       <h2 class="panel-title" id="sidePanelTitle">Room</h2>
@@ -891,6 +1040,7 @@
     <div class="side-tabs">
       <button class="side-tab active" data-side-tab="chat" title="Chat">💬</button>
       <button class="side-tab" data-side-tab="ledger" title="Ledger">💵</button>
+      <button class="side-tab" data-side-tab="gallery" title="Gallery">🖼️</button>
       <button class="side-tab" data-side-tab="tools" id="sideToolsTab" title="Tools and settings">⚙️</button>
     </div>
     <div class="side-body">
@@ -908,7 +1058,6 @@
       <section class="side-pane hidden" id="sideToolsPane">
         <div class="utility-tabs" id="utilityTabs">
           <button class="utility-tab active" data-utility-tab="tools">Tools</button>
-          <button class="utility-tab" data-utility-tab="gallery">Gallery</button>
           <button class="utility-tab" data-utility-tab="settings">Settings</button>
         </div>
         <div class="settings-pane" id="domToolsPane">
@@ -924,9 +1073,26 @@
           <input id="sideDistractionMode" type="hidden" value="overlay-sub">
           <input id="sideDistractionDuration" type="hidden" value="15">
           <div class="booru-test-panel compact">
-            <label class="settings-row compact-toggle">
-              Auto sub popup
-              <input id="redditeryAutoPopupToggle" type="checkbox">
+            <button id="redditeryAutoPopupToggle" type="button" class="toggle-button full-width" aria-pressed="false">Auto Sub Popup</button>
+            <label class="field-label">
+              Popup source
+              <select id="redditeryAutoPopupSource">
+                <option value="reddit">Reddit page</option>
+                <option value="booru">Current Booru search</option>
+              </select>
+            </label>
+            <label class="field-label" id="redditeryAutoPopupCategoryRow">
+              Reddit page
+              <select id="redditeryAutoPopupCategory">
+                <option value="captions">Captions</option>
+                <option value="femboys">Femboys</option>
+                <option value="butt">Butt</option>
+                <option value="bnwo">BNWO</option>
+                <option value="feet">Feet</option>
+                <option value="boobs">Boobs</option>
+                <option value="armpits">Armpits</option>
+                <option value="mixed">Mixed</option>
+              </select>
             </label>
             <label class="field-label">
               Popup seconds
@@ -941,7 +1107,7 @@
         </div>
         <div class="settings-pane hidden" id="sideGalleryPane">
           <h3 class="panel-title">Image Gallery</h3>
-          <details class="gallery-collapse" open>
+          <details class="gallery-collapse">
             <summary>
               <span>Post image</span>
             </summary>
@@ -956,10 +1122,57 @@
             <input id="distractionFileInput" class="hidden-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/*">
             <p class="chooser-line" id="sideDistractionStatus">Press Enter on an image URL, upload an image, or pick from a gallery.</p>
           </details>
-          <details class="gallery-collapse booru-test-panel" open>
+          <details class="gallery-collapse booru-test-panel">
             <summary>
-              <span>Gooner gallery</span>
+              <span>Booru gallery</span>
             </summary>
+            <label class="field-label">
+              Search tags
+              <input id="danbooruTagInput" type="text" placeholder="boobs, feet, armpits...">
+            </label>
+            <div class="danbooru-suggestions hidden" id="danbooruSuggestions"></div>
+            <div class="mode-grid danbooru-primary-actions">
+              <button id="danbooruNextBtn">Next Page</button>
+            </div>
+            <p class="chooser-line" id="danbooruGalleryStatus">Type a tag to search Booru suggestions.</p>
+            <div class="danbooru-toggle-row">
+              <button id="danbooruIncludeVideos" type="button" class="toggle-button" aria-pressed="false">Include Videos</button>
+              <button id="danbooruUnmuteVideos" type="button" class="toggle-button" aria-pressed="false">Unmute Videos</button>
+            </div>
+            <div class="booru-gallery hidden" id="danbooruGallery"></div>
+            <details class="gallery-collapse danbooru-preset-collapse hidden">
+              <summary>
+                <span>Preset search</span>
+              </summary>
+              <div class="danbooru-preset-row">
+                <select id="danbooruGalleryCategory" aria-label="Danbooru preset category">
+                  <option value="feet">Feet</option>
+                  <option value="boobs">Boobs</option>
+                  <option value="butt">Butt</option>
+                  <option value="armpits">Armpits</option>
+                  <option value="femboys">Femboys</option>
+                </select>
+                <button id="danbooruLoadBtn">Preset</button>
+              </div>
+            </details>
+          </details>
+          <details class="gallery-collapse booru-test-panel">
+            <summary>
+              <span>Reddit gallery</span>
+            </summary>
+            <label class="field-label">
+              Gallery category
+              <select id="goonerGalleryCategory">
+                <option value="captions">Captions</option>
+                <option value="femboys">Femboys</option>
+                <option value="butt">Butt</option>
+                <option value="bnwo">BNWO</option>
+                <option value="feet">Feet</option>
+                <option value="boobs">Boobs</option>
+                <option value="armpits">Armpits</option>
+                <option value="mixed">Mixed</option>
+              </select>
+            </label>
             <div class="mode-grid">
               <button id="redditeryRandomBtn">Random Recent</button>
               <button id="goonerGalleryTopBtn">Return to Top</button>
@@ -971,6 +1184,12 @@
               <span>Saved images</span>
             </summary>
             <div class="distraction-gallery" id="distractionGallery"></div>
+          </details>
+          <details class="gallery-collapse" id="savedVideoGallerySection">
+            <summary>
+              <span>Saved videos</span>
+            </summary>
+            <div class="distraction-gallery" id="distractionVideoGallery"></div>
           </details>
         </div>
         <div class="side-utility-settings hidden" id="sideSettingsPane">
@@ -1003,6 +1222,7 @@
               See spiral and pulse
               <input id="domSeePressurePulse" type="checkbox">
             </label>
+            <button id="clearPopupsBtn" type="button">Clear Popups</button>
             <label class="settings-row" id="queenPowerModeRow">
               Queen powers
               <select id="queenPowerMode">
@@ -1039,6 +1259,7 @@
   </aside>
   <button class="side-restore-tab hidden" data-open-side-tab="chat" title="Open chat panel">💬</button>
   <button class="side-restore-tab ledger hidden" data-open-side-tab="ledger" title="Open ledger panel">💵</button>
+  <button class="side-restore-tab gallery hidden" data-open-side-tab="gallery" title="Open gallery panel">🖼️</button>
   <button class="side-restore-tab tools hidden" data-open-side-tab="tools" title="Open tools and settings">⚙️</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
