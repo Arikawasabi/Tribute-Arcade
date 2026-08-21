@@ -16,6 +16,7 @@
   <div class="piece-loss-pulse hidden" id="pieceLossPulse" aria-hidden="true"></div>
   <div class="piece-loss-message hidden" id="pieceLossMessage" aria-hidden="true"></div>
   <div class="chess-capture-banner hidden" id="chessCaptureBanner" aria-hidden="true"></div>
+  <button class="auto-popup-preview hidden" id="autoPopupPreview" type="button" title="Open auto popup preview"></button>
   <div class="dom-trigger-overlay hidden" id="domTriggerOverlay">
     <div class="dom-trigger-card" id="domTriggerCard">
       <span id="domTriggerKicker">Dom Trigger</span>
@@ -311,6 +312,8 @@
         Reddit page
         <select id="soloRedditeryAutoPopupCategory">
           <option value="captions">Captions</option>
+          <option value="goonerbait">Gooner Bait</option>
+          <option value="censor">Censor</option>
           <option value="femboys">Femboys</option>
           <option value="furry">Furry</option>
           <option value="butt">Butt</option>
@@ -1044,6 +1047,23 @@
     </section>
   </div>
 
+  <div class="modal-backdrop hidden" id="autoPopupPreviewModal">
+    <section class="panel role-modal">
+      <div class="panel-header">
+        <h2 class="panel-title">Auto Popup Preview</h2>
+      </div>
+      <div class="panel-body">
+        <div class="distraction-choice-preview" id="autoPopupPreviewModalMedia"></div>
+        <p class="chooser-line" id="autoPopupPreviewModalText">This preview is only on your screen.</p>
+        <div class="distraction-choice-actions">
+          <button id="closeAutoPopupPreviewBtn">Close</button>
+          <button id="clearAutoPopupPreviewBtn">Clear For Me</button>
+          <button id="saveAutoPopupPreviewBtn" class="primary">Save</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <aside class="side-popout" id="sidePopout">
     <div class="side-header">
       <h2 class="panel-title" id="sidePanelTitle">Room</h2>
@@ -1084,67 +1104,7 @@
           <p class="chooser-line" id="sideDomLinkStatus">Paste a link, then open it for the sub.</p>
           <input id="sideDistractionMode" type="hidden" value="overlay-sub">
           <input id="sideDistractionDuration" type="hidden" value="15">
-          <div class="booru-test-panel compact">
-            <button id="redditeryAutoPopupToggle" type="button" class="toggle-button full-width" aria-pressed="false">Auto Sub Popup</button>
-            <label class="field-label">
-              Popup source
-              <select id="redditeryAutoPopupSource">
-                <option value="reddit">Reddit page</option>
-                <option value="booru">Booru search</option>
-              </select>
-            </label>
-            <label class="field-label" id="redditeryAutoPopupCategoryRow">
-              Reddit page
-              <select id="redditeryAutoPopupCategory">
-                <option value="captions">Captions</option>
-                <option value="femboys">Femboys</option>
-                <option value="furry">Furry</option>
-                <option value="butt">Butt</option>
-                <option value="bnwo">BNWO</option>
-                <option value="feet">Feet</option>
-                <option value="boobs">Boobs</option>
-                <option value="armpits">Armpits</option>
-                <option value="mixed">Mixed</option>
-              </select>
-            </label>
-            <div class="reddit-page-picker" id="redditeryAutoPopupSourcePicker"></div>
-            <label class="field-label" id="booruAutoPopupTagRow">
-              Booru tag
-              <input id="autoDanbooruTagInput" type="text" placeholder="boobs, feet, armpits...">
-            </label>
-            <div class="danbooru-suggestions hidden" id="autoDanbooruSuggestions"></div>
-            <label class="field-label" id="booruDateFilterRow">
-              Upload date
-              <select id="booruDateFilter">
-                <option value="all">All time</option>
-                <option value="12m">Last 12 months</option>
-                <option value="6m">Last 6 months</option>
-                <option value="3m">Last 3 months</option>
-                <option value="1m">Last 1 month</option>
-              </select>
-            </label>
-            <div class="danbooru-toggle-row" id="booruAutoPopupVideoRow">
-              <button id="autoDanbooruIncludeVideos" type="button" class="toggle-button" aria-pressed="false">Include Videos</button>
-              <button id="autoDanbooruUnmuteVideos" type="button" class="toggle-button" aria-pressed="false">Unmute Videos</button>
-              <button id="danbooruFullVideos" type="button" class="toggle-button" aria-pressed="false">Full Videos</button>
-            </div>
-            <label class="field-label">
-              Popup seconds
-              <input id="redditeryAutoPopupDuration" type="number" min="1" max="60" step="1" value="15">
-            </label>
-            <label class="field-label">
-              Popup position
-              <select id="autoPopupPlacement">
-                <option value="center">Center</option>
-                <option value="random">Random safe spot</option>
-              </select>
-            </label>
-            <label class="field-label">
-              Next image after seconds
-              <input id="redditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="90">
-            </label>
-            <p class="chooser-line" id="redditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up for the sub on the selected timer.</p>
-          </div>
+
         </div>
         <div class="settings-pane hidden" id="sideGalleryPane">
           <h3 class="panel-title">Image Gallery</h3>
@@ -1163,7 +1123,78 @@
             <input id="distractionFileInput" class="hidden-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/*">
             <p class="chooser-line" id="sideDistractionStatus">Press Enter on an image URL, upload an image, or pick from a gallery.</p>
           </details>
-          <details class="gallery-collapse booru-test-panel">
+          <details class="gallery-collapse" id="randomPopupGallerySection">
+            <summary>
+              <span>Random popups</span>
+            </summary>
+            <div class="booru-test-panel compact random-popup-panel">
+              <button id="redditeryAutoPopupToggle" type="button" class="toggle-button full-width" aria-pressed="false">Auto Sub Popup</button>
+              <label class="settings-row compact-settings-row" id="autoPopupDomPreviewRow">
+                Dom preview
+                <input id="autoPopupDomPreviewInput" type="checkbox">
+              </label>
+              <label class="field-label">
+                Popup source
+                <select id="redditeryAutoPopupSource">
+                  <option value="reddit">Reddit page</option>
+                  <option value="booru">Booru search</option>
+                </select>
+              </label>
+              <label class="field-label" id="redditeryAutoPopupCategoryRow">
+                Reddit page
+                <select id="redditeryAutoPopupCategory">
+                  <option value="captions">Captions</option>
+                  <option value="goonerbait">Gooner Bait</option>
+                  <option value="censor">Censor</option>
+                  <option value="femboys">Femboys</option>
+                  <option value="furry">Furry</option>
+                  <option value="butt">Butt</option>
+                  <option value="bnwo">BNWO</option>
+                  <option value="feet">Feet</option>
+                  <option value="boobs">Boobs</option>
+                  <option value="armpits">Armpits</option>
+                  <option value="mixed">Mixed</option>
+                </select>
+              </label>
+              <div class="reddit-page-picker" id="redditeryAutoPopupSourcePicker"></div>
+              <label class="field-label" id="booruAutoPopupTagRow">
+                Booru tag
+                <input id="autoDanbooruTagInput" type="text" placeholder="boobs, feet, armpits...">
+              </label>
+              <div class="danbooru-suggestions hidden" id="autoDanbooruSuggestions"></div>
+              <label class="field-label" id="booruDateFilterRow">
+                Upload date
+                <select id="booruDateFilter">
+                  <option value="all">All time</option>
+                  <option value="12m">Last 12 months</option>
+                  <option value="6m">Last 6 months</option>
+                  <option value="3m">Last 3 months</option>
+                  <option value="1m">Last 1 month</option>
+                </select>
+              </label>
+              <div class="danbooru-toggle-row" id="booruAutoPopupVideoRow">
+                <button id="autoDanbooruIncludeVideos" type="button" class="toggle-button" aria-pressed="false">Include Videos</button>
+                <button id="autoDanbooruUnmuteVideos" type="button" class="toggle-button" aria-pressed="false">Unmute Videos</button>
+                <button id="danbooruFullVideos" type="button" class="toggle-button" aria-pressed="false">Full Videos</button>
+              </div>
+              <label class="field-label">
+                Popup seconds
+                <input id="redditeryAutoPopupDuration" type="number" min="1" max="60" step="1" value="15">
+              </label>
+              <label class="field-label">
+                Popup position
+                <select id="autoPopupPlacement">
+                  <option value="center">Center</option>
+                  <option value="random">Random safe spot</option>
+                </select>
+              </label>
+              <label class="field-label">
+                Next image after seconds
+                <input id="redditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="90">
+              </label>
+              <p class="chooser-line" id="redditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up for the sub on the selected timer.</p>
+            </div>
+          </details>          <details class="gallery-collapse booru-test-panel">
             <summary>
               <span>Booru gallery</span>
             </summary>
@@ -1215,6 +1246,8 @@
               Gallery category
               <select id="goonerGalleryCategory">
                 <option value="captions">Captions</option>
+                <option value="goonerbait">Gooner Bait</option>
+                <option value="censor">Censor</option>
                 <option value="femboys">Femboys</option>
                 <option value="furry">Furry</option>
                 <option value="butt">Butt</option>

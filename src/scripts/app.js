@@ -126,14 +126,15 @@
         distractionOverlays: [],
         distractionGallery: [],
         goonerGallerySource: "peekstr",
-        goonerGalleryCategory: "captions",
+        goonerGalleryCategory: "goonerbait",
         goonerGallerySubreddits: [],
         redditeryAutoPopup: false,
         redditeryAutoPopupSource: "booru",
-        redditeryAutoPopupCategory: "captions",
+        redditeryAutoPopupCategory: "goonerbait",
         redditeryAutoPopupSubreddits: [],
         redditeryAutoPopupDuration: 15,
         redditeryAutoPopupInterval: 90,
+        autoPopupDomPreview: false,
         booruDateFilter: "all",
         booruAutoPopupFullVideos: false,
         leaveNotice: null,
@@ -461,6 +462,15 @@
       redditeryAutoPopupDuration: document.getElementById("redditeryAutoPopupDuration"),
       redditeryAutoPopupInterval: document.getElementById("redditeryAutoPopupInterval"),
       redditeryAutoPopupStatus: document.getElementById("redditeryAutoPopupStatus"),
+      autoPopupDomPreviewRow: document.getElementById("autoPopupDomPreviewRow"),
+      autoPopupDomPreviewInput: document.getElementById("autoPopupDomPreviewInput"),
+      autoPopupPreview: document.getElementById("autoPopupPreview"),
+      autoPopupPreviewModal: document.getElementById("autoPopupPreviewModal"),
+      autoPopupPreviewModalMedia: document.getElementById("autoPopupPreviewModalMedia"),
+      autoPopupPreviewModalText: document.getElementById("autoPopupPreviewModalText"),
+      closeAutoPopupPreviewBtn: document.getElementById("closeAutoPopupPreviewBtn"),
+      clearAutoPopupPreviewBtn: document.getElementById("clearAutoPopupPreviewBtn"),
+      saveAutoPopupPreviewBtn: document.getElementById("saveAutoPopupPreviewBtn"),
       redditeryGallery: document.getElementById("redditeryGallery"),
       savedDistractionGallerySection: document.getElementById("savedDistractionGallerySection"),
       savedVideoGallerySection: document.getElementById("savedVideoGallerySection"),
@@ -701,6 +711,33 @@
     let localBrainDrainSnapPools = {};
     let localBrainDrainSnapAfter = {};
     let brainDrainSnapTimerId = null;
+    let localAutoPopupPreview = null;
+    const localSubDistractions = {
+      distractionUrl: "",
+      distractionMode: "overlay-sub",
+      distractionDuration: 15,
+      distractionPopupPlacement: "random",
+      distractionUntil: 0,
+      distractionBackgroundUrl: "",
+      distractionBackgroundMode: "background-sub",
+      distractionBackgroundMediaType: "",
+      distractionBackgroundMuted: true,
+      distractionOverlayUrl: "",
+      distractionOverlayUntil: 0,
+      distractionOverlayX: 50,
+      distractionOverlayY: 52,
+      distractionOverlays: [],
+      distractionGallery: [],
+      redditeryAutoPopup: false,
+      redditeryAutoPopupSource: "booru",
+      redditeryAutoPopupCategory: "goonerbait",
+      redditeryAutoPopupSubreddits: [],
+      redditeryAutoPopupDuration: 15,
+      redditeryAutoPopupInterval: 90,
+      autoPopupDomPreview: false,
+      booruAutoPopupFullVideos: false,
+      booruDateFilter: "all"
+    };
     let pendingDistractionChoiceUrl = "";
     let pendingDistractionChoiceMedia = null;
     const distractionImageSizeCache = new Map();
@@ -2994,6 +3031,30 @@
       return !state.online.room || role === DOM;
     }
 
+    function subGalleryPrivateMode() {
+      return Boolean(state.online.room && localOnlineRole() === SUB);
+    }
+
+    function galleryControlsAllowed() {
+      return domLinkControlsAllowed() || subGalleryPrivateMode();
+    }
+
+    function galleryEffectSettings() {
+      return subGalleryPrivateMode() ? localSubDistractions : state.settings;
+    }
+
+    function galleryEffectIsSharedDom() {
+      return !subGalleryPrivateMode();
+    }
+
+    function localSubAutoPopupActive() {
+      return subGalleryPrivateMode() && !state.settings.redditeryAutoPopup && Boolean(localSubDistractions.redditeryAutoPopup);
+    }
+
+    function autoPopupSettings() {
+      return localSubAutoPopupActive() ? localSubDistractions : state.settings;
+    }
+
     function paymentControlsAllowed() {
       const role = localOnlineRole();
       if (state.online.room) return role === DOM;
@@ -3501,10 +3562,11 @@
       els.sidePopout.classList.remove("hidden");
       const canOpenSettings = sideSettingsAllowed();
       const canOpenTools = domLinkControlsAllowed();
-      const canOpenGallery = domLinkControlsAllowed();
+      const canOpenGallery = galleryControlsAllowed();
       const canOpenUtility = canOpenSettings || canOpenTools || canOpenGallery;
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
+      const canUseGallery = galleryControlsAllowed();
       const canOpenLedger = inGame || inGameSelect;
       if (state.settings.normalThroneRequest && normalThroneRequestSubAllowed() && canOpenLedger) {
         state.settings.activeSideTab = "ledger";
@@ -3594,14 +3656,14 @@
       }
       els.sideSendDomLinkBtn.disabled = !canUseDomSettings;
       els.sideDomLinkInput.disabled = !canUseDomSettings;
-      els.sideDistractionInput.disabled = !canUseDomSettings;
-      if (els.uploadDistractionBtn) els.uploadDistractionBtn.disabled = !canUseDomSettings;
-      if (els.postDistractionBtn) els.postDistractionBtn.disabled = !canUseDomSettings;
+      els.sideDistractionInput.disabled = !canUseGallery;
+      if (els.uploadDistractionBtn) els.uploadDistractionBtn.disabled = !canUseGallery;
+      if (els.postDistractionBtn) els.postDistractionBtn.disabled = !canUseGallery;
       if (els.goonerGallerySource) {
         if (document.activeElement !== els.goonerGallerySource) {
           els.goonerGallerySource.value = state.settings.goonerGallerySource || "peekstr";
         }
-        els.goonerGallerySource.disabled = !canUseDomSettings;
+        els.goonerGallerySource.disabled = !canUseGallery;
       }
       syncGoonerGalleryCategoryControls();
       if (els.clearDistractionBtn) els.clearDistractionBtn.disabled = !canUseDomSettings || !hasDistraction();
@@ -3618,37 +3680,43 @@
       els.chatInput.disabled = false;
       els.sendChatBtn.disabled = false;
       els.chatInput.placeholder = "Send a message";
+      const galleryTarget = galleryEffectSettings();
       if (document.activeElement !== els.sideDistractionInput) {
-        const selectedMode = state.settings.distractionMode || "background-both";
+        const selectedMode = galleryTarget.distractionMode || "background-both";
         els.sideDistractionInput.value = selectedMode === "overlay-sub"
-          ? (state.settings.distractionOverlayUrl || "")
-          : (state.settings.distractionBackgroundUrl || state.settings.distractionUrl || "");
+          ? (galleryTarget.distractionOverlayUrl || "")
+          : (galleryTarget.distractionBackgroundUrl || galleryTarget.distractionUrl || "");
       }
-      if (els.sideDistractionMode) els.sideDistractionMode.value = state.settings.distractionMode || "overlay-sub";
-      if (els.sideDistractionDuration) els.sideDistractionDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
+      if (els.sideDistractionMode) els.sideDistractionMode.value = galleryTarget.distractionMode || "overlay-sub";
+      if (els.sideDistractionDuration) els.sideDistractionDuration.value = normalizeDistractionDuration(galleryTarget.distractionDuration);
       [els.autoPopupPlacement, els.distractionPopupPlacement].forEach((select) => {
         if (select && document.activeElement !== select) select.value = popupPlacement();
       });
       if (els.booruLoadButtons) {
         els.booruLoadButtons.forEach((button) => {
-          button.disabled = !canUseDomSettings || localBooruGalleryLoading;
+          button.disabled = !canUseGallery || localBooruGalleryLoading;
         });
       }
       if (els.danbooruGalleryCategory && document.activeElement !== els.danbooruGalleryCategory) {
         els.danbooruGalleryCategory.value = localDanbooruCategory || "feet";
       }
-      if (els.danbooruGalleryCategory) els.danbooruGalleryCategory.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
+      if (els.danbooruGalleryCategory) els.danbooruGalleryCategory.disabled = !canUseGallery || localDanbooruGalleryLoading;
       [els.danbooruDateFilter, els.booruDateFilter, els.soloBooruDateFilter].forEach((select) => {
         if (!select) return;
-        if (document.activeElement !== select) select.value = normalizeBooruDateFilter(state.settings.booruDateFilter);
+        if (document.activeElement !== select) select.value = normalizeBooruDateFilter(galleryEffectSettings().booruDateFilter || state.settings.booruDateFilter);
       });
-      if (els.danbooruDateFilter) els.danbooruDateFilter.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
-      if (els.booruDateFilter) els.booruDateFilter.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
+      if (els.danbooruDateFilter) els.danbooruDateFilter.disabled = !canUseGallery || localDanbooruGalleryLoading;
+      if (els.booruDateFilter) els.booruDateFilter.disabled = !canUseGallery || localDanbooruGalleryLoading;
       if (els.soloBooruDateFilter) els.soloBooruDateFilter.disabled = !soloAutoPopupControlsAllowed() || autoPopupSourceKey() !== "booru" || localDanbooruGalleryLoading;
-      if (els.danbooruTagInput) els.danbooruTagInput.disabled = !canUseDomSettings || localDanbooruGalleryLoading || localDanbooruSuggesting;
-      syncDanbooruVideoToggleButtons(canUseDomSettings);
-      if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = !canUseDomSettings || localDanbooruGalleryLoading;
-      if (els.danbooruNextBtn) els.danbooruNextBtn.disabled = !canUseDomSettings || localDanbooruGalleryLoading || !localDanbooruGalleryItems.length;
+      if (els.danbooruTagInput) els.danbooruTagInput.disabled = !canUseGallery || localDanbooruGalleryLoading || localDanbooruSuggesting;
+      syncDanbooruVideoToggleButtons(canUseGallery);
+      if (els.autoPopupDomPreviewRow) els.autoPopupDomPreviewRow.classList.toggle("hidden", !domLinkControlsAllowed());
+      if (els.autoPopupDomPreviewInput) {
+        els.autoPopupDomPreviewInput.checked = Boolean(state.settings.autoPopupDomPreview);
+        els.autoPopupDomPreviewInput.disabled = !domLinkControlsAllowed();
+      }
+      if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = !canUseGallery || localDanbooruGalleryLoading;
+      if (els.danbooruNextBtn) els.danbooruNextBtn.disabled = !canUseGallery || localDanbooruGalleryLoading || !localDanbooruGalleryItems.length;
       updateRedditeryRandomButton();
       updateRedditeryAutoPopupStatus();
       renderBooruGallery();
@@ -3657,6 +3725,7 @@
       renderRedditeryGallery();
       renderDistractionGallery();
       renderDistractionBackground();
+      renderAutoPopupPreview();
     }
 
     function chatSeenKey() {
@@ -3707,7 +3776,7 @@
     function setSideTab(tab) {
       if (tab === "settings") tab = "tools";
       if (tab === "ledger" && state.screen !== "game" && state.screen !== "select") return;
-      if (tab === "gallery" && !domLinkControlsAllowed()) return;
+      if (tab === "gallery" && !galleryControlsAllowed()) return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       if (state.settings.sideOpen !== false && state.settings.activeSideTab === tab) {
         state.settings.sideOpen = false;
@@ -3723,7 +3792,7 @@
     function openSidePanel(tab = state.settings.activeSideTab || "chat") {
       if (tab === "settings") tab = "tools";
       if (tab === "ledger" && state.screen !== "game" && state.screen !== "select") return;
-      if (tab === "gallery" && !domLinkControlsAllowed()) return;
+      if (tab === "gallery" && !galleryControlsAllowed()) return;
       if (tab === "tools" && !sideSettingsAllowed() && !domLinkControlsAllowed()) return;
       if (state.settings.sideOpen !== false && state.settings.activeSideTab === tab) {
         state.settings.sideOpen = false;
@@ -3789,9 +3858,10 @@
     function addDistractionOverlay(url, duration = normalizeDistractionDuration(state.settings.distractionDuration), options = {}) {
       const normalized = normalizeDistractionSource(url);
       if (!normalized) return false;
+      const target = options.targetSettings || galleryEffectSettings();
       const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
       const placement = normalizePopupPlacement(options.placement || popupPlacement());
-      const existingOverlays = activeDistractionOverlays();
+      const existingOverlays = activeDistractionOverlays(target);
       const randomAnchor = randomPopupAnchor(placement, existingOverlays);
       const requestedDuration = options.playFull
         ? normalizeFullVideoDuration(options.fullDuration || duration)
@@ -3799,7 +3869,7 @@
           ? normalizeFullVideoDuration(options.fullDuration || 1800)
         : normalizeDistractionDuration(duration);
       const overlayUntil = Date.now() + requestedDuration * 1000;
-      state.settings.distractionOverlays = [
+      target.distractionOverlays = [
         ...existingOverlays,
         {
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -3817,25 +3887,26 @@
           jitterY: 0
         }
       ].slice(-3);
-      state.settings.distractionUrl = "";
-      state.settings.distractionOverlayUrl = normalized;
-      state.settings.distractionOverlayUntil = overlayUntil;
-      state.settings.distractionOverlayX = 50;
-      state.settings.distractionOverlayY = 52;
-      state.settings.distractionUntil = overlayUntil;
+      target.distractionUrl = "";
+      target.distractionOverlayUrl = normalized;
+      target.distractionOverlayUntil = overlayUntil;
+      target.distractionOverlayX = 50;
+      target.distractionOverlayY = 52;
+      target.distractionUntil = overlayUntil;
       return true;
     }
 
     function addAutoDistractionOverlay(url, options = {}) {
       const normalized = normalizeDistractionSource(url);
       if (!normalized) return false;
+      const target = options.targetSettings || autoPopupSettings();
       const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
-      const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
+      const duration = normalizeDistractionDuration(target.redditeryAutoPopupDuration);
       const wantsFullVideo = mediaType === "video" && options.autoFullVideo;
       const placement = normalizePopupPlacement(options.placement || popupPlacement());
       const randomAnchor = randomPopupAnchor(placement, activeDistractionOverlays());
       const overlayUntil = Date.now() + (wantsFullVideo ? normalizeFullVideoDuration(options.fullDuration || 1800) : duration) * 1000;
-      state.settings.distractionOverlays = [{
+      target.distractionOverlays = [{
         id: `auto-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url: normalized,
         mediaType,
@@ -3850,17 +3921,19 @@
         jitterX: 0,
         jitterY: 0
       }];
-      state.settings.distractionUrl = "";
-      state.settings.distractionOverlayUrl = normalized;
-      state.settings.distractionOverlayUntil = overlayUntil;
-      state.settings.distractionOverlayX = 50;
-      state.settings.distractionOverlayY = 52;
-      state.settings.distractionUntil = overlayUntil;
+      target.distractionUrl = "";
+      target.distractionOverlayUrl = normalized;
+      target.distractionOverlayUntil = overlayUntil;
+      target.distractionOverlayX = 50;
+      target.distractionOverlayY = 52;
+      target.distractionUntil = overlayUntil;
       return true;
     }
 
     function postDistraction() {
-      if (!domLinkControlsAllowed()) return;
+      if (!galleryControlsAllowed()) return;
+      const target = galleryEffectSettings();
+      const sharedPost = galleryEffectIsSharedDom();
       const url = normalizeDistractionSource(els.sideDistractionInput.value);
       if (!url) {
         els.sideDistractionStatus.textContent = "Enter a valid image/GIF link, or drop/paste a PNG, JPG, GIF, WebP, or BMP.";
@@ -3870,28 +3943,31 @@
         openDistractionChoice(url, `How should this ${mediaTypeForDistraction(url)} appear?`);
         return;
       }
-      state.settings.distractionMode = els.sideDistractionMode && els.sideDistractionMode.value || "overlay-sub";
-      state.settings.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration && els.sideDistractionDuration.value);
+      target.distractionMode = els.sideDistractionMode && els.sideDistractionMode.value || "overlay-sub";
+      target.distractionDuration = normalizeDistractionDuration(els.sideDistractionDuration && els.sideDistractionDuration.value);
       const pendingMediaType = mediaTypeForDistraction(url, pendingDistractionChoiceMedia && pendingDistractionChoiceMedia.mediaType);
-      if (state.settings.distractionMode === "overlay-sub" || pendingMediaType === "video") {
-        addDistractionOverlay(url, state.settings.distractionDuration, pendingDistractionChoiceMedia || {});
-        els.sideDistractionStatus.textContent = `Overlay posted for ${state.settings.distractionDuration} seconds.`;
+      if (target.distractionMode === "overlay-sub" || pendingMediaType === "video") {
+        addDistractionOverlay(url, target.distractionDuration, { ...(pendingDistractionChoiceMedia || {}), targetSettings: target });
+        els.sideDistractionStatus.textContent = sharedPost
+          ? `Overlay posted for ${target.distractionDuration} seconds.`
+          : `Private overlay posted for ${target.distractionDuration} seconds.`;
       } else {
-        state.settings.distractionUrl = "";
-        state.settings.distractionBackgroundUrl = url;
-        state.settings.distractionBackgroundMode = state.settings.distractionMode;
-        state.settings.distractionBackgroundMediaType = "image";
-        state.settings.distractionBackgroundMuted = true;
-        state.settings.distractionUntil = 0;
-        els.sideDistractionStatus.textContent = "Background posted.";
+        target.distractionUrl = "";
+        target.distractionBackgroundUrl = url;
+        target.distractionBackgroundMode = sharedPost ? target.distractionMode : "background-sub";
+        target.distractionBackgroundMediaType = "image";
+        target.distractionBackgroundMuted = true;
+        target.distractionUntil = 0;
+        els.sideDistractionStatus.textContent = sharedPost ? "Background posted." : "Private background posted.";
       }
-      rememberDistractionImage(url, pendingDistractionChoiceMedia || {});
+      rememberDistractionImage(url, { ...(pendingDistractionChoiceMedia || {}), targetSettings: target });
       renderSidePanel();
-      publishSettingsState();
+      renderDistractionBackground();
+      if (sharedPost) publishSettingsState();
     }
 
     function openDistractionChoice(url, message = "How should this image appear?", media = {}) {
-      if (!domLinkControlsAllowed()) return;
+      if (!galleryControlsAllowed()) return;
       const normalized = normalizeDistractionSource(url);
       if (!normalized || !els.distractionChoiceModal) return;
       const mediaType = mediaTypeForDistraction(normalized, media.mediaType);
@@ -3926,7 +4002,7 @@
     }
 
     function openVideoDistractionChoice(url, message = "How should this video play?", media = {}) {
-      if (!domLinkControlsAllowed()) return;
+      if (!galleryControlsAllowed()) return;
       const normalized = normalizeDistractionSource(url);
       if (!normalized || !els.videoDistractionChoiceModal) return;
       pendingDistractionChoiceUrl = normalized;
@@ -4034,7 +4110,7 @@
       if (els.distractionChoiceDuration) {
         const duration = normalizeDistractionDuration(els.distractionChoiceDuration.value);
         if (els.sideDistractionDuration) els.sideDistractionDuration.value = duration;
-        state.settings.distractionDuration = duration;
+        galleryEffectSettings().distractionDuration = duration;
       }
       postDistraction();
       closeDistractionChoice();
@@ -4046,6 +4122,8 @@
         closeVideoDistractionChoice();
         return;
       }
+      const target = galleryEffectSettings();
+      const sharedPost = galleryEffectIsSharedDom();
       const media = {
         ...(pendingDistractionChoiceMedia || {}),
         mediaType: "video"
@@ -4058,30 +4136,34 @@
         : normalizeDistractionDuration(els.videoDistractionChoiceDuration && els.videoDistractionChoiceDuration.value);
       const loopCount = normalizeVideoLoopCount(els.videoDistractionChoiceLoopCount && els.videoDistractionChoiceLoopCount.value);
       if (!isFullVideo && !isWallpaper) {
-        state.settings.distractionDuration = duration;
+        target.distractionDuration = duration;
         if (els.sideDistractionDuration) els.sideDistractionDuration.value = duration;
       }
       if (isWallpaper) {
-        state.settings.distractionUrl = "";
-        state.settings.distractionBackgroundUrl = url;
-        state.settings.distractionBackgroundMode = mode;
-        state.settings.distractionBackgroundMediaType = "video";
-        state.settings.distractionBackgroundMuted = true;
-        state.settings.distractionUntil = 0;
+        target.distractionUrl = "";
+        target.distractionBackgroundUrl = url;
+        target.distractionBackgroundMode = sharedPost ? mode : "background-sub";
+        target.distractionBackgroundMediaType = "video";
+        target.distractionBackgroundMuted = true;
+        target.distractionUntil = 0;
         if (els.sideDistractionInput) els.sideDistractionInput.value = url;
         if (els.sideDistractionStatus) {
-          els.sideDistractionStatus.textContent = mode === "background-sub"
-            ? "Muted experimental video wallpaper posted for the sub."
-            : "Muted experimental video wallpaper posted for both players.";
+          els.sideDistractionStatus.textContent = sharedPost
+            ? (mode === "background-sub"
+              ? "Muted experimental video wallpaper posted for the sub."
+              : "Muted experimental video wallpaper posted for both players.")
+            : "Private muted video wallpaper posted.";
         }
-        rememberDistractionImage(url, media);
+        rememberDistractionImage(url, { ...media, targetSettings: target });
         renderSidePanel();
-        publishSettingsState();
+        renderDistractionBackground();
+        if (sharedPost) publishSettingsState();
         closeVideoDistractionChoice();
         return;
       }
       if (addDistractionOverlay(url, duration, {
         ...media,
+        targetSettings: target,
         loop: !isFullVideo && !isLoopCount,
         loopCount: isLoopCount ? loopCount : 0,
         playFull: isFullVideo,
@@ -4095,9 +4177,10 @@
               ? `Video posted for ${loopCount} loop${loopCount === 1 ? "" : "s"}.`
             : `Video loop posted for ${duration} seconds.`;
         }
-        rememberDistractionImage(url, media);
+        rememberDistractionImage(url, { ...media, targetSettings: target });
         renderSidePanel();
-        publishSettingsState();
+        renderDistractionBackground();
+        if (sharedPost) publishSettingsState();
       }
       closeVideoDistractionChoice();
     }
@@ -4216,7 +4299,8 @@
     }
 
     async function useLocalDistractionFile(file) {
-      if (!domLinkControlsAllowed() || !file) return;
+      if (!galleryControlsAllowed() || !file) return;
+      const target = galleryEffectSettings();
       els.sideDistractionStatus.textContent = file.size > 2_000_000
         ? "Compressing image for upload..."
         : "Loading local image...";
@@ -4226,13 +4310,15 @@
         try {
           const hostedUrl = await uploadDistractionImageToHost(result, file);
           els.sideDistractionInput.value = hostedUrl;
-          rememberDistractionImage(hostedUrl);
+          rememberDistractionImage(hostedUrl, { targetSettings: target });
           renderDistractionGallery();
           openDistractionChoice(hostedUrl, "Image uploaded. How should it appear?");
-          els.sideDistractionStatus.textContent = "Image uploaded and saved to the gallery.";
+          els.sideDistractionStatus.textContent = subGalleryPrivateMode()
+            ? "Image uploaded and saved to your private gallery."
+            : "Image uploaded and saved to the gallery.";
         } catch (uploadError) {
           els.sideDistractionInput.value = result.dataUrl;
-          rememberDistractionImage(result.dataUrl);
+          rememberDistractionImage(result.dataUrl, { targetSettings: target });
           renderDistractionGallery();
           openDistractionChoice(result.dataUrl, "Image loaded locally. How should it appear?");
           const uploadMessage = String(uploadError && uploadError.message || "Catbox upload failed.");
@@ -4351,7 +4437,7 @@
     }
 
     function popupPlacement() {
-      return normalizePopupPlacement(state.settings.distractionPopupPlacement);
+      return normalizePopupPlacement(galleryEffectSettings().distractionPopupPlacement || state.settings.distractionPopupPlacement);
     }
 
     function normalizeBooruDateFilter(value) {
@@ -4374,23 +4460,31 @@
     }
 
     function distractionGalleryItems() {
-      return Array.isArray(state.settings.distractionGallery)
-        ? state.settings.distractionGallery.filter((item) => item && normalizeDistractionSource(item.url)).slice(-6).reverse()
+      const sharedItems = Array.isArray(state.settings.distractionGallery)
+        ? state.settings.distractionGallery.filter((item) => item && normalizeDistractionSource(item.url))
         : [];
+      const localItems = subGalleryPrivateMode() && Array.isArray(localSubDistractions.distractionGallery)
+        ? localSubDistractions.distractionGallery.filter((item) => item && normalizeDistractionSource(item.url))
+        : [];
+      return [...sharedItems, ...localItems].slice(-10).reverse();
     }
 
     function savedDistractionItemById(id) {
-      const items = Array.isArray(state.settings.distractionGallery) ? state.settings.distractionGallery : [];
+      const items = [
+        ...(Array.isArray(state.settings.distractionGallery) ? state.settings.distractionGallery : []),
+        ...(subGalleryPrivateMode() && Array.isArray(localSubDistractions.distractionGallery) ? localSubDistractions.distractionGallery : [])
+      ];
       return items.find((item) => item && item.id === id && normalizeDistractionSource(item.url));
     }
 
     function rememberDistractionImage(url, media = {}) {
       const normalized = normalizeDistractionSource(url);
       if (!normalized) return;
+      const target = media.targetSettings || galleryEffectSettings();
       const isInlineUpload = normalized.startsWith("data:");
       const mediaType = mediaTypeForDistraction(normalized, media.mediaType);
       const previewUrl = normalizeDistractionSource(media.previewUrl || "");
-      const existing = Array.isArray(state.settings.distractionGallery) ? state.settings.distractionGallery : [];
+      const existing = Array.isArray(target.distractionGallery) ? target.distractionGallery : [];
       const inlineKept = existing
         .filter((item) => item && String(item.url || "").startsWith("data:") && item.url !== normalized)
         .slice(-2);
@@ -4406,7 +4500,7 @@
           savedAt: Date.now()
         }
       ];
-      state.settings.distractionGallery = next.slice(-6);
+      target.distractionGallery = next.slice(-6);
     }
 
     function renderDistractionGallery() {
@@ -4425,7 +4519,7 @@
         const mediaType = mediaTypeForDistraction(item.url, item.mediaType);
         const thumbUrl = normalizeDistractionSource(item.previewUrl || item.url);
         return `
-        <button type="button" class="distraction-thumb ${selectedUrl && selectedUrl === normalizeDistractionSource(item.url) ? "selected" : ""}" data-distraction-gallery-id="${escapeHtml(item.id || "")}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Select ${mediaType}">
+        <button type="button" class="distraction-thumb ${selectedUrl && selectedUrl === normalizeDistractionSource(item.url) ? "selected" : ""}" data-distraction-gallery-id="${escapeHtml(item.id || "")}" ${galleryControlsAllowed() ? "" : "disabled"} title="Select ${mediaType}">
           <img src="${escapeHtml(thumbUrl)}" alt="Saved ${label} ${index + 1}" loading="lazy">
           ${mediaType === "video" ? "<span class=\"media-pill\">Video</span>" : ""}
         </button>
@@ -4441,6 +4535,73 @@
       }
     }
 
+    function renderAutoPopupPreview() {
+      if (!els.autoPopupPreview) return;
+      const canShow = domLinkControlsAllowed()
+        && Boolean(state.settings.autoPopupDomPreview)
+        && localAutoPopupPreview
+        && normalizeDistractionSource(localAutoPopupPreview.url);
+      els.autoPopupPreview.classList.toggle("hidden", !canShow);
+      if (!canShow) {
+        els.autoPopupPreview.innerHTML = "";
+        return;
+      }
+      const url = normalizeDistractionSource(localAutoPopupPreview.url);
+      const mediaType = mediaTypeForDistraction(url, localAutoPopupPreview.mediaType);
+      const thumbUrl = normalizeDistractionSource(localAutoPopupPreview.previewUrl || url);
+      els.autoPopupPreview.innerHTML = mediaType === "video"
+        ? `<video src="${escapeHtml(url)}" muted autoplay loop playsinline poster="${escapeHtml(thumbUrl)}"></video><span>Auto</span>`
+        : `<img src="${escapeHtml(thumbUrl)}" alt=""><span>Auto</span>`;
+    }
+
+    function showAutoPopupPreview(item, media = {}) {
+      if (!domLinkControlsAllowed() || !state.settings.autoPopupDomPreview) return;
+      const url = normalizeDistractionSource(item && item.url);
+      if (!url) return;
+      localAutoPopupPreview = {
+        url,
+        mediaType: mediaTypeForDistraction(url, media.mediaType || item.mediaType),
+        previewUrl: normalizeDistractionSource(item.previewUrl || media.previewUrl || ""),
+        savedAt: Date.now()
+      };
+      renderAutoPopupPreview();
+    }
+
+    function openAutoPopupPreviewModal() {
+      if (!localAutoPopupPreview || !normalizeDistractionSource(localAutoPopupPreview.url) || !els.autoPopupPreviewModal) return;
+      const url = normalizeDistractionSource(localAutoPopupPreview.url);
+      const mediaType = mediaTypeForDistraction(url, localAutoPopupPreview.mediaType);
+      const previewUrl = normalizeDistractionSource(localAutoPopupPreview.previewUrl || "");
+      if (els.autoPopupPreviewModalMedia) {
+        els.autoPopupPreviewModalMedia.innerHTML = mediaType === "video"
+          ? `<video src="${escapeHtml(url)}" muted autoplay loop controls playsinline poster="${escapeHtml(previewUrl)}"></video>`
+          : `<img src="${escapeHtml(url)}" alt="">`;
+      }
+      if (els.autoPopupPreviewModalText) {
+        els.autoPopupPreviewModalText.textContent = "This preview is only on your screen. Clearing it will not remove the sub popup.";
+      }
+      els.autoPopupPreviewModal.classList.remove("hidden");
+    }
+
+    function closeAutoPopupPreviewModal() {
+      if (els.autoPopupPreviewModalMedia) els.autoPopupPreviewModalMedia.innerHTML = "";
+      if (els.autoPopupPreviewModal) els.autoPopupPreviewModal.classList.add("hidden");
+    }
+
+    function clearAutoPopupPreview() {
+      localAutoPopupPreview = null;
+      closeAutoPopupPreviewModal();
+      renderAutoPopupPreview();
+    }
+
+    function saveAutoPopupPreview() {
+      if (!localAutoPopupPreview || !normalizeDistractionSource(localAutoPopupPreview.url)) return;
+      rememberDistractionImage(localAutoPopupPreview.url, { ...localAutoPopupPreview, targetSettings: state.settings });
+      renderDistractionGallery();
+      closeAutoPopupPreviewModal();
+      if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto popup preview saved.";
+    }
+
     function renderBooruGallery() {
       if (!els.booruGallery) return;
       els.booruGallery.classList.toggle("hidden", !localBooruGalleryItems.length);
@@ -4449,7 +4610,7 @@
         const url = normalizeDistractionSource(item.url);
         const previewUrl = normalizeDistractionSource(item.previewUrl || item.url);
         return `
-          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-booru-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="Score ${Number(item.score || 0)}">
+          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-booru-gallery-index="${index}" ${galleryControlsAllowed() ? "" : "disabled"} title="Score ${Number(item.score || 0)}">
             <img src="${escapeHtml(previewUrl)}" alt="Booru result ${index + 1}" loading="lazy">
           </button>
         `;
@@ -4473,6 +4634,7 @@
     }
 
     function syncDanbooruVideoToggleButtons(canUseDomSettings = domLinkControlsAllowed()) {
+      const settings = autoPopupSettings();
       const pairs = [
         [els.danbooruIncludeVideos, canUseDomSettings],
         [els.autoDanbooruIncludeVideos, canUseDomSettings],
@@ -4500,8 +4662,8 @@
       ].forEach(([button, canUse]) => {
         if (!button) return;
         button.disabled = !canUse || localDanbooruGalleryLoading || !localDanbooruIncludeVideos;
-        button.classList.toggle("active", Boolean(state.settings.booruAutoPopupFullVideos));
-        button.setAttribute("aria-pressed", state.settings.booruAutoPopupFullVideos ? "true" : "false");
+        button.classList.toggle("active", Boolean(settings.booruAutoPopupFullVideos));
+        button.setAttribute("aria-pressed", settings.booruAutoPopupFullVideos ? "true" : "false");
       });
     }
 
@@ -4522,9 +4684,21 @@
     }
 
     function setBooruAutoPopupFullVideos(enabled) {
+      if (subGalleryPrivateMode() && !state.settings.redditeryAutoPopup) {
+        localSubDistractions.booruAutoPopupFullVideos = Boolean(enabled) && localDanbooruIncludeVideos;
+        syncDanbooruVideoToggleButtons();
+        updateRedditeryAutoPopupStatus();
+        return;
+      }
       updateSettings({ booruAutoPopupFullVideos: Boolean(enabled) && localDanbooruIncludeVideos });
       syncDanbooruVideoToggleButtons();
       updateRedditeryAutoPopupStatus();
+    }
+
+    function setAutoPopupDomPreview(enabled) {
+      if (!domLinkControlsAllowed()) return;
+      updateSettings({ autoPopupDomPreview: Boolean(enabled) });
+      renderAutoPopupPreview();
     }
 
     function setDanbooruUnmuteVideos(enabled) {
@@ -4540,8 +4714,10 @@
 
     function setBooruDateFilter(value) {
       const next = normalizeBooruDateFilter(value);
-      if (next === normalizeBooruDateFilter(state.settings.booruDateFilter)) return;
-      updateSettings({ booruDateFilter: next });
+      const target = subGalleryPrivateMode() ? localSubDistractions : state.settings;
+      if (next === normalizeBooruDateFilter(target.booruDateFilter)) return;
+      if (target === state.settings) updateSettings({ booruDateFilter: next });
+      else target.booruDateFilter = next;
       resetAutoPopupFeedCursors();
       localDanbooruPage = 1;
       localDanbooruGalleryItems = [];
@@ -4550,11 +4726,11 @@
       if (els.danbooruGalleryStatus) {
         els.danbooruGalleryStatus.textContent = `Booru upload date set to ${booruDateFilterLabel(next)}.`;
       }
-      if (domLinkControlsAllowed() && !localDanbooruGalleryLoading) {
+      if (galleryControlsAllowed() && !localDanbooruGalleryLoading) {
         const tag = String((document.activeElement === els.danbooruTagInput ? els.danbooruTagInput.value : "") || (els.danbooruTagInput && els.danbooruTagInput.value) || localDanbooruCustomTag || "").trim();
         loadDanbooruGallery({ tag, next: false });
       }
-      if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+      if (state.settings.redditeryAutoPopup || localSubAutoPopupActive()) scheduleNextRedditeryAutoPopup();
     }
 
     function renderDanbooruGallery() {
@@ -4566,7 +4742,7 @@
         const previewUrl = normalizeDistractionSource(item.previewUrl || item.url);
         const mediaType = mediaTypeForDistraction(url, item.mediaType);
         return `
-          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-danbooru-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="${escapeHtml(item.tags || `Danbooru score ${Number(item.score || 0)}`)}">
+          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-danbooru-gallery-index="${index}" ${galleryControlsAllowed() ? "" : "disabled"} title="${escapeHtml(item.tags || `Danbooru score ${Number(item.score || 0)}`)}">
             <img src="${escapeHtml(previewUrl)}" alt="Booru result ${index + 1}" loading="lazy">
             ${mediaType === "video" ? "<span class=\"media-pill\">Video</span>" : ""}
           </button>
@@ -4621,7 +4797,7 @@
         const previewUrl = normalizeDistractionSource(item.previewUrl || item.url);
         const sourceLabel = goonerGallerySourceLabel(item.source);
         return `
-          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-redditery-gallery-index="${index}" ${domLinkControlsAllowed() ? "" : "disabled"} title="${escapeHtml(item.title || `${sourceLabel} image`)}">
+          <button type="button" class="distraction-thumb booru-thumb ${selectedUrl && selectedUrl === url ? "selected" : ""}" data-redditery-gallery-index="${index}" ${galleryControlsAllowed() ? "" : "disabled"} title="${escapeHtml(item.title || `${sourceLabel} image`)}">
             <img src="${escapeHtml(previewUrl)}" alt="${escapeHtml(sourceLabel)} result ${index + 1}" loading="lazy">
           </button>
         `;
@@ -4634,11 +4810,11 @@
 
     const GOONER_REDDIT_PAGES = [
       { subreddit: "gooninghentai", label: "Gooning Hentai", category: "captions" },
-      { subreddit: "jerkbudshentai", label: "Jerkbuds Hentai", category: "captions" },
-      { subreddit: "hentailimitless", label: "Hentai Limitless", category: "captions" },
-      { subreddit: "cringegoontards", label: "Cringe Goon Tards", category: "captions" },
-      { subreddit: "hentaicensore", label: "Hentai Censore", category: "captions" },
-      { subreddit: "hentaiigooning", label: "Hentaii Gooning", category: "captions" },
+      { subreddit: "jerkbudshentai", label: "Jerkbuds Hentai", category: "goonerbait" },
+      { subreddit: "hentailimitless", label: "Hentai Limitless", category: "goonerbait" },
+      { subreddit: "cringegoontards", label: "Cringe Goon Tards", category: "goonerbait" },
+      { subreddit: "hentaiigooning", label: "Hentaii Gooning", category: "goonerbait" },
+      { subreddit: "hentaicensore", label: "Hentai Censore", category: "censor" },
       { subreddit: "femboyhentai", label: "Femboy Hentai", category: "femboys" },
       { subreddit: "furrygoonpit", label: "Furry Goon Pit", category: "furry" },
       { subreddit: "bootyhentai", label: "Booty Hentai", category: "butt" },
@@ -4659,6 +4835,8 @@
 
     const GOONER_GALLERY_CATEGORIES = {
       captions: { label: "Captions", subreddits: redditSubredditsForCategory("captions") },
+      goonerbait: { label: "Gooner Bait", subreddits: redditSubredditsForCategory("goonerbait") },
+      censor: { label: "Censor", subreddits: redditSubredditsForCategory("censor") },
       femboys: { label: "Femboys", subreddits: redditSubredditsForCategory("femboys") },
       furry: { label: "Furry", subreddits: redditSubredditsForCategory("furry") },
       butt: { label: "Butt", subreddits: redditSubredditsForCategory("butt") },
@@ -4694,7 +4872,8 @@
 
     function redditSelectionForScope(scope = "gallery") {
       const isAuto = scope === "auto";
-      const stored = normalizeRedditPageSelection(isAuto ? state.settings.redditeryAutoPopupSubreddits : state.settings.goonerGallerySubreddits);
+      const autoSettings = autoPopupSettings();
+      const stored = normalizeRedditPageSelection(isAuto ? autoSettings.redditeryAutoPopupSubreddits : state.settings.goonerGallerySubreddits);
       if (stored.length) return stored;
       return categorySubreddits(isAuto ? autoPopupRedditCategoryKey() : goonerGalleryCategoryKey());
     }
@@ -4712,11 +4891,13 @@
     }
 
     function autoPopupSourceKey() {
-      return state.settings.redditeryAutoPopupSource === "booru" ? "booru" : "reddit";
+      const settings = autoPopupSettings();
+      return settings.redditeryAutoPopupSource === "booru" ? "booru" : "reddit";
     }
 
     function autoPopupRedditCategoryKey() {
-      const key = String(state.settings.redditeryAutoPopupCategory || state.settings.goonerGalleryCategory || "captions").toLowerCase();
+      const settings = autoPopupSettings();
+      const key = String(settings.redditeryAutoPopupCategory || state.settings.goonerGalleryCategory || "captions").toLowerCase();
       return GOONER_GALLERY_CATEGORIES[key] ? key : "captions";
     }
 
@@ -4798,7 +4979,7 @@
       const selected = new Set(redditSelectionForScope(isAuto ? "auto" : "gallery"));
       const disabled = isAuto
         ? (!redditeryAutoPopupControlAllowed() || autoPopupSourceKey() !== "reddit")
-        : !domLinkControlsAllowed();
+        : !galleryControlsAllowed();
       const categoryKey = isAuto ? autoPopupRedditCategoryKey() : goonerGalleryCategoryKey();
       container.innerHTML = GOONER_REDDIT_PAGES.map((page) => {
         const checked = selected.has(page.subreddit) ? " checked" : "";
@@ -4833,6 +5014,12 @@
         .map((item) => item.value);
       if (scope === "auto") {
         resetAutoPopupFeedCursors();
+        if (subGalleryPrivateMode() && container === els.redditeryAutoPopupSourcePicker && !state.settings.redditeryAutoPopup) {
+          localSubDistractions.redditeryAutoPopupSubreddits = normalizeRedditPageSelection(selected);
+          if (localSubDistractions.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+          else updateRedditeryAutoPopupStatus();
+          return;
+        }
         updateSettings({ redditeryAutoPopupSubreddits: normalizeRedditPageSelection(selected) });
         if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
         else updateRedditeryAutoPopupStatus();
@@ -4853,7 +5040,7 @@
         if (!select || document.activeElement === select) return;
         select.value = goonerGalleryCategoryKey();
       });
-      if (els.goonerGalleryCategory) els.goonerGalleryCategory.disabled = !domLinkControlsAllowed();
+      if (els.goonerGalleryCategory) els.goonerGalleryCategory.disabled = !galleryControlsAllowed();
       if (els.soloGoonerGalleryCategory) {
         const soloAllowed = (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)) || ["solitaire", "memoryMatch"].includes(state.screen);
         els.soloGoonerGalleryCategory.disabled = !soloAllowed;
@@ -4865,6 +5052,7 @@
       const source = autoPopupSourceKey();
       const category = autoPopupRedditCategoryKey();
       const domAllowed = domLinkControlsAllowed();
+      const sideAutoAllowed = galleryControlsAllowed() && !(subGalleryPrivateMode() && state.settings.redditeryAutoPopup);
       const soloAllowed = soloAutoPopupControlsAllowed();
       [els.redditeryAutoPopupSource, els.soloRedditeryAutoPopupSource].forEach((select) => {
         if (!select || document.activeElement === select) return;
@@ -4874,13 +5062,13 @@
         if (!select || document.activeElement === select) return;
         select.value = category;
       });
-      if (els.redditeryAutoPopupSource) els.redditeryAutoPopupSource.disabled = !domAllowed;
-      if (els.redditeryAutoPopupCategory) els.redditeryAutoPopupCategory.disabled = !domAllowed || source !== "reddit";
+      if (els.redditeryAutoPopupSource) els.redditeryAutoPopupSource.disabled = !sideAutoAllowed;
+      if (els.redditeryAutoPopupCategory) els.redditeryAutoPopupCategory.disabled = !sideAutoAllowed || source !== "reddit";
       if (els.redditeryAutoPopupCategoryRow) els.redditeryAutoPopupCategoryRow.classList.toggle("hidden", source !== "reddit");
       if (els.redditeryAutoPopupSourcePicker) els.redditeryAutoPopupSourcePicker.classList.toggle("hidden", source !== "reddit");
       if (els.booruAutoPopupTagRow) els.booruAutoPopupTagRow.classList.toggle("hidden", source !== "booru");
       if (els.autoDanbooruTagInput) {
-        els.autoDanbooruTagInput.disabled = !domAllowed || source !== "booru";
+        els.autoDanbooruTagInput.disabled = !sideAutoAllowed || source !== "booru";
         if (document.activeElement !== els.autoDanbooruTagInput) {
           els.autoDanbooruTagInput.value = localDanbooruCustomTag || "";
         }
@@ -4926,7 +5114,7 @@
     }
 
     async function loadBooruGallery(source = "gelbooru") {
-      if (!domLinkControlsAllowed() || localBooruGalleryLoading) return;
+      if (!galleryControlsAllowed() || localBooruGalleryLoading) return;
       const safeSource = source === "hgoon" ? "hgoon" : "gelbooru";
       localBooruGalleryLoading = true;
       if (els.booruLoadButtons) els.booruLoadButtons.forEach((button) => button.disabled = true);
@@ -4948,7 +5136,7 @@
         localBooruGalleryLoading = false;
         if (els.booruLoadButtons) {
           els.booruLoadButtons.forEach((button) => {
-            button.disabled = !domLinkControlsAllowed();
+            button.disabled = !galleryControlsAllowed();
           });
         }
         renderBooruGallery();
@@ -4956,7 +5144,7 @@
     }
 
     async function loadDanbooruGallery(options = {}) {
-      if (!domLinkControlsAllowed() || localDanbooruGalleryLoading) return;
+      if (!galleryControlsAllowed() || localDanbooruGalleryLoading) return;
       const selectedCategory = String(els.danbooruGalleryCategory && els.danbooruGalleryCategory.value || localDanbooruCategory || "feet").toLowerCase();
       const customTag = String(options.tag || (options.next ? localDanbooruCustomTag : "") || "").trim();
       const nextPage = options.next ? localDanbooruPage + 1 : 1;
@@ -4980,7 +5168,7 @@
         });
         if (customTag) params.set("tag", customTag);
         if (localDanbooruIncludeVideos) params.set("includeVideos", "true");
-        params.set("dateFilter", normalizeBooruDateFilter(state.settings.booruDateFilter));
+        params.set("dateFilter", normalizeBooruDateFilter(galleryEffectSettings().booruDateFilter || state.settings.booruDateFilter));
         const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Booru gallery failed.");
@@ -4997,7 +5185,7 @@
         if (els.danbooruGalleryStatus) els.danbooruGalleryStatus.textContent = String(error && error.message || "Booru gallery failed.");
       } finally {
         localDanbooruGalleryLoading = false;
-        const canUse = domLinkControlsAllowed();
+        const canUse = galleryControlsAllowed();
         if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = !canUse;
         if (els.danbooruNextBtn) els.danbooruNextBtn.disabled = !canUse;
         renderDanbooruGallery();
@@ -5006,7 +5194,7 @@
 
     async function loadDanbooruSuggestions(query) {
       const normalized = String(query || "").trim();
-      const canSuggest = domLinkControlsAllowed() || soloAutoPopupControlsAllowed();
+      const canSuggest = galleryControlsAllowed() || soloAutoPopupControlsAllowed();
       if (!canSuggest || normalized.length < 2) {
         localDanbooruSuggestions = [];
         renderDanbooruSuggestions();
@@ -5061,7 +5249,7 @@
     }
 
     function selectDanbooruGalleryImage(index) {
-      if (!domLinkControlsAllowed()) return;
+      if (!galleryControlsAllowed()) return;
       const item = localDanbooruGalleryItems[Number(index)];
       const url = item && normalizeDistractionSource(item.url);
       if (!url) return;
@@ -5071,7 +5259,7 @@
         muted: !localDanbooruUnmuteVideos
       };
       els.sideDistractionInput.value = url;
-      rememberDistractionImage(url, media);
+      rememberDistractionImage(url, { ...media, targetSettings: galleryEffectSettings() });
       if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = `Booru ${media.mediaType} selected and saved.`;
       openDistractionChoice(url, `How should this Booru ${media.mediaType} appear?`, media);
       renderDanbooruGallery();
@@ -5079,7 +5267,7 @@
     }
 
     function selectBooruGalleryImage(index) {
-      if (!domLinkControlsAllowed()) return;
+      if (!galleryControlsAllowed()) return;
       const item = localBooruGalleryItems[Number(index)];
       const url = item && normalizeDistractionSource(item.url);
       if (!url) return;
@@ -5089,7 +5277,7 @@
     }
 
     async function loadRandomRedditeryImage() {
-      if (!domLinkControlsAllowed() || localRedditeryGalleryLoading || Date.now() < localRedditeryCooldownUntil) return;
+      if (!galleryControlsAllowed() || localRedditeryGalleryLoading || Date.now() < localRedditeryCooldownUntil) return;
       localRedditeryGalleryLoading = true;
       updateRedditeryRandomButton();
       els.sideDistractionStatus.textContent = `Loading recent ${goonerGallerySourceLabel()} images...`;
@@ -5168,7 +5356,7 @@
     }
 
     function resetGoonerGalleryToTop() {
-      if (!domLinkControlsAllowed() || localRedditeryGalleryLoading) return;
+      if (!galleryControlsAllowed() || localRedditeryGalleryLoading) return;
       resetGoonerFeedCursors();
       localRedditeryCooldownUntil = 0;
       if (localRedditeryCooldownTimer) {
@@ -5220,7 +5408,7 @@
         : autoTag || String(els.danbooruTagInput && els.danbooruTagInput.value || "").trim();
       const tag = inputTag || localDanbooruCustomTag || "";
       const category = String(localDanbooruCategory || (els.danbooruGalleryCategory && els.danbooruGalleryCategory.value) || "feet").toLowerCase();
-      const dateFilter = normalizeBooruDateFilter(state.settings.booruDateFilter);
+      const dateFilter = normalizeBooruDateFilter(autoPopupSettings().booruDateFilter || state.settings.booruDateFilter);
       const videos = localDanbooruIncludeVideos ? "videos" : "images";
       const key = `${tag ? `tag:${tag}` : `category:${category}`}|date:${dateFilter}|${videos}`;
       return { tag, category, dateFilter, key };
@@ -5311,34 +5499,43 @@
         const seconds = remainingSeconds % 60;
         els.redditeryRandomBtn.textContent = minutes > 0 ? `Wait ${minutes}:${String(seconds).padStart(2, "0")}` : `Wait ${seconds}s`;
         els.redditeryRandomBtn.disabled = true;
-        if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !domLinkControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
+        if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !galleryControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
         return;
       }
       els.redditeryRandomBtn.textContent = localRedditeryReachedEnd ? "No More Found" : (localRedditeryPage >= 0 ? "Load Older" : "Random Recent");
-      els.redditeryRandomBtn.disabled = !domLinkControlsAllowed() || localRedditeryReachedEnd;
-      if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !domLinkControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
+      els.redditeryRandomBtn.disabled = !galleryControlsAllowed() || localRedditeryReachedEnd;
+      if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !galleryControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
     }
 
     function scheduleNextRedditeryAutoPopup() {
-      localRedditeryAutoPopupNextAt = Date.now() + normalizeAutoPopupInterval(state.settings.redditeryAutoPopupInterval) * 1000;
+      localRedditeryAutoPopupNextAt = Date.now() + normalizeAutoPopupInterval(autoPopupSettings().redditeryAutoPopupInterval) * 1000;
       updateRedditeryAutoPopupStatus();
     }
 
     function activeAutoFullVideoOverlay() {
-      return activeDistractionOverlays().find((overlay) => overlay && overlay.autoFullVideo && (overlay.mediaType === "video" || isVideoDistractionSource(overlay.url))) || null;
+      const source = localSubAutoPopupActive() && !activeDistractionOverlays(state.settings).length ? localSubDistractions : state.settings;
+      return activeDistractionOverlays(source).find((overlay) => overlay && overlay.autoFullVideo && (overlay.mediaType === "video" || isVideoDistractionSource(overlay.url))) || null;
     }
 
     function redditeryAutoPopupControlAllowed() {
       const soloScreens = ["solitaire", "memoryMatch"];
       const soloMenuOpen = state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame);
-      return domLinkControlsAllowed() || soloMenuOpen || soloScreens.includes(state.screen);
+      return domLinkControlsAllowed() || subGalleryPrivateMode() || soloMenuOpen || soloScreens.includes(state.screen);
     }
 
     function redditeryAutoPopupAllowed() {
-      return domLinkControlsAllowed() || ["solitaire", "memoryMatch"].includes(state.screen);
+      return domLinkControlsAllowed() || subGalleryPrivateMode() || ["solitaire", "memoryMatch"].includes(state.screen);
     }
 
     function setRedditeryAutoPopupEnabled(enabled) {
+      if (subGalleryPrivateMode() && !state.settings.redditeryAutoPopup) {
+        localSubDistractions.redditeryAutoPopup = Boolean(enabled);
+        if (enabled) scheduleNextRedditeryAutoPopup();
+        else localRedditeryAutoPopupNextAt = 0;
+        updateRedditeryAutoPopupStatus();
+        renderSidePanel();
+        return;
+      }
       updateSettings({ redditeryAutoPopup: Boolean(enabled) });
       if (enabled) scheduleNextRedditeryAutoPopup();
       else localRedditeryAutoPopupNextAt = 0;
@@ -5346,12 +5543,13 @@
     }
 
     function updateRedditeryAutoPopupStatus() {
-      const enabled = Boolean(state.settings.redditeryAutoPopup);
+      const enabled = Boolean(state.settings.redditeryAutoPopup || localSubAutoPopupActive());
       const allowed = redditeryAutoPopupControlAllowed();
+      const settings = autoPopupSettings();
       syncGoonerGalleryCategoryControls();
       syncAutoPopupSourceControls();
       [
-        [els.redditeryAutoPopupToggle, domLinkControlsAllowed()],
+        [els.redditeryAutoPopupToggle, galleryControlsAllowed() && !(subGalleryPrivateMode() && state.settings.redditeryAutoPopup)],
         [els.soloRedditeryAutoPopupToggle, (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)) || ["solitaire", "memoryMatch"].includes(state.screen)]
       ].forEach(([toggle, canUse]) => {
         if (!toggle) return;
@@ -5360,15 +5558,15 @@
         toggle.setAttribute("aria-pressed", enabled ? "true" : "false");
       });
       [els.redditeryAutoPopupDuration, els.soloRedditeryAutoPopupDuration].forEach((input) => {
-        if (input && document.activeElement !== input) input.value = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
+        if (input && document.activeElement !== input) input.value = normalizeDistractionDuration(settings.redditeryAutoPopupDuration);
       });
       [els.redditeryAutoPopupInterval, els.soloRedditeryAutoPopupInterval].forEach((input) => {
-        if (input && document.activeElement !== input) input.value = normalizeAutoPopupInterval(state.settings.redditeryAutoPopupInterval);
+        if (input && document.activeElement !== input) input.value = normalizeAutoPopupInterval(settings.redditeryAutoPopupInterval);
       });
       const statusEls = [els.redditeryAutoPopupStatus, els.soloRedditeryAutoPopupStatus].filter(Boolean);
       if (!statusEls.length) return;
       let statusText = "";
-      if (!state.settings.redditeryAutoPopup) {
+      if (!enabled) {
         statusText = ["solitaire", "memoryMatch"].includes(state.screen)
           ? "Off. When enabled, a random gallery image pops up on the selected timer."
           : state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)
@@ -5390,7 +5588,7 @@
       const seconds = Math.max(0, Math.ceil((localRedditeryAutoPopupNextAt - Date.now()) / 1000));
       const minutes = Math.floor(seconds / 60);
       const remainder = seconds % 60;
-      const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
+      const duration = normalizeDistractionDuration(settings.redditeryAutoPopupDuration);
       if (blockingVideo && seconds <= 0) {
         const remaining = Math.max(0, Math.ceil((Number(blockingVideo.until || 0) - Date.now()) / 1000));
         statusEls.forEach((status) => {
@@ -5401,7 +5599,7 @@
       const sourceLabel = autoPopupSourceKey() === "booru"
         ? `Booru search, ${booruDateFilterLabel()}`
         : `${redditSelectionLabel("auto")} Reddit`;
-      const videoNote = autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && state.settings.booruAutoPopupFullVideos
+      const videoNote = autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && settings.booruAutoPopupFullVideos
         ? " Videos can play full length."
         : "";
       statusText = `On. ${sourceLabel}. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}. Shows for ${duration}s.${videoNote}${blockingVideo ? " Current video keeps playing if the timer reaches 0." : ""}`;
@@ -5409,7 +5607,7 @@
     }
 
     async function resolveRedditeryAutoPopup() {
-      if (!state.settings.redditeryAutoPopup || !redditeryAutoPopupAllowed()) {
+      if ((!state.settings.redditeryAutoPopup && !localSubAutoPopupActive()) || !redditeryAutoPopupAllowed()) {
         localRedditeryAutoPopupNextAt = 0;
         localRedditeryAutoPopupLoading = false;
         updateRedditeryAutoPopupStatus();
@@ -5427,15 +5625,18 @@
       updateRedditeryAutoPopupStatus();
       let postedBlockingFullVideo = false;
       try {
+        const settings = autoPopupSettings();
         const item = await takeNextAutoPopupItem();
         const url = item && normalizeDistractionSource(item.url);
         const media = {
           mediaType: item && mediaTypeForDistraction(url, item.mediaType),
           muted: !(autoPopupSourceKey() === "booru" && localDanbooruUnmuteVideos),
-          autoFullVideo: autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && Boolean(state.settings.booruAutoPopupFullVideos)
+          autoFullVideo: autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && Boolean(settings.booruAutoPopupFullVideos),
+          targetSettings: settings
         };
         if (url && addAutoDistractionOverlay(url, media)) {
           postedBlockingFullVideo = media.mediaType === "video" && media.autoFullVideo;
+          if (settings === state.settings) showAutoPopupPreview(item, media);
           if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto gallery popup posted.";
         }
       } catch (error) {
@@ -5454,21 +5655,21 @@
     }
 
     function selectRedditeryGalleryImage(index, fromRandom = false) {
-      if (!domLinkControlsAllowed()) return;
+      if (!galleryControlsAllowed()) return;
       const item = localRedditeryGalleryItems[Number(index)];
       const url = item && normalizeDistractionSource(item.url);
       if (!url) return;
-      rememberDistractionImage(url);
+      rememberDistractionImage(url, { targetSettings: galleryEffectSettings() });
       els.sideDistractionStatus.textContent = fromRandom
-        ? "Random gallery image selected and saved."
-        : "Gallery image selected and saved.";
+        ? (subGalleryPrivateMode() ? "Random gallery image selected and saved privately." : "Random gallery image selected and saved.")
+        : (subGalleryPrivateMode() ? "Gallery image selected and saved privately." : "Gallery image selected and saved.");
       openDistractionChoice(url, "How should this gallery image appear?");
       renderRedditeryGallery();
       renderDistractionGallery();
     }
 
     function selectDistractionFromGallery(id) {
-      if (!domLinkControlsAllowed()) return;
+      if (!galleryControlsAllowed()) return;
       const item = savedDistractionItemById(id);
       if (!item) return;
       openDistractionChoice(item.url, `How should this saved ${mediaTypeForDistraction(item.url, item.mediaType)} appear?`, item);
@@ -5478,14 +5679,14 @@
       renderDistractionGallery();
     }
 
-    function activeDistractionOverlays() {
+    function activeDistractionOverlays(source = state.settings) {
       const now = Date.now();
-      const list = Array.isArray(state.settings.distractionOverlays) ? state.settings.distractionOverlays : [];
+      const list = Array.isArray(source.distractionOverlays) ? source.distractionOverlays : [];
       const active = list
         .filter((item) => item && normalizeDistractionSource(item.url) && Number(item.until || 0) > now)
         .slice(-3);
-      const oldUrl = normalizeDistractionSource(state.settings.distractionOverlayUrl || (state.settings.distractionMode === "overlay-sub" ? state.settings.distractionUrl : ""));
-      const oldUntil = Number(state.settings.distractionOverlayUntil || state.settings.distractionUntil || 0);
+      const oldUrl = normalizeDistractionSource(source.distractionOverlayUrl || (source.distractionMode === "overlay-sub" ? source.distractionUrl : ""));
+      const oldUntil = Number(source.distractionOverlayUntil || source.distractionUntil || 0);
       if (!active.length && oldUrl && oldUntil > now) {
         active.push({
           id: "legacy-overlay",
@@ -5500,20 +5701,23 @@
 
     function removeDistractionOverlayById(id) {
       if (!id) return;
-      const list = Array.isArray(state.settings.distractionOverlays) ? state.settings.distractionOverlays : [];
+      const sharedList = Array.isArray(state.settings.distractionOverlays) ? state.settings.distractionOverlays : [];
+      const localList = Array.isArray(localSubDistractions.distractionOverlays) ? localSubDistractions.distractionOverlays : [];
+      const target = sharedList.some((item) => item && item.id === id) ? state.settings : localSubDistractions;
+      const list = target === state.settings ? sharedList : localList;
       const removedAutoFullVideo = list.some((item) => item && item.id === id && item.autoFullVideo && (item.mediaType === "video" || isVideoDistractionSource(item.url)));
       const next = list.filter((item) => item && item.id !== id);
       if (next.length === list.length) return;
-      state.settings.distractionOverlays = next;
-      if (state.settings.distractionOverlayUrl && !next.length) {
-        state.settings.distractionOverlayUrl = "";
-        state.settings.distractionOverlayUntil = 0;
+      target.distractionOverlays = next;
+      if (target.distractionOverlayUrl && !next.length) {
+        target.distractionOverlayUrl = "";
+        target.distractionOverlayUntil = 0;
       }
       renderDistractionBackground();
       if (removedAutoFullVideo && state.settings.redditeryAutoPopup && redditeryAutoPopupAllowed() && !activeAutoFullVideoOverlay()) {
         updateRedditeryAutoPopupStatus();
       }
-      if (domLinkControlsAllowed()) publishSettingsState();
+      if (target === state.settings && domLinkControlsAllowed()) publishSettingsState();
     }
 
     function randomPopupAnchor(placement = popupPlacement(), existing = []) {
@@ -5738,10 +5942,13 @@
       const overlayId = media.dataset.distractionOverlayId || "";
       const duration = Number(media.duration || 0);
       if (!overlayId || !Number.isFinite(duration) || duration <= 0 || media.dataset.autoFullAdjusted === "true") return;
-      const minDuration = normalizeDistractionDuration(media.dataset.distractionOverlayMinDuration || state.settings.redditeryAutoPopupDuration);
+      const source = activeDistractionOverlays(state.settings).some((overlay) => overlay && overlay.id === overlayId)
+        ? state.settings
+        : localSubDistractions;
+      const minDuration = normalizeDistractionDuration(media.dataset.distractionOverlayMinDuration || source.redditeryAutoPopupDuration || state.settings.redditeryAutoPopupDuration);
       const now = Date.now();
       const shouldLoopForTimer = duration < minDuration;
-      const nextOverlays = activeDistractionOverlays().map((overlay) => {
+      const nextOverlays = activeDistractionOverlays(source).map((overlay) => {
         if (!overlay || overlay.id !== overlayId) return overlay;
         return {
           ...overlay,
@@ -5749,7 +5956,7 @@
           until: now + (shouldLoopForTimer ? minDuration : duration) * 1000
         };
       });
-      state.settings.distractionOverlays = nextOverlays;
+      source.distractionOverlays = nextOverlays;
       media.loop = shouldLoopForTimer;
       media.dataset.distractionOverlayLoop = shouldLoopForTimer ? "true" : "false";
       media.dataset.autoFullAdjusted = "true";
@@ -5819,15 +6026,26 @@
     }
 
     function renderDistractionBackground() {
-      const oldUrl = state.settings.distractionUrl || "";
-      const oldMode = state.settings.distractionMode || "background-both";
-      const backgroundUrl = state.settings.distractionBackgroundUrl || (oldMode === "overlay-sub" ? "" : oldUrl);
-      const backgroundMode = state.settings.distractionBackgroundMode || (oldMode === "background-sub" ? "background-sub" : "background-both");
-      const backgroundMediaType = mediaTypeForDistraction(backgroundUrl, state.settings.distractionBackgroundMediaType);
+      const sharedOldUrl = state.settings.distractionUrl || "";
+      const sharedOldMode = state.settings.distractionMode || "background-both";
+      const sharedBackgroundUrl = state.settings.distractionBackgroundUrl || (sharedOldMode === "overlay-sub" ? "" : sharedOldUrl);
+      const sharedBackgroundMode = state.settings.distractionBackgroundMode || (sharedOldMode === "background-sub" ? "background-sub" : "background-both");
+      const sharedBackgroundVisible = Boolean(sharedBackgroundUrl)
+        && (sharedBackgroundMode === "background-both" || (sharedBackgroundMode === "background-sub" && shouldShowSubOnlyMedia()));
+      const localOldUrl = localSubDistractions.distractionUrl || "";
+      const localOldMode = localSubDistractions.distractionMode || "background-sub";
+      const localBackgroundUrl = localSubDistractions.distractionBackgroundUrl || (localOldMode === "overlay-sub" ? "" : localOldUrl);
+      const localBackgroundVisible = subGalleryPrivateMode() && !sharedBackgroundVisible && Boolean(localBackgroundUrl) && shouldShowSubOnlyMedia();
+      const backgroundUrl = sharedBackgroundVisible ? sharedBackgroundUrl : (localBackgroundVisible ? localBackgroundUrl : "");
+      const backgroundMediaType = mediaTypeForDistraction(
+        backgroundUrl,
+        sharedBackgroundVisible ? state.settings.distractionBackgroundMediaType : localSubDistractions.distractionBackgroundMediaType
+      );
       const backgroundIsVideo = backgroundMediaType === "video";
-      const overlays = activeDistractionOverlays();
-      const showBackground = Boolean(backgroundUrl)
-        && (backgroundMode === "background-both" || (backgroundMode === "background-sub" && shouldShowSubOnlyMedia()));
+      const sharedOverlays = activeDistractionOverlays(state.settings);
+      const localOverlays = subGalleryPrivateMode() && !sharedOverlays.length ? activeDistractionOverlays(localSubDistractions) : [];
+      const overlays = sharedOverlays.length ? sharedOverlays : localOverlays;
+      const showBackground = Boolean(backgroundUrl);
       const showOverlay = overlays.length > 0 && shouldShowSubOnlyMedia();
       els.distractionBackdrop.classList.toggle("active", showBackground);
       els.distractionBackdrop.classList.toggle("video-active", showBackground && backgroundIsVideo);
@@ -19604,21 +19822,40 @@
     if (els.postDistractionBtn) els.postDistractionBtn.addEventListener("click", postDistraction);
     if (els.clearDistractionBtn) els.clearDistractionBtn.addEventListener("click", clearDistraction);
     els.sideDistractionMode.addEventListener("change", () => {
+      if (subGalleryPrivateMode()) {
+        localSubDistractions.distractionMode = els.sideDistractionMode.value || "overlay-sub";
+        renderSidePanel();
+        return;
+      }
       updateSettings({ distractionMode: els.sideDistractionMode.value });
     });
     els.sideDistractionDuration.addEventListener("input", () => {
-      updateSettings({ distractionDuration: normalizeDistractionDuration(els.sideDistractionDuration.value) });
+      const duration = normalizeDistractionDuration(els.sideDistractionDuration.value);
+      if (subGalleryPrivateMode()) {
+        localSubDistractions.distractionDuration = duration;
+        renderSidePanel();
+        return;
+      }
+      updateSettings({ distractionDuration: duration });
     });
     [els.autoPopupPlacement, els.distractionPopupPlacement].forEach((select) => {
       if (!select) return;
-      select.addEventListener("change", () => updateSettings({ distractionPopupPlacement: normalizePopupPlacement(select.value) }));
+      select.addEventListener("change", () => {
+        const placement = normalizePopupPlacement(select.value);
+        if (subGalleryPrivateMode()) {
+          localSubDistractions.distractionPopupPlacement = placement;
+          renderSidePanel();
+          return;
+        }
+        updateSettings({ distractionPopupPlacement: placement });
+      });
     });
     els.sideDistractionInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") postDistraction();
     });
     if (els.uploadDistractionBtn && els.distractionFileInput) {
       els.uploadDistractionBtn.addEventListener("click", () => {
-        if (!domLinkControlsAllowed()) return;
+        if (!galleryControlsAllowed()) return;
         els.distractionFileInput.click();
       });
       els.distractionFileInput.addEventListener("change", async () => {
@@ -19638,7 +19875,7 @@
     els.sideDistractionInput.addEventListener("paste", handleDistractionPaste);
     els.sideDistractionInput.addEventListener("dragover", (event) => {
       event.preventDefault();
-      if (domLinkControlsAllowed()) els.sideDistractionInput.classList.add("drop-ready");
+      if (galleryControlsAllowed()) els.sideDistractionInput.classList.add("drop-ready");
     });
     els.sideDistractionInput.addEventListener("dragleave", () => {
       els.sideDistractionInput.classList.remove("drop-ready");
@@ -19707,6 +19944,11 @@
     if (els.danbooruFullVideos) {
       els.danbooruFullVideos.addEventListener("click", () => {
         setBooruAutoPopupFullVideos(!state.settings.booruAutoPopupFullVideos);
+      });
+    }
+    if (els.autoPopupDomPreviewInput) {
+      els.autoPopupDomPreviewInput.addEventListener("change", () => {
+        setAutoPopupDomPreview(els.autoPopupDomPreviewInput.checked);
       });
     }
     if (els.soloDanbooruIncludeVideos) {
@@ -19812,6 +20054,13 @@
       if (!select) return;
       select.addEventListener("change", () => {
         resetAutoPopupFeedCursors();
+        if (subGalleryPrivateMode() && select === els.redditeryAutoPopupSource && !state.settings.redditeryAutoPopup) {
+          localSubDistractions.redditeryAutoPopupSource = select.value === "booru" ? "booru" : "reddit";
+          if (localSubDistractions.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+          else updateRedditeryAutoPopupStatus();
+          renderSidePanel();
+          return;
+        }
         updateSettings({ redditeryAutoPopupSource: select.value === "booru" ? "booru" : "reddit" });
         if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
       });
@@ -19821,6 +20070,14 @@
       select.addEventListener("change", () => {
         const category = GOONER_GALLERY_CATEGORIES[String(select.value || "").toLowerCase()] ? String(select.value || "").toLowerCase() : "captions";
         resetAutoPopupFeedCursors();
+        if (subGalleryPrivateMode() && select === els.redditeryAutoPopupCategory && !state.settings.redditeryAutoPopup) {
+          localSubDistractions.redditeryAutoPopupCategory = category;
+          localSubDistractions.redditeryAutoPopupSubreddits = categorySubreddits(category);
+          if (localSubDistractions.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+          else updateRedditeryAutoPopupStatus();
+          renderSidePanel();
+          return;
+        }
         updateSettings({
           redditeryAutoPopupCategory: category,
           redditeryAutoPopupSubreddits: categorySubreddits(category)
@@ -19830,13 +20087,26 @@
     });
     if (els.redditeryAutoPopupDuration) {
       els.redditeryAutoPopupDuration.addEventListener("input", () => {
-        updateSettings({ redditeryAutoPopupDuration: normalizeDistractionDuration(els.redditeryAutoPopupDuration.value) });
+        const duration = normalizeDistractionDuration(els.redditeryAutoPopupDuration.value);
+        if (subGalleryPrivateMode() && !state.settings.redditeryAutoPopup) {
+          localSubDistractions.redditeryAutoPopupDuration = duration;
+          updateRedditeryAutoPopupStatus();
+          return;
+        }
+        updateSettings({ redditeryAutoPopupDuration: duration });
         updateRedditeryAutoPopupStatus();
       });
     }
     if (els.redditeryAutoPopupInterval) {
       els.redditeryAutoPopupInterval.addEventListener("input", () => {
-        updateSettings({ redditeryAutoPopupInterval: normalizeAutoPopupInterval(els.redditeryAutoPopupInterval.value) });
+        const interval = normalizeAutoPopupInterval(els.redditeryAutoPopupInterval.value);
+        if (subGalleryPrivateMode() && !state.settings.redditeryAutoPopup) {
+          localSubDistractions.redditeryAutoPopupInterval = interval;
+          if (localSubDistractions.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+          else updateRedditeryAutoPopupStatus();
+          return;
+        }
+        updateSettings({ redditeryAutoPopupInterval: interval });
         if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
         else updateRedditeryAutoPopupStatus();
       });
@@ -19940,6 +20210,15 @@
     if (els.videoDistractionChoiceModal) {
       els.videoDistractionChoiceModal.addEventListener("click", (event) => {
         if (event.target === els.videoDistractionChoiceModal) closeVideoDistractionChoice();
+      });
+    }
+    if (els.autoPopupPreview) els.autoPopupPreview.addEventListener("click", openAutoPopupPreviewModal);
+    if (els.closeAutoPopupPreviewBtn) els.closeAutoPopupPreviewBtn.addEventListener("click", closeAutoPopupPreviewModal);
+    if (els.clearAutoPopupPreviewBtn) els.clearAutoPopupPreviewBtn.addEventListener("click", clearAutoPopupPreview);
+    if (els.saveAutoPopupPreviewBtn) els.saveAutoPopupPreviewBtn.addEventListener("click", saveAutoPopupPreview);
+    if (els.autoPopupPreviewModal) {
+      els.autoPopupPreviewModal.addEventListener("click", (event) => {
+        if (event.target === els.autoPopupPreviewModal) closeAutoPopupPreviewModal();
       });
     }
     els.rulesBtn.addEventListener("click", openRulesModal);
