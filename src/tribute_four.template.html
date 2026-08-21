@@ -456,14 +456,6 @@
         <strong class="status-pill">Play Solo</strong>
       </button>
 
-      <button class="panel game-card" id="brainDrainSnapCard" data-open-game="brainDrainSnap" data-game-categories="solo">
-        <span>
-          <span class="game-card-title">Brain Drain Snap</span>
-          <span class="game-card-copy">A one-thumb category reflex test. Snap matches, skip everything else.</span>
-        </span>
-        <strong class="status-pill">Play Solo</strong>
-      </button>
-
       <button class="panel game-card" id="obedienceOrdersCard" data-open-game="obedienceOrders" data-game-categories="wip all" data-game-hidden="true">
         <span>
           <span class="game-card-title">Obedience Orders</span>
@@ -536,6 +528,20 @@
           <button class="active" data-memory-size="4x3">12</button>
           <button data-memory-size="4x4">16</button>
           <button data-memory-size="5x4">20</button>
+        </div>
+        <div class="memory-match-options" aria-label="Brain Drain Match image settings">
+          <select id="memoryMatchSourceSelect" aria-label="Image source">
+            <option value="booru">Booru stills</option>
+            <option value="peekstr">Peekstr</option>
+          </select>
+          <select id="memoryMatchTagSelect" aria-label="Booru tag preset">
+            <option value="feet">Feet focus</option>
+            <option value="boobs">Boobs</option>
+            <option value="butt">Butt</option>
+            <option value="thighs">Thighs</option>
+            <option value="armpits">Armpits</option>
+            <option value="femboys">Femboys</option>
+          </select>
         </div>
       </div>
       <div class="memory-match-grid" id="memoryMatchGrid" aria-label="Brain Drain Match board"></div>

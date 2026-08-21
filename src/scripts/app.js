@@ -254,6 +254,8 @@
       memoryMatchMoves: document.getElementById("memoryMatchMoves"),
       memoryMatchMatches: document.getElementById("memoryMatchMatches"),
       memoryMatchSizeControls: document.getElementById("memoryMatchSizeControls"),
+      memoryMatchSourceSelect: document.getElementById("memoryMatchSourceSelect"),
+      memoryMatchTagSelect: document.getElementById("memoryMatchTagSelect"),
       memoryMatchNewImagesBtn: document.getElementById("memoryMatchNewImagesBtn"),
       memoryMatchRestartBtn: document.getElementById("memoryMatchRestartBtn"),
       memoryMatchBackBtn: document.getElementById("memoryMatchBackBtn"),
@@ -693,6 +695,9 @@
     let localMemoryMatchAfter = "";
     let localMemoryMatchSubreddit = "";
     let localMemoryMatchRecentUrls = [];
+    let localMemoryMatchSource = "booru";
+    let localMemoryMatchPreset = "feet";
+    let localMemoryMatchBooruPage = 1;
     let localBrainDrainSnapPools = {};
     let localBrainDrainSnapAfter = {};
     let brainDrainSnapTimerId = null;
@@ -2456,7 +2461,6 @@
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       if (els.higherLowerCard) els.higherLowerCard.disabled = domPickBlocked;
       if (els.memoryMatchCard) els.memoryMatchCard.disabled = false;
-      if (els.brainDrainSnapCard) els.brainDrainSnapCard.disabled = false;
       if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.disabled = domPickBlocked;
       if (els.doubleSolitaireCard) els.doubleSolitaireCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
@@ -2511,7 +2515,7 @@
         control: "chance"
       };
       const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
-      const soloGameIds = ["solitaire", "memoryMatch", "brainDrainSnap"];
+      const soloGameIds = ["solitaire", "memoryMatch"];
       const soloMenuOpen = state.screen === "select" && soloGameIds.includes(state.currentGame);
       const allowedTabs = soloMenuOpen
         ? ["solo"]
@@ -3483,7 +3487,7 @@
     }
 
     function renderSidePanel() {
-      const soloMode = state.screen === "solitaire" || state.screen === "memoryMatch" || state.screen === "brainDrainSnap";
+      const soloMode = state.screen === "solitaire" || state.screen === "memoryMatch";
       const inGame = state.screen === "game";
       const inGameSelect = state.screen === "select";
       if (soloMode || (!inGame && !inGameSelect)) {
@@ -4462,8 +4466,8 @@
     }
 
     function soloAutoPopupControlsAllowed() {
-      return (state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame))
-        || ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen);
+      return (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame))
+        || ["solitaire", "memoryMatch"].includes(state.screen);
     }
 
     function syncDanbooruVideoToggleButtons(canUseDomSettings = domLinkControlsAllowed()) {
@@ -4752,7 +4756,7 @@
       });
       if (els.goonerGalleryCategory) els.goonerGalleryCategory.disabled = !domLinkControlsAllowed();
       if (els.soloGoonerGalleryCategory) {
-        const soloAllowed = (state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame)) || ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen);
+        const soloAllowed = (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)) || ["solitaire", "memoryMatch"].includes(state.screen);
         els.soloGoonerGalleryCategory.disabled = !soloAllowed;
       }
     }
@@ -5221,13 +5225,13 @@
     }
 
     function redditeryAutoPopupControlAllowed() {
-      const soloScreens = ["solitaire", "memoryMatch", "brainDrainSnap"];
-      const soloMenuOpen = state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame);
+      const soloScreens = ["solitaire", "memoryMatch"];
+      const soloMenuOpen = state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame);
       return domLinkControlsAllowed() || soloMenuOpen || soloScreens.includes(state.screen);
     }
 
     function redditeryAutoPopupAllowed() {
-      return domLinkControlsAllowed() || ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen);
+      return domLinkControlsAllowed() || ["solitaire", "memoryMatch"].includes(state.screen);
     }
 
     function setRedditeryAutoPopupEnabled(enabled) {
@@ -5244,7 +5248,7 @@
       syncAutoPopupSourceControls();
       [
         [els.redditeryAutoPopupToggle, domLinkControlsAllowed()],
-        [els.soloRedditeryAutoPopupToggle, (state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame)) || ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen)]
+        [els.soloRedditeryAutoPopupToggle, (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)) || ["solitaire", "memoryMatch"].includes(state.screen)]
       ].forEach(([toggle, canUse]) => {
         if (!toggle) return;
         toggle.disabled = !canUse;
@@ -5261,9 +5265,9 @@
       if (!statusEls.length) return;
       let statusText = "";
       if (!state.settings.redditeryAutoPopup) {
-        statusText = ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.screen)
+        statusText = ["solitaire", "memoryMatch"].includes(state.screen)
           ? "Off. When enabled, a random gallery image pops up on the selected timer."
-          : state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame)
+          : state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)
             ? "Off. When enabled, a random gallery image pops up during solo games."
           : "Off. When enabled, a random gallery image pops up for the sub on the selected timer.";
         statusEls.forEach((status) => { status.textContent = statusText; });
@@ -16901,8 +16905,47 @@
       "5x4": { columns: 5, rows: 4, pairs: 10 }
     };
 
+    const MEMORY_MATCH_BOORU_PRESETS = {
+      feet: {
+        label: "Feet focus",
+        tags: ["feet_focus order:score", "feet order:score", "soles order:score", "barefoot order:score"]
+      },
+      boobs: {
+        label: "Boobs",
+        tags: ["large_breasts order:score", "huge_breasts order:score", "breast_focus order:score", "sideboob order:score", "underboob order:score"]
+      },
+      butt: {
+        label: "Butt",
+        tags: ["ass_focus order:score", "ass order:score"]
+      },
+      thighs: {
+        label: "Thighs",
+        tags: ["thighs order:score", "thigh_focus order:score", "wide_hips order:score"]
+      },
+      armpits: {
+        label: "Armpits",
+        tags: ["armpits order:score"]
+      },
+      femboys: {
+        label: "Femboys",
+        tags: ["femboy order:score"]
+      }
+    };
+
     function memoryMatchConfig(size = state.memoryMatch && state.memoryMatch.size) {
       return MEMORY_MATCH_SIZES[size] || MEMORY_MATCH_SIZES["4x3"];
+    }
+
+    function memoryMatchSource() {
+      return localMemoryMatchSource === "peekstr" ? "peekstr" : "booru";
+    }
+
+    function memoryMatchPresetKey() {
+      return MEMORY_MATCH_BOORU_PRESETS[localMemoryMatchPreset] ? localMemoryMatchPreset : "feet";
+    }
+
+    function memoryMatchPreset() {
+      return MEMORY_MATCH_BOORU_PRESETS[memoryMatchPresetKey()] || MEMORY_MATCH_BOORU_PRESETS.feet;
     }
 
     function memoryMatchPlaceholder() {
@@ -16939,7 +16982,7 @@
         .slice(0, needed);
     }
 
-    async function fetchMemoryMatchImages(pairCount) {
+    async function fetchMemoryMatchPeekstrImages(pairCount) {
       let collected = [];
       for (let attempt = 0; attempt < 3 && collected.length < pairCount; attempt += 1) {
         const activeSubreddit = pickGoonerSubreddit(localMemoryMatchSubreddit);
@@ -16971,6 +17014,54 @@
         ...localMemoryMatchRecentUrls
       ].filter(Boolean).slice(0, 80);
       return collected.slice(0, pairCount);
+    }
+
+    async function fetchMemoryMatchBooruImages(pairCount) {
+      const preset = memoryMatchPreset();
+      const tagPool = Array.isArray(preset.tags) && preset.tags.length ? preset.tags : MEMORY_MATCH_BOORU_PRESETS.feet.tags;
+      let collected = [];
+      let attemptsUsed = 0;
+      for (let attempt = 0; attempt < 8 && collected.length < pairCount; attempt += 1) {
+        const cursor = localMemoryMatchBooruPage + attempt;
+        const tagIndex = (cursor - 1) % tagPool.length;
+        const page = Math.max(1, Math.floor((cursor - 1) / tagPool.length) + 1);
+        const params = new URLSearchParams({
+          tags: tagPool[tagIndex],
+          page: String(page),
+          limit: String(Math.max(24, pairCount * 5)),
+          dateFilter: "all",
+          nonce: `${Date.now()}-${attempt}`
+        });
+        const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Brain Drain Match Booru images failed to load.");
+        const items = Array.isArray(data.items)
+          ? data.items.filter((item) => item && item.mediaType !== "video" && normalizeDistractionSource(item.url))
+          : [];
+        const nextItems = memoryMatchUniqueItems(items, pairCount - collected.length);
+        collected = [...collected, ...nextItems];
+        attemptsUsed = attempt + 1;
+      }
+      localMemoryMatchBooruPage += Math.max(1, attemptsUsed);
+      if (collected.length < pairCount) throw new Error(`Not enough ${preset.label} Booru stills came back. Try New Images again.`);
+      localMemoryMatchRecentUrls = [
+        ...collected.map((item) => normalizeDistractionSource(item.url)),
+        ...localMemoryMatchRecentUrls
+      ].filter(Boolean).slice(0, 100);
+      return collected.slice(0, pairCount);
+    }
+
+    async function fetchMemoryMatchImages(pairCount) {
+      return memoryMatchSource() === "booru"
+        ? fetchMemoryMatchBooruImages(pairCount)
+        : fetchMemoryMatchPeekstrImages(pairCount);
+    }
+
+    function resetMemoryMatchImageCursor() {
+      localMemoryMatchAfter = "";
+      localMemoryMatchSubreddit = "";
+      localMemoryMatchRecentUrls = [];
+      localMemoryMatchBooruPage = 1;
     }
 
     function buildMemoryMatchDeck(items) {
@@ -17261,7 +17352,9 @@
         ...createMemoryMatchState(),
         size,
         loading: true,
-        message: options.newImages ? "Loading a fresh image set..." : "Resetting the board..."
+        message: options.newImages
+          ? `Loading fresh ${memoryMatchSource() === "booru" ? memoryMatchPreset().label : "Peekstr"} images...`
+          : "Resetting the board..."
       };
       renderMemoryMatch();
       try {
@@ -17380,6 +17473,14 @@
           button.classList.toggle("active", button.dataset.memorySize === game.size);
           button.disabled = Boolean(game.loading);
         });
+      }
+      if (els.memoryMatchSourceSelect) {
+        if (document.activeElement !== els.memoryMatchSourceSelect) els.memoryMatchSourceSelect.value = memoryMatchSource();
+        els.memoryMatchSourceSelect.disabled = Boolean(game.loading);
+      }
+      if (els.memoryMatchTagSelect) {
+        if (document.activeElement !== els.memoryMatchTagSelect) els.memoryMatchTagSelect.value = memoryMatchPresetKey();
+        els.memoryMatchTagSelect.disabled = Boolean(game.loading) || memoryMatchSource() !== "booru";
       }
       if (els.memoryMatchNewImagesBtn) els.memoryMatchNewImagesBtn.disabled = Boolean(game.loading);
       if (els.memoryMatchRestartBtn) els.memoryMatchRestartBtn.disabled = Boolean(game.loading || !game.cards.length);
@@ -19910,6 +20011,21 @@
         startMemoryMatch({ size: button.dataset.memorySize, newImages: true });
       });
     }
+    if (els.memoryMatchSourceSelect) {
+      els.memoryMatchSourceSelect.addEventListener("change", () => {
+        localMemoryMatchSource = els.memoryMatchSourceSelect.value === "peekstr" ? "peekstr" : "booru";
+        resetMemoryMatchImageCursor();
+        startMemoryMatch({ newImages: true });
+      });
+    }
+    if (els.memoryMatchTagSelect) {
+      els.memoryMatchTagSelect.addEventListener("change", () => {
+        const nextPreset = String(els.memoryMatchTagSelect.value || "feet");
+        localMemoryMatchPreset = MEMORY_MATCH_BOORU_PRESETS[nextPreset] ? nextPreset : "feet";
+        resetMemoryMatchImageCursor();
+        startMemoryMatch({ newImages: true });
+      });
+    }
     if (els.memoryMatchGrid) {
       els.memoryMatchGrid.addEventListener("click", (event) => {
         const button = event.target.closest("[data-memory-index]");
@@ -20005,7 +20121,6 @@
       doubleSolitaire: openDoubleSolitaire,
       solitaire: openSolitaire,
       memoryMatch: openMemoryMatch,
-      brainDrainSnap: openBrainDrainSnap,
       tributeTicTacToe: openTributeTicTacToe,
       wheelSpin: openWheelSpin,
       obedienceOrders: openObedienceOrders,
@@ -20020,7 +20135,7 @@
         if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
         const opener = gameOpeners[card.dataset.openGame];
         if (!opener) return;
-        const soloOpeners = new Set(["solitaire", "memoryMatch", "brainDrainSnap"]);
+        const soloOpeners = new Set(["solitaire", "memoryMatch"]);
         if (!soloOpeners.has(card.dataset.openGame) && shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
         opener();
       });
