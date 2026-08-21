@@ -6796,6 +6796,16 @@
       box-shadow: 0 0 20px rgba(255, 79, 134, 0.2);
     }
 
+    #redditeryAutoPopupToggle.active,
+    #redditeryAutoPopupToggle[aria-pressed="true"],
+    #soloRedditeryAutoPopupToggle.active,
+    #soloRedditeryAutoPopupToggle[aria-pressed="true"] {
+      border-color: rgba(255, 207, 113, 0.7);
+      background: linear-gradient(135deg, #c62b63, #ff6680 56%, #ffc063);
+      color: #fff8ec;
+      box-shadow: 0 0 22px rgba(255, 79, 134, 0.28);
+    }
+
     .toggle-button:disabled {
       cursor: not-allowed;
       filter: grayscale(0.3);

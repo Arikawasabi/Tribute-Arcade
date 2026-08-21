@@ -115,6 +115,7 @@
         distractionUrl: "",
         distractionMode: "background-both",
         distractionDuration: 15,
+        distractionPopupPlacement: "center",
         distractionUntil: 0,
         distractionBackgroundUrl: "",
         distractionBackgroundMode: "background-both",
@@ -418,6 +419,7 @@
       sideDistractionMode: document.getElementById("sideDistractionMode"),
       sideDistractionDuration: document.getElementById("sideDistractionDuration"),
       sideDistractionDurationRow: document.getElementById("sideDistractionDurationRow"),
+      autoPopupPlacement: document.getElementById("autoPopupPlacement"),
       uploadDistractionBtn: document.getElementById("uploadDistractionBtn"),
       distractionFileInput: document.getElementById("distractionFileInput"),
       postDistractionBtn: document.getElementById("postDistractionBtn"),
@@ -466,6 +468,7 @@
       cancelDistractionChoiceBtn: document.getElementById("cancelDistractionChoiceBtn"),
       saveDistractionChoiceBtn: document.getElementById("saveDistractionChoiceBtn"),
       distractionChoiceDuration: document.getElementById("distractionChoiceDuration"),
+      distractionPopupPlacement: document.getElementById("distractionPopupPlacement"),
       subWallpaperDistractionChoiceBtn: document.getElementById("subWallpaperDistractionChoiceBtn"),
       bothWallpaperDistractionChoiceBtn: document.getElementById("bothWallpaperDistractionChoiceBtn"),
       popupDistractionChoiceBtn: document.getElementById("popupDistractionChoiceBtn"),
@@ -2878,6 +2881,7 @@
       state.settings.throneAmount = normalizeBuyIn(Number(state.settings.throneAmount || 5));
       state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
       state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
+      state.settings.distractionPopupPlacement = state.settings.distractionPopupPlacement === "random" ? "random" : "center";
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
@@ -3616,6 +3620,9 @@
       }
       if (els.sideDistractionMode) els.sideDistractionMode.value = state.settings.distractionMode || "overlay-sub";
       if (els.sideDistractionDuration) els.sideDistractionDuration.value = normalizeDistractionDuration(state.settings.distractionDuration);
+      [els.autoPopupPlacement, els.distractionPopupPlacement].forEach((select) => {
+        if (select && document.activeElement !== select) select.value = popupPlacement();
+      });
       if (els.booruLoadButtons) {
         els.booruLoadButtons.forEach((button) => {
           button.disabled = !canUseDomSettings || localBooruGalleryLoading;
@@ -3777,6 +3784,8 @@
       const normalized = normalizeDistractionSource(url);
       if (!normalized) return false;
       const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
+      const placement = normalizePopupPlacement(options.placement || popupPlacement());
+      const randomAnchor = randomPopupAnchor(placement);
       const requestedDuration = options.playFull
         ? normalizeFullVideoDuration(options.fullDuration || duration)
         : options.loopCount
@@ -3794,9 +3803,12 @@
           loop: mediaType === "video" ? options.loop !== false : true,
           loopCount: mediaType === "video" && options.loopCount ? normalizeVideoLoopCount(options.loopCount) : 0,
           playFull: mediaType === "video" ? Boolean(options.playFull) : false,
+          placement,
+          anchorX: randomAnchor.x,
+          anchorY: randomAnchor.y,
           until: overlayUntil,
-          jitterX: Math.round((Math.random() * 10 - 5) * 10) / 10,
-          jitterY: Math.round((Math.random() * 14 - 7) * 10) / 10
+          jitterX: 0,
+          jitterY: 0
         }
       ].slice(-3);
       state.settings.distractionUrl = "";
@@ -3814,6 +3826,8 @@
       const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
       const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
       const wantsFullVideo = mediaType === "video" && options.autoFullVideo;
+      const placement = normalizePopupPlacement(options.placement || popupPlacement());
+      const randomAnchor = randomPopupAnchor(placement);
       const overlayUntil = Date.now() + (wantsFullVideo ? normalizeFullVideoDuration(options.fullDuration || 1800) : duration) * 1000;
       state.settings.distractionOverlays = [{
         id: `auto-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -3823,9 +3837,12 @@
         loop: mediaType === "video" && wantsFullVideo ? false : true,
         autoFullVideo: wantsFullVideo,
         minDuration: duration,
+        placement,
+        anchorX: randomAnchor.x,
+        anchorY: randomAnchor.y,
         until: overlayUntil,
-        jitterX: Math.round((Math.random() * 6 - 3) * 10) / 10,
-        jitterY: Math.round((Math.random() * 8 - 4) * 10) / 10
+        jitterX: 0,
+        jitterY: 0
       }];
       state.settings.distractionUrl = "";
       state.settings.distractionOverlayUrl = normalized;
@@ -4321,6 +4338,14 @@
       const seconds = Math.round(Number(value));
       if (!Number.isFinite(seconds)) return 90;
       return Math.min(600, Math.max(15, seconds));
+    }
+
+    function normalizePopupPlacement(value) {
+      return value === "random" ? "random" : "center";
+    }
+
+    function popupPlacement() {
+      return normalizePopupPlacement(state.settings.distractionPopupPlacement);
     }
 
     function normalizeBooruDateFilter(value) {
@@ -5191,6 +5216,10 @@
       updateRedditeryAutoPopupStatus();
     }
 
+    function activeAutoFullVideoOverlay() {
+      return activeDistractionOverlays().find((overlay) => overlay && overlay.autoFullVideo && (overlay.mediaType === "video" || isVideoDistractionSource(overlay.url))) || null;
+    }
+
     function redditeryAutoPopupControlAllowed() {
       const soloScreens = ["solitaire", "memoryMatch", "brainDrainSnap"];
       const soloMenuOpen = state.screen === "select" && ["solitaire", "memoryMatch", "brainDrainSnap"].includes(state.currentGame);
@@ -5248,18 +5277,26 @@
         statusEls.forEach((status) => { status.textContent = "Loading the next auto popup..."; });
         return;
       }
+      const blockingVideo = activeAutoFullVideoOverlay();
       if (!localRedditeryAutoPopupNextAt) scheduleNextRedditeryAutoPopup();
       const seconds = Math.max(0, Math.ceil((localRedditeryAutoPopupNextAt - Date.now()) / 1000));
       const minutes = Math.floor(seconds / 60);
       const remainder = seconds % 60;
       const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
+      if (blockingVideo && seconds <= 0) {
+        const remaining = Math.max(0, Math.ceil((Number(blockingVideo.until || 0) - Date.now()) / 1000));
+        statusEls.forEach((status) => {
+          status.textContent = `Timer ready. Waiting for the full video to finish before the next popup.${remaining ? ` About ${formatMediaDuration(remaining)} left.` : ""}`;
+        });
+        return;
+      }
       const sourceLabel = autoPopupSourceKey() === "booru"
         ? `Booru search, ${booruDateFilterLabel()}`
         : `${goonerGalleryCategoryLabel(autoPopupRedditCategoryKey())} Reddit`;
       const videoNote = autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && state.settings.booruAutoPopupFullVideos
         ? " Videos can play full length."
         : "";
-      statusText = `On. ${sourceLabel}. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}. Shows for ${duration}s.${videoNote}`;
+      statusText = `On. ${sourceLabel}. Next popup in ${minutes}:${String(remainder).padStart(2, "0")}. Shows for ${duration}s.${videoNote}${blockingVideo ? " Current video keeps playing if the timer reaches 0." : ""}`;
       statusEls.forEach((status) => { status.textContent = statusText; });
     }
 
@@ -5270,11 +5307,17 @@
         updateRedditeryAutoPopupStatus();
         return;
       }
+      if (activeAutoFullVideoOverlay()) {
+        if (!localRedditeryAutoPopupNextAt) scheduleNextRedditeryAutoPopup();
+        updateRedditeryAutoPopupStatus();
+        return;
+      }
       if (!localRedditeryAutoPopupNextAt) scheduleNextRedditeryAutoPopup();
       updateRedditeryAutoPopupStatus();
       if (localRedditeryAutoPopupLoading || Date.now() < localRedditeryAutoPopupNextAt) return;
       localRedditeryAutoPopupLoading = true;
       updateRedditeryAutoPopupStatus();
+      let postedBlockingFullVideo = false;
       try {
         const item = await takeNextAutoPopupItem();
         const url = item && normalizeDistractionSource(item.url);
@@ -5284,6 +5327,7 @@
           autoFullVideo: autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && Boolean(state.settings.booruAutoPopupFullVideos)
         };
         if (url && addAutoDistractionOverlay(url, media)) {
+          postedBlockingFullVideo = media.mediaType === "video" && media.autoFullVideo;
           if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto gallery popup posted.";
         }
       } catch (error) {
@@ -5292,7 +5336,11 @@
         if (els.soloRedditeryAutoPopupStatus) els.soloRedditeryAutoPopupStatus.textContent = message;
       } finally {
         localRedditeryAutoPopupLoading = false;
-        scheduleNextRedditeryAutoPopup();
+        if (postedBlockingFullVideo) {
+          scheduleNextRedditeryAutoPopup();
+        } else {
+          scheduleNextRedditeryAutoPopup();
+        }
         renderSidePanel();
       }
     }
@@ -5345,6 +5393,7 @@
     function removeDistractionOverlayById(id) {
       if (!id) return;
       const list = Array.isArray(state.settings.distractionOverlays) ? state.settings.distractionOverlays : [];
+      const removedAutoFullVideo = list.some((item) => item && item.id === id && item.autoFullVideo && (item.mediaType === "video" || isVideoDistractionSource(item.url)));
       const next = list.filter((item) => item && item.id !== id);
       if (next.length === list.length) return;
       state.settings.distractionOverlays = next;
@@ -5353,7 +5402,18 @@
         state.settings.distractionOverlayUntil = 0;
       }
       renderDistractionBackground();
+      if (removedAutoFullVideo && state.settings.redditeryAutoPopup && redditeryAutoPopupAllowed() && !activeAutoFullVideoOverlay()) {
+        updateRedditeryAutoPopupStatus();
+      }
       if (domLinkControlsAllowed()) publishSettingsState();
+    }
+
+    function randomPopupAnchor(placement = popupPlacement()) {
+      if (normalizePopupPlacement(placement) !== "random") return { x: 50, y: 52 };
+      return {
+        x: Math.round((22 + Math.random() * 56) * 10) / 10,
+        y: Math.round((22 + Math.random() * 56) * 10) / 10
+      };
     }
 
     function overlaySlot(index, count) {
@@ -5491,6 +5551,9 @@
           overlay.muted === false ? "audio" : "muted",
           overlay.loop === false ? "once" : "loop",
           Number(overlay.loopCount || 0),
+          normalizePopupPlacement(overlay.placement),
+          Number(overlay.anchorX || 0),
+          Number(overlay.anchorY || 0),
           Number(overlay.until || 0),
           Number(overlay.jitterX || 0),
           Number(overlay.jitterY || 0),
@@ -5567,7 +5630,10 @@
 
     function updateDistractionOverlayNode(node, overlay, index, count, viewport) {
       const normalizedUrl = normalizeDistractionSource(overlay && overlay.url);
-      const slot = overlaySlot(index, count);
+      const placement = normalizePopupPlacement(overlay && overlay.placement);
+      const slot = placement === "random"
+        ? { x: Number(overlay.anchorX || 50), y: Number(overlay.anchorY || 52) }
+        : overlaySlot(index, count);
       const jitterX = Number(overlay.jitterX || 0);
       const jitterY = Number(overlay.jitterY || 0);
       ensureDistractionImageSize(normalizedUrl);
@@ -19414,6 +19480,10 @@
     });
     els.sideDistractionDuration.addEventListener("input", () => {
       updateSettings({ distractionDuration: normalizeDistractionDuration(els.sideDistractionDuration.value) });
+    });
+    [els.autoPopupPlacement, els.distractionPopupPlacement].forEach((select) => {
+      if (!select) return;
+      select.addEventListener("change", () => updateSettings({ distractionPopupPlacement: normalizePopupPlacement(select.value) }));
     });
     els.sideDistractionInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") postDistraction();

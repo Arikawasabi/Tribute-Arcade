@@ -997,6 +997,13 @@
           Popup seconds
           <input id="distractionChoiceDuration" type="number" min="1" max="60" step="1" value="15">
         </label>
+        <label class="field-label">
+          Popup position
+          <select id="distractionPopupPlacement">
+            <option value="center">Center</option>
+            <option value="random">Random safe spot</option>
+          </select>
+        </label>
         <div class="distraction-choice-actions">
           <button id="cancelDistractionChoiceBtn">Cancel</button>
           <button id="saveDistractionChoiceBtn">Save Image</button>
@@ -1128,6 +1135,13 @@
             <label class="field-label">
               Popup seconds
               <input id="redditeryAutoPopupDuration" type="number" min="1" max="60" step="1" value="15">
+            </label>
+            <label class="field-label">
+              Popup position
+              <select id="autoPopupPlacement">
+                <option value="center">Center</option>
+                <option value="random">Random safe spot</option>
+              </select>
             </label>
             <label class="field-label">
               Next image after seconds
