@@ -696,7 +696,7 @@
     let localMemoryMatchSubreddit = "";
     let localMemoryMatchRecentUrls = [];
     let localMemoryMatchSource = "booru";
-    let localMemoryMatchPreset = "feet";
+    let localMemoryMatchPreset = "mixed";
     let localMemoryMatchBooruPage = 1;
     let localBrainDrainSnapPools = {};
     let localBrainDrainSnapAfter = {};
@@ -16906,6 +16906,21 @@
     };
 
     const MEMORY_MATCH_BOORU_PRESETS = {
+      mixed: {
+        label: "Mixed",
+        tags: [
+          "feet_focus order:score",
+          "large_breasts order:score",
+          "ass_focus order:score",
+          "thighs order:score",
+          "armpits order:score",
+          "femboy order:score",
+          "feet order:score",
+          "huge_breasts order:score",
+          "thigh_focus order:score",
+          "soles order:score"
+        ]
+      },
       feet: {
         label: "Feet focus",
         tags: ["feet_focus order:score", "feet order:score", "soles order:score", "barefoot order:score"]
@@ -16941,11 +16956,11 @@
     }
 
     function memoryMatchPresetKey() {
-      return MEMORY_MATCH_BOORU_PRESETS[localMemoryMatchPreset] ? localMemoryMatchPreset : "feet";
+      return MEMORY_MATCH_BOORU_PRESETS[localMemoryMatchPreset] ? localMemoryMatchPreset : "mixed";
     }
 
     function memoryMatchPreset() {
-      return MEMORY_MATCH_BOORU_PRESETS[memoryMatchPresetKey()] || MEMORY_MATCH_BOORU_PRESETS.feet;
+      return MEMORY_MATCH_BOORU_PRESETS[memoryMatchPresetKey()] || MEMORY_MATCH_BOORU_PRESETS.mixed;
     }
 
     function memoryMatchPlaceholder() {
@@ -17018,7 +17033,7 @@
 
     async function fetchMemoryMatchBooruImages(pairCount) {
       const preset = memoryMatchPreset();
-      const tagPool = Array.isArray(preset.tags) && preset.tags.length ? preset.tags : MEMORY_MATCH_BOORU_PRESETS.feet.tags;
+      const tagPool = Array.isArray(preset.tags) && preset.tags.length ? preset.tags : MEMORY_MATCH_BOORU_PRESETS.mixed.tags;
       let collected = [];
       let attemptsUsed = 0;
       for (let attempt = 0; attempt < 8 && collected.length < pairCount; attempt += 1) {
@@ -17029,7 +17044,7 @@
           tags: tagPool[tagIndex],
           page: String(page),
           limit: String(Math.max(24, pairCount * 5)),
-          dateFilter: "all",
+          dateFilter: "6m",
           nonce: `${Date.now()}-${attempt}`
         });
         const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
@@ -17101,6 +17116,16 @@
         .filter(Boolean))];
       if (!uniqueUrls.length) return;
       await Promise.allSettled(uniqueUrls.map(preloadMemoryMatchImage));
+    }
+
+    async function loadableMemoryMatchItems(items, needed) {
+      const checked = await Promise.all((Array.isArray(items) ? items : []).map(async (item) => {
+        const url = normalizeDistractionSource(item && item.url);
+        if (!url) return null;
+        const loaded = await preloadMemoryMatchImage(url);
+        return loaded ? item : null;
+      }));
+      return checked.filter(Boolean).slice(0, needed);
     }
 
     function brainDrainSnapCategoryKeys() {
@@ -17358,17 +17383,31 @@
       };
       renderMemoryMatch();
       try {
-        const items = reusedItems.length >= config.pairs
+        let fallbackMessage = "";
+        let items = reusedItems.length >= config.pairs
           ? reusedItems.slice(0, config.pairs)
           : await fetchMemoryMatchImages(config.pairs);
         state.memoryMatch.message = "Warming up the images...";
         renderMemoryMatch();
-        await preloadMemoryMatchImages(items);
+        if (!reusedItems.length && memoryMatchSource() === "booru") {
+          const loadableItems = await loadableMemoryMatchItems(items, config.pairs);
+          if (loadableItems.length >= config.pairs) {
+            items = loadableItems;
+          } else {
+            state.memoryMatch.message = "Booru images were blocked, loading a fallback set...";
+            renderMemoryMatch();
+            items = await fetchMemoryMatchPeekstrImages(config.pairs);
+            await preloadMemoryMatchImages(items);
+            fallbackMessage = "Booru was blocked, so this board used Peekstr fallback images.";
+          }
+        } else {
+          await preloadMemoryMatchImages(items);
+        }
         state.memoryMatch = {
           ...createMemoryMatchState(),
           size,
           cards: buildMemoryMatchDeck(items),
-          message: "Find every matching pair."
+          message: fallbackMessage || "Find every matching pair."
         };
       } catch (error) {
         state.memoryMatch = {
@@ -20020,8 +20059,8 @@
     }
     if (els.memoryMatchTagSelect) {
       els.memoryMatchTagSelect.addEventListener("change", () => {
-        const nextPreset = String(els.memoryMatchTagSelect.value || "feet");
-        localMemoryMatchPreset = MEMORY_MATCH_BOORU_PRESETS[nextPreset] ? nextPreset : "feet";
+        const nextPreset = String(els.memoryMatchTagSelect.value || "mixed");
+        localMemoryMatchPreset = MEMORY_MATCH_BOORU_PRESETS[nextPreset] ? nextPreset : "mixed";
         resetMemoryMatchImageCursor();
         startMemoryMatch({ newImages: true });
       });
