@@ -3785,14 +3785,14 @@
       if (!normalized) return false;
       const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
       const placement = normalizePopupPlacement(options.placement || popupPlacement());
-      const randomAnchor = randomPopupAnchor(placement);
+      const existingOverlays = activeDistractionOverlays();
+      const randomAnchor = randomPopupAnchor(placement, existingOverlays);
       const requestedDuration = options.playFull
         ? normalizeFullVideoDuration(options.fullDuration || duration)
         : options.loopCount
           ? normalizeFullVideoDuration(options.fullDuration || 1800)
         : normalizeDistractionDuration(duration);
       const overlayUntil = Date.now() + requestedDuration * 1000;
-      const existingOverlays = activeDistractionOverlays();
       state.settings.distractionOverlays = [
         ...existingOverlays,
         {
@@ -3827,7 +3827,7 @@
       const duration = normalizeDistractionDuration(state.settings.redditeryAutoPopupDuration);
       const wantsFullVideo = mediaType === "video" && options.autoFullVideo;
       const placement = normalizePopupPlacement(options.placement || popupPlacement());
-      const randomAnchor = randomPopupAnchor(placement);
+      const randomAnchor = randomPopupAnchor(placement, activeDistractionOverlays());
       const overlayUntil = Date.now() + (wantsFullVideo ? normalizeFullVideoDuration(options.fullDuration || 1800) : duration) * 1000;
       state.settings.distractionOverlays = [{
         id: `auto-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -5408,12 +5408,31 @@
       if (domLinkControlsAllowed()) publishSettingsState();
     }
 
-    function randomPopupAnchor(placement = popupPlacement()) {
+    function randomPopupAnchor(placement = popupPlacement(), existing = []) {
       if (normalizePopupPlacement(placement) !== "random") return { x: 50, y: 52 };
-      return {
-        x: Math.round((22 + Math.random() * 56) * 10) / 10,
-        y: Math.round((22 + Math.random() * 56) * 10) / 10
-      };
+      const existingAnchors = (Array.isArray(existing) ? existing : [])
+        .filter((overlay) => normalizePopupPlacement(overlay && overlay.placement) === "random")
+        .map((overlay) => ({
+          x: Number(overlay.anchorX || 50),
+          y: Number(overlay.anchorY || 52)
+        }));
+      let best = null;
+      let bestDistance = -1;
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        const candidate = {
+          x: Math.round((18 + Math.random() * 64) * 10) / 10,
+          y: Math.round((18 + Math.random() * 64) * 10) / 10
+        };
+        const nearest = existingAnchors.length
+          ? Math.min(...existingAnchors.map((anchor) => Math.hypot(candidate.x - anchor.x, candidate.y - anchor.y)))
+          : 100;
+        if (nearest > bestDistance) {
+          best = candidate;
+          bestDistance = nearest;
+        }
+        if (nearest >= 36) return candidate;
+      }
+      return best || { x: 50, y: 52 };
     }
 
     function overlaySlot(index, count) {
@@ -5469,9 +5488,10 @@
     }
 
     function overlayBoxSizePx(overlay, count, viewportWidth, viewportHeight) {
-      const margin = count === 1 ? 24 : 18;
-      const maxWidth = Math.max(1, Math.min(viewportWidth - margin * 2, count === 1 ? 860 : (count === 2 ? 540 : 390), viewportWidth * (count === 1 ? 0.82 : (count === 2 ? 0.42 : 0.29))));
-      const maxHeight = Math.max(1, Math.min(viewportHeight - margin * 2, count === 1 ? 760 : (count === 2 ? 560 : 420), viewportHeight * (count === 1 ? 0.86 : (count === 2 ? 0.68 : 0.54))));
+      const sizingCount = normalizePopupPlacement(overlay && overlay.placement) === "random" ? 1 : count;
+      const margin = sizingCount === 1 ? 24 : 18;
+      const maxWidth = Math.max(1, Math.min(viewportWidth - margin * 2, sizingCount === 1 ? 860 : (sizingCount === 2 ? 540 : 390), viewportWidth * (sizingCount === 1 ? 0.82 : (sizingCount === 2 ? 0.42 : 0.29))));
+      const maxHeight = Math.max(1, Math.min(viewportHeight - margin * 2, sizingCount === 1 ? 760 : (sizingCount === 2 ? 560 : 420), viewportHeight * (sizingCount === 1 ? 0.86 : (sizingCount === 2 ? 0.68 : 0.54))));
       const size = distractionImageSizeCache.get(normalizeDistractionSource(overlay && overlay.url));
       if (overlay && overlay.mediaType === "video") {
         const videoMaxHeight = Math.max(1, Math.min(maxHeight, viewportHeight - margin * 2 - 18));
@@ -5490,8 +5510,8 @@
       }
       if (!size || !size.width || !size.height) {
         return {
-          width: Math.round(Math.min(maxWidth, viewportWidth * (count === 1 ? 0.72 : (count === 2 ? 0.38 : 0.26)))),
-          height: Math.round(Math.min(maxHeight, viewportHeight * (count === 1 ? 0.64 : (count === 2 ? 0.54 : 0.46))))
+          width: Math.round(Math.min(maxWidth, viewportWidth * (sizingCount === 1 ? 0.72 : (sizingCount === 2 ? 0.38 : 0.26)))),
+          height: Math.round(Math.min(maxHeight, viewportHeight * (sizingCount === 1 ? 0.64 : (sizingCount === 2 ? 0.54 : 0.46))))
         };
       }
       const ratio = size.width / size.height;
