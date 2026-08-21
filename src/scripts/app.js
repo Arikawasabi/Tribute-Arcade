@@ -127,9 +127,11 @@
         distractionGallery: [],
         goonerGallerySource: "peekstr",
         goonerGalleryCategory: "captions",
+        goonerGallerySubreddits: [],
         redditeryAutoPopup: false,
         redditeryAutoPopupSource: "booru",
         redditeryAutoPopupCategory: "captions",
+        redditeryAutoPopupSubreddits: [],
         redditeryAutoPopupDuration: 15,
         redditeryAutoPopupInterval: 90,
         booruDateFilter: "all",
@@ -283,6 +285,7 @@
       soloRedditeryAutoPopupSource: document.getElementById("soloRedditeryAutoPopupSource"),
       soloRedditeryAutoPopupCategoryRow: document.getElementById("soloRedditeryAutoPopupCategoryRow"),
       soloRedditeryAutoPopupCategory: document.getElementById("soloRedditeryAutoPopupCategory"),
+      soloRedditerySourcePicker: document.getElementById("soloRedditerySourcePicker"),
       soloBooruAutoPopupTagRow: document.getElementById("soloBooruAutoPopupTagRow"),
       soloBooruAutoPopupVideoRow: document.getElementById("soloBooruAutoPopupVideoRow"),
       soloBooruDateFilterRow: document.getElementById("soloBooruDateFilterRow"),
@@ -441,10 +444,12 @@
       goonerGalleryTopBtn: document.getElementById("goonerGalleryTopBtn"),
       goonerGallerySource: document.getElementById("goonerGallerySource"),
       goonerGalleryCategory: document.getElementById("goonerGalleryCategory"),
+      goonerGallerySourcePicker: document.getElementById("goonerGallerySourcePicker"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
       redditeryAutoPopupSource: document.getElementById("redditeryAutoPopupSource"),
       redditeryAutoPopupCategoryRow: document.getElementById("redditeryAutoPopupCategoryRow"),
       redditeryAutoPopupCategory: document.getElementById("redditeryAutoPopupCategory"),
+      redditeryAutoPopupSourcePicker: document.getElementById("redditeryAutoPopupSourcePicker"),
       booruAutoPopupTagRow: document.getElementById("booruAutoPopupTagRow"),
       autoDanbooruTagInput: document.getElementById("autoDanbooruTagInput"),
       autoDanbooruSuggestions: document.getElementById("autoDanbooruSuggestions"),
@@ -2888,10 +2893,12 @@
       state.settings.goonerGalleryCategory = GOONER_GALLERY_CATEGORIES[String(state.settings.goonerGalleryCategory || "").toLowerCase()]
         ? String(state.settings.goonerGalleryCategory || "").toLowerCase()
         : "captions";
+      state.settings.goonerGallerySubreddits = normalizeRedditPageSelection(state.settings.goonerGallerySubreddits);
       state.settings.redditeryAutoPopupSource = state.settings.redditeryAutoPopupSource === "reddit" ? "reddit" : "booru";
       state.settings.redditeryAutoPopupCategory = GOONER_GALLERY_CATEGORIES[String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()]
         ? String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()
         : "captions";
+      state.settings.redditeryAutoPopupSubreddits = normalizeRedditPageSelection(state.settings.redditeryAutoPopupSubreddits);
       state.settings.booruDateFilter = normalizeBooruDateFilter(state.settings.booruDateFilter);
       state.settings.booruAutoPopupFullVideos = Boolean(state.settings.booruAutoPopupFullVideos);
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
@@ -4625,41 +4632,79 @@
       return "peekstr";
     }
 
+    const GOONER_REDDIT_PAGES = [
+      { subreddit: "gooninghentai", label: "Gooning Hentai", category: "captions" },
+      { subreddit: "jerkbudshentai", label: "Jerkbuds Hentai", category: "captions" },
+      { subreddit: "hentailimitless", label: "Hentai Limitless", category: "captions" },
+      { subreddit: "cringegoontards", label: "Cringe Goon Tards", category: "captions" },
+      { subreddit: "hentaicensore", label: "Hentai Censore", category: "captions" },
+      { subreddit: "hentaiigooning", label: "Hentaii Gooning", category: "captions" },
+      { subreddit: "femboyhentai", label: "Femboy Hentai", category: "femboys" },
+      { subreddit: "furrygoonpit", label: "Furry Goon Pit", category: "furry" },
+      { subreddit: "bootyhentai", label: "Booty Hentai", category: "butt" },
+      { subreddit: "animebooty", label: "Anime Booty", category: "butt" },
+      { subreddit: "buttfangs", label: "Butt Fangs", category: "butt" },
+      { subreddit: "hentai_bnwo", label: "Hentai BNWO", category: "bnwo" },
+      { subreddit: "hentaibnwohaven", label: "BNWO Haven", category: "bnwo" },
+      { subreddit: "besthentaifeet", label: "Best Hentai Feet", category: "feet" },
+      { subreddit: "animefeet", label: "Anime Feet", category: "feet" },
+      { subreddit: "hentaifeetlover", label: "Hentai Feet Lover", category: "feet" },
+      { subreddit: "oppaihentai", label: "Oppai Hentai", category: "boobs" },
+      { subreddit: "biganimetiddies", label: "Big Anime Tiddies", category: "boobs" },
+      { subreddit: "underoppai", label: "Under Oppai", category: "boobs" },
+      { subreddit: "sideoppai", label: "Side Oppai", category: "boobs" },
+      { subreddit: "overoppai", label: "Over Oppai", category: "boobs" },
+      { subreddit: "animearmpits", label: "Anime Armpits", category: "armpits" }
+    ];
+
     const GOONER_GALLERY_CATEGORIES = {
-      captions: {
-        label: "Captions",
-        subreddits: ["gooninghentai"]
-      },
-      femboys: {
-        label: "Femboys",
-        subreddits: ["femboyhentai"]
-      },
-      butt: {
-        label: "Butt",
-        subreddits: ["bootyhentai", "animebooty", "buttfangs"]
-      },
-      bnwo: {
-        label: "BNWO",
-        subreddits: ["hentai_bnwo", "hentaibnwohaven"]
-      },
-      feet: {
-        label: "Feet",
-        subreddits: ["besthentaifeet", "animefeet", "hentaifeetlover"]
-      },
-      boobs: {
-        label: "Boobs",
-        subreddits: ["oppaihentai", "biganimetiddies", "underoppai", "sideoppai", "overoppai"]
-      },
-      armpits: {
-        label: "Armpits",
-        subreddits: ["animearmpits"]
-      }
+      captions: { label: "Captions", subreddits: redditSubredditsForCategory("captions") },
+      femboys: { label: "Femboys", subreddits: redditSubredditsForCategory("femboys") },
+      furry: { label: "Furry", subreddits: redditSubredditsForCategory("furry") },
+      butt: { label: "Butt", subreddits: redditSubredditsForCategory("butt") },
+      bnwo: { label: "BNWO", subreddits: redditSubredditsForCategory("bnwo") },
+      feet: { label: "Feet", subreddits: redditSubredditsForCategory("feet") },
+      boobs: { label: "Boobs", subreddits: redditSubredditsForCategory("boobs") },
+      armpits: { label: "Armpits", subreddits: redditSubredditsForCategory("armpits") }
     };
 
     GOONER_GALLERY_CATEGORIES.mixed = {
       label: "Mixed",
       subreddits: Object.values(GOONER_GALLERY_CATEGORIES).flatMap((category) => category.subreddits)
     };
+
+    function redditSubredditsForCategory(categoryKey = "captions") {
+      return GOONER_REDDIT_PAGES
+        .filter((page) => page.category === categoryKey)
+        .map((page) => page.subreddit);
+    }
+
+    function normalizeRedditPageSelection(value) {
+      const allowed = new Set(GOONER_REDDIT_PAGES.map((page) => page.subreddit));
+      const raw = Array.isArray(value) ? value : [];
+      return [...new Set(raw
+        .map((subreddit) => String(subreddit || "").toLowerCase().trim())
+        .filter((subreddit) => allowed.has(subreddit)))];
+    }
+
+    function categorySubreddits(categoryKey = "captions") {
+      const category = GOONER_GALLERY_CATEGORIES[categoryKey] || GOONER_GALLERY_CATEGORIES.captions;
+      return category.subreddits.length ? [...category.subreddits] : [...GOONER_GALLERY_CATEGORIES.captions.subreddits];
+    }
+
+    function redditSelectionForScope(scope = "gallery") {
+      const isAuto = scope === "auto";
+      const stored = normalizeRedditPageSelection(isAuto ? state.settings.redditeryAutoPopupSubreddits : state.settings.goonerGallerySubreddits);
+      if (stored.length) return stored;
+      return categorySubreddits(isAuto ? autoPopupRedditCategoryKey() : goonerGalleryCategoryKey());
+    }
+
+    function redditSelectionLabel(scope = "gallery") {
+      const selected = redditSelectionForScope(scope);
+      const pageBySubreddit = new Map(GOONER_REDDIT_PAGES.map((page) => [page.subreddit, page]));
+      if (selected.length === 1) return pageBySubreddit.get(selected[0])?.label || goonerGalleryCategoryLabel();
+      return `${selected.length} Reddit pages`;
+    }
 
     function goonerGalleryCategoryKey() {
       const key = String(state.settings.goonerGalleryCategory || "captions").toLowerCase();
@@ -4679,9 +4724,9 @@
       return (GOONER_GALLERY_CATEGORIES[key] || GOONER_GALLERY_CATEGORIES.captions).label;
     }
 
-    function pickGoonerSubreddit(previous = "", categoryKey = goonerGalleryCategoryKey()) {
-      const category = GOONER_GALLERY_CATEGORIES[categoryKey] || GOONER_GALLERY_CATEGORIES.captions;
-      const subreddits = category.subreddits.length ? category.subreddits : GOONER_GALLERY_CATEGORIES.captions.subreddits;
+    function pickGoonerSubreddit(previous = "", categoryKey = goonerGalleryCategoryKey(), pool = null) {
+      const selectedPool = normalizeRedditPageSelection(pool);
+      const subreddits = selectedPool.length ? selectedPool : categorySubreddits(categoryKey);
       if (previous && subreddits.includes(previous)) return previous;
       return subreddits[Math.floor(Math.random() * subreddits.length)] || "gooninghentai";
     }
@@ -4729,7 +4774,10 @@
     function setGoonerGalleryCategory(value) {
       const category = GOONER_GALLERY_CATEGORIES[String(value || "").toLowerCase()] ? String(value || "").toLowerCase() : "captions";
       if (category === goonerGalleryCategoryKey()) return;
-      updateSettings({ goonerGalleryCategory: category });
+      updateSettings({
+        goonerGalleryCategory: category,
+        goonerGallerySubreddits: categorySubreddits(category)
+      });
       resetGoonerFeedCursors();
       if (localRedditeryCooldownTimer) {
         window.clearInterval(localRedditeryCooldownTimer);
@@ -4744,6 +4792,62 @@
       }
     }
 
+    function renderRedditPagePicker(container, scope = "gallery") {
+      if (!container) return;
+      const isAuto = scope === "auto";
+      const selected = new Set(redditSelectionForScope(isAuto ? "auto" : "gallery"));
+      const disabled = isAuto
+        ? (!redditeryAutoPopupControlAllowed() || autoPopupSourceKey() !== "reddit")
+        : !domLinkControlsAllowed();
+      const categoryKey = isAuto ? autoPopupRedditCategoryKey() : goonerGalleryCategoryKey();
+      container.innerHTML = GOONER_REDDIT_PAGES.map((page) => {
+        const checked = selected.has(page.subreddit) ? " checked" : "";
+        const disabledAttr = disabled ? " disabled" : "";
+        const categoryLabel = goonerGalleryCategoryLabel(page.category);
+        const presetClass = page.category === categoryKey || categoryKey === "mixed" ? " in-preset" : "";
+        return `
+          <label class="reddit-page-option${presetClass}">
+            <input type="checkbox" data-reddit-page-scope="${scope}" value="${escapeHtml(page.subreddit)}"${checked}${disabledAttr}>
+            <span>
+              <strong>${escapeHtml(page.label)}</strong>
+              <small>${escapeHtml(categoryLabel)}</small>
+            </span>
+          </label>
+        `;
+      }).join("");
+      container.classList.toggle("disabled", disabled);
+    }
+
+    function syncRedditPagePickers() {
+      renderRedditPagePicker(els.goonerGallerySourcePicker, "gallery");
+      renderRedditPagePicker(els.redditeryAutoPopupSourcePicker, "auto");
+      renderRedditPagePicker(els.soloRedditerySourcePicker, "auto");
+    }
+
+    function handleRedditPagePickerChange(event, scope = "gallery") {
+      const input = event.target.closest("input[data-reddit-page-scope]");
+      if (!input) return;
+      const container = input.closest(".reddit-page-picker");
+      if (!container) return;
+      const selected = [...container.querySelectorAll("input[data-reddit-page-scope]:checked")]
+        .map((item) => item.value);
+      if (scope === "auto") {
+        resetAutoPopupFeedCursors();
+        updateSettings({ redditeryAutoPopupSubreddits: normalizeRedditPageSelection(selected) });
+        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        else updateRedditeryAutoPopupStatus();
+        return;
+      }
+      updateSettings({ goonerGallerySubreddits: normalizeRedditPageSelection(selected) });
+      resetGoonerFeedCursors();
+      renderRedditeryGallery();
+      updateRedditeryRandomButton();
+      updateRedditeryAutoPopupStatus();
+      if (els.sideDistractionStatus) {
+        els.sideDistractionStatus.textContent = `${redditSelectionLabel("gallery")} selected. Press Random Recent to load images.`;
+      }
+    }
+
     function syncGoonerGalleryCategoryControls() {
       [els.goonerGalleryCategory, els.soloGoonerGalleryCategory].forEach((select) => {
         if (!select || document.activeElement === select) return;
@@ -4754,6 +4858,7 @@
         const soloAllowed = (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)) || ["solitaire", "memoryMatch"].includes(state.screen);
         els.soloGoonerGalleryCategory.disabled = !soloAllowed;
       }
+      syncRedditPagePickers();
     }
 
     function syncAutoPopupSourceControls() {
@@ -4772,6 +4877,7 @@
       if (els.redditeryAutoPopupSource) els.redditeryAutoPopupSource.disabled = !domAllowed;
       if (els.redditeryAutoPopupCategory) els.redditeryAutoPopupCategory.disabled = !domAllowed || source !== "reddit";
       if (els.redditeryAutoPopupCategoryRow) els.redditeryAutoPopupCategoryRow.classList.toggle("hidden", source !== "reddit");
+      if (els.redditeryAutoPopupSourcePicker) els.redditeryAutoPopupSourcePicker.classList.toggle("hidden", source !== "reddit");
       if (els.booruAutoPopupTagRow) els.booruAutoPopupTagRow.classList.toggle("hidden", source !== "booru");
       if (els.autoDanbooruTagInput) {
         els.autoDanbooruTagInput.disabled = !domAllowed || source !== "booru";
@@ -4788,6 +4894,7 @@
       if (els.soloRedditeryAutoPopupSource) els.soloRedditeryAutoPopupSource.disabled = !soloAllowed;
       if (els.soloRedditeryAutoPopupCategory) els.soloRedditeryAutoPopupCategory.disabled = !soloAllowed || source !== "reddit";
       if (els.soloRedditeryAutoPopupCategoryRow) els.soloRedditeryAutoPopupCategoryRow.classList.toggle("hidden", source !== "reddit");
+      if (els.soloRedditerySourcePicker) els.soloRedditerySourcePicker.classList.toggle("hidden", source !== "reddit");
       if (els.soloBooruAutoPopupTagRow) els.soloBooruAutoPopupTagRow.classList.toggle("hidden", source !== "booru");
       if (els.soloBooruAutoPopupVideoRow) els.soloBooruAutoPopupVideoRow.classList.toggle("hidden", source !== "booru");
       if (els.soloBooruDateFilterRow) els.soloBooruDateFilterRow.classList.toggle("hidden", source !== "booru");
@@ -4801,11 +4908,12 @@
           els.soloDanbooruTagInput.value = localDanbooruCustomTag || "";
         }
       }
+      syncRedditPagePickers();
     }
 
     function goonerGallerySourceLabel(source = goonerGallerySource()) {
       const sourceLabel = source === "redditery" ? "Redditery" : "Peekstr";
-      return `${goonerGalleryCategoryLabel()} ${sourceLabel}`;
+      return `${redditSelectionLabel("gallery")} ${sourceLabel}`;
     }
 
     function shuffledGalleryItems(items) {
@@ -5004,10 +5112,11 @@
       const source = goonerGallerySource();
       const auto = Boolean(options && options.auto);
       const categoryKey = options && options.category ? String(options.category).toLowerCase() : goonerGalleryCategoryKey();
+      const subredditPool = auto ? redditSelectionForScope("auto") : redditSelectionForScope("gallery");
       const after = auto ? localRedditeryAutoPopupAfter : localRedditeryAfter;
       const activeSubreddit = auto
-        ? pickGoonerSubreddit(localRedditeryAutoPopupSubreddit, categoryKey)
-        : pickGoonerSubreddit(localRedditeryActiveSubreddit, categoryKey);
+        ? pickGoonerSubreddit(localRedditeryAutoPopupSubreddit, categoryKey, subredditPool)
+        : pickGoonerSubreddit(localRedditeryActiveSubreddit, categoryKey, subredditPool);
       const nextPage = after ? 0 : Math.min(30, Math.max(0, localRedditeryPage + 1));
       const params = new URLSearchParams({
         source,
@@ -5291,7 +5400,7 @@
       }
       const sourceLabel = autoPopupSourceKey() === "booru"
         ? `Booru search, ${booruDateFilterLabel()}`
-        : `${goonerGalleryCategoryLabel(autoPopupRedditCategoryKey())} Reddit`;
+        : `${redditSelectionLabel("auto")} Reddit`;
       const videoNote = autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && state.settings.booruAutoPopupFullVideos
         ? " Videos can play full length."
         : "";
@@ -19687,6 +19796,13 @@
       if (!select) return;
       select.addEventListener("change", () => setGoonerGalleryCategory(select.value));
     });
+    if (els.goonerGallerySourcePicker) {
+      els.goonerGallerySourcePicker.addEventListener("change", (event) => handleRedditPagePickerChange(event, "gallery"));
+    }
+    [els.redditeryAutoPopupSourcePicker, els.soloRedditerySourcePicker].forEach((picker) => {
+      if (!picker) return;
+      picker.addEventListener("change", (event) => handleRedditPagePickerChange(event, "auto"));
+    });
     if (els.redditeryAutoPopupToggle) {
       els.redditeryAutoPopupToggle.addEventListener("click", () => {
         setRedditeryAutoPopupEnabled(!state.settings.redditeryAutoPopup);
@@ -19705,7 +19821,10 @@
       select.addEventListener("change", () => {
         const category = GOONER_GALLERY_CATEGORIES[String(select.value || "").toLowerCase()] ? String(select.value || "").toLowerCase() : "captions";
         resetAutoPopupFeedCursors();
-        updateSettings({ redditeryAutoPopupCategory: category });
+        updateSettings({
+          redditeryAutoPopupCategory: category,
+          redditeryAutoPopupSubreddits: categorySubreddits(category)
+        });
         if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
       });
     });
