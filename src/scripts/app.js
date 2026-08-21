@@ -115,7 +115,7 @@
         distractionUrl: "",
         distractionMode: "background-both",
         distractionDuration: 15,
-        distractionPopupPlacement: "center",
+        distractionPopupPlacement: "random",
         distractionUntil: 0,
         distractionBackgroundUrl: "",
         distractionBackgroundMode: "background-both",
@@ -2881,7 +2881,7 @@
       state.settings.throneAmount = normalizeBuyIn(Number(state.settings.throneAmount || 5));
       state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
       state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
-      state.settings.distractionPopupPlacement = state.settings.distractionPopupPlacement === "random" ? "random" : "center";
+      state.settings.distractionPopupPlacement = state.settings.distractionPopupPlacement === "center" ? "center" : "random";
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
@@ -5984,6 +5984,7 @@
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
       state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
       state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
+      state.settings.distractionPopupPlacement = state.settings.distractionPopupPlacement === "center" ? "center" : "random";
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
       state.settings.domSeePressureText = Boolean(state.settings.domSeePressureText);
