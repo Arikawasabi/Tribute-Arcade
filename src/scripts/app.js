@@ -4999,6 +4999,7 @@
 
     function renderRedditPagePicker(container, scope = "gallery") {
       if (!container) return;
+      const previousScrollTop = container.scrollTop;
       const isAuto = scope === "auto";
       const selected = new Set(redditSelectionForScope(isAuto ? "auto" : "gallery"));
       const disabled = isAuto
@@ -5022,6 +5023,10 @@
         `;
       }).join("");
       container.classList.toggle("disabled", disabled);
+      container.scrollTop = previousScrollTop;
+      window.requestAnimationFrame(() => {
+        container.scrollTop = previousScrollTop;
+      });
     }
 
     function syncRedditPagePickers() {
