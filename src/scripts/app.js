@@ -4821,12 +4821,12 @@
     }
 
     const GOONER_REDDIT_PAGES = [
-      { subreddit: "gooninghentai", label: "Gooning Hentai", category: "captions" },
+      { subreddit: "gooninghentai", label: "Gooning Hentai", categories: ["captions", "goonerbait"] },
       { subreddit: "jerkbudshentai", label: "Jerkbuds Hentai", category: "goonerbait" },
       { subreddit: "hentailimitless", label: "Hentai Limitless", category: "goonerbait" },
       { subreddit: "cringegoontards", label: "Cringe Goon Tards", category: "goonerbait" },
       { subreddit: "hentaiigooning", label: "Hentaii Gooning", category: "goonerbait" },
-      { subreddit: "hentaicensore", label: "Hentai Censore", category: "censor" },
+      { subreddit: "hentaicensore", label: "Hentai Censore", categories: ["censor", "goonerbait"] },
       { subreddit: "femboyhentai", label: "Femboy Hentai", category: "femboys" },
       { subreddit: "furrygoonpit", label: "Furry Goon Pit", category: "furry" },
       { subreddit: "bootyhentai", label: "Booty Hentai", category: "butt" },
@@ -4860,12 +4860,19 @@
 
     GOONER_GALLERY_CATEGORIES.mixed = {
       label: "Mixed",
-      subreddits: Object.values(GOONER_GALLERY_CATEGORIES).flatMap((category) => category.subreddits)
+      subreddits: [...new Set(Object.values(GOONER_GALLERY_CATEGORIES).flatMap((category) => category.subreddits))]
     };
+
+    function redditPageCategories(page = {}) {
+      const rawCategories = Array.isArray(page.categories) ? page.categories : [page.category];
+      return rawCategories
+        .map((category) => String(category || "").toLowerCase().trim())
+        .filter(Boolean);
+    }
 
     function redditSubredditsForCategory(categoryKey = "captions") {
       return GOONER_REDDIT_PAGES
-        .filter((page) => page.category === categoryKey)
+        .filter((page) => redditPageCategories(page).includes(categoryKey))
         .map((page) => page.subreddit);
     }
 
@@ -5001,8 +5008,9 @@
       container.innerHTML = GOONER_REDDIT_PAGES.map((page) => {
         const checked = selected.has(page.subreddit) ? " checked" : "";
         const disabledAttr = disabled ? " disabled" : "";
-        const categoryLabel = goonerGalleryCategoryLabel(page.category);
-        const presetClass = page.category === categoryKey || categoryKey === "mixed" ? " in-preset" : "";
+        const pageCategories = redditPageCategories(page);
+        const categoryLabel = pageCategories.map((category) => goonerGalleryCategoryLabel(category)).join(" / ");
+        const presetClass = categoryKey === "mixed" || pageCategories.includes(categoryKey) ? " in-preset" : "";
         return `
           <label class="reddit-page-option${presetClass}">
             <input type="checkbox" data-reddit-page-scope="${scope}" value="${escapeHtml(page.subreddit)}"${checked}${disabledAttr}>
