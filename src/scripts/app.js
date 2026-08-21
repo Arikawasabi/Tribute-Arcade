@@ -3710,9 +3710,11 @@
       if (els.soloBooruDateFilter) els.soloBooruDateFilter.disabled = !soloAutoPopupControlsAllowed() || autoPopupSourceKey() !== "booru" || localDanbooruGalleryLoading;
       if (els.danbooruTagInput) els.danbooruTagInput.disabled = !canUseGallery || localDanbooruGalleryLoading || localDanbooruSuggesting;
       syncDanbooruVideoToggleButtons(canUseGallery);
-      if (els.autoPopupDomPreviewRow) els.autoPopupDomPreviewRow.classList.toggle("hidden", !domLinkControlsAllowed());
       if (els.autoPopupDomPreviewInput) {
-        els.autoPopupDomPreviewInput.checked = Boolean(state.settings.autoPopupDomPreview);
+        els.autoPopupDomPreviewInput.classList.toggle("hidden", !domLinkControlsAllowed());
+        els.autoPopupDomPreviewInput.classList.toggle("active", Boolean(state.settings.autoPopupDomPreview));
+        els.autoPopupDomPreviewInput.setAttribute("aria-pressed", state.settings.autoPopupDomPreview ? "true" : "false");
+        els.autoPopupDomPreviewInput.textContent = state.settings.autoPopupDomPreview ? "Hide Dom Preview" : "Show Dom Preview";
         els.autoPopupDomPreviewInput.disabled = !domLinkControlsAllowed();
       }
       if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = !canUseGallery || localDanbooruGalleryLoading;
@@ -4497,6 +4499,8 @@
           url: normalized,
           mediaType,
           previewUrl,
+          source: String(media.source || "").toLowerCase(),
+          sourceLabel: media.sourceLabel || "",
           savedAt: Date.now()
         }
       ];
@@ -4562,6 +4566,8 @@
         url,
         mediaType: mediaTypeForDistraction(url, media.mediaType || item.mediaType),
         previewUrl: normalizeDistractionSource(item.previewUrl || media.previewUrl || ""),
+        source: String(item.source || item.subreddit || "").toLowerCase(),
+        sourceLabel: goonerPageLabelForSubreddit(item.source || item.subreddit) || item.sourceLabel || "",
         savedAt: Date.now()
       };
       renderAutoPopupPreview();
@@ -4578,7 +4584,10 @@
           : `<img src="${escapeHtml(url)}" alt="">`;
       }
       if (els.autoPopupPreviewModalText) {
-        els.autoPopupPreviewModalText.textContent = "This preview is only on your screen. Clearing it will not remove the sub popup.";
+        const source = localAutoPopupPreview.sourceLabel || (localAutoPopupPreview.source ? `r/${localAutoPopupPreview.source}` : "");
+        els.autoPopupPreviewModalText.textContent = source
+          ? `From ${source}. This preview is only on your screen. Hiding it will not remove the sub popup.`
+          : "This preview is only on your screen. Hiding it will not remove the sub popup.";
       }
       els.autoPopupPreviewModal.classList.remove("hidden");
     }
@@ -4590,6 +4599,9 @@
 
     function clearAutoPopupPreview() {
       localAutoPopupPreview = null;
+      if (domLinkControlsAllowed() && state.settings.autoPopupDomPreview) {
+        updateSettings({ autoPopupDomPreview: false });
+      }
       closeAutoPopupPreviewModal();
       renderAutoPopupPreview();
     }
@@ -4918,6 +4930,11 @@
         .filter(([key]) => key !== "mixed")
         .find(([, category]) => category.subreddits.includes(normalized));
       return match ? match[0] : "captions";
+    }
+
+    function goonerPageLabelForSubreddit(subreddit = "") {
+      const normalized = String(subreddit || "").toLowerCase();
+      return GOONER_REDDIT_PAGES.find((page) => page.subreddit === normalized)?.label || "";
     }
 
     function randomSnapCategoryKey(previous = "", repeatChance = 0.36) {
@@ -5332,7 +5349,13 @@
       }
       if (!response.ok) throw new Error(data.error || `${goonerGallerySourceLabel(source)} gallery failed.`);
       const items = Array.isArray(data.items)
-        ? shuffledGalleryItems(data.items.filter((item) => item && normalizeDistractionSource(item.url))).slice(0, updateGallery ? 24 : 18)
+        ? shuffledGalleryItems(data.items
+          .filter((item) => item && normalizeDistractionSource(item.url))
+          .map((item) => ({
+            ...item,
+            source: String(item.source || item.subreddit || activeSubreddit || "").toLowerCase(),
+            sourceLabel: goonerPageLabelForSubreddit(item.source || item.subreddit || activeSubreddit)
+          }))).slice(0, updateGallery ? 24 : 18)
         : [];
       if (!items.length) {
         if (!auto) localRedditeryReachedEnd = true;
@@ -19947,8 +19970,8 @@
       });
     }
     if (els.autoPopupDomPreviewInput) {
-      els.autoPopupDomPreviewInput.addEventListener("change", () => {
-        setAutoPopupDomPreview(els.autoPopupDomPreviewInput.checked);
+      els.autoPopupDomPreviewInput.addEventListener("click", () => {
+        setAutoPopupDomPreview(!state.settings.autoPopupDomPreview);
       });
     }
     if (els.soloDanbooruIncludeVideos) {

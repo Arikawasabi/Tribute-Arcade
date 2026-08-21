@@ -6900,9 +6900,9 @@
       left: 16px;
       bottom: 16px;
       z-index: 58;
-      width: clamp(74px, 9vw, 112px);
-      aspect-ratio: 3 / 4;
-      padding: 4px;
+      width: clamp(96px, 12vw, 150px);
+      max-height: min(190px, 28vh);
+      padding: 5px;
       overflow: hidden;
       border: 1px solid rgba(255, 207, 113, 0.58);
       border-radius: 8px;
@@ -6912,10 +6912,13 @@
 
     .auto-popup-preview img,
     .auto-popup-preview video {
-      width: 100%;
-      height: 100%;
+      width: auto;
+      max-width: 100%;
+      height: auto;
+      max-height: calc(min(190px, 28vh) - 10px);
       display: block;
-      object-fit: cover;
+      margin: 0 auto;
+      object-fit: contain;
       border-radius: 5px;
     }
 
@@ -8681,7 +8684,7 @@
         <p class="chooser-line" id="autoPopupPreviewModalText">This preview is only on your screen.</p>
         <div class="distraction-choice-actions">
           <button id="closeAutoPopupPreviewBtn">Close</button>
-          <button id="clearAutoPopupPreviewBtn">Clear For Me</button>
+          <button id="clearAutoPopupPreviewBtn">Hide Preview</button>
           <button id="saveAutoPopupPreviewBtn" class="primary">Save</button>
         </div>
       </div>
@@ -8753,10 +8756,7 @@
             </summary>
             <div class="booru-test-panel compact random-popup-panel">
               <button id="redditeryAutoPopupToggle" type="button" class="toggle-button full-width" aria-pressed="false">Auto Sub Popup</button>
-              <label class="settings-row compact-settings-row" id="autoPopupDomPreviewRow">
-                Dom preview
-                <input id="autoPopupDomPreviewInput" type="checkbox">
-              </label>
+              <button id="autoPopupDomPreviewInput" type="button" class="toggle-button full-width" aria-pressed="false">Show Dom Preview</button>
               <label class="field-label">
                 Popup source
                 <select id="redditeryAutoPopupSource">
@@ -12915,9 +12915,11 @@
       if (els.soloBooruDateFilter) els.soloBooruDateFilter.disabled = !soloAutoPopupControlsAllowed() || autoPopupSourceKey() !== "booru" || localDanbooruGalleryLoading;
       if (els.danbooruTagInput) els.danbooruTagInput.disabled = !canUseGallery || localDanbooruGalleryLoading || localDanbooruSuggesting;
       syncDanbooruVideoToggleButtons(canUseGallery);
-      if (els.autoPopupDomPreviewRow) els.autoPopupDomPreviewRow.classList.toggle("hidden", !domLinkControlsAllowed());
       if (els.autoPopupDomPreviewInput) {
-        els.autoPopupDomPreviewInput.checked = Boolean(state.settings.autoPopupDomPreview);
+        els.autoPopupDomPreviewInput.classList.toggle("hidden", !domLinkControlsAllowed());
+        els.autoPopupDomPreviewInput.classList.toggle("active", Boolean(state.settings.autoPopupDomPreview));
+        els.autoPopupDomPreviewInput.setAttribute("aria-pressed", state.settings.autoPopupDomPreview ? "true" : "false");
+        els.autoPopupDomPreviewInput.textContent = state.settings.autoPopupDomPreview ? "Hide Dom Preview" : "Show Dom Preview";
         els.autoPopupDomPreviewInput.disabled = !domLinkControlsAllowed();
       }
       if (els.danbooruLoadBtn) els.danbooruLoadBtn.disabled = !canUseGallery || localDanbooruGalleryLoading;
@@ -13702,6 +13704,8 @@
           url: normalized,
           mediaType,
           previewUrl,
+          source: String(media.source || "").toLowerCase(),
+          sourceLabel: media.sourceLabel || "",
           savedAt: Date.now()
         }
       ];
@@ -13767,6 +13771,8 @@
         url,
         mediaType: mediaTypeForDistraction(url, media.mediaType || item.mediaType),
         previewUrl: normalizeDistractionSource(item.previewUrl || media.previewUrl || ""),
+        source: String(item.source || item.subreddit || "").toLowerCase(),
+        sourceLabel: goonerPageLabelForSubreddit(item.source || item.subreddit) || item.sourceLabel || "",
         savedAt: Date.now()
       };
       renderAutoPopupPreview();
@@ -13783,7 +13789,10 @@
           : `<img src="${escapeHtml(url)}" alt="">`;
       }
       if (els.autoPopupPreviewModalText) {
-        els.autoPopupPreviewModalText.textContent = "This preview is only on your screen. Clearing it will not remove the sub popup.";
+        const source = localAutoPopupPreview.sourceLabel || (localAutoPopupPreview.source ? `r/${localAutoPopupPreview.source}` : "");
+        els.autoPopupPreviewModalText.textContent = source
+          ? `From ${source}. This preview is only on your screen. Hiding it will not remove the sub popup.`
+          : "This preview is only on your screen. Hiding it will not remove the sub popup.";
       }
       els.autoPopupPreviewModal.classList.remove("hidden");
     }
@@ -13795,6 +13804,9 @@
 
     function clearAutoPopupPreview() {
       localAutoPopupPreview = null;
+      if (domLinkControlsAllowed() && state.settings.autoPopupDomPreview) {
+        updateSettings({ autoPopupDomPreview: false });
+      }
       closeAutoPopupPreviewModal();
       renderAutoPopupPreview();
     }
@@ -14123,6 +14135,11 @@
         .filter(([key]) => key !== "mixed")
         .find(([, category]) => category.subreddits.includes(normalized));
       return match ? match[0] : "captions";
+    }
+
+    function goonerPageLabelForSubreddit(subreddit = "") {
+      const normalized = String(subreddit || "").toLowerCase();
+      return GOONER_REDDIT_PAGES.find((page) => page.subreddit === normalized)?.label || "";
     }
 
     function randomSnapCategoryKey(previous = "", repeatChance = 0.36) {
@@ -14537,7 +14554,13 @@
       }
       if (!response.ok) throw new Error(data.error || `${goonerGallerySourceLabel(source)} gallery failed.`);
       const items = Array.isArray(data.items)
-        ? shuffledGalleryItems(data.items.filter((item) => item && normalizeDistractionSource(item.url))).slice(0, updateGallery ? 24 : 18)
+        ? shuffledGalleryItems(data.items
+          .filter((item) => item && normalizeDistractionSource(item.url))
+          .map((item) => ({
+            ...item,
+            source: String(item.source || item.subreddit || activeSubreddit || "").toLowerCase(),
+            sourceLabel: goonerPageLabelForSubreddit(item.source || item.subreddit || activeSubreddit)
+          }))).slice(0, updateGallery ? 24 : 18)
         : [];
       if (!items.length) {
         if (!auto) localRedditeryReachedEnd = true;
@@ -29152,8 +29175,8 @@
       });
     }
     if (els.autoPopupDomPreviewInput) {
-      els.autoPopupDomPreviewInput.addEventListener("change", () => {
-        setAutoPopupDomPreview(els.autoPopupDomPreviewInput.checked);
+      els.autoPopupDomPreviewInput.addEventListener("click", () => {
+        setAutoPopupDomPreview(!state.settings.autoPopupDomPreview);
       });
     }
     if (els.soloDanbooruIncludeVideos) {

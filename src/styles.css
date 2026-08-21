@@ -6893,9 +6893,9 @@
       left: 16px;
       bottom: 16px;
       z-index: 58;
-      width: clamp(74px, 9vw, 112px);
-      aspect-ratio: 3 / 4;
-      padding: 4px;
+      width: clamp(96px, 12vw, 150px);
+      max-height: min(190px, 28vh);
+      padding: 5px;
       overflow: hidden;
       border: 1px solid rgba(255, 207, 113, 0.58);
       border-radius: 8px;
@@ -6905,10 +6905,13 @@
 
     .auto-popup-preview img,
     .auto-popup-preview video {
-      width: 100%;
-      height: 100%;
+      width: auto;
+      max-width: 100%;
+      height: auto;
+      max-height: calc(min(190px, 28vh) - 10px);
       display: block;
-      object-fit: cover;
+      margin: 0 auto;
+      object-fit: contain;
       border-radius: 5px;
     }
 
