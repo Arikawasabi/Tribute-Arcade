@@ -447,6 +447,8 @@
       autoDanbooruTagInput: document.getElementById("autoDanbooruTagInput"),
       autoDanbooruSuggestions: document.getElementById("autoDanbooruSuggestions"),
       booruAutoPopupVideoRow: document.getElementById("booruAutoPopupVideoRow"),
+      autoDanbooruIncludeVideos: document.getElementById("autoDanbooruIncludeVideos"),
+      autoDanbooruUnmuteVideos: document.getElementById("autoDanbooruUnmuteVideos"),
       booruDateFilterRow: document.getElementById("booruDateFilterRow"),
       booruDateFilter: document.getElementById("booruDateFilter"),
       redditeryAutoPopupDuration: document.getElementById("redditeryAutoPopupDuration"),
@@ -4442,6 +4444,7 @@
     function syncDanbooruVideoToggleButtons(canUseDomSettings = domLinkControlsAllowed()) {
       const pairs = [
         [els.danbooruIncludeVideos, canUseDomSettings],
+        [els.autoDanbooruIncludeVideos, canUseDomSettings],
         [els.soloDanbooruIncludeVideos, soloAutoPopupControlsAllowed()]
       ];
       pairs.forEach(([button, canUse]) => {
@@ -4452,6 +4455,7 @@
       });
       [
         [els.danbooruUnmuteVideos, canUseDomSettings],
+        [els.autoDanbooruUnmuteVideos, canUseDomSettings],
         [els.soloDanbooruUnmuteVideos, soloAutoPopupControlsAllowed()]
       ].forEach(([button, canUse]) => {
         if (!button) return;
@@ -19485,9 +19489,21 @@
         setDanbooruIncludeVideos(!localDanbooruIncludeVideos);
       });
     }
+    if (els.autoDanbooruIncludeVideos) {
+      els.autoDanbooruIncludeVideos.addEventListener("click", () => {
+        setDanbooruIncludeVideos(!localDanbooruIncludeVideos);
+        updateRedditeryAutoPopupStatus();
+      });
+    }
     if (els.danbooruUnmuteVideos) {
       els.danbooruUnmuteVideos.addEventListener("click", () => {
         setDanbooruUnmuteVideos(!localDanbooruUnmuteVideos);
+      });
+    }
+    if (els.autoDanbooruUnmuteVideos) {
+      els.autoDanbooruUnmuteVideos.addEventListener("click", () => {
+        setDanbooruUnmuteVideos(!localDanbooruUnmuteVideos);
+        updateRedditeryAutoPopupStatus();
       });
     }
     if (els.danbooruFullVideos) {
