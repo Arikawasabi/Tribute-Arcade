@@ -6416,29 +6416,34 @@
       padding-right: 4px;
     }
 
-    .utility-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      padding-bottom: 2px;
-      background: rgba(13, 8, 11, 0.94);
-    }
-
-    .utility-tab {
-      min-height: 38px;
-    }
-
-    .utility-tab.active {
-      border-color: rgba(239, 199, 94, 0.55);
-      background: linear-gradient(135deg, rgba(241, 201, 101, 0.2), rgba(255, 79, 134, 0.13));
-    }
-
     .side-utility-settings {
       display: grid;
       gap: 10px;
+    }
+
+    #sideToolsPane {
+      gap: 9px;
+    }
+
+    #sideToolsPane .settings-pane {
+      gap: 8px;
+    }
+
+    #sideToolsPane .panel-title {
+      font-size: 1rem;
+      margin-bottom: 0;
+    }
+
+    #sideToolsPane .field-label,
+    #sideToolsPane .settings-row {
+      gap: 5px;
+      font-size: 0.9rem;
+    }
+
+    #sideToolsPane button,
+    #sideToolsPane input,
+    #sideToolsPane select {
+      min-height: 38px;
     }
 
     .distraction-choice-preview {
@@ -6787,6 +6792,16 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
+    }
+
+    .pressure-toggle-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .compact-settings.pressure-toggle-grid {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
 
     .reddit-page-picker {
@@ -8386,19 +8401,10 @@
       </div>
       <div class="panel-body">
         <p class="chooser-line">When the sub loses pieces, guesses, ships, boards, or rounds, the arcade can ramp pressure effects. These always play for the sub. Choose what the dom should see too.</p>
-        <div class="settings-pane compact-settings">
-          <label class="settings-row">
-            Banners
-            <input id="promptPressureBanners" type="checkbox">
-          </label>
-          <label class="settings-row">
-            Text
-            <input id="promptPressureText" type="checkbox">
-          </label>
-          <label class="settings-row">
-            Spiral and pulse
-            <input id="promptPressurePulse" type="checkbox">
-          </label>
+        <div class="settings-pane compact-settings pressure-toggle-grid">
+          <button id="promptPressureBanners" type="button" class="toggle-button" aria-pressed="false">Banners</button>
+          <button id="promptPressureText" type="button" class="toggle-button" aria-pressed="false">Text</button>
+          <button id="promptPressurePulse" type="button" class="toggle-button" aria-pressed="false">Spiral and Pulse</button>
         </div>
         <div class="setup-actions">
           <button id="savePressurePromptBtn" class="primary">Save</button>
@@ -8715,12 +8721,8 @@
         <div class="ledger-entries" id="sideLedgerEntries"></div>
       </section>
       <section class="side-pane hidden" id="sideToolsPane">
-        <div class="utility-tabs" id="utilityTabs">
-          <button class="utility-tab active" data-utility-tab="tools">Tools</button>
-          <button class="utility-tab" data-utility-tab="settings">Settings</button>
-        </div>
         <div class="settings-pane" id="domToolsPane">
-          <h3 class="panel-title">Dom Tools</h3>
+          <h3 class="panel-title">Quick Tools</h3>
           <label class="field-label">
             Link for sub
             <input id="sideDomLinkInput" type="url" placeholder="https://example.com">
@@ -8732,6 +8734,61 @@
           <input id="sideDistractionMode" type="hidden" value="overlay-sub">
           <input id="sideDistractionDuration" type="hidden" value="15">
 
+        </div>
+        <div class="side-utility-settings" id="sideSettingsPane">
+          <div class="settings-pane" id="domSettingsPane">
+            <h3 class="panel-title">Dom Settings</h3>
+            <label class="settings-row">
+              Dom advantages
+              <select id="domAdvantageMode">
+                <option value="dom">Enabled for dom</option>
+                <option value="off">Disabled globally</option>
+                <option value="both">Enabled for both players</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              Sub bet control
+              <select id="domSubBetControl">
+                <option value="editable">Sub can change bet</option>
+                <option value="locked">Use default only</option>
+              </select>
+            </label>
+            <div class="pressure-toggle-grid">
+              <button id="domSeePressureBanners" type="button" class="toggle-button full-width" aria-pressed="false">See Pressure Banners</button>
+              <button id="domSeePressureText" type="button" class="toggle-button full-width" aria-pressed="false">See Pressure Text</button>
+              <button id="domSeePressurePulse" type="button" class="toggle-button full-width" aria-pressed="false">See Spiral and Pulse</button>
+            </div>
+            <button id="clearPopupsBtn" type="button">Clear Popups</button>
+            <label class="settings-row" id="queenPowerModeRow">
+              Queen powers
+              <select id="queenPowerMode">
+                <option value="tiered">Unlock by tier</option>
+                <option value="always">Always enabled</option>
+                <option value="off">Disabled</option>
+              </select>
+            </label>
+            <label class="settings-row" id="queenPowerUsersRow">
+              Queen power users
+              <select id="queenPowerUsers">
+                <option value="dom">Dom only</option>
+                <option value="both">Both players</option>
+              </select>
+            </label>
+          </div>
+          <div class="settings-pane hidden" id="subSettingsPane">
+            <h3 class="panel-title">Sub Settings</h3>
+            <label class="settings-row">
+              Default bet
+              <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
+            </label>
+            <label class="settings-row">
+              Link warning
+              <select id="subLinkWarningMode">
+                <option value="auto">Open without asking</option>
+                <option value="warn">Ask before opening</option>
+              </select>
+            </label>
+          </div>
         </div>
         <div class="settings-pane hidden" id="sideGalleryPane">
           <h3 class="panel-title">Image Gallery</h3>
@@ -8818,7 +8875,8 @@
               </label>
               <p class="chooser-line" id="redditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up for the sub on the selected timer.</p>
             </div>
-          </details>          <details class="gallery-collapse booru-test-panel">
+          </details>
+          <details class="gallery-collapse booru-test-panel">
             <summary>
               <span>Booru gallery</span>
             </summary>
@@ -8901,68 +8959,6 @@
             </summary>
             <div class="distraction-gallery" id="distractionVideoGallery"></div>
           </details>
-        </div>
-        <div class="side-utility-settings hidden" id="sideSettingsPane">
-          <div class="settings-pane" id="domSettingsPane">
-            <h3 class="panel-title">Dom Settings</h3>
-            <label class="settings-row">
-              Dom advantages
-              <select id="domAdvantageMode">
-                <option value="dom">Enabled for dom</option>
-                <option value="off">Disabled globally</option>
-                <option value="both">Enabled for both players</option>
-              </select>
-            </label>
-            <label class="settings-row">
-              Sub bet control
-              <select id="domSubBetControl">
-                <option value="editable">Sub can change bet</option>
-                <option value="locked">Use default only</option>
-              </select>
-            </label>
-            <label class="settings-row">
-              See pressure banners
-              <input id="domSeePressureBanners" type="checkbox">
-            </label>
-            <label class="settings-row">
-              See pressure text
-              <input id="domSeePressureText" type="checkbox">
-            </label>
-            <label class="settings-row">
-              See spiral and pulse
-              <input id="domSeePressurePulse" type="checkbox">
-            </label>
-            <button id="clearPopupsBtn" type="button">Clear Popups</button>
-            <label class="settings-row" id="queenPowerModeRow">
-              Queen powers
-              <select id="queenPowerMode">
-                <option value="tiered">Unlock by tier</option>
-                <option value="always">Always enabled</option>
-                <option value="off">Disabled</option>
-              </select>
-            </label>
-            <label class="settings-row" id="queenPowerUsersRow">
-              Queen power users
-              <select id="queenPowerUsers">
-                <option value="dom">Dom only</option>
-                <option value="both">Both players</option>
-              </select>
-            </label>
-          </div>
-          <div class="settings-pane hidden" id="subSettingsPane">
-            <h3 class="panel-title">Sub Settings</h3>
-            <label class="settings-row">
-              Default bet
-              <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
-            </label>
-            <label class="settings-row">
-              Link warning
-              <select id="subLinkWarningMode">
-                <option value="auto">Open without asking</option>
-                <option value="warn">Ask before opening</option>
-              </select>
-            </label>
-          </div>
         </div>
       </section>
     </div>
@@ -9310,8 +9306,6 @@
         activeTab: "dom",
         activeGameTab: "main",
         activeSideTab: "chat",
-        activeUtilityTab: "tools",
-        activeUtilityTabManual: false,
         sideOpen: false,
         domAdvantageMode: "dom",
         subDefaultBet: 10,
@@ -9594,7 +9588,6 @@
       sideToggleBtn: document.getElementById("sideToggleBtn"),
       sideRestoreTabs: document.querySelectorAll(".side-restore-tab"),
       sideTabs: document.querySelectorAll(".side-tab"),
-      utilityTabs: document.querySelectorAll(".utility-tab"),
       sideToolsTab: document.getElementById("sideToolsTab"),
       sideChatPane: document.getElementById("sideChatPane"),
       sideLedgerPane: document.getElementById("sideLedgerPane"),
@@ -11883,6 +11876,22 @@
       return Boolean(tax && tax.active && Number(tax.expiresAt || 0) > Date.now());
     }
 
+    function setToggleButtonState(button, active) {
+      if (!button) return;
+      button.classList.toggle("active", Boolean(active));
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+
+    function toggleButtonActive(button) {
+      return Boolean(button && button.getAttribute("aria-pressed") === "true");
+    }
+
+    function togglePressureSetting(key, button) {
+      const next = !Boolean(state.settings[key]);
+      setToggleButtonState(button, next);
+      updateSettings({ [key]: next });
+    }
+
     function renderSettings() {
       const role = localOnlineRole();
       const showDomSettings = !state.online.room || !role || role === DOM;
@@ -11890,9 +11899,9 @@
       if (els.domSettingsPane) els.domSettingsPane.classList.toggle("hidden", !showDomSettings);
       if (els.subSettingsPane) els.subSettingsPane.classList.toggle("hidden", !showSubSettings);
       if (els.domAdvantageMode) els.domAdvantageMode.value = state.settings.domAdvantageMode;
-      if (els.domSeePressureBanners) els.domSeePressureBanners.checked = Boolean(state.settings.domSeePressureBanners);
-      if (els.domSeePressureText) els.domSeePressureText.checked = Boolean(state.settings.domSeePressureText);
-      if (els.domSeePressurePulse) els.domSeePressurePulse.checked = Boolean(state.settings.domSeePressurePulse);
+      setToggleButtonState(els.domSeePressureBanners, state.settings.domSeePressureBanners);
+      setToggleButtonState(els.domSeePressureText, state.settings.domSeePressureText);
+      setToggleButtonState(els.domSeePressurePulse, state.settings.domSeePressurePulse);
       if (els.domSubBetControl) els.domSubBetControl.value = state.settings.subBetControl === "locked" ? "locked" : "editable";
       if (els.subDefaultBetInput) els.subDefaultBetInput.value = state.settings.subDefaultBet;
       if (els.subLinkWarningMode) els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "auto";
@@ -12739,17 +12748,17 @@
       const show = pressureViewPromptAllowed();
       els.pressureViewPromptModal.classList.toggle("hidden", !show);
       if (!show) return;
-      if (els.promptPressureBanners) els.promptPressureBanners.checked = Boolean(state.settings.domSeePressureBanners);
-      if (els.promptPressureText) els.promptPressureText.checked = Boolean(state.settings.domSeePressureText);
-      if (els.promptPressurePulse) els.promptPressurePulse.checked = Boolean(state.settings.domSeePressurePulse);
+      setToggleButtonState(els.promptPressureBanners, state.settings.domSeePressureBanners);
+      setToggleButtonState(els.promptPressureText, state.settings.domSeePressureText);
+      setToggleButtonState(els.promptPressurePulse, state.settings.domSeePressurePulse);
     }
 
     function savePressureViewPrompt() {
       updateSettings({
         pressureViewPromptSeen: true,
-        domSeePressureBanners: Boolean(els.promptPressureBanners && els.promptPressureBanners.checked),
-        domSeePressureText: Boolean(els.promptPressureText && els.promptPressureText.checked),
-        domSeePressurePulse: Boolean(els.promptPressurePulse && els.promptPressurePulse.checked)
+        domSeePressureBanners: toggleButtonActive(els.promptPressureBanners),
+        domSeePressureText: toggleButtonActive(els.promptPressureText),
+        domSeePressurePulse: toggleButtonActive(els.promptPressurePulse)
       });
       if (els.pressureViewPromptModal) els.pressureViewPromptModal.classList.add("hidden");
     }
@@ -12768,7 +12777,7 @@
       const canOpenSettings = sideSettingsAllowed();
       const canOpenTools = domLinkControlsAllowed();
       const canOpenGallery = galleryControlsAllowed();
-      const canOpenUtility = canOpenSettings || canOpenTools || canOpenGallery;
+      const canOpenUtility = canOpenSettings || canOpenTools;
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
       const canUseGallery = galleryControlsAllowed();
@@ -12784,26 +12793,6 @@
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
-      if (activeTab === "tools" && state.settings.activeUtilityTab === "gallery") {
-        state.settings.activeUtilityTab = canOpenTools ? "tools" : "settings";
-        state.settings.activeUtilityTabManual = false;
-      }
-      if (state.settings.activeUtilityTab === "settings" && !canOpenSettings) {
-        state.settings.activeUtilityTab = "tools";
-        state.settings.activeUtilityTabManual = false;
-      }
-      if (state.settings.activeUtilityTab === "tools" && !canOpenTools && canOpenSettings) {
-        state.settings.activeUtilityTab = "settings";
-        state.settings.activeUtilityTabManual = false;
-      }
-      if (state.settings.activeUtilityTab === "gallery" && !canOpenGallery) {
-        state.settings.activeUtilityTab = canOpenTools ? "tools" : "settings";
-        state.settings.activeUtilityTabManual = false;
-      }
-      if (state.settings.activeUtilityTab === "settings" && canOpenTools && state.settings.activeUtilityTabManual !== true) {
-        state.settings.activeUtilityTab = "tools";
-      }
-      const activeUtilityTab = state.settings.activeUtilityTab || "tools";
       const panelOpen = state.settings.sideOpen !== false;
       if (panelOpen && activeTab === "chat") markChatSeen();
       const easterEgg = activeNameEasterEgg();
@@ -12837,18 +12826,9 @@
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
       els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");
       els.sideToolsPane.classList.toggle("hidden", !((activeTab === "tools" && canOpenUtility) || (activeTab === "gallery" && canOpenGallery)));
-      if (els.utilityTabs && els.utilityTabs.length) {
-        els.utilityTabs.forEach((button) => button.closest(".utility-tabs")?.classList.toggle("hidden", activeTab === "gallery"));
-      }
-      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "settings" || !canOpenSettings);
-      if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "tools" || !canOpenTools);
+      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenSettings);
+      if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenTools);
       if (els.sideGalleryPane) els.sideGalleryPane.classList.toggle("hidden", activeTab !== "gallery" || !canOpenGallery);
-      els.utilityTabs.forEach((button) => {
-        const tab = button.dataset.utilityTab || "tools";
-        const visible = tab === "settings" ? canOpenSettings : (tab === "gallery" ? canOpenGallery : canOpenTools);
-        button.classList.toggle("hidden", !visible);
-        button.classList.toggle("active", tab === activeUtilityTab);
-      });
       renderLedgerPanel();
       els.chatMessages.innerHTML = (state.chat || []).slice(-80).reverse().map((message) => `
         <div class="chat-message">
@@ -29004,16 +28984,6 @@
         setSideTab(tab);
       });
     });
-    els.utilityTabs.forEach((button) => {
-      button.addEventListener("click", () => {
-        const tab = button.dataset.utilityTab || "tools";
-        if (tab === "settings" && !sideSettingsAllowed()) return;
-        if (tab === "tools" && !domLinkControlsAllowed()) return;
-        state.settings.activeUtilityTab = tab;
-        state.settings.activeUtilityTabManual = true;
-        renderSidePanel();
-      });
-    });
     els.sideLedgerSummary.addEventListener("click", (event) => {
       const button = event.target.closest("[data-ledger-action]");
       if (!button) return;
@@ -29040,9 +29010,12 @@
       if (event.key === "Enter") sendChatMessage();
     });
     if (els.domAdvantageMode) els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
-    if (els.domSeePressureBanners) els.domSeePressureBanners.addEventListener("change", () => updateSettings({ domSeePressureBanners: els.domSeePressureBanners.checked }));
-    if (els.domSeePressureText) els.domSeePressureText.addEventListener("change", () => updateSettings({ domSeePressureText: els.domSeePressureText.checked }));
-    if (els.domSeePressurePulse) els.domSeePressurePulse.addEventListener("change", () => updateSettings({ domSeePressurePulse: els.domSeePressurePulse.checked }));
+    if (els.domSeePressureBanners) els.domSeePressureBanners.addEventListener("click", () => togglePressureSetting("domSeePressureBanners", els.domSeePressureBanners));
+    if (els.domSeePressureText) els.domSeePressureText.addEventListener("click", () => togglePressureSetting("domSeePressureText", els.domSeePressureText));
+    if (els.domSeePressurePulse) els.domSeePressurePulse.addEventListener("click", () => togglePressureSetting("domSeePressurePulse", els.domSeePressurePulse));
+    if (els.promptPressureBanners) els.promptPressureBanners.addEventListener("click", () => setToggleButtonState(els.promptPressureBanners, !toggleButtonActive(els.promptPressureBanners)));
+    if (els.promptPressureText) els.promptPressureText.addEventListener("click", () => setToggleButtonState(els.promptPressureText, !toggleButtonActive(els.promptPressureText)));
+    if (els.promptPressurePulse) els.promptPressurePulse.addEventListener("click", () => setToggleButtonState(els.promptPressurePulse, !toggleButtonActive(els.promptPressurePulse)));
     if (els.clearPopupsBtn) els.clearPopupsBtn.addEventListener("click", clearDistractionPopups);
     if (els.domSubBetControl) els.domSubBetControl.addEventListener("change", () => updateSettings({ subBetControl: els.domSubBetControl.value }));
     if (els.subDefaultBetInput) {

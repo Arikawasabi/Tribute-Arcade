@@ -105,8 +105,6 @@
         activeTab: "dom",
         activeGameTab: "main",
         activeSideTab: "chat",
-        activeUtilityTab: "tools",
-        activeUtilityTabManual: false,
         sideOpen: false,
         domAdvantageMode: "dom",
         subDefaultBet: 10,
@@ -389,7 +387,6 @@
       sideToggleBtn: document.getElementById("sideToggleBtn"),
       sideRestoreTabs: document.querySelectorAll(".side-restore-tab"),
       sideTabs: document.querySelectorAll(".side-tab"),
-      utilityTabs: document.querySelectorAll(".utility-tab"),
       sideToolsTab: document.getElementById("sideToolsTab"),
       sideChatPane: document.getElementById("sideChatPane"),
       sideLedgerPane: document.getElementById("sideLedgerPane"),
@@ -2678,6 +2675,22 @@
       return Boolean(tax && tax.active && Number(tax.expiresAt || 0) > Date.now());
     }
 
+    function setToggleButtonState(button, active) {
+      if (!button) return;
+      button.classList.toggle("active", Boolean(active));
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+
+    function toggleButtonActive(button) {
+      return Boolean(button && button.getAttribute("aria-pressed") === "true");
+    }
+
+    function togglePressureSetting(key, button) {
+      const next = !Boolean(state.settings[key]);
+      setToggleButtonState(button, next);
+      updateSettings({ [key]: next });
+    }
+
     function renderSettings() {
       const role = localOnlineRole();
       const showDomSettings = !state.online.room || !role || role === DOM;
@@ -2685,9 +2698,9 @@
       if (els.domSettingsPane) els.domSettingsPane.classList.toggle("hidden", !showDomSettings);
       if (els.subSettingsPane) els.subSettingsPane.classList.toggle("hidden", !showSubSettings);
       if (els.domAdvantageMode) els.domAdvantageMode.value = state.settings.domAdvantageMode;
-      if (els.domSeePressureBanners) els.domSeePressureBanners.checked = Boolean(state.settings.domSeePressureBanners);
-      if (els.domSeePressureText) els.domSeePressureText.checked = Boolean(state.settings.domSeePressureText);
-      if (els.domSeePressurePulse) els.domSeePressurePulse.checked = Boolean(state.settings.domSeePressurePulse);
+      setToggleButtonState(els.domSeePressureBanners, state.settings.domSeePressureBanners);
+      setToggleButtonState(els.domSeePressureText, state.settings.domSeePressureText);
+      setToggleButtonState(els.domSeePressurePulse, state.settings.domSeePressurePulse);
       if (els.domSubBetControl) els.domSubBetControl.value = state.settings.subBetControl === "locked" ? "locked" : "editable";
       if (els.subDefaultBetInput) els.subDefaultBetInput.value = state.settings.subDefaultBet;
       if (els.subLinkWarningMode) els.subLinkWarningMode.value = state.settings.subLinkWarningMode || "auto";
@@ -3534,17 +3547,17 @@
       const show = pressureViewPromptAllowed();
       els.pressureViewPromptModal.classList.toggle("hidden", !show);
       if (!show) return;
-      if (els.promptPressureBanners) els.promptPressureBanners.checked = Boolean(state.settings.domSeePressureBanners);
-      if (els.promptPressureText) els.promptPressureText.checked = Boolean(state.settings.domSeePressureText);
-      if (els.promptPressurePulse) els.promptPressurePulse.checked = Boolean(state.settings.domSeePressurePulse);
+      setToggleButtonState(els.promptPressureBanners, state.settings.domSeePressureBanners);
+      setToggleButtonState(els.promptPressureText, state.settings.domSeePressureText);
+      setToggleButtonState(els.promptPressurePulse, state.settings.domSeePressurePulse);
     }
 
     function savePressureViewPrompt() {
       updateSettings({
         pressureViewPromptSeen: true,
-        domSeePressureBanners: Boolean(els.promptPressureBanners && els.promptPressureBanners.checked),
-        domSeePressureText: Boolean(els.promptPressureText && els.promptPressureText.checked),
-        domSeePressurePulse: Boolean(els.promptPressurePulse && els.promptPressurePulse.checked)
+        domSeePressureBanners: toggleButtonActive(els.promptPressureBanners),
+        domSeePressureText: toggleButtonActive(els.promptPressureText),
+        domSeePressurePulse: toggleButtonActive(els.promptPressurePulse)
       });
       if (els.pressureViewPromptModal) els.pressureViewPromptModal.classList.add("hidden");
     }
@@ -3563,7 +3576,7 @@
       const canOpenSettings = sideSettingsAllowed();
       const canOpenTools = domLinkControlsAllowed();
       const canOpenGallery = galleryControlsAllowed();
-      const canOpenUtility = canOpenSettings || canOpenTools || canOpenGallery;
+      const canOpenUtility = canOpenSettings || canOpenTools;
       const canUseDomSettings = domLinkControlsAllowed();
       const canUseSubSettings = subSettingsControlsAllowed();
       const canUseGallery = galleryControlsAllowed();
@@ -3579,26 +3592,6 @@
         state.settings.activeSideTab = "chat";
       }
       const activeTab = state.settings.activeSideTab || "chat";
-      if (activeTab === "tools" && state.settings.activeUtilityTab === "gallery") {
-        state.settings.activeUtilityTab = canOpenTools ? "tools" : "settings";
-        state.settings.activeUtilityTabManual = false;
-      }
-      if (state.settings.activeUtilityTab === "settings" && !canOpenSettings) {
-        state.settings.activeUtilityTab = "tools";
-        state.settings.activeUtilityTabManual = false;
-      }
-      if (state.settings.activeUtilityTab === "tools" && !canOpenTools && canOpenSettings) {
-        state.settings.activeUtilityTab = "settings";
-        state.settings.activeUtilityTabManual = false;
-      }
-      if (state.settings.activeUtilityTab === "gallery" && !canOpenGallery) {
-        state.settings.activeUtilityTab = canOpenTools ? "tools" : "settings";
-        state.settings.activeUtilityTabManual = false;
-      }
-      if (state.settings.activeUtilityTab === "settings" && canOpenTools && state.settings.activeUtilityTabManual !== true) {
-        state.settings.activeUtilityTab = "tools";
-      }
-      const activeUtilityTab = state.settings.activeUtilityTab || "tools";
       const panelOpen = state.settings.sideOpen !== false;
       if (panelOpen && activeTab === "chat") markChatSeen();
       const easterEgg = activeNameEasterEgg();
@@ -3632,18 +3625,9 @@
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
       els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");
       els.sideToolsPane.classList.toggle("hidden", !((activeTab === "tools" && canOpenUtility) || (activeTab === "gallery" && canOpenGallery)));
-      if (els.utilityTabs && els.utilityTabs.length) {
-        els.utilityTabs.forEach((button) => button.closest(".utility-tabs")?.classList.toggle("hidden", activeTab === "gallery"));
-      }
-      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "settings" || !canOpenSettings);
-      if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeTab !== "tools" || activeUtilityTab !== "tools" || !canOpenTools);
+      els.sideSettingsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenSettings);
+      if (els.domToolsPane) els.domToolsPane.classList.toggle("hidden", activeTab !== "tools" || !canOpenTools);
       if (els.sideGalleryPane) els.sideGalleryPane.classList.toggle("hidden", activeTab !== "gallery" || !canOpenGallery);
-      els.utilityTabs.forEach((button) => {
-        const tab = button.dataset.utilityTab || "tools";
-        const visible = tab === "settings" ? canOpenSettings : (tab === "gallery" ? canOpenGallery : canOpenTools);
-        button.classList.toggle("hidden", !visible);
-        button.classList.toggle("active", tab === activeUtilityTab);
-      });
       renderLedgerPanel();
       els.chatMessages.innerHTML = (state.chat || []).slice(-80).reverse().map((message) => `
         <div class="chat-message">
@@ -19799,16 +19783,6 @@
         setSideTab(tab);
       });
     });
-    els.utilityTabs.forEach((button) => {
-      button.addEventListener("click", () => {
-        const tab = button.dataset.utilityTab || "tools";
-        if (tab === "settings" && !sideSettingsAllowed()) return;
-        if (tab === "tools" && !domLinkControlsAllowed()) return;
-        state.settings.activeUtilityTab = tab;
-        state.settings.activeUtilityTabManual = true;
-        renderSidePanel();
-      });
-    });
     els.sideLedgerSummary.addEventListener("click", (event) => {
       const button = event.target.closest("[data-ledger-action]");
       if (!button) return;
@@ -19835,9 +19809,12 @@
       if (event.key === "Enter") sendChatMessage();
     });
     if (els.domAdvantageMode) els.domAdvantageMode.addEventListener("change", () => updateSettings({ domAdvantageMode: els.domAdvantageMode.value }));
-    if (els.domSeePressureBanners) els.domSeePressureBanners.addEventListener("change", () => updateSettings({ domSeePressureBanners: els.domSeePressureBanners.checked }));
-    if (els.domSeePressureText) els.domSeePressureText.addEventListener("change", () => updateSettings({ domSeePressureText: els.domSeePressureText.checked }));
-    if (els.domSeePressurePulse) els.domSeePressurePulse.addEventListener("change", () => updateSettings({ domSeePressurePulse: els.domSeePressurePulse.checked }));
+    if (els.domSeePressureBanners) els.domSeePressureBanners.addEventListener("click", () => togglePressureSetting("domSeePressureBanners", els.domSeePressureBanners));
+    if (els.domSeePressureText) els.domSeePressureText.addEventListener("click", () => togglePressureSetting("domSeePressureText", els.domSeePressureText));
+    if (els.domSeePressurePulse) els.domSeePressurePulse.addEventListener("click", () => togglePressureSetting("domSeePressurePulse", els.domSeePressurePulse));
+    if (els.promptPressureBanners) els.promptPressureBanners.addEventListener("click", () => setToggleButtonState(els.promptPressureBanners, !toggleButtonActive(els.promptPressureBanners)));
+    if (els.promptPressureText) els.promptPressureText.addEventListener("click", () => setToggleButtonState(els.promptPressureText, !toggleButtonActive(els.promptPressureText)));
+    if (els.promptPressurePulse) els.promptPressurePulse.addEventListener("click", () => setToggleButtonState(els.promptPressurePulse, !toggleButtonActive(els.promptPressurePulse)));
     if (els.clearPopupsBtn) els.clearPopupsBtn.addEventListener("click", clearDistractionPopups);
     if (els.domSubBetControl) els.domSubBetControl.addEventListener("change", () => updateSettings({ subBetControl: els.domSubBetControl.value }));
     if (els.subDefaultBetInput) {

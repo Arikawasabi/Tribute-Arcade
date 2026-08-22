@@ -6409,29 +6409,34 @@
       padding-right: 4px;
     }
 
-    .utility-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      padding-bottom: 2px;
-      background: rgba(13, 8, 11, 0.94);
-    }
-
-    .utility-tab {
-      min-height: 38px;
-    }
-
-    .utility-tab.active {
-      border-color: rgba(239, 199, 94, 0.55);
-      background: linear-gradient(135deg, rgba(241, 201, 101, 0.2), rgba(255, 79, 134, 0.13));
-    }
-
     .side-utility-settings {
       display: grid;
       gap: 10px;
+    }
+
+    #sideToolsPane {
+      gap: 9px;
+    }
+
+    #sideToolsPane .settings-pane {
+      gap: 8px;
+    }
+
+    #sideToolsPane .panel-title {
+      font-size: 1rem;
+      margin-bottom: 0;
+    }
+
+    #sideToolsPane .field-label,
+    #sideToolsPane .settings-row {
+      gap: 5px;
+      font-size: 0.9rem;
+    }
+
+    #sideToolsPane button,
+    #sideToolsPane input,
+    #sideToolsPane select {
+      min-height: 38px;
     }
 
     .distraction-choice-preview {
@@ -6780,6 +6785,16 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
+    }
+
+    .pressure-toggle-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .compact-settings.pressure-toggle-grid {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
 
     .reddit-page-picker {

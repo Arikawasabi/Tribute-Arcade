@@ -759,19 +759,10 @@
       </div>
       <div class="panel-body">
         <p class="chooser-line">When the sub loses pieces, guesses, ships, boards, or rounds, the arcade can ramp pressure effects. These always play for the sub. Choose what the dom should see too.</p>
-        <div class="settings-pane compact-settings">
-          <label class="settings-row">
-            Banners
-            <input id="promptPressureBanners" type="checkbox">
-          </label>
-          <label class="settings-row">
-            Text
-            <input id="promptPressureText" type="checkbox">
-          </label>
-          <label class="settings-row">
-            Spiral and pulse
-            <input id="promptPressurePulse" type="checkbox">
-          </label>
+        <div class="settings-pane compact-settings pressure-toggle-grid">
+          <button id="promptPressureBanners" type="button" class="toggle-button" aria-pressed="false">Banners</button>
+          <button id="promptPressureText" type="button" class="toggle-button" aria-pressed="false">Text</button>
+          <button id="promptPressurePulse" type="button" class="toggle-button" aria-pressed="false">Spiral and Pulse</button>
         </div>
         <div class="setup-actions">
           <button id="savePressurePromptBtn" class="primary">Save</button>
@@ -1088,12 +1079,8 @@
         <div class="ledger-entries" id="sideLedgerEntries"></div>
       </section>
       <section class="side-pane hidden" id="sideToolsPane">
-        <div class="utility-tabs" id="utilityTabs">
-          <button class="utility-tab active" data-utility-tab="tools">Tools</button>
-          <button class="utility-tab" data-utility-tab="settings">Settings</button>
-        </div>
         <div class="settings-pane" id="domToolsPane">
-          <h3 class="panel-title">Dom Tools</h3>
+          <h3 class="panel-title">Quick Tools</h3>
           <label class="field-label">
             Link for sub
             <input id="sideDomLinkInput" type="url" placeholder="https://example.com">
@@ -1105,6 +1092,61 @@
           <input id="sideDistractionMode" type="hidden" value="overlay-sub">
           <input id="sideDistractionDuration" type="hidden" value="15">
 
+        </div>
+        <div class="side-utility-settings" id="sideSettingsPane">
+          <div class="settings-pane" id="domSettingsPane">
+            <h3 class="panel-title">Dom Settings</h3>
+            <label class="settings-row">
+              Dom advantages
+              <select id="domAdvantageMode">
+                <option value="dom">Enabled for dom</option>
+                <option value="off">Disabled globally</option>
+                <option value="both">Enabled for both players</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              Sub bet control
+              <select id="domSubBetControl">
+                <option value="editable">Sub can change bet</option>
+                <option value="locked">Use default only</option>
+              </select>
+            </label>
+            <div class="pressure-toggle-grid">
+              <button id="domSeePressureBanners" type="button" class="toggle-button full-width" aria-pressed="false">See Pressure Banners</button>
+              <button id="domSeePressureText" type="button" class="toggle-button full-width" aria-pressed="false">See Pressure Text</button>
+              <button id="domSeePressurePulse" type="button" class="toggle-button full-width" aria-pressed="false">See Spiral and Pulse</button>
+            </div>
+            <button id="clearPopupsBtn" type="button">Clear Popups</button>
+            <label class="settings-row" id="queenPowerModeRow">
+              Queen powers
+              <select id="queenPowerMode">
+                <option value="tiered">Unlock by tier</option>
+                <option value="always">Always enabled</option>
+                <option value="off">Disabled</option>
+              </select>
+            </label>
+            <label class="settings-row" id="queenPowerUsersRow">
+              Queen power users
+              <select id="queenPowerUsers">
+                <option value="dom">Dom only</option>
+                <option value="both">Both players</option>
+              </select>
+            </label>
+          </div>
+          <div class="settings-pane hidden" id="subSettingsPane">
+            <h3 class="panel-title">Sub Settings</h3>
+            <label class="settings-row">
+              Default bet
+              <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
+            </label>
+            <label class="settings-row">
+              Link warning
+              <select id="subLinkWarningMode">
+                <option value="auto">Open without asking</option>
+                <option value="warn">Ask before opening</option>
+              </select>
+            </label>
+          </div>
         </div>
         <div class="settings-pane hidden" id="sideGalleryPane">
           <h3 class="panel-title">Image Gallery</h3>
@@ -1191,7 +1233,8 @@
               </label>
               <p class="chooser-line" id="redditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up for the sub on the selected timer.</p>
             </div>
-          </details>          <details class="gallery-collapse booru-test-panel">
+          </details>
+          <details class="gallery-collapse booru-test-panel">
             <summary>
               <span>Booru gallery</span>
             </summary>
@@ -1274,68 +1317,6 @@
             </summary>
             <div class="distraction-gallery" id="distractionVideoGallery"></div>
           </details>
-        </div>
-        <div class="side-utility-settings hidden" id="sideSettingsPane">
-          <div class="settings-pane" id="domSettingsPane">
-            <h3 class="panel-title">Dom Settings</h3>
-            <label class="settings-row">
-              Dom advantages
-              <select id="domAdvantageMode">
-                <option value="dom">Enabled for dom</option>
-                <option value="off">Disabled globally</option>
-                <option value="both">Enabled for both players</option>
-              </select>
-            </label>
-            <label class="settings-row">
-              Sub bet control
-              <select id="domSubBetControl">
-                <option value="editable">Sub can change bet</option>
-                <option value="locked">Use default only</option>
-              </select>
-            </label>
-            <label class="settings-row">
-              See pressure banners
-              <input id="domSeePressureBanners" type="checkbox">
-            </label>
-            <label class="settings-row">
-              See pressure text
-              <input id="domSeePressureText" type="checkbox">
-            </label>
-            <label class="settings-row">
-              See spiral and pulse
-              <input id="domSeePressurePulse" type="checkbox">
-            </label>
-            <button id="clearPopupsBtn" type="button">Clear Popups</button>
-            <label class="settings-row" id="queenPowerModeRow">
-              Queen powers
-              <select id="queenPowerMode">
-                <option value="tiered">Unlock by tier</option>
-                <option value="always">Always enabled</option>
-                <option value="off">Disabled</option>
-              </select>
-            </label>
-            <label class="settings-row" id="queenPowerUsersRow">
-              Queen power users
-              <select id="queenPowerUsers">
-                <option value="dom">Dom only</option>
-                <option value="both">Both players</option>
-              </select>
-            </label>
-          </div>
-          <div class="settings-pane hidden" id="subSettingsPane">
-            <h3 class="panel-title">Sub Settings</h3>
-            <label class="settings-row">
-              Default bet
-              <input id="subDefaultBetInput" type="number" min="1" step="1" value="10">
-            </label>
-            <label class="settings-row">
-              Link warning
-              <select id="subLinkWarningMode">
-                <option value="auto">Open without asking</option>
-                <option value="warn">Ask before opening</option>
-              </select>
-            </label>
-          </div>
         </div>
       </section>
     </div>
