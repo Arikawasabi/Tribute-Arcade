@@ -351,7 +351,7 @@
       </label>
       <label class="field-label compact-field">
         Next image after seconds
-        <input id="soloRedditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="90">
+        <input id="soloRedditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="30">
       </label>
       <p class="chooser-line" id="soloRedditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up every 1-2 minutes during solo games.</p>
     </section>
@@ -1050,6 +1050,7 @@
           <button id="closeAutoPopupPreviewBtn">Close</button>
           <button id="clearAutoPopupPreviewBtn">Hide Preview</button>
           <button id="saveAutoPopupPreviewBtn" class="primary">Save</button>
+          <button id="downloadAutoPopupPreviewBtn">Download</button>
         </div>
       </div>
     </section>
@@ -1150,7 +1151,7 @@
         </div>
         <div class="settings-pane hidden" id="sideGalleryPane">
           <h3 class="panel-title">Image Gallery</h3>
-          <details class="gallery-collapse">
+          <details class="gallery-collapse" id="postImageGallerySection" data-gallery-panel="postImage">
             <summary>
               <span>Post image</span>
             </summary>
@@ -1158,14 +1159,14 @@
               Distraction image or GIF
               <input id="sideDistractionInput" type="text" placeholder="Drop, paste, or enter an image URL">
             </label>
-            <div class="mode-grid">
+            <div class="mode-grid gallery-action-row">
               <button id="uploadDistractionBtn">Upload Image</button>
               <button id="postDistractionBtn" class="primary">Post</button>
             </div>
             <input id="distractionFileInput" class="hidden-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/*">
             <p class="chooser-line" id="sideDistractionStatus">Press Enter on an image URL, upload an image, or pick from a gallery.</p>
           </details>
-          <details class="gallery-collapse" id="randomPopupGallerySection">
+          <details class="gallery-collapse" id="randomPopupGallerySection" data-gallery-panel="randomPopups">
             <summary>
               <span>Random popups</span>
             </summary>
@@ -1230,12 +1231,12 @@
               </label>
               <label class="field-label">
                 Next image after seconds
-                <input id="redditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="90">
+                <input id="redditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="30">
               </label>
               <p class="chooser-line" id="redditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up for the sub on the selected timer.</p>
             </div>
           </details>
-          <details class="gallery-collapse booru-test-panel">
+          <details class="gallery-collapse booru-test-panel" id="booruGallerySection" data-gallery-panel="booru">
             <summary>
               <span>Booru gallery</span>
             </summary>
@@ -1244,7 +1245,7 @@
               <input id="danbooruTagInput" type="text" placeholder="boobs, feet, armpits...">
             </label>
             <div class="danbooru-suggestions hidden" id="danbooruSuggestions"></div>
-            <div class="mode-grid danbooru-primary-actions">
+            <div class="mode-grid danbooru-primary-actions gallery-action-row">
               <button id="danbooruNextBtn">Next Page</button>
             </div>
             <p class="chooser-line" id="danbooruGalleryStatus">Type a tag to search Booru suggestions.</p>
@@ -1279,7 +1280,7 @@
               </div>
             </details>
           </details>
-          <details class="gallery-collapse booru-test-panel">
+          <details class="gallery-collapse booru-test-panel" id="redditGallerySection" data-gallery-panel="reddit">
             <summary>
               <span>Reddit gallery</span>
             </summary>
@@ -1300,19 +1301,19 @@
               </select>
             </label>
             <div class="reddit-page-picker" id="goonerGallerySourcePicker"></div>
-            <div class="mode-grid">
+            <div class="mode-grid gallery-action-row">
               <button id="redditeryRandomBtn">Random Recent</button>
               <button id="goonerGalleryTopBtn">Return to Top</button>
             </div>
             <div class="booru-gallery hidden" id="redditeryGallery"></div>
           </details>
-          <details class="gallery-collapse" id="savedDistractionGallerySection">
+          <details class="gallery-collapse" id="savedDistractionGallerySection" data-gallery-panel="savedImages">
             <summary>
               <span>Saved images</span>
             </summary>
             <div class="distraction-gallery" id="distractionGallery"></div>
           </details>
-          <details class="gallery-collapse" id="savedVideoGallerySection">
+          <details class="gallery-collapse" id="savedVideoGallerySection" data-gallery-panel="savedVideos">
             <summary>
               <span>Saved videos</span>
             </summary>

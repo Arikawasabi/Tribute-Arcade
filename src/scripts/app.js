@@ -123,6 +123,7 @@
         distractionOverlayY: 18,
         distractionOverlays: [],
         distractionGallery: [],
+        galleryPanelOpen: {},
         goonerGallerySource: "peekstr",
         goonerGalleryCategory: "goonerbait",
         goonerGallerySubreddits: [],
@@ -131,7 +132,7 @@
         redditeryAutoPopupCategory: "goonerbait",
         redditeryAutoPopupSubreddits: [],
         redditeryAutoPopupDuration: 15,
-        redditeryAutoPopupInterval: 90,
+        redditeryAutoPopupInterval: 30,
         redditeryRapidFire: false,
         autoPopupDomPreview: false,
         booruDateFilter: "all",
@@ -444,6 +445,7 @@
       goonerGallerySource: document.getElementById("goonerGallerySource"),
       goonerGalleryCategory: document.getElementById("goonerGalleryCategory"),
       goonerGallerySourcePicker: document.getElementById("goonerGallerySourcePicker"),
+      galleryCollapsePanels: document.querySelectorAll("[data-gallery-panel]"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
       redditeryRapidFireToggle: document.getElementById("redditeryRapidFireToggle"),
       redditeryAutoPopupSource: document.getElementById("redditeryAutoPopupSource"),
@@ -470,6 +472,7 @@
       closeAutoPopupPreviewBtn: document.getElementById("closeAutoPopupPreviewBtn"),
       clearAutoPopupPreviewBtn: document.getElementById("clearAutoPopupPreviewBtn"),
       saveAutoPopupPreviewBtn: document.getElementById("saveAutoPopupPreviewBtn"),
+      downloadAutoPopupPreviewBtn: document.getElementById("downloadAutoPopupPreviewBtn"),
       redditeryGallery: document.getElementById("redditeryGallery"),
       savedDistractionGallerySection: document.getElementById("savedDistractionGallerySection"),
       savedVideoGallerySection: document.getElementById("savedVideoGallerySection"),
@@ -700,6 +703,7 @@
     let localRedditeryReachedEnd = false;
     let localRedditeryAutoPopupItems = [];
     let localRedditeryAutoPopupAfter = "";
+    let localRedditeryAutoPopupCursors = {};
     let localRedditeryAutoPopupSubreddit = "";
     let localRedditeryAutoPopupNextAt = 0;
     let localRedditeryAutoPopupLoading = false;
@@ -732,7 +736,8 @@
       redditeryAutoPopupCategory: "goonerbait",
       redditeryAutoPopupSubreddits: [],
       redditeryAutoPopupDuration: 15,
-      redditeryAutoPopupInterval: 90,
+      redditeryAutoPopupInterval: 30,
+      galleryPanelOpen: {},
       autoPopupDomPreview: false,
       booruAutoPopupFullVideos: false,
       booruDateFilter: "all"
@@ -2946,6 +2951,7 @@
         ? String(state.settings.goonerGalleryCategory || "").toLowerCase()
         : "captions";
       state.settings.goonerGallerySubreddits = normalizeRedditPageSelection(state.settings.goonerGallerySubreddits);
+      state.settings.galleryPanelOpen = normalizeGalleryPanelOpen(state.settings.galleryPanelOpen);
       state.settings.redditeryAutoPopupSource = state.settings.redditeryAutoPopupSource === "reddit" ? "reddit" : "booru";
       state.settings.redditeryAutoPopupCategory = GOONER_GALLERY_CATEGORIES[String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()]
         ? String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()
@@ -3576,6 +3582,45 @@
       if (els.pressureViewPromptModal) els.pressureViewPromptModal.classList.add("hidden");
     }
 
+    const GALLERY_PANEL_KEYS = new Set(["postImage", "randomPopups", "booru", "reddit", "savedImages", "savedVideos"]);
+
+    function normalizeGalleryPanelOpen(value) {
+      const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      const normalized = {};
+      Object.entries(source).forEach(([key, open]) => {
+        if (GALLERY_PANEL_KEYS.has(key)) normalized[key] = Boolean(open);
+      });
+      return normalized;
+    }
+
+    function galleryPanelStateHas(key) {
+      return Object.prototype.hasOwnProperty.call(normalizeGalleryPanelOpen(state.settings.galleryPanelOpen), key);
+    }
+
+    function syncGalleryPanelOpenState() {
+      const panelState = normalizeGalleryPanelOpen(state.settings.galleryPanelOpen);
+      els.galleryCollapsePanels.forEach((panel) => {
+        const key = panel.dataset.galleryPanel || "";
+        if (!GALLERY_PANEL_KEYS.has(key) || !Object.prototype.hasOwnProperty.call(panelState, key)) return;
+        panel.dataset.syncingOpen = "true";
+        panel.open = Boolean(panelState[key]);
+        window.setTimeout(() => {
+          delete panel.dataset.syncingOpen;
+        }, 0);
+      });
+    }
+
+    function rememberGalleryPanelOpen(panel) {
+      const key = panel && panel.dataset.galleryPanel || "";
+      if (!GALLERY_PANEL_KEYS.has(key) || panel.dataset.syncingOpen === "true") return;
+      updateSettings({
+        galleryPanelOpen: {
+          ...normalizeGalleryPanelOpen(state.settings.galleryPanelOpen),
+          [key]: Boolean(panel.open)
+        }
+      });
+    }
+
     function renderSidePanel() {
       const soloMode = state.screen === "solitaire" || state.screen === "memoryMatch";
       const inGame = state.screen === "game";
@@ -3595,6 +3640,7 @@
       const canUseSubSettings = subSettingsControlsAllowed();
       const canUseGallery = galleryControlsAllowed();
       const canOpenLedger = inGame || inGameSelect;
+      syncGalleryPanelOpenState();
       if (state.settings.normalThroneRequest && normalThroneRequestSubAllowed() && canOpenLedger) {
         state.settings.activeSideTab = "ledger";
         state.settings.sideOpen = true;
@@ -3908,6 +3954,7 @@
       const existingOverlays = activeDistractionOverlays(target, rapidFire ? 14 : 3);
       const randomAnchor = randomPopupAnchor(placement, existingOverlays);
       const overlayUntil = Date.now() + (wantsFullVideo ? normalizeFullVideoDuration(options.fullDuration || 1800) : duration) * 1000;
+      const sizeScale = rapidFire ? Math.round((1 + Math.random() * 0.2) * 100) / 100 : 1;
       const overlay = {
         id: `auto-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url: normalized,
@@ -3920,6 +3967,7 @@
         placement,
         anchorX: randomAnchor.x,
         anchorY: randomAnchor.y,
+        sizeScale,
         until: overlayUntil,
         jitterX: 0,
         jitterY: 0
@@ -4089,20 +4137,27 @@
       link.remove();
     }
 
-    async function saveChosenDistractionImage() {
-      const url = normalizeDistractionSource(pendingDistractionChoiceUrl);
-      if (!url) return;
-      const filename = imageDownloadName(url);
+    async function downloadDistractionSource(url) {
+      const normalized = normalizeDistractionSource(url);
+      if (!normalized) return false;
+      const filename = imageDownloadName(normalized);
       try {
-        const response = await fetch(url, { mode: "cors" });
+        const response = await fetch(normalized, { mode: "cors" });
         if (!response.ok) throw new Error(`Image returned ${response.status}.`);
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         triggerImageDownload(objectUrl, filename);
         window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1200);
       } catch (error) {
-        triggerImageDownload(url, filename);
+        triggerImageDownload(normalized, filename);
       }
+      return true;
+    }
+
+    async function saveChosenDistractionImage() {
+      const url = normalizeDistractionSource(pendingDistractionChoiceUrl);
+      if (!url) return;
+      await downloadDistractionSource(url);
     }
 
     function postChosenDistraction(mode) {
@@ -4434,7 +4489,7 @@
 
     function normalizeAutoPopupInterval(value) {
       const seconds = Math.round(Number(value));
-      if (!Number.isFinite(seconds)) return 90;
+      if (!Number.isFinite(seconds)) return 30;
       return Math.min(600, Math.max(15, seconds));
     }
 
@@ -4516,10 +4571,10 @@
       const items = distractionGalleryItems();
       const imageItems = items.filter((item) => mediaTypeForDistraction(item.url, item.mediaType) !== "video");
       const videoItems = items.filter((item) => mediaTypeForDistraction(item.url, item.mediaType) === "video");
-      if (els.savedDistractionGallerySection && imageItems.length && !els.savedDistractionGallerySection.dataset.userToggled) {
+      if (els.savedDistractionGallerySection && imageItems.length && !galleryPanelStateHas("savedImages")) {
         els.savedDistractionGallerySection.open = true;
       }
-      if (els.savedVideoGallerySection && videoItems.length && !els.savedVideoGallerySection.dataset.userToggled) {
+      if (els.savedVideoGallerySection && videoItems.length && !galleryPanelStateHas("savedVideos")) {
         els.savedVideoGallerySection.open = true;
       }
       const selectedUrl = normalizeDistractionSource(els.sideDistractionInput.value);
@@ -4620,6 +4675,12 @@
       renderDistractionGallery();
       closeAutoPopupPreviewModal();
       if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto popup preview saved.";
+    }
+
+    async function downloadAutoPopupPreview() {
+      if (!localAutoPopupPreview || !normalizeDistractionSource(localAutoPopupPreview.url)) return;
+      await downloadDistractionSource(localAutoPopupPreview.url);
+      if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto popup preview download started.";
     }
 
     function renderBooruGallery() {
@@ -4976,6 +5037,7 @@
     function resetAutoPopupFeedCursors() {
       localRedditeryAutoPopupItems = [];
       localRedditeryAutoPopupAfter = "";
+      localRedditeryAutoPopupCursors = {};
       localRedditeryAutoPopupSubreddit = "";
       localRedditeryAutoPopupRecentUrls = [];
       localDanbooruAutoPopupItems = [];
@@ -5014,6 +5076,17 @@
         ? (!redditeryAutoPopupControlAllowed() || autoPopupSourceKey() !== "reddit")
         : !galleryControlsAllowed();
       const categoryKey = isAuto ? autoPopupRedditCategoryKey() : goonerGalleryCategoryKey();
+      const signature = JSON.stringify({
+        scope,
+        categoryKey,
+        disabled,
+        selected: [...selected].sort()
+      });
+      if (container.dataset.renderSignature === signature) {
+        container.classList.toggle("disabled", disabled);
+        return;
+      }
+      container.dataset.renderSignature = signature;
       container.innerHTML = GOONER_REDDIT_PAGES.map((page) => {
         const checked = selected.has(page.subreddit) ? " checked" : "";
         const disabledAttr = disabled ? " disabled" : "";
@@ -5339,15 +5412,20 @@
       const auto = Boolean(options && options.auto);
       const categoryKey = options && options.category ? String(options.category).toLowerCase() : goonerGalleryCategoryKey();
       const subredditPool = auto ? redditSelectionForScope("auto") : redditSelectionForScope("gallery");
-      const after = auto ? localRedditeryAutoPopupAfter : localRedditeryAfter;
+      const forcedSubreddit = normalizeRedditPageSelection([options && options.subreddit]).find((subreddit) => subredditPool.includes(subreddit)) || "";
       const activeSubreddit = auto
-        ? pickGoonerSubreddit(localRedditeryAutoPopupSubreddit, categoryKey, subredditPool)
+        ? (forcedSubreddit || pickGoonerSubreddit(localRedditeryAutoPopupSubreddit, categoryKey, subredditPool))
         : pickGoonerSubreddit(localRedditeryActiveSubreddit, categoryKey, subredditPool);
+      const hasAutoCursor = auto && Object.prototype.hasOwnProperty.call(localRedditeryAutoPopupCursors, activeSubreddit);
+      const after = auto
+        ? String(hasAutoCursor ? localRedditeryAutoPopupCursors[activeSubreddit] : localRedditeryAutoPopupAfter || "")
+        : localRedditeryAfter;
       const nextPage = after ? 0 : Math.min(30, Math.max(0, localRedditeryPage + 1));
+      const limit = Math.max(1, Math.min(24, Number(options && options.limit) || (updateGallery ? 24 : 18)));
       const params = new URLSearchParams({
         source,
         subreddit: activeSubreddit,
-        limit: updateGallery ? "24" : "18",
+        limit: String(limit),
         page: String(nextPage),
         window: source === "peekstr" ? (auto ? "2" : "4") : "1",
         nonce: String(Date.now())
@@ -5360,6 +5438,7 @@
         localRedditeryAfter = "";
         localRedditeryReachedEnd = false;
         localRedditeryAutoPopupAfter = "";
+        localRedditeryAutoPopupCursors = {};
         localRedditeryAutoPopupItems = [];
         updateSettings({ goonerGallerySource: "peekstr" });
         if (els.goonerGallerySource) els.goonerGallerySource.value = "peekstr";
@@ -5374,9 +5453,10 @@
           .filter((item) => item && normalizeDistractionSource(item.url))
           .map((item) => ({
             ...item,
+            subreddit: String(item.subreddit || activeSubreddit || "").toLowerCase(),
             source: String(item.source || item.subreddit || activeSubreddit || "").toLowerCase(),
-            sourceLabel: goonerPageLabelForSubreddit(item.source || item.subreddit || activeSubreddit)
-          }))).slice(0, updateGallery ? 24 : 18)
+            sourceLabel: goonerPageLabelForSubreddit(item.subreddit || activeSubreddit)
+          }))).slice(0, limit)
         : [];
       if (!items.length) {
         if (!auto) localRedditeryReachedEnd = true;
@@ -5385,6 +5465,7 @@
       }
       if (auto) {
         localRedditeryAutoPopupAfter = String(data.after || "");
+        localRedditeryAutoPopupCursors[activeSubreddit] = String(data.after || "");
         localRedditeryAutoPopupSubreddit = activeSubreddit;
       } else {
         localRedditeryPage = after ? localRedditeryPage + 1 : (Number.isFinite(Number(data.page)) ? Number(data.page) : nextPage);
@@ -5423,13 +5504,21 @@
     async function takeNextRedditeryAutoPopupItem() {
       if (!localRedditeryAutoPopupItems.length) {
         const recent = new Set(localRedditeryAutoPopupRecentUrls);
+        const category = autoPopupRedditCategoryKey();
+        const subredditPool = shuffledGalleryItems(redditSelectionForScope("auto"));
         let freshItems = [];
-        for (let attempt = 0; attempt < 4 && freshItems.length < 8; attempt += 1) {
-          const batch = await fetchRedditeryItems(false, { auto: true, category: autoPopupRedditCategoryKey() });
+        for (const subreddit of subredditPool) {
+          if (freshItems.length >= 18) break;
+          const batch = await fetchRedditeryItems(false, { auto: true, category, subreddit, limit: 6 });
           const unseen = batch.filter((item) => !recent.has(normalizeDistractionSource(item.url)));
           freshItems = shuffledGalleryItems([...freshItems, ...unseen]);
         }
-        localRedditeryAutoPopupItems = freshItems.length ? freshItems : await fetchRedditeryItems(false, { auto: true, category: autoPopupRedditCategoryKey() });
+        for (let attempt = 0; attempt < 3 && freshItems.length < 8; attempt += 1) {
+          const batch = await fetchRedditeryItems(false, { auto: true, category, limit: 8 });
+          const unseen = batch.filter((item) => !recent.has(normalizeDistractionSource(item.url)));
+          freshItems = shuffledGalleryItems([...freshItems, ...unseen]);
+        }
+        localRedditeryAutoPopupItems = freshItems.length ? freshItems : await fetchRedditeryItems(false, { auto: true, category, limit: 12 });
       }
       if (!localRedditeryAutoPopupItems.length) return null;
       const index = Math.floor(Math.random() * localRedditeryAutoPopupItems.length);
@@ -5889,8 +5978,9 @@
       const sizingCount = normalizePopupPlacement(overlay && overlay.placement) === "random" ? 1 : count;
       if (overlay && overlay.rapidFire) {
         const margin = 10;
-        const maxWidth = Math.max(1, Math.min(viewportWidth - margin * 2, 230, viewportWidth * 0.22));
-        const maxHeight = Math.max(1, Math.min(viewportHeight - margin * 2, 280, viewportHeight * 0.32));
+        const sizeScale = Math.max(1, Math.min(1.2, Number(overlay.sizeScale || 1)));
+        const maxWidth = Math.max(1, Math.min(viewportWidth - margin * 2, 230 * sizeScale, viewportWidth * 0.22 * sizeScale));
+        const maxHeight = Math.max(1, Math.min(viewportHeight - margin * 2, 280 * sizeScale, viewportHeight * 0.32 * sizeScale));
         const size = distractionImageSizeCache.get(normalizeDistractionSource(overlay && overlay.url));
         if (size && size.width && size.height) {
           const ratio = size.width / size.height;
@@ -6413,6 +6503,7 @@
       const previousChatId = latestChatId();
       const localSideOpen = state.settings.sideOpen;
       const localActiveSideTab = state.settings.activeSideTab;
+      const localGalleryPanelOpen = state.settings.galleryPanelOpen;
       state.screen = snapshot.screen || state.screen;
       state.roles = snapshot.roles || state.roles;
       state.names = snapshot.names || state.names;
@@ -6429,6 +6520,7 @@
       state.settings.domSeePressureText = Boolean(state.settings.domSeePressureText);
       state.settings.domSeePressurePulse = Boolean(state.settings.domSeePressurePulse);
       state.settings.pressureViewPromptSeen = Boolean(state.settings.pressureViewPromptSeen);
+      state.settings.galleryPanelOpen = normalizeGalleryPanelOpen(localGalleryPanelOpen);
       state.settings.sideOpen = localSideOpen;
       state.settings.activeSideTab = localActiveSideTab;
       state.pendingWager = snapshot.pendingWager || null;
@@ -20265,16 +20357,9 @@
         selectDistractionFromGallery(button.dataset.distractionGalleryId);
       });
     }
-    if (els.savedDistractionGallerySection) {
-      els.savedDistractionGallerySection.addEventListener("toggle", () => {
-        els.savedDistractionGallerySection.dataset.userToggled = "true";
-      });
-    }
-    if (els.savedVideoGallerySection) {
-      els.savedVideoGallerySection.addEventListener("toggle", () => {
-        els.savedVideoGallerySection.dataset.userToggled = "true";
-      });
-    }
+    els.galleryCollapsePanels.forEach((panel) => {
+      panel.addEventListener("toggle", () => rememberGalleryPanelOpen(panel));
+    });
     if (els.cancelDistractionChoiceBtn) els.cancelDistractionChoiceBtn.addEventListener("click", closeDistractionChoice);
     if (els.saveDistractionChoiceBtn) els.saveDistractionChoiceBtn.addEventListener("click", saveChosenDistractionImage);
     if (els.subWallpaperDistractionChoiceBtn) els.subWallpaperDistractionChoiceBtn.addEventListener("click", () => postChosenDistraction("background-sub"));
@@ -20331,6 +20416,7 @@
     if (els.closeAutoPopupPreviewBtn) els.closeAutoPopupPreviewBtn.addEventListener("click", closeAutoPopupPreviewModal);
     if (els.clearAutoPopupPreviewBtn) els.clearAutoPopupPreviewBtn.addEventListener("click", clearAutoPopupPreview);
     if (els.saveAutoPopupPreviewBtn) els.saveAutoPopupPreviewBtn.addEventListener("click", saveAutoPopupPreview);
+    if (els.downloadAutoPopupPreviewBtn) els.downloadAutoPopupPreviewBtn.addEventListener("click", downloadAutoPopupPreview);
     if (els.autoPopupPreviewModal) {
       els.autoPopupPreviewModal.addEventListener("click", (event) => {
         if (event.target === els.autoPopupPreviewModal) closeAutoPopupPreviewModal();

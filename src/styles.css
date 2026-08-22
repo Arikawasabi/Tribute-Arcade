@@ -6276,11 +6276,12 @@
     }
 
     .side-popout {
+      --side-tab-gutter: 58px;
       position: fixed;
       top: 16px;
-      right: 16px;
+      right: calc(16px + var(--side-tab-gutter));
       bottom: 16px;
-      width: min(360px, calc(100vw - 32px));
+      width: min(360px, calc(100vw - 32px - var(--side-tab-gutter)));
       z-index: 22;
       display: grid;
       grid-template-rows: auto auto 1fr;
@@ -6294,7 +6295,7 @@
     }
 
     .side-popout.closed {
-      transform: translateX(calc(100% + 16px));
+      transform: translateX(calc(100% + 16px + var(--side-tab-gutter)));
       pointer-events: none;
     }
 
@@ -6819,12 +6820,12 @@
     }
 
     .reddit-page-option {
-      min-height: 46px;
+      min-height: 48px;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
       gap: 8px;
-      align-items: center;
-      padding: 8px;
+      align-items: start;
+      padding: 7px 8px 8px;
       border: 1px solid rgba(241, 201, 101, 0.13);
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.035);
@@ -6837,6 +6838,7 @@
     }
 
     .reddit-page-option input {
+      margin-top: 3px;
       width: 19px;
       height: 19px;
       accent-color: #ff6680;
@@ -6845,7 +6847,8 @@
     .reddit-page-option span {
       min-width: 0;
       display: grid;
-      gap: 2px;
+      gap: 0;
+      align-content: start;
     }
 
     .reddit-page-option strong,
@@ -7527,8 +7530,34 @@
         max-height: calc(100vh - 24px);
       }
 
+      #sideGalleryPane .gallery-action-row {
+        position: sticky;
+        bottom: -12px;
+        z-index: 3;
+        margin: 0 -10px -10px;
+        padding: 10px;
+        border-top: 1px solid rgba(244, 239, 232, 0.1);
+        border-radius: 0 0 8px 8px;
+        background:
+          linear-gradient(180deg, rgba(26, 22, 18, 0.82), rgba(26, 22, 18, 0.98)),
+          rgba(26, 22, 18, 0.96);
+        backdrop-filter: blur(10px);
+      }
+
+      .modal-backdrop .distraction-choice-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        margin: 8px -4px -4px;
+        padding: 8px 4px 4px;
+        background:
+          linear-gradient(180deg, rgba(20, 8, 14, 0), rgba(20, 8, 14, 0.96) 28%),
+          rgba(20, 8, 14, 0.86);
+        backdrop-filter: blur(10px);
+      }
+
       .side-popout.closed {
-        transform: translateX(calc(100% + 12px));
+        transform: translateX(calc(100% + 12px + var(--side-tab-gutter)));
       }
 
       .side-restore-tab {
