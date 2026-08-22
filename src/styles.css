@@ -338,6 +338,10 @@
       opacity: 0;
       mix-blend-mode: screen;
       filter: saturate(1.18) contrast(0.92);
+      transition: opacity 180ms ease;
+    }
+
+    .piece-loss-spiral.fade-in {
       transition: opacity 7s ease-in;
     }
 

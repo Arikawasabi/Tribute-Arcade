@@ -1403,9 +1403,21 @@
       avatar: "assets/bratty/bratty_avatar.jpg"
     };
 
+    function possibleDomNameKeys() {
+      const names = [state.names.dom];
+      if (state.online && state.online.room) {
+        ["one", "two"].forEach((seat) => {
+          if (state.online.roleChoices && state.online.roleChoices[seat] === DOM) {
+            names.push(state.online.playerNames && state.online.playerNames[seat]);
+          }
+        });
+      }
+      return names.map(normalizedNameKey).filter(Boolean);
+    }
+
     function activeNameEasterEgg() {
-      const domName = normalizedNameKey(state.names.dom);
-      if (["bb", "bratty", "brattybitch", "brattybitch123", "brattybitchx"].includes(domName)) {
+      const domNames = possibleDomNameKeys();
+      if (domNames.some((name) => ["bb", "bratty", "brattybitch", "brattybitch123", "brattybitchx"].includes(name))) {
         return {
           id: "brattyBb",
           commandTitle: "BB Command Center",
@@ -12713,12 +12725,13 @@
         || (lossPressureEffectVisible("pulse") && state.screen === "game" && state.active && losses >= 8)
       ));
       if (!show) {
+        els.pieceLossSpiral.classList.remove("fade-in");
         els.pieceLossSpiral.classList.remove("active");
         window.clearTimeout(renderPieceLossSpiral.hideTimer);
         renderPieceLossSpiral.hideTimer = window.setTimeout(() => {
           if (!els.pieceLossSpiral || els.pieceLossSpiral.classList.contains("active")) return;
           els.pieceLossSpiral.classList.add("hidden");
-        }, 2300);
+        }, 220);
         els.pieceLossSpiral.style.removeProperty("--piece-loss-spiral-opacity");
         return;
       }
@@ -12728,6 +12741,7 @@
       if (els.pieceLossSpiral.classList.contains("hidden")) {
         els.pieceLossSpiral.classList.remove("hidden");
         els.pieceLossSpiral.classList.remove("active");
+        els.pieceLossSpiral.classList.add("fade-in");
         window.requestAnimationFrame(() => {
           if (!els.pieceLossSpiral) return;
           window.requestAnimationFrame(() => els.pieceLossSpiral.classList.add("active"));
