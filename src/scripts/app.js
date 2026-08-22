@@ -132,6 +132,7 @@
         redditeryAutoPopupSubreddits: [],
         redditeryAutoPopupDuration: 15,
         redditeryAutoPopupInterval: 90,
+        redditeryRapidFire: false,
         autoPopupDomPreview: false,
         booruDateFilter: "all",
         booruAutoPopupFullVideos: false,
@@ -444,6 +445,7 @@
       goonerGalleryCategory: document.getElementById("goonerGalleryCategory"),
       goonerGallerySourcePicker: document.getElementById("goonerGallerySourcePicker"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
+      redditeryRapidFireToggle: document.getElementById("redditeryRapidFireToggle"),
       redditeryAutoPopupSource: document.getElementById("redditeryAutoPopupSource"),
       redditeryAutoPopupCategoryRow: document.getElementById("redditeryAutoPopupCategoryRow"),
       redditeryAutoPopupCategory: document.getElementById("redditeryAutoPopupCategory"),
@@ -2949,6 +2951,7 @@
         ? String(state.settings.redditeryAutoPopupCategory || "").toLowerCase()
         : "captions";
       state.settings.redditeryAutoPopupSubreddits = normalizeRedditPageSelection(state.settings.redditeryAutoPopupSubreddits);
+      state.settings.redditeryRapidFire = Boolean(state.settings.redditeryRapidFire);
       state.settings.booruDateFilter = normalizeBooruDateFilter(state.settings.booruDateFilter);
       state.settings.booruAutoPopupFullVideos = Boolean(state.settings.booruAutoPopupFullVideos);
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
@@ -3019,13 +3022,19 @@
       return (els.sideDomLinkInput && els.sideDomLinkInput.value) || (els.domLinkUrlInput && els.domLinkUrlInput.value) || "";
     }
 
+    function setSideDomLinkStatus(message = "") {
+      if (!els.sideDomLinkStatus) return;
+      els.sideDomLinkStatus.textContent = message;
+      els.sideDomLinkStatus.classList.toggle("hidden", !message);
+    }
+
     function sendDomLinkRequest() {
       const role = localOnlineRole();
       if (state.online.room && role !== DOM) return;
       const url = normalizeDomLink(currentDomLinkInputValue());
       if (!url) {
         if (els.domLinkStatus) els.domLinkStatus.textContent = "Enter a valid http or https link.";
-        els.sideDomLinkStatus.textContent = "Enter a valid http or https link.";
+        setSideDomLinkStatus("Enter a valid http or https link.");
         return;
       }
       state.settings.linkRequest = {
@@ -3033,7 +3042,7 @@
         url
       };
       if (els.domLinkStatus) els.domLinkStatus.textContent = "Link request sent.";
-      els.sideDomLinkStatus.textContent = "Link request sent.";
+      setSideDomLinkStatus("Link request sent.");
       renderSettings();
       renderSidePanel();
       publishSettingsState();
@@ -3061,10 +3070,15 @@
     }
 
     function localSubAutoPopupActive() {
-      return subGalleryPrivateMode() && !state.settings.redditeryAutoPopup && Boolean(localSubDistractions.redditeryAutoPopup);
+      return subGalleryPrivateMode() && !state.settings.redditeryAutoPopup && !state.settings.redditeryRapidFire && Boolean(localSubDistractions.redditeryAutoPopup);
+    }
+
+    function sharedAutoPopupActive() {
+      return Boolean(state.settings.redditeryAutoPopup || state.settings.redditeryRapidFire);
     }
 
     function autoPopupSettings() {
+      if (sharedAutoPopupActive()) return state.settings;
       return localSubAutoPopupActive() ? localSubDistractions : state.settings;
     }
 
@@ -3887,12 +3901,14 @@
       if (!normalized) return false;
       const target = options.targetSettings || autoPopupSettings();
       const mediaType = mediaTypeForDistraction(normalized, options.mediaType);
-      const duration = normalizeDistractionDuration(target.redditeryAutoPopupDuration);
+      const rapidFire = Boolean(options.rapidFire);
+      const duration = rapidFire ? 16 : normalizeDistractionDuration(target.redditeryAutoPopupDuration);
       const wantsFullVideo = mediaType === "video" && options.autoFullVideo;
       const placement = normalizePopupPlacement(options.placement || popupPlacement());
-      const randomAnchor = randomPopupAnchor(placement, activeDistractionOverlays());
+      const existingOverlays = activeDistractionOverlays(target, rapidFire ? 14 : 3);
+      const randomAnchor = randomPopupAnchor(placement, existingOverlays);
       const overlayUntil = Date.now() + (wantsFullVideo ? normalizeFullVideoDuration(options.fullDuration || 1800) : duration) * 1000;
-      target.distractionOverlays = [{
+      const overlay = {
         id: `auto-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url: normalized,
         mediaType,
@@ -3900,13 +3916,17 @@
         loop: mediaType === "video" && wantsFullVideo ? false : true,
         autoFullVideo: wantsFullVideo,
         minDuration: duration,
+        rapidFire,
         placement,
         anchorX: randomAnchor.x,
         anchorY: randomAnchor.y,
         until: overlayUntil,
         jitterX: 0,
         jitterY: 0
-      }];
+      };
+      target.distractionOverlays = rapidFire
+        ? [...existingOverlays.filter((item) => item && item.rapidFire), overlay].slice(-14)
+        : [overlay];
       target.distractionUrl = "";
       target.distractionOverlayUrl = normalized;
       target.distractionOverlayUntil = overlayUntil;
@@ -4546,12 +4566,16 @@
       if (!domLinkControlsAllowed() || !state.settings.autoPopupDomPreview) return;
       const url = normalizeDistractionSource(item && item.url);
       if (!url) return;
+      const sourceSubreddit = String(item.subreddit || item.source || "").toLowerCase();
+      const sourceLabel = goonerPageLabelForSubreddit(sourceSubreddit)
+        || item.sourceLabel
+        || (autoPopupSourceKey() === "reddit" ? redditSelectionLabel("auto") : "Booru search");
       localAutoPopupPreview = {
         url,
         mediaType: mediaTypeForDistraction(url, media.mediaType || item.mediaType),
         previewUrl: normalizeDistractionSource(item.previewUrl || media.previewUrl || ""),
-        source: String(item.source || item.subreddit || "").toLowerCase(),
-        sourceLabel: goonerPageLabelForSubreddit(item.source || item.subreddit) || item.sourceLabel || "",
+        source: sourceSubreddit,
+        sourceLabel,
         savedAt: Date.now()
       };
       renderAutoPopupPreview();
@@ -4568,7 +4592,7 @@
           : `<img src="${escapeHtml(url)}" alt="">`;
       }
       if (els.autoPopupPreviewModalText) {
-        const source = localAutoPopupPreview.sourceLabel || (localAutoPopupPreview.source ? `r/${localAutoPopupPreview.source}` : "");
+        const source = localAutoPopupPreview.sourceLabel || "";
         els.autoPopupPreviewModalText.textContent = source
           ? `From ${source}. This preview is only on your screen. Hiding it will not remove the sub popup.`
           : "This preview is only on your screen. Hiding it will not remove the sub popup.";
@@ -4680,7 +4704,7 @@
     }
 
     function setBooruAutoPopupFullVideos(enabled) {
-      if (subGalleryPrivateMode() && !state.settings.redditeryAutoPopup) {
+      if (subGalleryPrivateMode() && !sharedAutoPopupActive()) {
         localSubDistractions.booruAutoPopupFullVideos = Boolean(enabled) && localDanbooruIncludeVideos;
         syncDanbooruVideoToggleButtons();
         updateRedditeryAutoPopupStatus();
@@ -4726,7 +4750,7 @@
         const tag = String((document.activeElement === els.danbooruTagInput ? els.danbooruTagInput.value : "") || (els.danbooruTagInput && els.danbooruTagInput.value) || localDanbooruCustomTag || "").trim();
         loadDanbooruGallery({ tag, next: false });
       }
-      if (state.settings.redditeryAutoPopup || localSubAutoPopupActive()) scheduleNextRedditeryAutoPopup();
+      if (sharedAutoPopupActive() || localSubAutoPopupActive()) scheduleNextRedditeryAutoPopup();
     }
 
     function renderDanbooruGallery() {
@@ -5028,14 +5052,14 @@
         .map((item) => item.value);
       if (scope === "auto") {
         resetAutoPopupFeedCursors();
-        if (subGalleryPrivateMode() && container === els.redditeryAutoPopupSourcePicker && !state.settings.redditeryAutoPopup) {
+        if (subGalleryPrivateMode() && container === els.redditeryAutoPopupSourcePicker && !sharedAutoPopupActive()) {
           localSubDistractions.redditeryAutoPopupSubreddits = normalizeRedditPageSelection(selected);
           if (localSubDistractions.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
           else updateRedditeryAutoPopupStatus();
           return;
         }
         updateSettings({ redditeryAutoPopupSubreddits: normalizeRedditPageSelection(selected) });
-        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        if (sharedAutoPopupActive()) scheduleNextRedditeryAutoPopup();
         else updateRedditeryAutoPopupStatus();
         return;
       }
@@ -5256,7 +5280,7 @@
       resetAutoPopupFeedCursors();
       if (target === "solo" || target === "auto") {
         updateRedditeryAutoPopupStatus();
-        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        if (sharedAutoPopupActive()) scheduleNextRedditeryAutoPopup();
         return;
       }
       loadDanbooruGallery({ tag, next: false });
@@ -5420,6 +5444,15 @@
       return item || null;
     }
 
+    async function takeNextRapidFirePopupItem() {
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const item = await takeNextAutoPopupItem();
+        const url = item && normalizeDistractionSource(item.url);
+        if (url && mediaTypeForDistraction(url, item.mediaType) !== "video") return item;
+      }
+      return null;
+    }
+
     function currentBooruAutoPopupSearch() {
       const soloTag = String(els.soloDanbooruTagInput && els.soloDanbooruTagInput.value || "").trim();
       const autoTag = String(els.autoDanbooruTagInput && els.autoDanbooruTagInput.value || "").trim();
@@ -5528,7 +5561,8 @@
     }
 
     function scheduleNextRedditeryAutoPopup() {
-      localRedditeryAutoPopupNextAt = Date.now() + normalizeAutoPopupInterval(autoPopupSettings().redditeryAutoPopupInterval) * 1000;
+      const intervalSeconds = state.settings.redditeryRapidFire ? 1 : normalizeAutoPopupInterval(autoPopupSettings().redditeryAutoPopupInterval);
+      localRedditeryAutoPopupNextAt = Date.now() + intervalSeconds * 1000;
       updateRedditeryAutoPopupStatus();
     }
 
@@ -5562,8 +5596,24 @@
       updateRedditeryAutoPopupStatus();
     }
 
+    function setRedditeryRapidFireEnabled(enabled) {
+      if (!domLinkControlsAllowed()) return;
+      const next = Boolean(enabled);
+      const changes = { redditeryRapidFire: next };
+      if (!next) {
+        changes.distractionOverlays = activeDistractionOverlays(state.settings, 14).filter((overlay) => overlay && !overlay.rapidFire);
+      }
+      updateSettings(changes);
+      localRedditeryAutoPopupNextAt = next ? Date.now() : 0;
+      localRedditeryAutoPopupLoading = false;
+      renderDistractionBackground();
+      updateRedditeryAutoPopupStatus();
+    }
+
     function updateRedditeryAutoPopupStatus() {
-      const enabled = Boolean(state.settings.redditeryAutoPopup || localSubAutoPopupActive());
+      const rapidFire = Boolean(state.settings.redditeryRapidFire);
+      const autoEnabled = Boolean(state.settings.redditeryAutoPopup || localSubAutoPopupActive());
+      const enabled = Boolean(autoEnabled || rapidFire);
       const allowed = redditeryAutoPopupControlAllowed();
       const settings = autoPopupSettings();
       syncGoonerGalleryCategoryControls();
@@ -5574,9 +5624,14 @@
       ].forEach(([toggle, canUse]) => {
         if (!toggle) return;
         toggle.disabled = !canUse;
-        toggle.classList.toggle("active", enabled);
-        toggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+        toggle.classList.toggle("active", autoEnabled);
+        toggle.setAttribute("aria-pressed", autoEnabled ? "true" : "false");
       });
+      if (els.redditeryRapidFireToggle) {
+        els.redditeryRapidFireToggle.disabled = !domLinkControlsAllowed();
+        els.redditeryRapidFireToggle.classList.toggle("active", rapidFire);
+        els.redditeryRapidFireToggle.setAttribute("aria-pressed", rapidFire ? "true" : "false");
+      }
       [els.redditeryAutoPopupDuration, els.soloRedditeryAutoPopupDuration].forEach((input) => {
         if (input && document.activeElement !== input) input.value = normalizeDistractionDuration(settings.redditeryAutoPopupDuration);
       });
@@ -5619,6 +5674,13 @@
       const sourceLabel = autoPopupSourceKey() === "booru"
         ? `Booru search, ${booruDateFilterLabel()}`
         : `${redditSelectionLabel("auto")} Reddit`;
+      if (rapidFire) {
+        const rapidCount = activeDistractionOverlays(state.settings, 14).filter((overlay) => overlay && overlay.rapidFire).length;
+        statusEls.forEach((status) => {
+          status.textContent = `Rapid fire on. ${sourceLabel}. New image every second, max 14 on screen. Showing ${rapidCount}/14.`;
+        });
+        return;
+      }
       const videoNote = autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && settings.booruAutoPopupFullVideos
         ? " Videos can play full length."
         : "";
@@ -5627,13 +5689,14 @@
     }
 
     async function resolveRedditeryAutoPopup() {
-      if ((!state.settings.redditeryAutoPopup && !localSubAutoPopupActive()) || !redditeryAutoPopupAllowed()) {
+      const rapidFire = Boolean(state.settings.redditeryRapidFire);
+      if ((!state.settings.redditeryAutoPopup && !localSubAutoPopupActive() && !rapidFire) || !redditeryAutoPopupAllowed()) {
         localRedditeryAutoPopupNextAt = 0;
         localRedditeryAutoPopupLoading = false;
         updateRedditeryAutoPopupStatus();
         return;
       }
-      if (activeAutoFullVideoOverlay()) {
+      if (!rapidFire && activeAutoFullVideoOverlay()) {
         if (!localRedditeryAutoPopupNextAt) scheduleNextRedditeryAutoPopup();
         updateRedditeryAutoPopupStatus();
         return;
@@ -5646,16 +5709,19 @@
       let postedBlockingFullVideo = false;
       try {
         const settings = autoPopupSettings();
-        const item = await takeNextAutoPopupItem();
+        const item = rapidFire ? await takeNextRapidFirePopupItem() : await takeNextAutoPopupItem();
         const url = item && normalizeDistractionSource(item.url);
         const media = {
           mediaType: item && mediaTypeForDistraction(url, item.mediaType),
           muted: !(autoPopupSourceKey() === "booru" && localDanbooruUnmuteVideos),
-          autoFullVideo: autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && Boolean(settings.booruAutoPopupFullVideos),
-          targetSettings: settings
+          autoFullVideo: !rapidFire && autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && Boolean(settings.booruAutoPopupFullVideos),
+          targetSettings: settings,
+          rapidFire,
+          placement: rapidFire ? "random" : popupPlacement()
         };
         if (url && addAutoDistractionOverlay(url, media)) {
           postedBlockingFullVideo = media.mediaType === "video" && media.autoFullVideo;
+          renderDistractionBackground();
           if (settings === state.settings) showAutoPopupPreview(item, media);
           if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Auto gallery popup posted.";
         }
@@ -5699,12 +5765,12 @@
       renderDistractionGallery();
     }
 
-    function activeDistractionOverlays(source = state.settings) {
+    function activeDistractionOverlays(source = state.settings, maxItems = 3) {
       const now = Date.now();
       const list = Array.isArray(source.distractionOverlays) ? source.distractionOverlays : [];
       const active = list
         .filter((item) => item && normalizeDistractionSource(item.url) && Number(item.until || 0) > now)
-        .slice(-3);
+        .slice(-Math.max(1, Number(maxItems || 3)));
       const oldUrl = normalizeDistractionSource(source.distractionOverlayUrl || (source.distractionMode === "overlay-sub" ? source.distractionUrl : ""));
       const oldUntil = Number(source.distractionOverlayUntil || source.distractionUntil || 0);
       if (!active.length && oldUrl && oldUntil > now) {
@@ -5821,6 +5887,30 @@
 
     function overlayBoxSizePx(overlay, count, viewportWidth, viewportHeight) {
       const sizingCount = normalizePopupPlacement(overlay && overlay.placement) === "random" ? 1 : count;
+      if (overlay && overlay.rapidFire) {
+        const margin = 10;
+        const maxWidth = Math.max(1, Math.min(viewportWidth - margin * 2, 230, viewportWidth * 0.22));
+        const maxHeight = Math.max(1, Math.min(viewportHeight - margin * 2, 280, viewportHeight * 0.32));
+        const size = distractionImageSizeCache.get(normalizeDistractionSource(overlay && overlay.url));
+        if (size && size.width && size.height) {
+          const ratio = size.width / size.height;
+          const maxRatio = maxWidth / maxHeight;
+          if (ratio >= maxRatio) {
+            return {
+              width: Math.round(maxWidth),
+              height: Math.round(Math.max(1, maxWidth / ratio))
+            };
+          }
+          return {
+            width: Math.round(Math.max(1, maxHeight * ratio)),
+            height: Math.round(maxHeight)
+          };
+        }
+        return {
+          width: Math.round(maxWidth),
+          height: Math.round(maxHeight)
+        };
+      }
       const margin = sizingCount === 1 ? 24 : 18;
       const maxWidth = Math.max(1, Math.min(viewportWidth - margin * 2, sizingCount === 1 ? 860 : (sizingCount === 2 ? 540 : 390), viewportWidth * (sizingCount === 1 ? 0.82 : (sizingCount === 2 ? 0.42 : 0.29))));
       const maxHeight = Math.max(1, Math.min(viewportHeight - margin * 2, sizingCount === 1 ? 760 : (sizingCount === 2 ? 560 : 420), viewportHeight * (sizingCount === 1 ? 0.86 : (sizingCount === 2 ? 0.68 : 0.54))));
@@ -5999,6 +6089,7 @@
       node.style.setProperty("--distraction-overlay-top", `${y}px`);
       node.style.setProperty("--distraction-overlay-width", `${box.width}px`);
       node.style.setProperty("--distraction-overlay-height", `${box.height}px`);
+      node.classList.toggle("rapid-fire", Boolean(overlay && overlay.rapidFire));
 
       const isVideo = overlay.mediaType === "video" || isVideoDistractionSource(normalizedUrl);
       const existing = node.firstElementChild;
@@ -6062,8 +6153,10 @@
         sharedBackgroundVisible ? state.settings.distractionBackgroundMediaType : localSubDistractions.distractionBackgroundMediaType
       );
       const backgroundIsVideo = backgroundMediaType === "video";
-      const sharedOverlays = activeDistractionOverlays(state.settings);
-      const localOverlays = subGalleryPrivateMode() && !sharedOverlays.length ? activeDistractionOverlays(localSubDistractions) : [];
+      const sharedOverlayCap = Array.isArray(state.settings.distractionOverlays) && state.settings.distractionOverlays.some((overlay) => overlay && overlay.rapidFire) ? 14 : 3;
+      const localOverlayCap = Array.isArray(localSubDistractions.distractionOverlays) && localSubDistractions.distractionOverlays.some((overlay) => overlay && overlay.rapidFire) ? 14 : 3;
+      const sharedOverlays = activeDistractionOverlays(state.settings, sharedOverlayCap);
+      const localOverlays = subGalleryPrivateMode() && !sharedOverlays.length ? activeDistractionOverlays(localSubDistractions, localOverlayCap) : [];
       const overlays = sharedOverlays.length ? sharedOverlays : localOverlays;
       const showBackground = Boolean(backgroundUrl);
       const showOverlay = overlays.length > 0 && shouldShowSubOnlyMedia();
@@ -12507,13 +12600,17 @@
       const losses = state.currentGame === "tributeChess" && state.chess
         ? Math.max(Number(state.chess.subPiecesLostToDom || 0), Number(state.lossPressure && state.lossPressure.count || 0))
         : Number(state.lossPressure && state.lossPressure.count || 0);
-      const show = Boolean(!mobileLike && lossPressureEffectVisible("pulse") && state.screen === "game" && state.active && losses >= 8);
+      const rapidFire = Boolean(state.settings.redditeryRapidFire && redditeryAutoPopupAllowed());
+      const show = Boolean(!mobileLike && (
+        rapidFire
+        || (lossPressureEffectVisible("pulse") && state.screen === "game" && state.active && losses >= 8)
+      ));
       els.pieceLossSpiral.classList.toggle("hidden", !show);
       if (!show) {
         els.pieceLossSpiral.style.removeProperty("--piece-loss-spiral-opacity");
         return;
       }
-      const opacity = Math.min(0.14, 0.045 + (losses - 8) * 0.012);
+      const opacity = rapidFire ? 0.095 : Math.min(0.14, 0.045 + (losses - 8) * 0.012);
       els.pieceLossSpiral.style.setProperty("--piece-loss-spiral-opacity", opacity.toFixed(3));
     }
 
@@ -19997,7 +20094,7 @@
         event.preventDefault();
         localDanbooruCustomTag = String(els.autoDanbooruTagInput.value || "").trim();
         resetAutoPopupFeedCursors();
-        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        if (sharedAutoPopupActive()) scheduleNextRedditeryAutoPopup();
         updateRedditeryAutoPopupStatus();
       });
     }
@@ -20013,7 +20110,7 @@
         event.preventDefault();
         localDanbooruCustomTag = String(els.soloDanbooruTagInput.value || "").trim();
         resetAutoPopupFeedCursors();
-        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        if (sharedAutoPopupActive()) scheduleNextRedditeryAutoPopup();
         updateRedditeryAutoPopupStatus();
       });
     }
@@ -20063,11 +20160,16 @@
         setRedditeryAutoPopupEnabled(!state.settings.redditeryAutoPopup);
       });
     }
+    if (els.redditeryRapidFireToggle) {
+      els.redditeryRapidFireToggle.addEventListener("click", () => {
+        setRedditeryRapidFireEnabled(!state.settings.redditeryRapidFire);
+      });
+    }
     [els.redditeryAutoPopupSource, els.soloRedditeryAutoPopupSource].forEach((select) => {
       if (!select) return;
       select.addEventListener("change", () => {
         resetAutoPopupFeedCursors();
-        if (subGalleryPrivateMode() && select === els.redditeryAutoPopupSource && !state.settings.redditeryAutoPopup) {
+        if (subGalleryPrivateMode() && select === els.redditeryAutoPopupSource && !sharedAutoPopupActive()) {
           localSubDistractions.redditeryAutoPopupSource = select.value === "booru" ? "booru" : "reddit";
           if (localSubDistractions.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
           else updateRedditeryAutoPopupStatus();
@@ -20075,7 +20177,7 @@
           return;
         }
         updateSettings({ redditeryAutoPopupSource: select.value === "booru" ? "booru" : "reddit" });
-        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        if (sharedAutoPopupActive()) scheduleNextRedditeryAutoPopup();
       });
     });
     [els.redditeryAutoPopupCategory, els.soloRedditeryAutoPopupCategory].forEach((select) => {
@@ -20083,7 +20185,7 @@
       select.addEventListener("change", () => {
         const category = GOONER_GALLERY_CATEGORIES[String(select.value || "").toLowerCase()] ? String(select.value || "").toLowerCase() : "captions";
         resetAutoPopupFeedCursors();
-        if (subGalleryPrivateMode() && select === els.redditeryAutoPopupCategory && !state.settings.redditeryAutoPopup) {
+        if (subGalleryPrivateMode() && select === els.redditeryAutoPopupCategory && !sharedAutoPopupActive()) {
           localSubDistractions.redditeryAutoPopupCategory = category;
           localSubDistractions.redditeryAutoPopupSubreddits = categorySubreddits(category);
           if (localSubDistractions.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
@@ -20095,13 +20197,13 @@
           redditeryAutoPopupCategory: category,
           redditeryAutoPopupSubreddits: categorySubreddits(category)
         });
-        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        if (sharedAutoPopupActive()) scheduleNextRedditeryAutoPopup();
       });
     });
     if (els.redditeryAutoPopupDuration) {
       els.redditeryAutoPopupDuration.addEventListener("input", () => {
         const duration = normalizeDistractionDuration(els.redditeryAutoPopupDuration.value);
-        if (subGalleryPrivateMode() && !state.settings.redditeryAutoPopup) {
+        if (subGalleryPrivateMode() && !sharedAutoPopupActive()) {
           localSubDistractions.redditeryAutoPopupDuration = duration;
           updateRedditeryAutoPopupStatus();
           return;
@@ -20113,14 +20215,14 @@
     if (els.redditeryAutoPopupInterval) {
       els.redditeryAutoPopupInterval.addEventListener("input", () => {
         const interval = normalizeAutoPopupInterval(els.redditeryAutoPopupInterval.value);
-        if (subGalleryPrivateMode() && !state.settings.redditeryAutoPopup) {
+        if (subGalleryPrivateMode() && !sharedAutoPopupActive()) {
           localSubDistractions.redditeryAutoPopupInterval = interval;
           if (localSubDistractions.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
           else updateRedditeryAutoPopupStatus();
           return;
         }
         updateSettings({ redditeryAutoPopupInterval: interval });
-        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        if (sharedAutoPopupActive()) scheduleNextRedditeryAutoPopup();
         else updateRedditeryAutoPopupStatus();
       });
     }
@@ -20138,7 +20240,7 @@
     if (els.soloRedditeryAutoPopupInterval) {
       els.soloRedditeryAutoPopupInterval.addEventListener("input", () => {
         updateSettings({ redditeryAutoPopupInterval: normalizeAutoPopupInterval(els.soloRedditeryAutoPopupInterval.value) });
-        if (state.settings.redditeryAutoPopup) scheduleNextRedditeryAutoPopup();
+        if (sharedAutoPopupActive()) scheduleNextRedditeryAutoPopup();
         else updateRedditeryAutoPopupStatus();
       });
     }

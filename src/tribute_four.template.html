@@ -1082,13 +1082,13 @@
         <div class="settings-pane" id="domToolsPane">
           <h3 class="panel-title">Quick Tools</h3>
           <label class="field-label">
-            Link for sub
+            Paste a link, then open it for the sub.
             <input id="sideDomLinkInput" type="url" placeholder="https://example.com">
           </label>
           <div class="mode-grid">
             <button id="sideSendDomLinkBtn" class="primary">Open Link</button>
           </div>
-          <p class="chooser-line" id="sideDomLinkStatus">Paste a link, then open it for the sub.</p>
+          <p class="chooser-line hidden" id="sideDomLinkStatus"></p>
           <input id="sideDistractionMode" type="hidden" value="overlay-sub">
           <input id="sideDistractionDuration" type="hidden" value="15">
 
@@ -1171,6 +1171,7 @@
             </summary>
             <div class="booru-test-panel compact random-popup-panel">
               <button id="redditeryAutoPopupToggle" type="button" class="toggle-button full-width" aria-pressed="false">Auto Sub Popup</button>
+              <button id="redditeryRapidFireToggle" type="button" class="toggle-button full-width" aria-pressed="false">Rapid Fire Popups</button>
               <button id="autoPopupDomPreviewInput" type="button" class="toggle-button full-width" aria-pressed="false">Show Dom Preview</button>
               <label class="field-label">
                 Popup source

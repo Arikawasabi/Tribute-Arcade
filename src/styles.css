@@ -137,6 +137,10 @@
       filter: drop-shadow(0 22px 50px rgba(0, 0, 0, 0.58));
     }
 
+    .distraction-overlay-item.rapid-fire {
+      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.48));
+    }
+
     .distraction-overlay-item img,
     .distraction-overlay-item video {
       display: block;
