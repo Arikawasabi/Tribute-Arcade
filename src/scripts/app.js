@@ -3643,7 +3643,9 @@
       const canUseGallery = galleryControlsAllowed();
       const canOpenLedger = !soloContext && (inGame || inGameSelect);
       syncGalleryPanelOpenState();
+      const wasSoloGalleryOnly = els.sidePopout.classList.contains("solo-gallery-only");
       if (soloContext) {
+        if (!wasSoloGalleryOnly) state.settings.sideOpen = false;
         state.settings.activeSideTab = "gallery";
       }
       if (state.settings.normalThroneRequest && normalThroneRequestSubAllowed() && canOpenLedger) {
@@ -3668,6 +3670,7 @@
           ? "Tools & Settings"
         : (state.online.room ? `Room ${state.online.room}` : "Room");
       els.sidePopout.classList.toggle("closed", !panelOpen);
+      els.sidePopout.classList.toggle("solo-gallery-only", soloContext);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
         const visible = (!soloContext || tab === "gallery")
@@ -3675,6 +3678,7 @@
           && (tab !== "gallery" || canOpenGallery)
           && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
+        button.classList.toggle("solo-gallery-restore", soloContext && tab === "gallery");
         button.classList.toggle("active-restore", panelOpen && tab === activeTab);
         button.classList.toggle("unread", tab === "chat" && hasUnreadChat());
       });
