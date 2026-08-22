@@ -335,9 +335,14 @@
       background-position: center;
       background-size: cover;
       background-repeat: no-repeat;
-      opacity: var(--piece-loss-spiral-opacity);
+      opacity: 0;
       mix-blend-mode: screen;
       filter: saturate(1.18) contrast(0.92);
+      transition: opacity 2.2s ease;
+    }
+
+    .piece-loss-spiral.active {
+      opacity: var(--piece-loss-spiral-opacity);
     }
 
     .piece-loss-spiral.hidden {

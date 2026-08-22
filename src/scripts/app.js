@@ -1932,6 +1932,7 @@
       clearLocalRoomUrl();
       setScreen("select");
       renderMenu();
+      renderSidePanel();
     }
 
     function clearLocalRoomUrl() {
@@ -2565,8 +2566,8 @@
       const tab = allowedTabs.includes(requestedTab) ? requestedTab : allowedTabs[0];
       state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
-        button.classList.toggle("hidden", button.dataset.gameTab === "solo" ? !soloMenuOpen : soloMenuOpen);
-        button.classList.toggle("active", button.dataset.gameTab === tab);
+        button.classList.toggle("hidden", soloMenuOpen || button.dataset.gameTab === "solo");
+        button.classList.toggle("active", !soloMenuOpen && button.dataset.gameTab === tab);
       });
       updateRedditeryAutoPopupStatus();
       els.mainGamesGrid.classList.remove("hidden");
@@ -12711,13 +12712,29 @@
         rapidFire
         || (lossPressureEffectVisible("pulse") && state.screen === "game" && state.active && losses >= 8)
       ));
-      els.pieceLossSpiral.classList.toggle("hidden", !show);
       if (!show) {
+        els.pieceLossSpiral.classList.remove("active");
+        window.clearTimeout(renderPieceLossSpiral.hideTimer);
+        renderPieceLossSpiral.hideTimer = window.setTimeout(() => {
+          if (!els.pieceLossSpiral || els.pieceLossSpiral.classList.contains("active")) return;
+          els.pieceLossSpiral.classList.add("hidden");
+        }, 2300);
         els.pieceLossSpiral.style.removeProperty("--piece-loss-spiral-opacity");
         return;
       }
       const opacity = rapidFire ? 0.095 : Math.min(0.14, 0.045 + (losses - 8) * 0.012);
       els.pieceLossSpiral.style.setProperty("--piece-loss-spiral-opacity", opacity.toFixed(3));
+      window.clearTimeout(renderPieceLossSpiral.hideTimer);
+      if (els.pieceLossSpiral.classList.contains("hidden")) {
+        els.pieceLossSpiral.classList.remove("hidden");
+        els.pieceLossSpiral.classList.remove("active");
+        window.requestAnimationFrame(() => {
+          if (!els.pieceLossSpiral) return;
+          window.requestAnimationFrame(() => els.pieceLossSpiral.classList.add("active"));
+        });
+      } else {
+        els.pieceLossSpiral.classList.add("active");
+      }
     }
 
     function renderPieceLossMessage() {
