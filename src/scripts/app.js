@@ -279,6 +279,7 @@
       pieceLossMessage: document.getElementById("pieceLossMessage"),
       chessCaptureBanner: document.getElementById("chessCaptureBanner"),
       newSolitaireBtn: document.getElementById("newSolitaireBtn"),
+      solitaireUndoBtn: document.getElementById("solitaireUndoBtn"),
       solitaireBackBtn: document.getElementById("solitaireBackBtn"),
       soloRedditeryPanel: document.getElementById("soloRedditeryPanel"),
       soloGoonerGalleryCategory: document.getElementById("soloGoonerGalleryCategory"),
@@ -5703,6 +5704,7 @@
       localRedditeryAutoPopupNextAt = next ? Date.now() : 0;
       localRedditeryAutoPopupLoading = false;
       renderDistractionBackground();
+      renderPieceLossSpiral();
       updateRedditeryAutoPopupStatus();
     }
 
@@ -6289,6 +6291,7 @@
         window.clearTimeout(renderDistractionBackground.timer);
         renderDistractionBackground.timer = window.setTimeout(renderDistractionBackground, overlayRemaining + 80);
       }
+      renderPieceLossSpiral();
     }
 
     function currentLinkRequestKey() {
@@ -13546,6 +13549,7 @@
         moves: 0,
         started: false,
         initialDeal: null,
+        undoStack: [],
         noMovesPrompt: false,
         message: "Build all four foundations from Ace to King."
       };
@@ -18070,6 +18074,53 @@
       };
     }
 
+    function solitaireUndoSnapshot(game = state.solitaire || createSolitaireState()) {
+      return {
+        ...solitaireSnapshot(game),
+        moves: Number(game.moves || 0),
+        selected: null,
+        message: game.message || "Build all four foundations from Ace to King."
+      };
+    }
+
+    function restoreSolitaireUndoSnapshot(snapshot) {
+      const game = state.solitaire || createSolitaireState();
+      state.solitaire = {
+        ...game,
+        stock: [...(snapshot.stock || [])],
+        waste: [...(snapshot.waste || [])],
+        foundations: (snapshot.foundations || [[], [], [], []]).map((pile) => [...pile]),
+        tableau: (snapshot.tableau || [[], [], [], [], [], [], []]).map((pile) => pile.map((entry) => ({ ...entry }))),
+        selected: snapshot.selected ? { ...snapshot.selected } : null,
+        moves: Number(snapshot.moves || 0),
+        started: true,
+        message: "Undid the last move."
+      };
+    }
+
+    function pushSolitaireUndo() {
+      const game = state.solitaire || createSolitaireState();
+      if (!game.started) return;
+      game.undoStack = [
+        ...(Array.isArray(game.undoStack) ? game.undoStack : []),
+        solitaireUndoSnapshot(game)
+      ].slice(-2);
+    }
+
+    function undoSolitaireMove() {
+      const game = state.solitaire || createSolitaireState();
+      const stack = Array.isArray(game.undoStack) ? game.undoStack : [];
+      const snapshot = stack.pop();
+      if (!snapshot) {
+        game.message = "No undo available.";
+        renderSolitaire();
+        return;
+      }
+      restoreSolitaireUndoSnapshot(snapshot);
+      state.solitaire.undoStack = stack;
+      renderSolitaire();
+    }
+
     function restoreSolitaireDeal() {
       const current = state.solitaire || createSolitaireState();
       const snapshot = current.initialDeal;
@@ -18085,6 +18136,7 @@
         tableau: (snapshot.tableau || [[], [], [], [], [], [], []]).map((pile) => pile.map((entry) => ({ ...entry }))),
         started: true,
         initialDeal: snapshot,
+        undoStack: [],
         message: "Deal restarted from the beginning."
       };
     }
@@ -18147,9 +18199,11 @@
       const game = state.solitaire || createSolitaireState();
       game.selected = null;
       if (game.stock.length) {
+        pushSolitaireUndo();
         game.waste.push(game.stock.pop());
         game.message = "Card drawn.";
       } else if (game.waste.length) {
+        pushSolitaireUndo();
         game.stock = game.waste.reverse();
         game.waste = [];
         game.message = "Waste returned to stock.";
@@ -18233,7 +18287,6 @@
     function solitaireHasAnyLegalMove(game = state.solitaire || createSolitaireState()) {
       if (!game.started || (game.foundations || []).every((pile) => pile.length === 13)) return true;
       return solitaireTableauHasLegalMove(game)
-        || solitaireFoundationsHaveLegalMove(game)
         || solitaireWasteHasLegalMove(game)
         || solitaireReachableStockHasLegalMove(game);
     }
@@ -18275,6 +18328,7 @@
         renderSolitaire();
         return;
       }
+      pushSolitaireUndo();
       const moved = removeSolitaireSelectedCards();
       game.tableau[column].push(...moved.map((card) => ({ card, faceUp: true })));
       game.selected = null;
@@ -18291,6 +18345,7 @@
         renderSolitaire();
         return;
       }
+      pushSolitaireUndo();
       const moved = removeSolitaireSelectedCards();
       game.foundations[foundation].push(moved[0]);
       game.selected = null;
@@ -18314,6 +18369,10 @@
       }
       if (action && action.dataset.solitaireAction === "give-up") {
         giveUpSolitaireDeal();
+        return;
+      }
+      if (action && action.dataset.solitaireAction === "undo") {
+        undoSolitaireMove();
         return;
       }
       if (action && action.dataset.solitaireAction === "stock") {
@@ -18399,6 +18458,9 @@
       if (els.solitaireStatus) {
         els.solitaireStatus.textContent = `${game.message || "Build all four foundations from Ace to King."} Moves: ${game.moves || 0}.`;
       }
+      if (els.solitaireUndoBtn) {
+        els.solitaireUndoBtn.disabled = !game.started || !(Array.isArray(game.undoStack) && game.undoStack.length);
+      }
       if (els.solitaireStock) {
         els.solitaireStock.innerHTML = "";
         if (game.stock.length) els.solitaireStock.appendChild(renderPlayingCard("AS", true));
@@ -18420,8 +18482,7 @@
         const pile = game.foundations[index] || [];
         const card = pile[pile.length - 1];
         if (card) {
-          const rendered = renderSolitaireCard(card, false, { solitaireSource: "foundation", foundationIndex: index });
-          if (selectedKey === `foundation:::${index}`) rendered.classList.add("selected");
+          const rendered = renderSolitaireCard(card, false);
           slot.appendChild(rendered);
         } else {
           slot.appendChild(solitaireSlotLabel(SOLITAIRE_FOUNDATION_LABELS[index], "suit-placeholder"));
@@ -20532,6 +20593,9 @@
       els.newSolitaireBtn.addEventListener("click", () => {
         newSolitaireDeal();
       });
+    }
+    if (els.solitaireUndoBtn) {
+      els.solitaireUndoBtn.addEventListener("click", undoSolitaireMove);
     }
     if (els.solitaireTable) {
       els.solitaireTable.addEventListener("click", handleSolitaireClick);
