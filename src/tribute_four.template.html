@@ -299,63 +299,6 @@
       <button class="game-select-tab" data-game-tab="all">All</button>
     </div>
 
-    <section class="solo-redditery-panel hidden" id="soloRedditeryPanel">
-      <button id="soloRedditeryAutoPopupToggle" type="button" class="toggle-button" aria-pressed="false">Random Popups</button>
-      <label class="field-label compact-field">
-        Popup source
-        <select id="soloRedditeryAutoPopupSource">
-          <option value="reddit">Reddit page</option>
-          <option value="booru">Booru search</option>
-        </select>
-      </label>
-      <label class="field-label compact-field" id="soloRedditeryAutoPopupCategoryRow">
-        Reddit page
-        <select id="soloRedditeryAutoPopupCategory">
-          <option value="captions">Captions</option>
-          <option value="goonerbait">Gooner Bait</option>
-          <option value="censor">Censor</option>
-          <option value="femboys">Femboys</option>
-          <option value="furry">Furry</option>
-          <option value="butt">Butt</option>
-          <option value="bnwo">BNWO</option>
-          <option value="feet">Feet</option>
-          <option value="boobs">Boobs</option>
-          <option value="armpits">Armpits</option>
-          <option value="mixed">Mixed</option>
-        </select>
-      </label>
-      <div class="reddit-page-picker" id="soloRedditerySourcePicker"></div>
-      <label class="field-label compact-field hidden" id="soloBooruAutoPopupTagRow">
-        Booru tag
-        <input id="soloDanbooruTagInput" type="text" placeholder="boobs, feet, armpits...">
-      </label>
-      <div class="danbooru-suggestions hidden" id="soloDanbooruSuggestions"></div>
-      <div class="danbooru-toggle-row hidden" id="soloBooruAutoPopupVideoRow">
-        <button id="soloDanbooruIncludeVideos" type="button" class="toggle-button" aria-pressed="false">Include Videos</button>
-        <button id="soloDanbooruUnmuteVideos" type="button" class="toggle-button" aria-pressed="false">Unmute Videos</button>
-        <button id="soloDanbooruFullVideos" type="button" class="toggle-button" aria-pressed="false">Full Videos</button>
-      </div>
-      <label class="field-label compact-field hidden" id="soloBooruDateFilterRow">
-        Upload date
-        <select id="soloBooruDateFilter">
-          <option value="all">All time</option>
-          <option value="12m">Last 12 months</option>
-          <option value="6m">Last 6 months</option>
-          <option value="3m">Last 3 months</option>
-          <option value="1m">Last 1 month</option>
-        </select>
-      </label>
-      <label class="field-label compact-field">
-        Popup seconds
-        <input id="soloRedditeryAutoPopupDuration" type="number" min="1" max="60" step="1" value="15">
-      </label>
-      <label class="field-label compact-field">
-        Next image after seconds
-        <input id="soloRedditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="30">
-      </label>
-      <p class="chooser-line" id="soloRedditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up every 1-2 minutes during solo games.</p>
-    </section>
-
     <section class="game-grid" id="mainGamesGrid">
       <button class="panel game-card" id="tributeFourCard" data-open-game="tributeFour" data-game-categories="board all">
         <span>

@@ -2567,7 +2567,6 @@
         button.classList.toggle("hidden", button.dataset.gameTab === "solo" ? !soloMenuOpen : soloMenuOpen);
         button.classList.toggle("active", button.dataset.gameTab === tab);
       });
-      if (els.soloRedditeryPanel) els.soloRedditeryPanel.classList.toggle("hidden", !soloMenuOpen);
       updateRedditeryAutoPopupStatus();
       els.mainGamesGrid.classList.remove("hidden");
       els.miniGamesGrid.classList.add("hidden");
@@ -3622,25 +3621,30 @@
     }
 
     function renderSidePanel() {
-      const soloMode = state.screen === "solitaire" || state.screen === "memoryMatch";
+      const soloGameIds = ["solitaire", "memoryMatch"];
+      const soloMode = soloGameIds.includes(state.screen);
       const inGame = state.screen === "game";
       const inGameSelect = state.screen === "select";
-      if (soloMode || (!inGame && !inGameSelect)) {
+      const soloContext = soloMode || (inGameSelect && soloGameIds.includes(state.currentGame));
+      if (!soloContext && !inGame && !inGameSelect) {
         els.sidePopout.classList.add("hidden");
         els.sideRestoreTabs.forEach((button) => button.classList.add("hidden"));
         renderDistractionBackground();
         return;
       }
       els.sidePopout.classList.remove("hidden");
-      const canOpenSettings = sideSettingsAllowed();
-      const canOpenTools = domLinkControlsAllowed();
+      const canOpenSettings = !soloContext && sideSettingsAllowed();
+      const canOpenTools = !soloContext && domLinkControlsAllowed();
       const canOpenGallery = galleryControlsAllowed();
       const canOpenUtility = canOpenSettings || canOpenTools;
-      const canUseDomSettings = domLinkControlsAllowed();
-      const canUseSubSettings = subSettingsControlsAllowed();
+      const canUseDomSettings = !soloContext && domLinkControlsAllowed();
+      const canUseSubSettings = !soloContext && subSettingsControlsAllowed();
       const canUseGallery = galleryControlsAllowed();
-      const canOpenLedger = inGame || inGameSelect;
+      const canOpenLedger = !soloContext && (inGame || inGameSelect);
       syncGalleryPanelOpenState();
+      if (soloContext) {
+        state.settings.activeSideTab = "gallery";
+      }
       if (state.settings.normalThroneRequest && normalThroneRequestSubAllowed() && canOpenLedger) {
         state.settings.activeSideTab = "ledger";
         state.settings.sideOpen = true;
@@ -3665,7 +3669,8 @@
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
-        const visible = (tab !== "ledger" || canOpenLedger)
+        const visible = (!soloContext || tab === "gallery")
+          && (tab !== "ledger" || canOpenLedger)
           && (tab !== "gallery" || canOpenGallery)
           && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
@@ -3675,12 +3680,14 @@
       els.sideToggleBtn.textContent = "Hide";
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
-        const visible = (button.dataset.sideTab !== "ledger" || canOpenLedger)
-          && (button.dataset.sideTab !== "gallery" || canOpenGallery)
-          && (button.dataset.sideTab !== "tools" || canOpenUtility);
+        const tab = button.dataset.sideTab || "chat";
+        const visible = (!soloContext || tab === "gallery")
+          && (tab !== "ledger" || canOpenLedger)
+          && (tab !== "gallery" || canOpenGallery)
+          && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
-        button.classList.toggle("active", button.dataset.sideTab === activeTab);
-        button.classList.toggle("unread", button.dataset.sideTab === "chat" && hasUnreadChat());
+        button.classList.toggle("active", tab === activeTab);
+        button.classList.toggle("unread", tab === "chat" && hasUnreadChat());
       });
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
       els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");

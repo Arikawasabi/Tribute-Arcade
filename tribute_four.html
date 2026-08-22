@@ -7974,63 +7974,6 @@
       <button class="game-select-tab" data-game-tab="all">All</button>
     </div>
 
-    <section class="solo-redditery-panel hidden" id="soloRedditeryPanel">
-      <button id="soloRedditeryAutoPopupToggle" type="button" class="toggle-button" aria-pressed="false">Random Popups</button>
-      <label class="field-label compact-field">
-        Popup source
-        <select id="soloRedditeryAutoPopupSource">
-          <option value="reddit">Reddit page</option>
-          <option value="booru">Booru search</option>
-        </select>
-      </label>
-      <label class="field-label compact-field" id="soloRedditeryAutoPopupCategoryRow">
-        Reddit page
-        <select id="soloRedditeryAutoPopupCategory">
-          <option value="captions">Captions</option>
-          <option value="goonerbait">Gooner Bait</option>
-          <option value="censor">Censor</option>
-          <option value="femboys">Femboys</option>
-          <option value="furry">Furry</option>
-          <option value="butt">Butt</option>
-          <option value="bnwo">BNWO</option>
-          <option value="feet">Feet</option>
-          <option value="boobs">Boobs</option>
-          <option value="armpits">Armpits</option>
-          <option value="mixed">Mixed</option>
-        </select>
-      </label>
-      <div class="reddit-page-picker" id="soloRedditerySourcePicker"></div>
-      <label class="field-label compact-field hidden" id="soloBooruAutoPopupTagRow">
-        Booru tag
-        <input id="soloDanbooruTagInput" type="text" placeholder="boobs, feet, armpits...">
-      </label>
-      <div class="danbooru-suggestions hidden" id="soloDanbooruSuggestions"></div>
-      <div class="danbooru-toggle-row hidden" id="soloBooruAutoPopupVideoRow">
-        <button id="soloDanbooruIncludeVideos" type="button" class="toggle-button" aria-pressed="false">Include Videos</button>
-        <button id="soloDanbooruUnmuteVideos" type="button" class="toggle-button" aria-pressed="false">Unmute Videos</button>
-        <button id="soloDanbooruFullVideos" type="button" class="toggle-button" aria-pressed="false">Full Videos</button>
-      </div>
-      <label class="field-label compact-field hidden" id="soloBooruDateFilterRow">
-        Upload date
-        <select id="soloBooruDateFilter">
-          <option value="all">All time</option>
-          <option value="12m">Last 12 months</option>
-          <option value="6m">Last 6 months</option>
-          <option value="3m">Last 3 months</option>
-          <option value="1m">Last 1 month</option>
-        </select>
-      </label>
-      <label class="field-label compact-field">
-        Popup seconds
-        <input id="soloRedditeryAutoPopupDuration" type="number" min="1" max="60" step="1" value="15">
-      </label>
-      <label class="field-label compact-field">
-        Next image after seconds
-        <input id="soloRedditeryAutoPopupInterval" type="number" min="15" max="600" step="5" value="30">
-      </label>
-      <p class="chooser-line" id="soloRedditeryAutoPopupStatus">Off. When enabled, a random gallery image pops up every 1-2 minutes during solo games.</p>
-    </section>
-
     <section class="game-grid" id="mainGamesGrid">
       <button class="panel game-card" id="tributeFourCard" data-open-game="tributeFour" data-game-categories="board all">
         <span>
@@ -11803,7 +11746,6 @@
         button.classList.toggle("hidden", button.dataset.gameTab === "solo" ? !soloMenuOpen : soloMenuOpen);
         button.classList.toggle("active", button.dataset.gameTab === tab);
       });
-      if (els.soloRedditeryPanel) els.soloRedditeryPanel.classList.toggle("hidden", !soloMenuOpen);
       updateRedditeryAutoPopupStatus();
       els.mainGamesGrid.classList.remove("hidden");
       els.miniGamesGrid.classList.add("hidden");
@@ -12858,25 +12800,30 @@
     }
 
     function renderSidePanel() {
-      const soloMode = state.screen === "solitaire" || state.screen === "memoryMatch";
+      const soloGameIds = ["solitaire", "memoryMatch"];
+      const soloMode = soloGameIds.includes(state.screen);
       const inGame = state.screen === "game";
       const inGameSelect = state.screen === "select";
-      if (soloMode || (!inGame && !inGameSelect)) {
+      const soloContext = soloMode || (inGameSelect && soloGameIds.includes(state.currentGame));
+      if (!soloContext && !inGame && !inGameSelect) {
         els.sidePopout.classList.add("hidden");
         els.sideRestoreTabs.forEach((button) => button.classList.add("hidden"));
         renderDistractionBackground();
         return;
       }
       els.sidePopout.classList.remove("hidden");
-      const canOpenSettings = sideSettingsAllowed();
-      const canOpenTools = domLinkControlsAllowed();
+      const canOpenSettings = !soloContext && sideSettingsAllowed();
+      const canOpenTools = !soloContext && domLinkControlsAllowed();
       const canOpenGallery = galleryControlsAllowed();
       const canOpenUtility = canOpenSettings || canOpenTools;
-      const canUseDomSettings = domLinkControlsAllowed();
-      const canUseSubSettings = subSettingsControlsAllowed();
+      const canUseDomSettings = !soloContext && domLinkControlsAllowed();
+      const canUseSubSettings = !soloContext && subSettingsControlsAllowed();
       const canUseGallery = galleryControlsAllowed();
-      const canOpenLedger = inGame || inGameSelect;
+      const canOpenLedger = !soloContext && (inGame || inGameSelect);
       syncGalleryPanelOpenState();
+      if (soloContext) {
+        state.settings.activeSideTab = "gallery";
+      }
       if (state.settings.normalThroneRequest && normalThroneRequestSubAllowed() && canOpenLedger) {
         state.settings.activeSideTab = "ledger";
         state.settings.sideOpen = true;
@@ -12901,7 +12848,8 @@
       els.sidePopout.classList.toggle("closed", !panelOpen);
       els.sideRestoreTabs.forEach((button) => {
         const tab = button.dataset.openSideTab || "chat";
-        const visible = (tab !== "ledger" || canOpenLedger)
+        const visible = (!soloContext || tab === "gallery")
+          && (tab !== "ledger" || canOpenLedger)
           && (tab !== "gallery" || canOpenGallery)
           && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
@@ -12911,12 +12859,14 @@
       els.sideToggleBtn.textContent = "Hide";
       els.sideToggleBtn.title = "Collapse panel";
       els.sideTabs.forEach((button) => {
-        const visible = (button.dataset.sideTab !== "ledger" || canOpenLedger)
-          && (button.dataset.sideTab !== "gallery" || canOpenGallery)
-          && (button.dataset.sideTab !== "tools" || canOpenUtility);
+        const tab = button.dataset.sideTab || "chat";
+        const visible = (!soloContext || tab === "gallery")
+          && (tab !== "ledger" || canOpenLedger)
+          && (tab !== "gallery" || canOpenGallery)
+          && (tab !== "tools" || canOpenUtility);
         button.classList.toggle("hidden", !visible);
-        button.classList.toggle("active", button.dataset.sideTab === activeTab);
-        button.classList.toggle("unread", button.dataset.sideTab === "chat" && hasUnreadChat());
+        button.classList.toggle("active", tab === activeTab);
+        button.classList.toggle("unread", tab === "chat" && hasUnreadChat());
       });
       els.sideChatPane.classList.toggle("hidden", activeTab !== "chat");
       els.sideLedgerPane.classList.toggle("hidden", activeTab !== "ledger");
