@@ -448,6 +448,7 @@
       goonerGallerySelectionSummary: document.getElementById("goonerGallerySelectionSummary"),
       customRedditPageInput: document.getElementById("customRedditPageInput"),
       addCustomRedditPageBtn: document.getElementById("addCustomRedditPageBtn"),
+      customRedditSuggestions: document.getElementById("customRedditSuggestions"),
       customRedditPageStatus: document.getElementById("customRedditPageStatus"),
       goonerGallerySourcePicker: document.getElementById("goonerGallerySourcePicker"),
       galleryCollapsePanels: document.querySelectorAll("[data-gallery-panel]"),
@@ -5088,6 +5089,96 @@
       return String(subreddit || "").toLowerCase().replace(/[^a-z0-9_]+/g, "").slice(0, 32);
     }
 
+    function compactRedditName(value = "") {
+      return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+    }
+
+    function compactCount(value = 0) {
+      const number = Number(value || 0);
+      if (!Number.isFinite(number) || number <= 0) return "";
+      if (number >= 1000000) return `${(number / 1000000).toFixed(number >= 10000000 ? 0 : 1).replace(/\.0$/, "")}m`;
+      if (number >= 1000) return `${(number / 1000).toFixed(number >= 10000 ? 0 : 1).replace(/\.0$/, "")}k`;
+      return String(Math.round(number));
+    }
+
+    function redditNameDistance(a = "", b = "") {
+      const left = compactRedditName(a);
+      const right = compactRedditName(b);
+      if (!left || !right) return 99;
+      const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+      for (let i = 1; i <= left.length; i += 1) {
+        const current = [i];
+        for (let j = 1; j <= right.length; j += 1) {
+          const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+          current[j] = Math.min(current[j - 1] + 1, previous[j] + 1, previous[j - 1] + cost);
+        }
+        previous.splice(0, previous.length, ...current);
+      }
+      return previous[right.length];
+    }
+
+    function knownRedditPageSuggestions(query = "") {
+      const normalized = parseCustomRedditSubreddit(query);
+      if (!normalized) return [];
+      const maxDistance = Math.max(3, Math.floor(normalized.length / 3));
+      return goonerRedditPages()
+        .map((page) => ({
+          subreddit: page.subreddit,
+          label: page.label,
+          score: Math.min(redditNameDistance(normalized, page.subreddit), redditNameDistance(normalized, page.label))
+        }))
+        .filter((page) => page.score <= maxDistance)
+        .sort((a, b) => a.score - b.score || a.label.localeCompare(b.label))
+        .slice(0, 4);
+    }
+
+    function dedupeRedditSuggestions(items = []) {
+      const seen = new Set();
+      return items
+        .map((item) => {
+          const subreddit = parseCustomRedditSubreddit(item && item.subreddit);
+          if (!subreddit || seen.has(subreddit)) return null;
+          seen.add(subreddit);
+          return {
+            subreddit,
+            label: String(item && item.label || labelForCustomSubreddit(subreddit)).replace(/\s+/g, " ").trim().slice(0, 48),
+            members: Number(item && item.members || 0) || 0
+          };
+        })
+        .filter(Boolean)
+        .slice(0, 6);
+    }
+
+    function renderCustomRedditSuggestions(items = []) {
+      if (!els.customRedditSuggestions) return;
+      const suggestions = dedupeRedditSuggestions(items);
+      els.customRedditSuggestions.classList.toggle("hidden", !suggestions.length);
+      els.customRedditSuggestions.innerHTML = suggestions.map((item) => {
+        const members = item.members > 0 ? `<small>${compactCount(item.members)} members</small>` : "";
+        return `
+          <button type="button" class="reddit-suggestion-chip" data-custom-reddit-suggestion="${escapeHtml(item.subreddit)}">
+            <span>${escapeHtml(item.label)}</span>
+            ${members}
+          </button>
+        `;
+      }).join("");
+    }
+
+    async function fetchCustomRedditSuggestions(subreddit = "") {
+      const normalized = parseCustomRedditSubreddit(subreddit);
+      const known = knownRedditPageSuggestions(normalized);
+      if (!normalized) return known;
+      try {
+        const params = new URLSearchParams({ query: normalized, limit: "6" });
+        const response = await fetch(`/api/reddit-subreddit-suggestions?${params.toString()}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return known;
+        return dedupeRedditSuggestions([...(Array.isArray(data.items) ? data.items : []), ...known]);
+      } catch (error) {
+        return known;
+      }
+    }
+
     function brattyLocalGalleryPrefsKey() {
       return "tribute-arcade:bratty-bb:local-gallery-prefs:v1";
     }
@@ -5208,6 +5299,7 @@
       }
       const existingPages = goonerRedditPages();
       const existing = existingPages.find((page) => page.subreddit === subreddit);
+      renderCustomRedditSuggestions([]);
       if (!existing) {
         if (els.addCustomRedditPageBtn) els.addCustomRedditPageBtn.disabled = true;
         if (els.customRedditPageStatus) els.customRedditPageStatus.textContent = `Checking r/${subreddit}...`;
@@ -5220,7 +5312,14 @@
           if (els.addCustomRedditPageBtn) els.addCustomRedditPageBtn.disabled = !galleryControlsAllowed();
         }
         if (!valid) {
-          if (els.customRedditPageStatus) els.customRedditPageStatus.textContent = `Couldn't find usable images from r/${subreddit}. It was not added.`;
+          if (els.customRedditPageStatus) els.customRedditPageStatus.textContent = `Couldn't find usable images from r/${subreddit}. Looking for similar pages...`;
+          const suggestions = await fetchCustomRedditSuggestions(subreddit);
+          renderCustomRedditSuggestions(suggestions);
+          if (els.customRedditPageStatus) {
+            els.customRedditPageStatus.textContent = suggestions.length
+              ? `Couldn't add r/${subreddit}. Try one of these instead.`
+              : `Couldn't find usable images from r/${subreddit}. It was not added.`;
+          }
           return;
         }
         localCustomGoonerRedditPages = [
@@ -5236,6 +5335,7 @@
       });
       resetGoonerFeedCursors();
       if (els.customRedditPageInput) els.customRedditPageInput.value = "";
+      renderCustomRedditSuggestions([]);
       renderRedditeryGallery();
       syncGoonerGalleryCategoryControls();
       updateRedditeryRandomButton();
@@ -20712,6 +20812,19 @@
       els.customRedditPageInput.addEventListener("keydown", (event) => {
         if (event.key !== "Enter") return;
         event.preventDefault();
+        addCustomGoonerRedditPage();
+      });
+      els.customRedditPageInput.addEventListener("input", () => {
+        renderCustomRedditSuggestions([]);
+      });
+    }
+    if (els.customRedditSuggestions) {
+      els.customRedditSuggestions.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-custom-reddit-suggestion]");
+        if (!button) return;
+        if (els.customRedditPageInput) {
+          els.customRedditPageInput.value = `https://www.reddit.com/r/${button.dataset.customRedditSuggestion}/`;
+        }
         addCustomGoonerRedditPage();
       });
     }

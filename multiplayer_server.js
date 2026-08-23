@@ -345,6 +345,15 @@ function safeRedditerySubreddit(value) {
   return raw.slice(0, 32) || "gooninghentai";
 }
 
+function safeSubredditSuggestionQuery(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_ ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 48);
+}
+
 function safeGoonerGallerySource(value) {
   return String(value || "").toLowerCase() === "redditery" ? "redditery" : "peekstr";
 }
@@ -640,6 +649,45 @@ async function fetchGoonerGallery(searchParams) {
     : fetchPeekstrGallery(searchParams);
 }
 
+async function fetchSubredditSuggestions(searchParams) {
+  if (typeof fetch !== "function") throw new Error("This server needs Node 20+ for Reddit search.");
+  const query = safeSubredditSuggestionQuery(searchParams.get("query"));
+  const limit = Math.max(1, Math.min(8, Number(searchParams.get("limit") || 6) || 6));
+  if (!query) return { source: "reddit", query, items: [] };
+  const params = new URLSearchParams({
+    q: query,
+    limit: String(limit),
+    include_over_18: "on"
+  });
+  const response = await fetch(`https://www.reddit.com/subreddits/search.json?${params.toString()}`, {
+    headers: {
+      "Accept": "application/json",
+      "User-Agent": "TributeArcade/1.0"
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) return { source: "reddit", query, items: [] };
+  const children = data && data.data && Array.isArray(data.data.children) ? data.data.children : [];
+  const seen = new Set();
+  const items = children
+    .map((child) => {
+      const item = child && child.data ? child.data : {};
+      const subreddit = safeRedditerySubreddit(item.display_name || item.display_name_prefixed || item.url);
+      if (!subreddit || seen.has(subreddit)) return null;
+      seen.add(subreddit);
+      return {
+        subreddit,
+        label: String(item.display_name_prefixed || `r/${subreddit}`).replace(/^r\//i, "r/").slice(0, 48),
+        title: String(item.title || "").replace(/\s+/g, " ").trim().slice(0, 90),
+        members: Number(item.subscribers || 0) || 0,
+        over18: Boolean(item.over18)
+      };
+    })
+    .filter(Boolean)
+    .slice(0, limit);
+  return { source: "reddit", query, items };
+}
+
 function roomId() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let id = "";
@@ -825,6 +873,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/redditery-gallery") {
       const gallery = await fetchGoonerGallery(url.searchParams);
       return send(res, 200, gallery);
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/reddit-subreddit-suggestions") {
+      const suggestions = await fetchSubredditSuggestions(url.searchParams);
+      return send(res, 200, suggestions);
     }
 
     if (req.method === "GET" && url.pathname === "/api/state") {

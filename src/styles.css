@@ -6867,6 +6867,36 @@
       padding: 7px 12px;
     }
 
+    .reddit-suggestion-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .reddit-suggestion-list.hidden {
+      display: none;
+    }
+
+    .reddit-suggestion-chip {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      border-color: rgba(255, 102, 128, 0.34);
+      background: rgba(255, 102, 128, 0.1);
+      color: #fff0f4;
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    .reddit-suggestion-chip small {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
     .reddit-page-picker.compact {
       grid-template-columns: 1fr;
       max-height: 156px;
