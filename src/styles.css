@@ -6895,6 +6895,10 @@
       user-select: none;
     }
 
+    .reddit-page-option.custom {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
     .reddit-page-option.in-preset {
       border-color: rgba(241, 201, 101, 0.24);
     }
@@ -6927,6 +6931,15 @@
 
     .reddit-page-option small {
       color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .reddit-page-remove {
+      align-self: center;
+      min-height: 30px;
+      padding: 5px 8px;
+      border-color: rgba(255, 102, 128, 0.34);
+      color: #ffd5dc;
       font-size: 0.72rem;
     }
 
