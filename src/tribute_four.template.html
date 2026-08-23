@@ -1228,23 +1228,27 @@
             <summary>
               <span>Reddit gallery</span>
             </summary>
-            <label class="field-label">
-              Gallery category
-              <select id="goonerGalleryCategory">
-                <option value="captions">Captions</option>
-                <option value="goonerbait">Gooner Bait</option>
-                <option value="censor">Censor</option>
-                <option value="femboys">Femboys</option>
-                <option value="furry">Furry</option>
-                <option value="butt">Butt</option>
-                <option value="bnwo">BNWO</option>
-                <option value="feet">Feet</option>
-                <option value="boobs">Boobs</option>
-                <option value="armpits">Armpits</option>
-                <option value="mixed">Mixed</option>
-              </select>
-            </label>
-            <div class="reddit-page-picker" id="goonerGallerySourcePicker"></div>
+            <details class="reddit-source-chooser">
+              <summary>
+                <span>Choose Reddit pages</span>
+                <small id="goonerGallerySelectionSummary">No pages selected</small>
+              </summary>
+              <div class="reddit-preset-grid" id="goonerGalleryPresetButtons">
+                <button type="button" data-gooner-gallery-preset="none">None</button>
+                <button type="button" data-gooner-gallery-preset="captions">Captions</button>
+                <button type="button" data-gooner-gallery-preset="goonerbait">Gooner Bait</button>
+                <button type="button" data-gooner-gallery-preset="censor">Censor</button>
+                <button type="button" data-gooner-gallery-preset="femboys">Femboys</button>
+                <button type="button" data-gooner-gallery-preset="furry">Furry</button>
+                <button type="button" data-gooner-gallery-preset="butt">Butt</button>
+                <button type="button" data-gooner-gallery-preset="bnwo">BNWO</button>
+                <button type="button" data-gooner-gallery-preset="feet">Feet</button>
+                <button type="button" data-gooner-gallery-preset="boobs">Boobs</button>
+                <button type="button" data-gooner-gallery-preset="armpits">Armpits</button>
+                <button type="button" data-gooner-gallery-preset="mixed">All</button>
+              </div>
+              <div class="reddit-page-picker compact" id="goonerGallerySourcePicker"></div>
+            </details>
             <div class="mode-grid gallery-action-row">
               <button id="redditeryRandomBtn">Random Recent</button>
               <button id="goonerGalleryTopBtn">Return to Top</button>

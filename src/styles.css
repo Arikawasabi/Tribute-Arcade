@@ -6820,6 +6820,63 @@
       padding: 2px;
     }
 
+    .reddit-source-chooser {
+      display: grid;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid rgba(241, 201, 101, 0.14);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.026);
+    }
+
+    .reddit-source-chooser > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      list-style: none;
+      color: #ffe1a0;
+      font-weight: 800;
+    }
+
+    .reddit-source-chooser > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .reddit-source-chooser > summary small {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .reddit-preset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .reddit-preset-grid button {
+      min-height: 34px;
+      padding: 6px 8px;
+      font-size: 0.82rem;
+    }
+
+    .reddit-preset-grid button.active {
+      border-color: rgba(255, 221, 151, 0.78);
+      background: linear-gradient(135deg, #c72b66, #ff6f87 58%, #ffc46f);
+      color: #fff8ec;
+      box-shadow: 0 0 18px rgba(255, 102, 128, 0.18);
+    }
+
+    .reddit-page-picker.compact {
+      grid-template-columns: 1fr;
+      max-height: 156px;
+      margin-top: 8px;
+    }
+
     .reddit-page-picker.hidden {
       display: none;
     }
@@ -6829,12 +6886,12 @@
     }
 
     .reddit-page-option {
-      min-height: 48px;
+      min-height: 40px;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
       gap: 8px;
       align-items: start;
-      padding: 7px 8px 8px;
+      padding: 6px 8px;
       border: 1px solid rgba(241, 201, 101, 0.13);
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.035);
@@ -6847,7 +6904,7 @@
     }
 
     .reddit-page-option input {
-      margin-top: 3px;
+      margin-top: 1px;
       width: 19px;
       height: 19px;
       accent-color: #ff6680;
