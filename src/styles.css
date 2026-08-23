@@ -6851,6 +6851,22 @@
       text-align: right;
     }
 
+    .reddit-custom-source {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .reddit-custom-source input {
+      min-height: 38px;
+    }
+
+    .reddit-custom-source button {
+      min-height: 38px;
+      padding: 7px 12px;
+    }
+
     .reddit-page-picker.compact {
       grid-template-columns: 1fr;
       max-height: 156px;
