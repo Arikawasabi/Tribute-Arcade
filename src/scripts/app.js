@@ -423,7 +423,6 @@
       sideDistractionMode: document.getElementById("sideDistractionMode"),
       sideDistractionDuration: document.getElementById("sideDistractionDuration"),
       sideDistractionDurationRow: document.getElementById("sideDistractionDurationRow"),
-      autoPopupPlacement: document.getElementById("autoPopupPlacement"),
       uploadDistractionBtn: document.getElementById("uploadDistractionBtn"),
       distractionFileInput: document.getElementById("distractionFileInput"),
       postDistractionBtn: document.getElementById("postDistractionBtn"),
@@ -491,7 +490,6 @@
       cancelDistractionChoiceBtn: document.getElementById("cancelDistractionChoiceBtn"),
       saveDistractionChoiceBtn: document.getElementById("saveDistractionChoiceBtn"),
       distractionChoiceDuration: document.getElementById("distractionChoiceDuration"),
-      distractionPopupPlacement: document.getElementById("distractionPopupPlacement"),
       subWallpaperDistractionChoiceBtn: document.getElementById("subWallpaperDistractionChoiceBtn"),
       bothWallpaperDistractionChoiceBtn: document.getElementById("bothWallpaperDistractionChoiceBtn"),
       popupDistractionChoiceBtn: document.getElementById("popupDistractionChoiceBtn"),
@@ -2966,7 +2964,7 @@
       state.settings.throneAmount = normalizeBuyIn(Number(state.settings.throneAmount || 5));
       state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
       state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
-      state.settings.distractionPopupPlacement = state.settings.distractionPopupPlacement === "center" ? "center" : "random";
+      state.settings.distractionPopupPlacement = "random";
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domAdvantageMode = state.settings.domAdvantageMode === "both" ? "both" : (state.settings.domAdvantageMode === "off" ? "off" : "dom");
@@ -3781,9 +3779,6 @@
       }
       if (els.sideDistractionMode) els.sideDistractionMode.value = galleryTarget.distractionMode || "overlay-sub";
       if (els.sideDistractionDuration) els.sideDistractionDuration.value = normalizeDistractionDuration(galleryTarget.distractionDuration);
-      [els.autoPopupPlacement, els.distractionPopupPlacement].forEach((select) => {
-        if (select && document.activeElement !== select) select.value = popupPlacement();
-      });
       if (els.booruLoadButtons) {
         els.booruLoadButtons.forEach((button) => {
           button.disabled = !canUseGallery || localBooruGalleryLoading;
@@ -4541,12 +4536,12 @@
       return Math.min(600, Math.max(15, seconds));
     }
 
-    function normalizePopupPlacement(value) {
-      return value === "random" ? "random" : "center";
+    function normalizePopupPlacement() {
+      return "random";
     }
 
     function popupPlacement() {
-      return normalizePopupPlacement(galleryEffectSettings().distractionPopupPlacement || state.settings.distractionPopupPlacement);
+      return "random";
     }
 
     function normalizeBooruDateFilter(value) {
@@ -6282,7 +6277,7 @@
           autoFullVideo: !rapidFire && autoPopupSourceKey() === "booru" && localDanbooruIncludeVideos && Boolean(settings.booruAutoPopupFullVideos),
           targetSettings: settings,
           rapidFire,
-          placement: rapidFire ? "random" : popupPlacement()
+          placement: "random"
         };
         if (url && addAutoDistractionOverlay(url, media)) {
           postedBlockingFullVideo = media.mediaType === "video" && media.autoFullVideo;
@@ -6991,7 +6986,7 @@
       state.settings.sessionMode = state.settings.sessionMode === "bank" ? "bank" : "throne";
       state.settings.subLinkWarningMode = state.settings.subLinkWarningMode === "warn" ? "warn" : "auto";
       state.settings.subBetControl = state.settings.subBetControl === "locked" ? "locked" : "editable";
-      state.settings.distractionPopupPlacement = state.settings.distractionPopupPlacement === "center" ? "center" : "random";
+      state.settings.distractionPopupPlacement = "random";
       state.settings.startingPlayerMode = state.settings.startingPlayerMode === DOM || state.settings.startingPlayerMode === SUB ? state.settings.startingPlayerMode : "random";
       state.settings.domSeePressureBanners = Boolean(state.settings.domSeePressureBanners);
       state.settings.domSeePressureText = Boolean(state.settings.domSeePressureText);
@@ -20592,18 +20587,6 @@
         return;
       }
       updateSettings({ distractionDuration: duration });
-    });
-    [els.autoPopupPlacement, els.distractionPopupPlacement].forEach((select) => {
-      if (!select) return;
-      select.addEventListener("change", () => {
-        const placement = normalizePopupPlacement(select.value);
-        if (subGalleryPrivateMode()) {
-          localSubDistractions.distractionPopupPlacement = placement;
-          renderSidePanel();
-          return;
-        }
-        updateSettings({ distractionPopupPlacement: placement });
-      });
     });
     els.sideDistractionInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") postDistraction();
