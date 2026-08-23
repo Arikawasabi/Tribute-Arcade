@@ -5855,7 +5855,7 @@
         if (els.sideDistractionStatus) {
           els.sideDistractionStatus.textContent = localRedditeryReachedEnd
             ? "No more Reddit results found for the selected pages."
-            : `${goonerGallerySourceLabel(source)} returned no new usable images. Press Show Results again to keep searching.`;
+            : `${goonerGallerySourceLabel(source)} returned no new usable images. Press ${localRedditeryPage >= 0 ? "Load More" : "Show Results"} again to keep searching.`;
         }
         return [];
       }
@@ -6103,7 +6103,9 @@
         if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = true;
         return;
       }
-      els.redditeryRandomBtn.textContent = localRedditeryReachedEnd ? "No More Found" : "Show Results";
+      els.redditeryRandomBtn.textContent = localRedditeryReachedEnd
+        ? "No More Found"
+        : (localRedditeryPage >= 0 ? "Load More" : "Show Results");
       els.redditeryRandomBtn.disabled = !galleryControlsAllowed() || localRedditeryReachedEnd;
       if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !galleryControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
     }
