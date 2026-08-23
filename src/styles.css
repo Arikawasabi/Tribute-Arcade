@@ -6851,26 +6851,6 @@
       text-align: right;
     }
 
-    .reddit-preset-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .reddit-preset-grid button {
-      min-height: 34px;
-      padding: 6px 8px;
-      font-size: 0.82rem;
-    }
-
-    .reddit-preset-grid button.active {
-      border-color: rgba(255, 221, 151, 0.78);
-      background: linear-gradient(135deg, #c72b66, #ff6f87 58%, #ffc46f);
-      color: #fff8ec;
-      box-shadow: 0 0 18px rgba(255, 102, 128, 0.18);
-    }
-
     .reddit-page-picker.compact {
       grid-template-columns: 1fr;
       max-height: 156px;

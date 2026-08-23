@@ -6858,26 +6858,6 @@
       text-align: right;
     }
 
-    .reddit-preset-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .reddit-preset-grid button {
-      min-height: 34px;
-      padding: 6px 8px;
-      font-size: 0.82rem;
-    }
-
-    .reddit-preset-grid button.active {
-      border-color: rgba(255, 221, 151, 0.78);
-      background: linear-gradient(135deg, #c72b66, #ff6f87 58%, #ffc46f);
-      color: #fff8ec;
-      box-shadow: 0 0 18px rgba(255, 102, 128, 0.18);
-    }
-
     .reddit-page-picker.compact {
       grid-template-columns: 1fr;
       max-height: 156px;
@@ -8974,20 +8954,6 @@
                 <span>Choose Reddit pages</span>
                 <small id="goonerGallerySelectionSummary">No pages selected</small>
               </summary>
-              <div class="reddit-preset-grid" id="goonerGalleryPresetButtons">
-                <button type="button" data-gooner-gallery-preset="none">None</button>
-                <button type="button" data-gooner-gallery-preset="captions">Captions</button>
-                <button type="button" data-gooner-gallery-preset="goonerbait">Gooner Bait</button>
-                <button type="button" data-gooner-gallery-preset="censor">Censor</button>
-                <button type="button" data-gooner-gallery-preset="femboys">Femboys</button>
-                <button type="button" data-gooner-gallery-preset="furry">Furry</button>
-                <button type="button" data-gooner-gallery-preset="butt">Butt</button>
-                <button type="button" data-gooner-gallery-preset="bnwo">BNWO</button>
-                <button type="button" data-gooner-gallery-preset="feet">Feet</button>
-                <button type="button" data-gooner-gallery-preset="boobs">Boobs</button>
-                <button type="button" data-gooner-gallery-preset="armpits">Armpits</button>
-                <button type="button" data-gooner-gallery-preset="mixed">All</button>
-              </div>
               <div class="reddit-page-picker compact" id="goonerGallerySourcePicker"></div>
             </details>
             <div class="mode-grid gallery-action-row">
@@ -9696,7 +9662,6 @@
       goonerGallerySource: document.getElementById("goonerGallerySource"),
       goonerGalleryCategory: document.getElementById("goonerGalleryCategory"),
       goonerGallerySelectionSummary: document.getElementById("goonerGallerySelectionSummary"),
-      goonerGalleryPresetButtons: document.getElementById("goonerGalleryPresetButtons"),
       goonerGallerySourcePicker: document.getElementById("goonerGallerySourcePicker"),
       galleryCollapsePanels: document.querySelectorAll("[data-gallery-panel]"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
@@ -14252,12 +14217,6 @@
       return `${selected.length} Reddit pages`;
     }
 
-    function redditSelectionMatchesPreset(selection, preset) {
-      const selected = normalizeRedditPageSelection(selection).sort();
-      const expected = preset === "none" ? [] : categorySubreddits(preset).sort();
-      return selected.length === expected.length && selected.every((subreddit, index) => subreddit === expected[index]);
-    }
-
     function goonerGalleryCategoryKey() {
       const key = String(state.settings.goonerGalleryCategory || "captions").toLowerCase();
       return GOONER_GALLERY_CATEGORIES[key] ? key : "captions";
@@ -14349,26 +14308,6 @@
       updateRedditeryAutoPopupStatus();
       if (els.sideDistractionStatus) {
         els.sideDistractionStatus.textContent = `${goonerGalleryCategoryLabel(category)} selected. Press Random Recent to load images.`;
-      }
-    }
-
-    function applyGoonerGalleryPreset(value) {
-      const preset = String(value || "").toLowerCase();
-      const isNone = preset === "none";
-      const category = GOONER_GALLERY_CATEGORIES[preset] ? preset : "captions";
-      updateSettings({
-        goonerGalleryCategory: isNone ? state.settings.goonerGalleryCategory : category,
-        goonerGallerySubreddits: isNone ? [] : categorySubreddits(category)
-      });
-      resetGoonerFeedCursors();
-      renderRedditeryGallery();
-      syncGoonerGalleryCategoryControls();
-      updateRedditeryRandomButton();
-      updateRedditeryAutoPopupStatus();
-      if (els.sideDistractionStatus) {
-        els.sideDistractionStatus.textContent = isNone
-          ? "Reddit pages cleared. Pick one or more pages before loading images."
-          : `${goonerGalleryCategoryLabel(category)} pages selected. Press Random Recent to load images.`;
       }
     }
 
@@ -14466,15 +14405,6 @@
         els.goonerGallerySelectionSummary.textContent = gallerySelection.length
           ? `${gallerySelection.length} page${gallerySelection.length === 1 ? "" : "s"} selected`
           : "No pages selected";
-      }
-      if (els.goonerGalleryPresetButtons) {
-        els.goonerGalleryPresetButtons.querySelectorAll("[data-gooner-gallery-preset]").forEach((button) => {
-          const preset = button.dataset.goonerGalleryPreset || "none";
-          const active = redditSelectionMatchesPreset(gallerySelection, preset);
-          button.classList.toggle("active", active);
-          button.setAttribute("aria-pressed", active ? "true" : "false");
-          button.disabled = !galleryControlsAllowed();
-        });
       }
       syncRedditPagePickers();
     }
@@ -29633,13 +29563,6 @@
     });
     if (els.goonerGallerySourcePicker) {
       els.goonerGallerySourcePicker.addEventListener("change", (event) => handleRedditPagePickerChange(event, "gallery"));
-    }
-    if (els.goonerGalleryPresetButtons) {
-      els.goonerGalleryPresetButtons.addEventListener("click", (event) => {
-        const button = event.target.closest("[data-gooner-gallery-preset]");
-        if (!button || button.disabled) return;
-        applyGoonerGalleryPreset(button.dataset.goonerGalleryPreset);
-      });
     }
     [els.redditeryAutoPopupSourcePicker, els.soloRedditerySourcePicker].forEach((picker) => {
       if (!picker) return;

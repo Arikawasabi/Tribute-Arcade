@@ -446,7 +446,6 @@
       goonerGallerySource: document.getElementById("goonerGallerySource"),
       goonerGalleryCategory: document.getElementById("goonerGalleryCategory"),
       goonerGallerySelectionSummary: document.getElementById("goonerGallerySelectionSummary"),
-      goonerGalleryPresetButtons: document.getElementById("goonerGalleryPresetButtons"),
       goonerGallerySourcePicker: document.getElementById("goonerGallerySourcePicker"),
       galleryCollapsePanels: document.querySelectorAll("[data-gallery-panel]"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
@@ -5002,12 +5001,6 @@
       return `${selected.length} Reddit pages`;
     }
 
-    function redditSelectionMatchesPreset(selection, preset) {
-      const selected = normalizeRedditPageSelection(selection).sort();
-      const expected = preset === "none" ? [] : categorySubreddits(preset).sort();
-      return selected.length === expected.length && selected.every((subreddit, index) => subreddit === expected[index]);
-    }
-
     function goonerGalleryCategoryKey() {
       const key = String(state.settings.goonerGalleryCategory || "captions").toLowerCase();
       return GOONER_GALLERY_CATEGORIES[key] ? key : "captions";
@@ -5099,26 +5092,6 @@
       updateRedditeryAutoPopupStatus();
       if (els.sideDistractionStatus) {
         els.sideDistractionStatus.textContent = `${goonerGalleryCategoryLabel(category)} selected. Press Random Recent to load images.`;
-      }
-    }
-
-    function applyGoonerGalleryPreset(value) {
-      const preset = String(value || "").toLowerCase();
-      const isNone = preset === "none";
-      const category = GOONER_GALLERY_CATEGORIES[preset] ? preset : "captions";
-      updateSettings({
-        goonerGalleryCategory: isNone ? state.settings.goonerGalleryCategory : category,
-        goonerGallerySubreddits: isNone ? [] : categorySubreddits(category)
-      });
-      resetGoonerFeedCursors();
-      renderRedditeryGallery();
-      syncGoonerGalleryCategoryControls();
-      updateRedditeryRandomButton();
-      updateRedditeryAutoPopupStatus();
-      if (els.sideDistractionStatus) {
-        els.sideDistractionStatus.textContent = isNone
-          ? "Reddit pages cleared. Pick one or more pages before loading images."
-          : `${goonerGalleryCategoryLabel(category)} pages selected. Press Random Recent to load images.`;
       }
     }
 
@@ -5216,15 +5189,6 @@
         els.goonerGallerySelectionSummary.textContent = gallerySelection.length
           ? `${gallerySelection.length} page${gallerySelection.length === 1 ? "" : "s"} selected`
           : "No pages selected";
-      }
-      if (els.goonerGalleryPresetButtons) {
-        els.goonerGalleryPresetButtons.querySelectorAll("[data-gooner-gallery-preset]").forEach((button) => {
-          const preset = button.dataset.goonerGalleryPreset || "none";
-          const active = redditSelectionMatchesPreset(gallerySelection, preset);
-          button.classList.toggle("active", active);
-          button.setAttribute("aria-pressed", active ? "true" : "false");
-          button.disabled = !galleryControlsAllowed();
-        });
       }
       syncRedditPagePickers();
     }
@@ -20383,13 +20347,6 @@
     });
     if (els.goonerGallerySourcePicker) {
       els.goonerGallerySourcePicker.addEventListener("change", (event) => handleRedditPagePickerChange(event, "gallery"));
-    }
-    if (els.goonerGalleryPresetButtons) {
-      els.goonerGalleryPresetButtons.addEventListener("click", (event) => {
-        const button = event.target.closest("[data-gooner-gallery-preset]");
-        if (!button || button.disabled) return;
-        applyGoonerGalleryPreset(button.dataset.goonerGalleryPreset);
-      });
     }
     [els.redditeryAutoPopupSourcePicker, els.soloRedditerySourcePicker].forEach((picker) => {
       if (!picker) return;
