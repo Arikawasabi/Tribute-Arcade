@@ -4988,12 +4988,14 @@
       const autoSettings = autoPopupSettings();
       const stored = normalizeRedditPageSelection(isAuto ? autoSettings.redditeryAutoPopupSubreddits : state.settings.goonerGallerySubreddits);
       if (stored.length) return stored;
+      if (!isAuto) return [];
       return categorySubreddits(isAuto ? autoPopupRedditCategoryKey() : goonerGalleryCategoryKey());
     }
 
     function redditSelectionLabel(scope = "gallery") {
       const selected = redditSelectionForScope(scope);
       const pageBySubreddit = new Map(GOONER_REDDIT_PAGES.map((page) => [page.subreddit, page]));
+      if (!selected.length) return "No Reddit pages";
       if (selected.length === 1) return pageBySubreddit.get(selected[0])?.label || goonerGalleryCategoryLabel();
       return `${selected.length} Reddit pages`;
     }
@@ -5413,7 +5415,7 @@
     }
 
     async function loadRandomRedditeryImage() {
-      if (!galleryControlsAllowed() || localRedditeryGalleryLoading || Date.now() < localRedditeryCooldownUntil) return;
+      if (!galleryControlsAllowed() || localRedditeryGalleryLoading) return;
       localRedditeryGalleryLoading = true;
       updateRedditeryRandomButton();
       els.sideDistractionStatus.textContent = `Loading recent ${goonerGallerySourceLabel()} images...`;
@@ -5421,7 +5423,6 @@
         const items = await fetchRedditeryItems(true);
         if (!items.length) return;
         els.sideDistractionStatus.textContent = `Loaded ${items.length} ${goonerGallerySourceLabel()} image${items.length === 1 ? "" : "s"}. Pick one to choose how it appears.`;
-        startRedditeryCooldown();
       } catch (error) {
         localRedditeryGalleryItems = [];
         els.sideDistractionStatus.textContent = String(error && error.message || `${goonerGallerySourceLabel()} gallery failed.`);
@@ -5437,6 +5438,10 @@
       const auto = Boolean(options && options.auto);
       const categoryKey = options && options.category ? String(options.category).toLowerCase() : goonerGalleryCategoryKey();
       const subredditPool = auto ? redditSelectionForScope("auto") : redditSelectionForScope("gallery");
+      if (!subredditPool.length) {
+        if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Pick at least one Reddit page first.";
+        return [];
+      }
       const forcedSubreddit = normalizeRedditPageSelection([options && options.subreddit]).find((subreddit) => subredditPool.includes(subreddit)) || "";
       const activeSubreddit = auto
         ? (forcedSubreddit || pickGoonerSubreddit(localRedditeryAutoPopupSubreddit, categoryKey, subredditPool))
@@ -5653,20 +5658,10 @@
 
     function updateRedditeryRandomButton() {
       if (!els.redditeryRandomBtn) return;
-      const remainingMs = Math.max(0, localRedditeryCooldownUntil - Date.now());
-      const remainingSeconds = Math.ceil(remainingMs / 1000);
       if (localRedditeryGalleryLoading) {
         els.redditeryRandomBtn.textContent = "Loading...";
         els.redditeryRandomBtn.disabled = true;
         if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = true;
-        return;
-      }
-      if (remainingSeconds > 0) {
-        const minutes = Math.floor(remainingSeconds / 60);
-        const seconds = remainingSeconds % 60;
-        els.redditeryRandomBtn.textContent = minutes > 0 ? `Wait ${minutes}:${String(seconds).padStart(2, "0")}` : `Wait ${seconds}s`;
-        els.redditeryRandomBtn.disabled = true;
-        if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !galleryControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
         return;
       }
       els.redditeryRandomBtn.textContent = localRedditeryReachedEnd ? "No More Found" : (localRedditeryPage >= 0 ? "Load Older" : "Random Recent");
