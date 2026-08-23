@@ -5091,7 +5091,7 @@
       updateRedditeryRandomButton();
       updateRedditeryAutoPopupStatus();
       if (els.sideDistractionStatus) {
-        els.sideDistractionStatus.textContent = `${goonerGalleryCategoryLabel(category)} selected. Press Random Recent to load images.`;
+        els.sideDistractionStatus.textContent = `${goonerGalleryCategoryLabel(category)} selected. Press Show Results to load images.`;
       }
     }
 
@@ -5170,7 +5170,7 @@
       updateRedditeryRandomButton();
       updateRedditeryAutoPopupStatus();
       if (els.sideDistractionStatus) {
-        els.sideDistractionStatus.textContent = `${redditSelectionLabel("gallery")} selected. Press Random Recent to load images.`;
+        els.sideDistractionStatus.textContent = `${redditSelectionLabel("gallery")} selected. Press Show Results to load images.`;
       }
     }
 
@@ -5427,7 +5427,7 @@
       updateRedditeryRandomButton();
       els.sideDistractionStatus.textContent = `Loading recent ${goonerGallerySourceLabel()} images...`;
       try {
-        const items = await fetchRedditeryItems(true);
+        const items = await fetchRedditeryGalleryResults();
         if (!items.length) return;
         els.sideDistractionStatus.textContent = `Loaded ${items.length} ${goonerGallerySourceLabel()} image${items.length === 1 ? "" : "s"}. Pick one to choose how it appears.`;
       } catch (error) {
@@ -5438,6 +5438,71 @@
         updateRedditeryRandomButton();
         renderRedditeryGallery();
       }
+    }
+
+    function interleaveGalleryBatches(batches, limit = 24) {
+      const queues = shuffledGalleryItems(batches.filter((batch) => Array.isArray(batch) && batch.length).map((batch) => [...batch]));
+      const mixed = [];
+      while (queues.length && mixed.length < limit) {
+        for (let index = queues.length - 1; index >= 0 && mixed.length < limit; index -= 1) {
+          const queue = queues[index];
+          const next = queue.shift();
+          if (next) mixed.push(next);
+          if (!queue.length) queues.splice(index, 1);
+        }
+      }
+      return shuffledGalleryItems(mixed).slice(0, limit);
+    }
+
+    async function fetchRedditeryGalleryResults() {
+      const source = goonerGallerySource();
+      const subredditPool = redditSelectionForScope("gallery");
+      if (!subredditPool.length) {
+        if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "Pick at least one Reddit page first.";
+        localRedditeryGalleryItems = [];
+        renderRedditeryGallery();
+        return [];
+      }
+      const nextPage = Math.min(30, Math.max(0, localRedditeryPage + 1));
+      const perPageLimit = Math.max(4, Math.min(12, Math.ceil(24 / Math.max(1, subredditPool.length))));
+      const batches = await Promise.all(subredditPool.map(async (subreddit) => {
+        const params = new URLSearchParams({
+          source,
+          subreddit,
+          limit: String(perPageLimit),
+          page: String(nextPage),
+          window: source === "peekstr" ? "4" : "1",
+          nonce: String(Date.now())
+        });
+        const response = await fetch(`/api/redditery-gallery?${params.toString()}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return [];
+        return Array.isArray(data.items)
+          ? shuffledGalleryItems(data.items
+            .filter((item) => item && normalizeDistractionSource(item.url))
+            .map((item) => ({
+              ...item,
+              subreddit: String(item.subreddit || subreddit || "").toLowerCase(),
+              source: String(item.source || item.subreddit || subreddit || "").toLowerCase(),
+              sourceLabel: goonerPageLabelForSubreddit(item.subreddit || subreddit)
+            }))).slice(0, perPageLimit)
+          : [];
+      }));
+      const items = interleaveGalleryBatches(batches, 24);
+      if (!items.length) {
+        localRedditeryReachedEnd = true;
+        localRedditeryGalleryItems = [];
+        renderRedditeryGallery();
+        if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = `${goonerGallerySourceLabel(source)} returned no usable recent images.`;
+        return [];
+      }
+      localRedditeryPage = nextPage;
+      localRedditeryAfter = "";
+      localRedditeryActiveSubreddit = "";
+      localRedditeryReachedEnd = batches.every((batch) => !batch.length);
+      localRedditeryGalleryItems = items;
+      renderRedditeryGallery();
+      return items;
     }
 
     async function fetchRedditeryItems(updateGallery = false, options = {}) {
@@ -5528,7 +5593,7 @@
       renderRedditeryGallery();
       updateRedditeryRandomButton();
       if (els.sideDistractionStatus) {
-        els.sideDistractionStatus.textContent = "Reddit gallery reset to the newest images. Press Random Recent to load from the top.";
+        els.sideDistractionStatus.textContent = "Reddit gallery reset to the newest images. Press Show Results to load from the top.";
       }
     }
 
@@ -5671,7 +5736,7 @@
         if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = true;
         return;
       }
-      els.redditeryRandomBtn.textContent = localRedditeryReachedEnd ? "No More Found" : (localRedditeryPage >= 0 ? "Load Older" : "Random Recent");
+      els.redditeryRandomBtn.textContent = localRedditeryReachedEnd ? "No More Found" : "Show Results";
       els.redditeryRandomBtn.disabled = !galleryControlsAllowed() || localRedditeryReachedEnd;
       if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !galleryControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
     }
