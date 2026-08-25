@@ -5059,6 +5059,11 @@
       { subreddit: "cringegoontards", label: "Cringe Goon Tards", category: "goonerbait" },
       { subreddit: "hentaiigooning", label: "Hentaii Gooning", category: "goonerbait" },
       { subreddit: "hentaicensore", label: "Hentai Censore", categories: ["censor", "goonerbait"] },
+      { subreddit: "aihentaihub", label: "AI Hentai Hub", categories: ["ai", "goonerbait"] },
+      { subreddit: "aihentaigif", label: "AI Hentai GIF", categories: ["ai", "goonerbait"] },
+      { subreddit: "blacked_hentaiainsfw", label: "Blacked Hentai AI NSFW", categories: ["ai", "bnwo"] },
+      { subreddit: "aisissyhentai", label: "AI Sissy Hentai", categories: ["ai", "femboys"] },
+      { subreddit: "hentaidiffusion", label: "Hentai Diffusion", categories: ["ai", "goonerbait"] },
       { subreddit: "femboyhentai", label: "Femboy Hentai", category: "femboys" },
       { subreddit: "furrygoonpit", label: "Furry Goon Pit", category: "furry" },
       { subreddit: "bootyhentai", label: "Booty Hentai", category: "butt" },
@@ -5080,6 +5085,7 @@
     const GOONER_GALLERY_CATEGORIES = {
       captions: { label: "Captions", subreddits: redditSubredditsForCategory("captions") },
       goonerbait: { label: "Gooner Bait", subreddits: redditSubredditsForCategory("goonerbait") },
+      ai: { label: "AI", subreddits: redditSubredditsForCategory("ai") },
       censor: { label: "Censor", subreddits: redditSubredditsForCategory("censor") },
       femboys: { label: "Femboys", subreddits: redditSubredditsForCategory("femboys") },
       furry: { label: "Furry", subreddits: redditSubredditsForCategory("furry") },
@@ -6424,11 +6430,13 @@
     }
 
     const PC_DOM_BOORU_TAGS = [
-      "gooner_caption",
+      "ai-generated",
+      "ai_assisted",
       "foot_focus",
       "huge_ass",
       "plump",
       "small_penis_humiliation",
+      "female_domination",
       "femdom",
       "humiliation",
       "mind_break"
@@ -6442,30 +6450,43 @@
     }
 
     async function takeNextPcDomBooruItem() {
-      const tag = nextPcDomBooruTag();
-      localPcDomBooruPage = (localPcDomBooruPage % 8) + 1;
-      const params = new URLSearchParams({
-        tags: `${tag} order:score`,
-        dateFilter: "6m",
-        page: String(localPcDomBooruPage),
-        limit: "12",
-        nonce: String(Date.now())
-      });
-      const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "PC dom Booru popup failed.");
-      const items = Array.isArray(data.items)
-        ? shuffledGalleryItems(data.items.filter((item) => item && normalizeDistractionSource(item.url) && mediaTypeForDistraction(item.url, item.mediaType) !== "video"))
-        : [];
-      return items[0] || null;
+      let lastError = null;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const tag = nextPcDomBooruTag();
+        localPcDomBooruPage = (localPcDomBooruPage % 8) + 1;
+        const params = new URLSearchParams({
+          tags: `${tag} order:score`,
+          dateFilter: "6m",
+          page: String(localPcDomBooruPage),
+          limit: "12",
+          nonce: String(Date.now())
+        });
+        try {
+          const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || "PC dom Booru popup failed.");
+          const items = Array.isArray(data.items)
+            ? shuffledGalleryItems(data.items.filter((item) => item && normalizeDistractionSource(item.url) && mediaTypeForDistraction(item.url, item.mediaType) !== "video"))
+            : [];
+          if (items.length) return items[0];
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (lastError) throw lastError;
+      return null;
     }
 
     async function takeNextPcDomRedditItem() {
       const selected = redditSelectionForScope("auto");
-      const pool = selected.length ? selected : categorySubreddits("goonerbait");
-      const subreddit = pickGoonerSubreddit(localPcDomRedditSubreddit, "goonerbait", pool);
+      const aiPool = categorySubreddits("ai");
+      const baitPool = categorySubreddits("goonerbait");
+      const mixedPool = selected.length
+        ? selected
+        : [...aiPool, ...aiPool, ...baitPool];
+      const subreddit = pickGoonerSubreddit(localPcDomRedditSubreddit, "ai", mixedPool);
       localPcDomRedditSubreddit = subreddit;
-      const items = await fetchRedditeryItems(false, { auto: true, category: "goonerbait", subreddit, limit: 12 });
+      const items = await fetchRedditeryItems(false, { auto: true, category: goonerCategoryForSubreddit(subreddit), subreddit, limit: 12 });
       return shuffledGalleryItems(items.filter((item) => item && normalizeDistractionSource(item.url)))[0] || null;
     }
 
@@ -13845,7 +13866,6 @@
       if (capturedRole === SUB) {
         showChessCaptureBanner();
         if (movedRole === DOM || commandMove) showChessPieceLossPulse();
-        if (isChessVsPc() && movedRole === DOM) maybeTriggerPcDomDistraction({ chanceBoost: 0.08 });
       }
       if (movedRole === SUB && !commandMove) resolveFocusTaxSuccess();
       state.chess.fen = game.fen();
@@ -14343,6 +14363,7 @@
       resetChessClockTick();
       render();
       publishState();
+      if (isChessVsPc() && movedRole === DOM && state.turn === SUB) maybeTriggerPcDomDistraction({ chanceBoost: 0.03 });
       maybeQueueChessPcMove();
     }
 
