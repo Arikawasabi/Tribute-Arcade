@@ -135,6 +135,7 @@
         redditeryAutoPopupInterval: 30,
         redditeryRapidFire: false,
         autoPopupDomPreview: false,
+        pcDomDistractions: true,
         booruDateFilter: "all",
         booruAutoPopupFullVideos: false,
         leaveNotice: null,
@@ -454,6 +455,7 @@
       galleryCollapsePanels: document.querySelectorAll("[data-gallery-panel]"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
       redditeryRapidFireToggle: document.getElementById("redditeryRapidFireToggle"),
+      pcDomDistractionsToggle: document.getElementById("pcDomDistractionsToggle"),
       redditeryAutoPopupSource: document.getElementById("redditeryAutoPopupSource"),
       redditeryAutoPopupCategoryRow: document.getElementById("redditeryAutoPopupCategoryRow"),
       redditeryAutoPopupCategory: document.getElementById("redditeryAutoPopupCategory"),
@@ -723,6 +725,11 @@
     let localRedditeryAutoPopupNextAt = 0;
     let localRedditeryAutoPopupLoading = false;
     let localRedditeryAutoPopupRecentUrls = [];
+    let localPcDomDistractionLoading = false;
+    let localPcDomDistractionLastAt = 0;
+    let localPcDomBooruTag = "";
+    let localPcDomBooruPage = 0;
+    let localPcDomRedditSubreddit = "";
     let localMemoryMatchAfter = "";
     let localMemoryMatchSubreddit = "";
     let localMemoryMatchRecentUrls = [];
@@ -3088,6 +3095,7 @@
         : "captions";
       state.settings.redditeryAutoPopupSubreddits = normalizeRedditPageSelection(state.settings.redditeryAutoPopupSubreddits);
       state.settings.redditeryRapidFire = Boolean(state.settings.redditeryRapidFire);
+      state.settings.pcDomDistractions = state.settings.pcDomDistractions !== false;
       state.settings.booruDateFilter = normalizeBooruDateFilter(state.settings.booruDateFilter);
       state.settings.booruAutoPopupFullVideos = Boolean(state.settings.booruAutoPopupFullVideos);
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
@@ -6287,6 +6295,12 @@
         els.redditeryRapidFireToggle.classList.toggle("active", rapidFire);
         els.redditeryRapidFireToggle.setAttribute("aria-pressed", rapidFire ? "true" : "false");
       }
+      if (els.pcDomDistractionsToggle) {
+        const pcDomOn = state.settings.pcDomDistractions !== false;
+        els.pcDomDistractionsToggle.disabled = false;
+        els.pcDomDistractionsToggle.classList.toggle("active", pcDomOn);
+        els.pcDomDistractionsToggle.setAttribute("aria-pressed", pcDomOn ? "true" : "false");
+      }
       [els.redditeryAutoPopupDuration, els.soloRedditeryAutoPopupDuration].forEach((input) => {
         if (input && document.activeElement !== input) input.value = normalizeDistractionDuration(settings.redditeryAutoPopupDuration);
       });
@@ -6405,6 +6419,93 @@
         } else {
           scheduleNextRedditeryAutoPopup();
         }
+        renderSidePanel();
+      }
+    }
+
+    const PC_DOM_BOORU_TAGS = [
+      "gooner_caption",
+      "foot_focus",
+      "huge_ass",
+      "plump",
+      "small_penis_humiliation",
+      "femdom",
+      "humiliation",
+      "mind_break"
+    ];
+
+    function nextPcDomBooruTag() {
+      const pool = PC_DOM_BOORU_TAGS.filter((tag) => tag !== localPcDomBooruTag);
+      const tag = pool[Math.floor(Math.random() * pool.length)] || PC_DOM_BOORU_TAGS[0];
+      localPcDomBooruTag = tag;
+      return tag;
+    }
+
+    async function takeNextPcDomBooruItem() {
+      const tag = nextPcDomBooruTag();
+      localPcDomBooruPage = (localPcDomBooruPage % 8) + 1;
+      const params = new URLSearchParams({
+        tags: `${tag} order:score`,
+        dateFilter: "6m",
+        page: String(localPcDomBooruPage),
+        limit: "12",
+        nonce: String(Date.now())
+      });
+      const response = await fetch(`/api/danbooru-gallery?${params.toString()}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "PC dom Booru popup failed.");
+      const items = Array.isArray(data.items)
+        ? shuffledGalleryItems(data.items.filter((item) => item && normalizeDistractionSource(item.url) && mediaTypeForDistraction(item.url, item.mediaType) !== "video"))
+        : [];
+      return items[0] || null;
+    }
+
+    async function takeNextPcDomRedditItem() {
+      const selected = redditSelectionForScope("auto");
+      const pool = selected.length ? selected : categorySubreddits("goonerbait");
+      const subreddit = pickGoonerSubreddit(localPcDomRedditSubreddit, "goonerbait", pool);
+      localPcDomRedditSubreddit = subreddit;
+      const items = await fetchRedditeryItems(false, { auto: true, category: "goonerbait", subreddit, limit: 12 });
+      return shuffledGalleryItems(items.filter((item) => item && normalizeDistractionSource(item.url)))[0] || null;
+    }
+
+    async function takeNextPcDomDistractionItem() {
+      return autoPopupSourceKey() === "reddit"
+        ? takeNextPcDomRedditItem()
+        : takeNextPcDomBooruItem();
+    }
+
+    async function maybeTriggerPcDomDistraction(options = {}) {
+      if (!state.settings.pcDomDistractions || !state.vsPc || !state.vsPc.active) return;
+      if (localPcDomDistractionLoading) return;
+      if (Date.now() - Number(localPcDomDistractionLastAt || 0) < 5000) return;
+      const losses = Math.max(0, Number(state.lossPressure && state.lossPressure.count || 0));
+      const chance = Math.min(0.72, 0.25 + (losses * 0.06) + Number(options.chanceBoost || 0));
+      if (Math.random() > chance) return;
+      localPcDomDistractionLoading = true;
+      localPcDomDistractionLastAt = Date.now();
+      try {
+        const settings = autoPopupSettings();
+        const item = await takeNextPcDomDistractionItem();
+        const url = item && normalizeDistractionSource(item.url);
+        if (!url) return;
+        const media = {
+          mediaType: item && mediaTypeForDistraction(url, item.mediaType),
+          muted: true,
+          autoFullVideo: false,
+          targetSettings: settings,
+          rapidFire: false,
+          placement: "random"
+        };
+        if (addAutoDistractionOverlay(url, media)) {
+          renderDistractionBackground();
+          if (settings === state.settings) showAutoPopupPreview(item, media);
+          if (els.sideDistractionStatus) els.sideDistractionStatus.textContent = "PC dom popup posted.";
+        }
+      } catch (error) {
+        if (els.redditeryAutoPopupStatus) els.redditeryAutoPopupStatus.textContent = String(error && error.message || "PC dom popup failed.");
+      } finally {
+        localPcDomDistractionLoading = false;
         renderSidePanel();
       }
     }
@@ -13744,6 +13845,7 @@
       if (capturedRole === SUB) {
         showChessCaptureBanner();
         if (movedRole === DOM || commandMove) showChessPieceLossPulse();
+        if (isChessVsPc() && movedRole === DOM) maybeTriggerPcDomDistraction({ chanceBoost: 0.08 });
       }
       if (movedRole === SUB && !commandMove) resolveFocusTaxSuccess();
       state.chess.fen = game.fen();
@@ -14042,18 +14144,26 @@
       const moves = game.moves({ verbose: true });
       if (!moves.length) return null;
       const depth = Math.max(1, Math.min(3, Number(state.vsPc && state.vsPc.chessDepth || 2)));
-      const scored = moves.map((move) => {
-        const applied = chessBotTryMove(game, move);
-        if (!applied) return null;
-        const score = chessBotSearch(game, depth - 1);
-        game.undo();
-        const captureBonus = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) / 1000 : 0;
-        return { move, score: score + captureBonus };
-      }).filter(Boolean);
-      if (!scored.length) return moves[0] || null;
-      const bestScore = Math.max(...scored.map((entry) => entry.score));
-      const bestMoves = scored.filter((entry) => Math.abs(entry.score - bestScore) < 0.001);
-      return bestMoves[Math.floor(Math.random() * bestMoves.length)].move;
+      try {
+        const scored = moves.map((move) => {
+          const applied = chessBotTryMove(game, move);
+          if (!applied) return null;
+          const score = chessBotSearch(game, depth - 1);
+          game.undo();
+          const captureBonus = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) / 1000 : 0;
+          return { move, score: score + captureBonus };
+        }).filter(Boolean);
+        if (scored.length) {
+          const bestScore = Math.max(...scored.map((entry) => entry.score));
+          const bestMoves = scored.filter((entry) => Math.abs(entry.score - bestScore) < 0.001);
+          return bestMoves[Math.floor(Math.random() * bestMoves.length)].move;
+        }
+      } catch (error) {
+        console.warn("Chess PC search failed; using fallback move.", error);
+      }
+      const captures = moves.filter((move) => move.captured);
+      const fallbackPool = captures.length ? captures : moves;
+      return fallbackPool[Math.floor(Math.random() * fallbackPool.length)] || null;
     }
 
     function maybeQueueChessPcMove() {
@@ -14063,11 +14173,15 @@
       if (localChessPcTimer) window.clearTimeout(localChessPcTimer);
       localChessPcTimer = window.setTimeout(() => {
         localChessPcTimer = null;
-        const liveGame = chessEngine();
-        if (!isChessVsPc() || !state.active || !liveGame || roleForChessColor(liveGame.turn()) !== DOM) return;
-        const move = chooseChessPcMove() || liveGame.moves({ verbose: true })[0];
-        if (!move) return;
-        applyChessMove(liveGame, move.from, move, false);
+        try {
+          const liveGame = chessEngine();
+          if (!isChessVsPc() || !state.active || !liveGame || roleForChessColor(liveGame.turn()) !== DOM) return;
+          const move = chooseChessPcMove() || liveGame.moves({ verbose: true })[0];
+          if (!move) return;
+          applyChessMove(liveGame, move.from, move, false);
+        } catch (error) {
+          console.warn("Chess PC move failed.", error);
+        }
       }, 650);
     }
 
@@ -20745,6 +20859,7 @@
       renderDomTriggerOverlay();
       renderBrattyWelcomeModal();
       renderPressureViewPromptModal();
+      maybeQueueChessPcMove();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
@@ -21218,6 +21333,11 @@
     if (els.redditeryRapidFireToggle) {
       els.redditeryRapidFireToggle.addEventListener("click", () => {
         setRedditeryRapidFireEnabled(!state.settings.redditeryRapidFire);
+      });
+    }
+    if (els.pcDomDistractionsToggle) {
+      els.pcDomDistractionsToggle.addEventListener("click", () => {
+        updateSettings({ pcDomDistractions: state.settings.pcDomDistractions === false });
       });
     }
     [els.redditeryAutoPopupSource, els.soloRedditeryAutoPopupSource].forEach((select) => {
