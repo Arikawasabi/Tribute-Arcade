@@ -524,6 +524,7 @@
       doubleSolitaireCard: document.getElementById("doubleSolitaireCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       ticTacToePcCard: document.getElementById("ticTacToePcCard"),
+      chessPcCard: document.getElementById("chessPcCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
       obedienceOrdersCard: document.getElementById("obedienceOrdersCard"),
       tributeTrailCard: document.getElementById("tributeTrailCard"),
@@ -679,6 +680,7 @@
     let selectedTwentyOnePower = "pushLuck";
     let localDoubleSolitaireViewed = null;
     let localTicTacToePcTimer = null;
+    let localChessPcTimer = null;
     let localFleetView = null;
     let localFleetViewTurn = null;
     let localFleetHoldUntil = 0;
@@ -804,7 +806,8 @@
         active: false,
         game: "",
         humanRole: SUB,
-        pcRole: DOM
+        pcRole: DOM,
+        chessDepth: 2
       };
     }
 
@@ -817,7 +820,7 @@
     ];
 
     const SOLO_GAME_IDS = ["solitaire", "memoryMatch"];
-    const VS_PC_GAME_IDS = ["ticTacToePc"];
+    const VS_PC_GAME_IDS = ["ticTacToePc", "chessPc"];
 
     function ticTacToeFormatById(id) {
       return TIC_TAC_TOE_FORMATS.find((format) => format.id === id) || TIC_TAC_TOE_FORMATS[1];
@@ -1873,6 +1876,12 @@
           localTicTacToePcTimer = null;
         }
       }
+      if (screen !== "game" || state.currentGame !== "tributeChess") {
+        if (localChessPcTimer) {
+          window.clearTimeout(localChessPcTimer);
+          localChessPcTimer = null;
+        }
+      }
       if (screen !== "game") clearThroneKissSplash();
       if (screen !== "solitaire") hideSolitaireCardPreview();
       els.setupScreen.classList.toggle("hidden", screen !== "setup");
@@ -2011,6 +2020,10 @@
       if (localTicTacToePcTimer) {
         window.clearTimeout(localTicTacToePcTimer);
         localTicTacToePcTimer = null;
+      }
+      if (localChessPcTimer) {
+        window.clearTimeout(localChessPcTimer);
+        localChessPcTimer = null;
       }
       state.vsPc = createVsPcState();
     }
@@ -2432,6 +2445,28 @@
       render();
     }
 
+    function openChessVsPc() {
+      resetLocalOnlineState();
+      state.vsPc = {
+        ...createVsPcState(),
+        active: true,
+        game: "tributeChess",
+        chessDepth: 2
+      };
+      state.roles = { one: DOM, two: SUB };
+      state.names = { dom: "PC Dom", sub: "You" };
+      state.pendingWager = null;
+      state.normalReplayPrompt = null;
+      state.currentGame = "tributeChess";
+      setScreen("game");
+      resetLossPressure();
+      state.mode = "normal";
+      state.pot = 0;
+      els.log.innerHTML = "";
+      startChessSetup({ w: SUB, b: DOM }, `<strong>Chess vs PC opened.</strong> You play white. The PC dom plays black.`);
+      render();
+    }
+
     function openObedienceOrders() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.pendingWager = null;
@@ -2475,6 +2510,7 @@
 
     function openTributeChess() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      clearVsPcMode();
       state.pendingWager = null;
       state.currentGame = "tributeChess";
       setScreen("game");
@@ -2596,6 +2632,7 @@
       if (els.higherLowerCard) els.higherLowerCard.disabled = domPickBlocked;
       if (els.memoryMatchCard) els.memoryMatchCard.disabled = false;
       if (els.ticTacToePcCard) els.ticTacToePcCard.disabled = false;
+      if (els.chessPcCard) els.chessPcCard.disabled = false;
       if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.disabled = domPickBlocked;
       if (els.doubleSolitaireCard) els.doubleSolitaireCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
@@ -12456,6 +12493,10 @@
       return Boolean(state.vsPc && state.vsPc.active && state.vsPc.game === "tributeTicTacToe");
     }
 
+    function isChessVsPc() {
+      return Boolean(state.vsPc && state.vsPc.active && state.vsPc.game === "tributeChess");
+    }
+
     function setTicTacToeFormat(formatId) {
       if (state.currentGame !== "tributeTicTacToe") return;
       if (state.active || state.pot > 0) return;
@@ -13061,6 +13102,7 @@
         : `<strong>No ${label} clock.</strong> This game has no timer.`);
       render();
       publishState();
+      maybeQueueChessPcMove();
     }
 
     function roleForChessColor(color) {
@@ -13655,6 +13697,7 @@
       syncChessClock();
       if (!state.active) return;
       const movingRole = roleForChessColor(game.turn());
+      if (isChessVsPc() && movingRole !== SUB) return;
       const localRole = localOnlineRole();
       const commandMove = state.chess.commandMode && queenPowerControlsAllowed(localRole) && movingRole === SUB;
 
@@ -13688,7 +13731,12 @@
         render();
         return;
       }
-      const fromSquare = state.chess.selected;
+      applyChessMove(game, state.chess.selected, move, commandMove);
+    }
+
+    function applyChessMove(game, fromSquare, move, commandMove = false) {
+      if (!game || !fromSquare || !move) return false;
+      const movingRole = roleForChessColor(game.turn());
       const movingPiece = game.get(fromSquare);
       const capturedPiece = move.manualCastle ? null : game.get(move.to);
       const gazeTriggered = movingRole === SUB && !commandMove && isQueenGazedSquare(game, fromSquare, movingPiece);
@@ -13701,7 +13749,7 @@
       const result = move.manualCastle
         ? applyManualChessCastle(game, move)
         : game.move({ from: fromSquare, to: move.to, promotion: "q" });
-      if (!result) return;
+      if (!result) return false;
       const movedRole = movingRole;
       const capturedRole = capturedPiece
         ? roleForChessColor(capturedPiece.color)
@@ -13713,7 +13761,7 @@
       if (movedRole === SUB && !commandMove) resolveFocusTaxSuccess();
       state.chess.fen = game.fen();
       if (state.chess.freezeSquare === fromSquare) {
-        state.chess.freezeSquare = square;
+        state.chess.freezeSquare = move.to;
       } else if (state.chess.freezeSquare) {
         const frozenPiece = game.get(state.chess.freezeSquare);
         if (!frozenPiece || frozenPiece.color !== colorForChessRole(SUB)) {
@@ -13737,6 +13785,7 @@
         ? `<strong>Command Move.</strong> ${state.names.dom} moves ${state.names.sub}'s piece.`
         : `<strong>${labelFor(movedRole)} moves.</strong>`);
       resolveChessAfterMove(game, movedRole);
+      return true;
     }
 
     function chessCastleRookSquare(move) {
@@ -13889,6 +13938,134 @@
         return legalMoves.filter((move) => move.to === queenSquare || isQueenLeashedSquare(game, move.to, piece));
       }
       return legalMoves;
+    }
+
+    const CHESS_BOT_VALUES = {
+      p: 100,
+      n: 320,
+      b: 330,
+      r: 500,
+      q: 900,
+      k: 0
+    };
+
+    function chessBotColor() {
+      return colorForChessRole(DOM);
+    }
+
+    function chessBotEvaluate(game) {
+      if (!game) return 0;
+      if (isChessGameOver(game)) {
+        if (isChessCheckmate(game)) return roleForChessColor(game.turn()) === DOM ? -100000 : 100000;
+        return 0;
+      }
+      const domColor = chessBotColor();
+      const subColor = domColor === "w" ? "b" : "w";
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      let score = 0;
+      for (let rank = 1; rank <= 8; rank += 1) {
+        for (const file of files) {
+          const square = `${file}${rank}`;
+          const piece = game.get(square);
+          if (!piece) continue;
+          const owner = piece.color === domColor ? 1 : -1;
+          const value = CHESS_BOT_VALUES[piece.type] || 0;
+          const fileIndex = files.indexOf(file);
+          const centerFile = 3.5 - Math.abs(fileIndex - 3.5);
+          const centerRank = 3.5 - Math.abs(rank - 4.5);
+          const centerBonus = Math.max(0, centerFile + centerRank) * 3;
+          const pawnAdvance = piece.type === "p"
+            ? (piece.color === "w" ? rank - 2 : 7 - rank) * 4
+            : 0;
+          score += owner * (value + centerBonus + pawnAdvance);
+        }
+      }
+      const turn = game.turn();
+      const domMobility = (() => {
+        try {
+          const clone = new window.Chess(game.fen());
+          const parts = clone.fen().split(" ");
+          parts[1] = domColor;
+          if (typeof clone.load === "function") clone.load(parts.join(" "));
+          return clone.moves().length;
+        } catch (error) {
+          return 0;
+        }
+      })();
+      const subMobility = (() => {
+        try {
+          const clone = new window.Chess(game.fen());
+          const parts = clone.fen().split(" ");
+          parts[1] = subColor;
+          if (typeof clone.load === "function") clone.load(parts.join(" "));
+          return clone.moves().length;
+        } catch (error) {
+          return 0;
+        }
+      })();
+      score += (domMobility - subMobility) * 2;
+      if (turn === domColor && typeof game.in_check === "function" && game.in_check()) score -= 35;
+      if (turn === subColor && typeof game.in_check === "function" && game.in_check()) score += 35;
+      return score;
+    }
+
+    function chessBotSearch(game, depth, alpha = -Infinity, beta = Infinity) {
+      if (!game || depth <= 0 || isChessGameOver(game)) return chessBotEvaluate(game);
+      const maximizing = roleForChessColor(game.turn()) === DOM;
+      const moves = game.moves({ verbose: true }).sort((a, b) => {
+        const captureA = a.captured ? (CHESS_BOT_VALUES[a.captured] || 0) : 0;
+        const captureB = b.captured ? (CHESS_BOT_VALUES[b.captured] || 0) : 0;
+        return captureB - captureA;
+      });
+      if (!moves.length) return chessBotEvaluate(game);
+      let best = maximizing ? -Infinity : Infinity;
+      for (const move of moves) {
+        game.move(move.san);
+        const score = chessBotSearch(game, depth - 1, alpha, beta);
+        game.undo();
+        if (maximizing) {
+          best = Math.max(best, score);
+          alpha = Math.max(alpha, best);
+        } else {
+          best = Math.min(best, score);
+          beta = Math.min(beta, best);
+        }
+        if (beta <= alpha) break;
+      }
+      return best;
+    }
+
+    function chooseChessPcMove() {
+      const game = chessEngine();
+      if (!game || roleForChessColor(game.turn()) !== DOM) return null;
+      const moves = game.moves({ verbose: true });
+      if (!moves.length) return null;
+      const depth = Math.max(1, Math.min(3, Number(state.vsPc && state.vsPc.chessDepth || 2)));
+      const scored = moves.map((move) => {
+        game.move(move.san);
+        const score = chessBotSearch(game, depth - 1);
+        game.undo();
+        const captureBonus = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) / 1000 : 0;
+        return { move, score: score + captureBonus };
+      });
+      const bestScore = Math.max(...scored.map((entry) => entry.score));
+      const bestMoves = scored.filter((entry) => Math.abs(entry.score - bestScore) < 0.001);
+      return bestMoves[Math.floor(Math.random() * bestMoves.length)].move;
+    }
+
+    function maybeQueueChessPcMove() {
+      if (!isChessVsPc() || !state.active) return;
+      const game = chessEngine();
+      if (!game || roleForChessColor(game.turn()) !== DOM) return;
+      if (localChessPcTimer) window.clearTimeout(localChessPcTimer);
+      localChessPcTimer = window.setTimeout(() => {
+        localChessPcTimer = null;
+        const liveGame = chessEngine();
+        if (!isChessVsPc() || !state.active || !liveGame || roleForChessColor(liveGame.turn()) !== DOM) return;
+        const move = chooseChessPcMove();
+        if (!move) return;
+        applyChessMove(liveGame, move.from, move, false);
+      }, 650);
     }
 
     function freezeChessSquare(square, piece) {
@@ -14049,6 +14226,7 @@
       resetChessClockTick();
       render();
       publishState();
+      maybeQueueChessPcMove();
     }
 
     function activateQueuedChessPowers() {
@@ -14091,6 +14269,14 @@
 
     function endChessMatch(winner, reason) {
       state.active = false;
+      if (isChessVsPc()) {
+        if (winner === SUB) addLog(`<strong>You win Chess vs PC.</strong> ${reason}`);
+        else if (winner === DOM) addLog(`<strong>The PC dom wins Chess vs PC.</strong> ${reason}`);
+        else addLog(`<strong>Chess vs PC draw.</strong> ${reason}`);
+        state.pot = 0;
+        render();
+        return;
+      }
       const result = settleRoundBank(winner);
       if (result.outcome === "subReclaim") {
         addLog(`<strong>${state.names.sub} wins reclaim.</strong> ${reason} ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
@@ -17408,9 +17594,10 @@
       }));
       const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
       const localRole = localOnlineRole();
-      const isLocalTurn = state.active && (!localRole || localRole === roleForChessColor(game.turn()));
+      const isPcTurn = isChessVsPc() && roleForChessColor(game.turn()) === DOM;
+      const isLocalTurn = state.active && !isPcTurn && (!localRole || localRole === roleForChessColor(game.turn()));
       els.board.classList.add(isLocalTurn ? "your-turn" : "waiting-turn");
-      const localColor = localRole && localRole !== SPECTATOR ? colorForChessRole(localRole) : "w";
+      const localColor = isChessVsPc() ? colorForChessRole(SUB) : (localRole && localRole !== SPECTATOR ? colorForChessRole(localRole) : "w");
       const ranks = localColor === "b" ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
       const fileIndexes = localColor === "b" ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
       const shieldedQueenSquare = state.chess.queenShield ? findDomQueenSquare(game) : null;
@@ -17432,7 +17619,7 @@
           if (piece) cell.classList.add(roleForChessColor(piece.color) === DOM ? "dom-piece" : "sub-piece");
           cell.textContent = piece ? chessPieceGlyph(piece) : "";
           cell.setAttribute("aria-label", piece ? `${piece.color} ${piece.type} on ${square}` : `empty ${square}`);
-          cell.disabled = !state.active || localOnlineRole() === SPECTATOR;
+          cell.disabled = !state.active || isPcTurn || localOnlineRole() === SPECTATOR;
           cell.addEventListener("click", () => chessSquareClick(square));
           els.board.appendChild(cell);
         }
@@ -19734,6 +19921,7 @@
 
     function currentGameLabel() {
       if (isTicTacToeVsPc()) return "Tic Tac Toe vs PC";
+      if (isChessVsPc()) return "Chess vs PC";
       if (state.currentGame === "tributeChess") return "Tribute Chess";
       if (state.currentGame === "tributeCheckers") return "Tribute Checkers";
       if (state.currentGame === "tributeReversi") return "Tribute Reversi";
@@ -20277,7 +20465,9 @@
           els.turnText.innerHTML = `<strong>${startingPlayerMode() === "random" ? "Random player" : labelFor(startingPlayerMode())}</strong> starts as dark after the bet is approved.`;
         }
       } else if (state.currentGame === "tributeChess" && state.chess && state.chess.setupPending) {
-        els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Chess timer settings.`;
+        els.turnText.innerHTML = isChessVsPc()
+          ? `<strong>Chess vs PC.</strong> Choose the timer settings, then start the match.`
+          : `<strong>${state.names.dom}</strong> chooses the Chess timer settings.`;
       } else if (state.currentGame === "tributeCheckers" && state.checkers && state.checkers.setupPending) {
         els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Checkers settings.`;
       } else if (!state.active) {
@@ -20452,8 +20642,10 @@
 
     function renderGameChrome() {
       if (state.currentGame === "tributeChess") {
-        els.gameTitle.textContent = "Tribute Chess";
-        els.gameSubtitle.textContent = "Classic chess with cash stakes. Reclaim turns the dom queen into the source of Freeze, Skip, and Command charges.";
+        els.gameTitle.textContent = isChessVsPc() ? "Chess vs PC" : "Tribute Chess";
+        els.gameSubtitle.textContent = isChessVsPc()
+          ? "A solo chess match against the PC dom. You play white; she searches for captures, threats, and checkmate."
+          : "Classic chess with cash stakes. Reclaim turns the dom queen into the source of Freeze, Skip, and Command charges.";
         return;
       }
       if (state.currentGame === "tributeCheckers") {
@@ -21374,6 +21566,7 @@
       solitaire: openSolitaire,
       memoryMatch: openMemoryMatch,
       ticTacToePc: openTicTacToeVsPc,
+      chessPc: openChessVsPc,
       tributeTicTacToe: openTributeTicTacToe,
       wheelSpin: openWheelSpin,
       obedienceOrders: openObedienceOrders,
@@ -21388,7 +21581,7 @@
         if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
         const opener = gameOpeners[card.dataset.openGame];
         if (!opener) return;
-        const soloOpeners = new Set(["solitaire", "memoryMatch", "ticTacToePc"]);
+        const soloOpeners = new Set(["solitaire", "memoryMatch", "ticTacToePc", "chessPc"]);
         if (!soloOpeners.has(card.dataset.openGame) && shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
         opener();
       });
