@@ -10015,6 +10015,12 @@
     let localPcDomBooruTag = "";
     let localPcDomBooruPage = 0;
     let localPcDomRedditSubreddit = "";
+    let localPcDomTurnPressureKey = "";
+    let localPcDomTurnStartedAt = 0;
+    let localPcDomAmbientTimer = null;
+    let localPcDomSlowMoveTimer = null;
+    let localPcDomRapidFireTimer = null;
+    let localPcDomRapidFireUntil = 0;
     let localMemoryMatchAfter = "";
     let localMemoryMatchSubreddit = "";
     let localMemoryMatchRecentUrls = [];
@@ -11317,6 +11323,7 @@
         window.clearTimeout(localChessPcTimer);
         localChessPcTimer = null;
       }
+      clearPcDomTurnPressureTimers();
       state.vsPc = createVsPcState();
     }
 
@@ -15717,14 +15724,15 @@
     const PC_DOM_BOORU_TAGS = [
       "ai-generated",
       "ai_assisted",
-      "foot_focus",
-      "huge_ass",
-      "plump",
-      "small_penis_humiliation",
-      "female_domination",
-      "femdom",
-      "humiliation",
-      "mind_break"
+      "ai-generated feet",
+      "ai-generated foot_focus",
+      "ai-generated huge_ass",
+      "ai-generated plump",
+      "ai-generated small_penis_humiliation",
+      "ai-generated female_domination",
+      "ai-generated femdom",
+      "ai-generated humiliation",
+      "ai-generated mind_break"
     ];
 
     function nextPcDomBooruTag() {
@@ -15781,13 +15789,61 @@
         : takeNextPcDomBooruItem();
     }
 
+    function clearPcDomTurnPressureTimers() {
+      [localPcDomAmbientTimer, localPcDomSlowMoveTimer, localPcDomRapidFireTimer].forEach((timer) => {
+        if (timer) window.clearTimeout(timer);
+      });
+      localPcDomAmbientTimer = null;
+      localPcDomSlowMoveTimer = null;
+      localPcDomRapidFireTimer = null;
+      localPcDomTurnPressureKey = "";
+      localPcDomTurnStartedAt = 0;
+      localPcDomRapidFireUntil = 0;
+    }
+
+    function pcDomPressureTurnKey() {
+      if (!state.vsPc || !state.vsPc.active || !state.active || state.turn !== SUB) return "";
+      if (state.currentGame === "tributeChess") {
+        if (!isChessVsPc() || state.chess.setupPending) return "";
+        return `chess:${state.chess.fen || ""}`;
+      }
+      if (state.currentGame === "tributeTicTacToe") {
+        if (!isTicTacToeVsPc() || state.ticTacToe.pendingNextBoard) return "";
+        return `ttt:${(state.board || []).map((row) => row.join("-")).join("|")}`;
+      }
+      return "";
+    }
+
+    function maybeStartPcDomRapidFire() {
+      if (!state.settings.pcDomDistractions || !state.vsPc || !state.vsPc.active) return false;
+      if (Date.now() < Number(localPcDomRapidFireUntil || 0)) return true;
+      if (Math.random() > 0.025) return false;
+      localPcDomRapidFireUntil = Date.now() + (20 + Math.floor(Math.random() * 11)) * 1000;
+      renderPieceLossSpiral();
+      const tick = async () => {
+        if (!state.settings.pcDomDistractions || !state.vsPc || !state.vsPc.active || Date.now() >= localPcDomRapidFireUntil) {
+          localPcDomRapidFireTimer = null;
+          localPcDomRapidFireUntil = 0;
+          renderPieceLossSpiral();
+          return;
+        }
+        await maybeTriggerPcDomDistraction({ force: true, rapidFire: true });
+        localPcDomRapidFireTimer = window.setTimeout(tick, 1000);
+      };
+      if (localPcDomRapidFireTimer) window.clearTimeout(localPcDomRapidFireTimer);
+      localPcDomRapidFireTimer = window.setTimeout(tick, 80);
+      return true;
+    }
+
     async function maybeTriggerPcDomDistraction(options = {}) {
       if (!state.settings.pcDomDistractions || !state.vsPc || !state.vsPc.active) return;
       if (localPcDomDistractionLoading) return;
-      if (Date.now() - Number(localPcDomDistractionLastAt || 0) < 5000) return;
+      const force = Boolean(options.force);
+      const rapidFire = Boolean(options.rapidFire);
+      if (!force && Date.now() - Number(localPcDomDistractionLastAt || 0) < 5000) return;
       const losses = Math.max(0, Number(state.lossPressure && state.lossPressure.count || 0));
       const chance = Math.min(0.72, 0.25 + (losses * 0.06) + Number(options.chanceBoost || 0));
-      if (Math.random() > chance) return;
+      if (!force && Math.random() > chance) return;
       localPcDomDistractionLoading = true;
       localPcDomDistractionLastAt = Date.now();
       try {
@@ -15800,7 +15856,7 @@
           muted: true,
           autoFullVideo: false,
           targetSettings: settings,
-          rapidFire: false,
+          rapidFire,
           placement: "random"
         };
         if (addAutoDistractionOverlay(url, media)) {
@@ -15814,6 +15870,29 @@
         localPcDomDistractionLoading = false;
         renderSidePanel();
       }
+    }
+
+    function schedulePcDomTurnPressure() {
+      const key = pcDomPressureTurnKey();
+      if (!key) {
+        if (localPcDomTurnPressureKey) clearPcDomTurnPressureTimers();
+        return;
+      }
+      if (key === localPcDomTurnPressureKey) return;
+      if (localPcDomAmbientTimer) window.clearTimeout(localPcDomAmbientTimer);
+      if (localPcDomSlowMoveTimer) window.clearTimeout(localPcDomSlowMoveTimer);
+      localPcDomTurnPressureKey = key;
+      localPcDomTurnStartedAt = Date.now();
+      localPcDomAmbientTimer = window.setTimeout(() => {
+        localPcDomAmbientTimer = null;
+        if (pcDomPressureTurnKey() !== key) return;
+        if (!maybeStartPcDomRapidFire()) maybeTriggerPcDomDistraction({ chanceBoost: -0.12 });
+      }, 3500 + Math.floor(Math.random() * 5500));
+      localPcDomSlowMoveTimer = window.setTimeout(() => {
+        localPcDomSlowMoveTimer = null;
+        if (pcDomPressureTurnKey() !== key) return;
+        if (!maybeStartPcDomRapidFire()) maybeTriggerPcDomDistraction({ chanceBoost: 0.24 });
+      }, 12000);
     }
 
     function selectRedditeryGalleryImage(index, fromRandom = false) {
@@ -22792,7 +22871,10 @@
       const losses = state.currentGame === "tributeChess" && state.chess
         ? Math.max(Number(state.chess.subPiecesLostToDom || 0), Number(state.lossPressure && state.lossPressure.count || 0))
         : Number(state.lossPressure && state.lossPressure.count || 0);
-      const rapidFire = Boolean(state.settings.redditeryRapidFire && redditeryAutoPopupAllowed());
+      const rapidFire = Boolean(
+        (state.settings.redditeryRapidFire && redditeryAutoPopupAllowed())
+        || (state.vsPc && state.vsPc.active && Date.now() < Number(localPcDomRapidFireUntil || 0))
+      );
       const show = Boolean(!mobileLike && (
         rapidFire
         || (lossPressureEffectVisible("pulse") && state.screen === "game" && state.active && losses >= 8)
@@ -23648,7 +23730,6 @@
       resetChessClockTick();
       render();
       publishState();
-      if (isChessVsPc() && movedRole === DOM && state.turn === SUB) maybeTriggerPcDomDistraction({ chanceBoost: 0.03 });
       maybeQueueChessPcMove();
     }
 
@@ -30166,6 +30247,7 @@
       renderBrattyWelcomeModal();
       renderPressureViewPromptModal();
       maybeQueueChessPcMove();
+      schedulePcDomTurnPressure();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
