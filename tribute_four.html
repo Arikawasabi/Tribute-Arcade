@@ -22006,17 +22006,66 @@
       return null;
     }
 
+    function emptyTicTacToeCells(board = state.board) {
+      const cells = [];
+      for (let row = 0; row < 3; row += 1) {
+        for (let col = 0; col < 3; col += 1) {
+          if (!board[row][col]) cells.push([row, col]);
+        }
+      }
+      return cells;
+    }
+
+    function evaluateTicTacToeBoard(board) {
+      for (const cells of ticTacToeLines()) {
+        const [a, b, c] = cells;
+        const value = board[a[0]][a[1]];
+        if (value && value === board[b[0]][b[1]] && value === board[c[0]][c[1]]) {
+          return value;
+        }
+      }
+      return emptyTicTacToeCells(board).length ? null : "draw";
+    }
+
+    function scoreTicTacToeBoard(board, player, depth = 0) {
+      const result = evaluateTicTacToeBoard(board);
+      if (result === DOM) return 10 - depth;
+      if (result === SUB) return depth - 10;
+      if (result === "draw") return 0;
+
+      const nextPlayer = player === DOM ? SUB : DOM;
+      const scores = emptyTicTacToeCells(board).map(([row, col]) => {
+        board[row][col] = player;
+        const score = scoreTicTacToeBoard(board, nextPlayer, depth + 1);
+        board[row][col] = "";
+        return score;
+      });
+      return player === DOM ? Math.max(...scores) : Math.min(...scores);
+    }
+
     function chooseTicTacToePcMove() {
       const win = ticTacToeWinningMoveFor(DOM);
       if (win) return win;
       const block = ticTacToeWinningMoveFor(SUB);
       if (block) return block;
-      const preferred = [
+      const board = state.board.map((row) => [...row]);
+      const moves = emptyTicTacToeCells(board).map(([row, col]) => {
+        board[row][col] = DOM;
+        const score = scoreTicTacToeBoard(board, SUB, 1);
+        board[row][col] = "";
+        return { row, col, score };
+      });
+      const bestScore = Math.max(...moves.map((move) => move.score));
+      const bestMoves = moves.filter((move) => move.score === bestScore);
+      const preferredCells = [
         [1, 1],
         [0, 0], [0, 2], [2, 0], [2, 2],
         [0, 1], [1, 0], [1, 2], [2, 1]
       ];
-      return preferred.find(([row, col]) => state.board[row] && !state.board[row][col]) || null;
+      const preferred = preferredCells.find(([row, col]) => bestMoves.some((move) => move.row === row && move.col === col));
+      if (preferred) return preferred;
+      const fallback = bestMoves[0];
+      return fallback ? [fallback.row, fallback.col] : null;
     }
 
     function maybeQueueTicTacToePcMove() {
