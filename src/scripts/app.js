@@ -6437,19 +6437,21 @@
     }
 
     const PC_DOM_BOORU_TAGS = [
+      "ai-generated",
+      "ai-generated",
+      "ai_assisted",
       "ai-generated foot_focus",
       "ai-generated feet",
       "ai-generated huge_breasts",
       "ai-generated large_breasts",
       "ai-generated huge_ass",
-      "ai-generated ass_focus",
-      "ai-generated plump",
-      "ai-generated female_domination",
-      "ai-generated femdom",
-      "ai-generated humiliation",
-      "ai-generated small_penis_humiliation",
-      "ai-generated",
-      "ai_assisted"
+      "foot_focus",
+      "feet",
+      "huge_breasts",
+      "huge_ass",
+      "plump",
+      "female_domination",
+      "small_penis_humiliation"
     ];
 
     function nextPcDomBooruTag() {
@@ -6507,7 +6509,7 @@
     }
 
     async function takeNextPcDomDistractionItem() {
-      const preferBooru = autoPopupSourceKey() === "booru" || Math.random() < 0.8;
+      const preferBooru = Math.random() < 0.35;
       const primary = preferBooru ? takeNextPcDomBooruItem : takeNextPcDomRedditItem;
       const fallback = preferBooru ? takeNextPcDomRedditItem : takeNextPcDomBooruItem;
       try {
