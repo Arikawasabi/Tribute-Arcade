@@ -12983,6 +12983,7 @@
       if (!els.pressureViewPromptModal) return false;
       if (state.settings.pressureViewPromptSeen) return false;
       if (state.screen !== "game") return false;
+      if (state.vsPc && state.vsPc.active) return false;
       if (!pressureEligibleGame(state.currentGame)) return false;
       if (state.online.room && localOnlineRole() !== DOM) return false;
       return true;
@@ -21947,15 +21948,6 @@
       const scoredWinner = boardWinner === "draw" && state.mode === "reclaim" ? DOM : boardWinner;
       if (scoredWinner === SUB || scoredWinner === DOM) {
         state.ticTacToe.scores[scoredWinner] += 1;
-        if (scoredWinner === DOM) {
-          triggerSubLossPressure({
-            weight: 1,
-            message: true,
-            messageThreshold: 3,
-            strengthBoost: 0.05,
-            source: "tic-tac-toe-board"
-          });
-        }
       } else {
         state.ticTacToe.scores.draws += 1;
       }
@@ -22584,13 +22576,8 @@
 
     function pressureEligibleGame(game = state.currentGame) {
       return [
-        "tributeFour",
-        "tributeFleet",
         "tributeChess",
-        "tributeCheckers",
-        "tributeReversi",
-        "tributeTicTacToe",
-        "higherLower"
+        "tributeCheckers"
       ].includes(game);
     }
 
@@ -23293,6 +23280,19 @@
       return score;
     }
 
+    function chessBotTryMove(game, move) {
+      if (!game || !move) return null;
+      try {
+        return game.move({ from: move.from, to: move.to, promotion: move.promotion || "q" }) || game.move(move.san);
+      } catch (error) {
+        try {
+          return game.move(move.san);
+        } catch (fallbackError) {
+          return null;
+        }
+      }
+    }
+
     function chessBotSearch(game, depth, alpha = -Infinity, beta = Infinity) {
       if (!game || depth <= 0 || isChessGameOver(game)) return chessBotEvaluate(game);
       const maximizing = roleForChessColor(game.turn()) === DOM;
@@ -23304,7 +23304,8 @@
       if (!moves.length) return chessBotEvaluate(game);
       let best = maximizing ? -Infinity : Infinity;
       for (const move of moves) {
-        game.move(move.san);
+        const applied = chessBotTryMove(game, move);
+        if (!applied) continue;
         const score = chessBotSearch(game, depth - 1, alpha, beta);
         game.undo();
         if (maximizing) {
@@ -23326,12 +23327,14 @@
       if (!moves.length) return null;
       const depth = Math.max(1, Math.min(3, Number(state.vsPc && state.vsPc.chessDepth || 2)));
       const scored = moves.map((move) => {
-        game.move(move.san);
+        const applied = chessBotTryMove(game, move);
+        if (!applied) return null;
         const score = chessBotSearch(game, depth - 1);
         game.undo();
         const captureBonus = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) / 1000 : 0;
         return { move, score: score + captureBonus };
-      });
+      }).filter(Boolean);
+      if (!scored.length) return moves[0] || null;
       const bestScore = Math.max(...scored.map((entry) => entry.score));
       const bestMoves = scored.filter((entry) => Math.abs(entry.score - bestScore) < 0.001);
       return bestMoves[Math.floor(Math.random() * bestMoves.length)].move;
@@ -23346,7 +23349,7 @@
         localChessPcTimer = null;
         const liveGame = chessEngine();
         if (!isChessVsPc() || !state.active || !liveGame || roleForChessColor(liveGame.turn()) !== DOM) return;
-        const move = chooseChessPcMove();
+        const move = chooseChessPcMove() || liveGame.moves({ verbose: true })[0];
         if (!move) return;
         applyChessMove(liveGame, move.from, move, false);
       }, 650);
