@@ -231,7 +231,8 @@
       brainDrainSnap: createBrainDrainSnapState(),
       lossPressure: createLossPressureState(),
       chat: [],
-      ledger: []
+      ledger: [],
+      vsPc: createVsPcState()
     };
 
     const els = {
@@ -522,6 +523,7 @@
       tributeCrazyEightsCard: document.getElementById("tributeCrazyEightsCard"),
       doubleSolitaireCard: document.getElementById("doubleSolitaireCard"),
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
+      ticTacToePcCard: document.getElementById("ticTacToePcCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
       obedienceOrdersCard: document.getElementById("obedienceOrdersCard"),
       tributeTrailCard: document.getElementById("tributeTrailCard"),
@@ -676,6 +678,7 @@
     let selectedCheckersPower = "crownPull";
     let selectedTwentyOnePower = "pushLuck";
     let localDoubleSolitaireViewed = null;
+    let localTicTacToePcTimer = null;
     let localFleetView = null;
     let localFleetViewTurn = null;
     let localFleetHoldUntil = 0;
@@ -796,6 +799,15 @@
       };
     }
 
+    function createVsPcState() {
+      return {
+        active: false,
+        game: "",
+        humanRole: SUB,
+        pcRole: DOM
+      };
+    }
+
     const TIC_TAC_TOE_FORMATS = [
       { id: "first1", label: "First to 1", target: 1, maxBoards: 1 },
       { id: "bo3", label: "Best of 3", target: 2, maxBoards: 3 },
@@ -804,12 +816,17 @@
       { id: "first5", label: "First to 5", target: 5, maxBoards: 0 }
     ];
 
+    const SOLO_GAME_IDS = ["solitaire", "memoryMatch"];
+    const VS_PC_GAME_IDS = ["ticTacToePc"];
+
     function ticTacToeFormatById(id) {
       return TIC_TAC_TOE_FORMATS.find((format) => format.id === id) || TIC_TAC_TOE_FORMATS[1];
     }
 
     function ticTacToeFormatOptions() {
-      return isThroneSession()
+      return isTicTacToeVsPc()
+        ? TIC_TAC_TOE_FORMATS
+        : isThroneSession()
         ? TIC_TAC_TOE_FORMATS.filter((format) => format.id !== "first1")
         : TIC_TAC_TOE_FORMATS;
     }
@@ -1850,6 +1867,12 @@
 
     function setScreen(screen) {
       state.screen = screen;
+      if (screen !== "game" || state.currentGame !== "tributeTicTacToe") {
+        if (localTicTacToePcTimer) {
+          window.clearTimeout(localTicTacToePcTimer);
+          localTicTacToePcTimer = null;
+        }
+      }
       if (screen !== "game") clearThroneKissSplash();
       if (screen !== "solitaire") hideSolitaireCardPreview();
       els.setupScreen.classList.toggle("hidden", screen !== "setup");
@@ -1909,6 +1932,8 @@
       state.names[state.roles.two] = twoName;
       els.setupMessage.textContent = "";
       els.playerSummary.textContent = `${state.names.dom} is the dom. ${state.names.sub} is the sub.`;
+      clearVsPcMode();
+      state.settings.activeGameTab = "board";
       setScreen("select");
       render();
       publishState();
@@ -1948,6 +1973,7 @@
 
     function openSoloGamesMenu() {
       resetLocalOnlineState();
+      state.vsPc = createVsPcState();
       state.settings.activeGameTab = "solo";
       state.currentGame = "solitaire";
       clearLocalRoomUrl();
@@ -1979,6 +2005,14 @@
       state.settings.throneAmountConfirmed = false;
       clearLocalRoomUrl();
       updateOnlineUi();
+    }
+
+    function clearVsPcMode() {
+      if (localTicTacToePcTimer) {
+        window.clearTimeout(localTicTacToePcTimer);
+        localTicTacToePcTimer = null;
+      }
+      state.vsPc = createVsPcState();
     }
 
     function leaveNoticeKey(id = state.settings.leaveNotice && state.settings.leaveNotice.id) {
@@ -2347,6 +2381,7 @@
 
     function openTributeTicTacToe() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      clearVsPcMode();
       state.pendingWager = null;
       state.currentGame = "tributeTicTacToe";
       setScreen("game");
@@ -2372,6 +2407,29 @@
         : `<strong>Wheel Spin opened.</strong> ${state.names.sub} can spin after ${state.names.dom} unlocks the wheel. Cash spaces pay ${state.names.dom}'s bank, minus spaces drain it, and blanks spare the spin.`);
       render();
       publishState();
+    }
+
+    function openTicTacToeVsPc() {
+      resetLocalOnlineState();
+      state.vsPc = {
+        ...createVsPcState(),
+        active: true,
+        game: "tributeTicTacToe"
+      };
+      state.roles = { one: DOM, two: SUB };
+      state.names = { dom: "PC Dom", sub: "You" };
+      state.pendingWager = null;
+      state.normalReplayPrompt = null;
+      state.currentGame = "tributeTicTacToe";
+      setScreen("game");
+      resetLossPressure();
+      resetTributeTicTacToeBoard();
+      state.ticTacToe = normalizeTicTacToeState({ ...state.ticTacToe, format: "bo3" });
+      state.mode = "normal";
+      state.pot = 0;
+      els.log.innerHTML = "";
+      addLog(`<strong>Tic Tac Toe vs PC opened.</strong> You play X. The PC dom plays O.`);
+      render();
     }
 
     function openObedienceOrders() {
@@ -2446,6 +2504,7 @@
     }
 
     function openSolitaire() {
+      clearVsPcMode();
       state.currentGame = "solitaire";
       dealSolitaire();
       setScreen("solitaire");
@@ -2453,12 +2512,14 @@
     }
 
     function openMemoryMatch() {
+      clearVsPcMode();
       state.currentGame = "memoryMatch";
       setScreen("memoryMatch");
       startMemoryMatch({ newImages: true });
     }
 
     function openBrainDrainSnap() {
+      clearVsPcMode();
       state.currentGame = "brainDrainSnap";
       setScreen("brainDrainSnap");
       startBrainDrainSnap();
@@ -2473,6 +2534,15 @@
     function backToMenu() {
       const role = localOnlineRole();
       if (state.online.room && role !== DOM) return;
+      if (state.vsPc && state.vsPc.active) {
+        state.active = false;
+        state.pendingWager = null;
+        state.pot = 0;
+        state.settings.activeGameTab = "vs-pc";
+        setScreen("select");
+        renderMenu();
+        return;
+      }
       state.active = false;
       state.pendingWager = null;
       state.pot = 0;
@@ -2525,6 +2595,7 @@
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       if (els.higherLowerCard) els.higherLowerCard.disabled = domPickBlocked;
       if (els.memoryMatchCard) els.memoryMatchCard.disabled = false;
+      if (els.ticTacToePcCard) els.ticTacToePcCard.disabled = false;
       if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.disabled = domPickBlocked;
       if (els.doubleSolitaireCard) els.doubleSolitaireCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
@@ -2579,16 +2650,16 @@
         control: "chance"
       };
       const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
-      const soloGameIds = ["solitaire", "memoryMatch"];
-      const soloMenuOpen = state.screen === "select" && soloGameIds.includes(state.currentGame);
+      const soloMenuOpen = state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc");
       const allowedTabs = soloMenuOpen
-        ? ["solo"]
+        ? ["solo", "vs-pc"]
         : ["board", "cards", "chance", "wip", "all"];
       const tab = allowedTabs.includes(requestedTab) ? requestedTab : allowedTabs[0];
       state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
-        button.classList.toggle("hidden", soloMenuOpen || button.dataset.gameTab === "solo");
-        button.classList.toggle("active", !soloMenuOpen && button.dataset.gameTab === tab);
+        const buttonTab = button.dataset.gameTab;
+        button.classList.toggle("hidden", soloMenuOpen ? !["solo", "vs-pc"].includes(buttonTab) : ["solo", "vs-pc"].includes(buttonTab));
+        button.classList.toggle("active", buttonTab === tab);
       });
       updateRedditeryAutoPopupStatus();
       els.mainGamesGrid.classList.remove("hidden");
@@ -3656,11 +3727,11 @@
     }
 
     function renderSidePanel() {
-      const soloGameIds = ["solitaire", "memoryMatch"];
-      const soloMode = soloGameIds.includes(state.screen);
+      const soloMode = SOLO_GAME_IDS.includes(state.screen);
       const inGame = state.screen === "game";
       const inGameSelect = state.screen === "select";
-      const soloContext = soloMode || (inGameSelect && soloGameIds.includes(state.currentGame));
+      const vsPcContext = Boolean(state.vsPc && state.vsPc.active);
+      const soloContext = soloMode || vsPcContext || (inGameSelect && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc"));
       if (!soloContext && !inGame && !inGameSelect) {
         els.sidePopout.classList.add("hidden");
         els.sideRestoreTabs.forEach((button) => button.classList.add("hidden"));
@@ -4753,8 +4824,9 @@
     }
 
     function soloAutoPopupControlsAllowed() {
-      return (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame))
-        || ["solitaire", "memoryMatch"].includes(state.screen);
+      return (state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc"))
+        || SOLO_GAME_IDS.includes(state.screen)
+        || Boolean(state.vsPc && state.vsPc.active);
     }
 
     function syncDanbooruVideoToggleButtons(canUseDomSettings = domLinkControlsAllowed()) {
@@ -5515,7 +5587,7 @@
       });
       if (els.goonerGalleryCategory) els.goonerGalleryCategory.disabled = !galleryControlsAllowed();
       if (els.soloGoonerGalleryCategory) {
-        const soloAllowed = (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)) || ["solitaire", "memoryMatch"].includes(state.screen);
+        const soloAllowed = soloAutoPopupControlsAllowed();
         els.soloGoonerGalleryCategory.disabled = !soloAllowed;
       }
       const gallerySelection = redditSelectionForScope("gallery");
@@ -6117,13 +6189,12 @@
     }
 
     function redditeryAutoPopupControlAllowed() {
-      const soloScreens = ["solitaire", "memoryMatch"];
-      const soloMenuOpen = state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame);
-      return domLinkControlsAllowed() || subGalleryPrivateMode() || soloMenuOpen || soloScreens.includes(state.screen);
+      const soloMenuOpen = state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc");
+      return domLinkControlsAllowed() || subGalleryPrivateMode() || soloMenuOpen || SOLO_GAME_IDS.includes(state.screen) || Boolean(state.vsPc && state.vsPc.active);
     }
 
     function redditeryAutoPopupAllowed() {
-      return domLinkControlsAllowed() || subGalleryPrivateMode() || ["solitaire", "memoryMatch"].includes(state.screen);
+      return domLinkControlsAllowed() || subGalleryPrivateMode() || SOLO_GAME_IDS.includes(state.screen) || Boolean(state.vsPc && state.vsPc.active);
     }
 
     function setRedditeryAutoPopupEnabled(enabled) {
@@ -6166,7 +6237,7 @@
       syncAutoPopupSourceControls();
       [
         [els.redditeryAutoPopupToggle, galleryControlsAllowed() && !(subGalleryPrivateMode() && state.settings.redditeryAutoPopup)],
-        [els.soloRedditeryAutoPopupToggle, (state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)) || ["solitaire", "memoryMatch"].includes(state.screen)]
+        [els.soloRedditeryAutoPopupToggle, soloAutoPopupControlsAllowed()]
       ].forEach(([toggle, canUse]) => {
         if (!toggle) return;
         toggle.disabled = !canUse;
@@ -6188,9 +6259,9 @@
       if (!statusEls.length) return;
       let statusText = "";
       if (!enabled) {
-        statusText = ["solitaire", "memoryMatch"].includes(state.screen)
+        statusText = SOLO_GAME_IDS.includes(state.screen) || Boolean(state.vsPc && state.vsPc.active)
           ? "Off. When enabled, a random gallery image pops up on the selected timer."
-          : state.screen === "select" && ["solitaire", "memoryMatch"].includes(state.currentGame)
+          : state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc")
             ? "Off. When enabled, a random gallery image pops up during solo games."
           : "Off. When enabled, a random gallery image pops up for the sub on the selected timer.";
         statusEls.forEach((status) => { status.textContent = statusText; });
@@ -6947,6 +7018,7 @@
         crazyEights: state.crazyEights,
         doubleSolitaire: state.doubleSolitaire,
         ticTacToe: state.ticTacToe,
+        vsPc: state.vsPc,
         dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
@@ -7024,6 +7096,7 @@
       state.crazyEights = snapshot.crazyEights || state.crazyEights;
       state.doubleSolitaire = snapshot.doubleSolitaire || state.doubleSolitaire;
       state.ticTacToe = normalizeTicTacToeState(snapshot.ticTacToe || state.ticTacToe);
+      state.vsPc = snapshot.vsPc || createVsPcState();
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
       state.trail = snapshot.trail || state.trail;
@@ -12379,6 +12452,10 @@
       state.domOpened = false;
     }
 
+    function isTicTacToeVsPc() {
+      return Boolean(state.vsPc && state.vsPc.active && state.vsPc.game === "tributeTicTacToe");
+    }
+
     function setTicTacToeFormat(formatId) {
       if (state.currentGame !== "tributeTicTacToe") return;
       if (state.active || state.pot > 0) return;
@@ -12493,6 +12570,10 @@
     function startTicTacToeSetupMatch() {
       if (state.currentGame !== "tributeTicTacToe") return;
       if (state.active || state.pot > 0 || state.pendingWager || state.normalReplayPrompt) return;
+      if (isTicTacToeVsPc()) {
+        startTicTacToeVsPcMatch();
+        return;
+      }
       if (state.online.room && localOnlineRole() !== DOM) return;
       wagerStartBypass = true;
       try {
@@ -12500,6 +12581,17 @@
       } finally {
         wagerStartBypass = false;
       }
+    }
+
+    function startTicTacToeVsPcMatch() {
+      resetTicTacToeMatchProgress();
+      state.mode = "normal";
+      state.pot = 0;
+      ticTacToeStartNextBoard(`<strong>Board 1 starts.</strong> You move first.`);
+      state.turn = SUB;
+      addLog(`<strong>Vs PC match:</strong> ${currentTicTacToeFormat().label}. First to ${currentTicTacToeFormat().target} board wins takes the match.`);
+      render();
+      maybeQueueTicTacToePcMove();
     }
 
     function startTicTacToeReclaimMatch() {
@@ -12546,6 +12638,15 @@
       const matchWinner = ticTacToeMatchWinner();
       if (matchWinner) {
         state.ticTacToe.matchActive = false;
+        if (isTicTacToeVsPc()) {
+          const scoreText = ticTacToeScoreText();
+          addLog(matchWinner === SUB
+            ? `<strong>You win the Tic Tac Toe vs PC match.</strong> ${scoreText}.`
+            : `<strong>The PC dom wins the Tic Tac Toe vs PC match.</strong> ${scoreText}.`);
+          state.pot = 0;
+          render();
+          return;
+        }
         const result = settleRoundBank(matchWinner);
         const scoreText = ticTacToeScoreText();
         if (result.outcome === "subReclaim") {
@@ -12574,15 +12675,18 @@
 
     function continueTicTacToeMatch() {
       if (state.currentGame !== "tributeTicTacToe" || !state.ticTacToe || !state.ticTacToe.pendingNextBoard) return;
-      if (state.online.room && localOnlineRole() && localOnlineRole() !== DOM) return;
+      if (!isTicTacToeVsPc() && state.online.room && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.ticTacToe.boardNumber += 1;
       ticTacToeStartNextBoard(`<strong>Board ${state.ticTacToe.boardNumber} starts.</strong> ${labelFor(state.turn)} moves first.`);
+      if (isTicTacToeVsPc()) state.turn = SUB;
       render();
       publishState();
+      maybeQueueTicTacToePcMove();
     }
 
-    function playTicTacToe(row, col) {
+    function playTicTacToe(row, col, actor = "human") {
       if (!state.active || state.currentGame !== "tributeTicTacToe") return;
+      if (isTicTacToeVsPc() && actor !== "pc" && state.turn !== SUB) return;
       if (localOnlineRole() && localOnlineRole() !== state.turn) return;
       if (state.board[row][col]) return;
       const player = state.turn;
@@ -12600,10 +12704,11 @@
       state.turn = state.turn === SUB ? DOM : SUB;
       render();
       publishState();
+      maybeQueueTicTacToePcMove();
     }
 
-    function evaluateTicTacToe() {
-      const lines = [
+    function ticTacToeLines() {
+      return [
         [[0, 0], [0, 1], [0, 2]],
         [[1, 0], [1, 1], [1, 2]],
         [[2, 0], [2, 1], [2, 2]],
@@ -12613,7 +12718,45 @@
         [[0, 0], [1, 1], [2, 2]],
         [[0, 2], [1, 1], [2, 0]]
       ];
-      for (const cells of lines) {
+    }
+
+    function ticTacToeWinningMoveFor(player) {
+      for (const cells of ticTacToeLines()) {
+        const marks = cells.map(([row, col]) => state.board[row] && state.board[row][col]);
+        const filled = marks.filter((mark) => mark === player).length;
+        const emptyIndex = marks.findIndex((mark) => !mark);
+        if (filled === 2 && emptyIndex >= 0) return cells[emptyIndex];
+      }
+      return null;
+    }
+
+    function chooseTicTacToePcMove() {
+      const win = ticTacToeWinningMoveFor(DOM);
+      if (win) return win;
+      const block = ticTacToeWinningMoveFor(SUB);
+      if (block) return block;
+      const preferred = [
+        [1, 1],
+        [0, 0], [0, 2], [2, 0], [2, 2],
+        [0, 1], [1, 0], [1, 2], [2, 1]
+      ];
+      return preferred.find(([row, col]) => state.board[row] && !state.board[row][col]) || null;
+    }
+
+    function maybeQueueTicTacToePcMove() {
+      if (!isTicTacToeVsPc() || !state.active || state.turn !== DOM) return;
+      if (localTicTacToePcTimer) window.clearTimeout(localTicTacToePcTimer);
+      localTicTacToePcTimer = window.setTimeout(() => {
+        localTicTacToePcTimer = null;
+        if (!isTicTacToeVsPc() || !state.active || state.turn !== DOM) return;
+        const move = chooseTicTacToePcMove();
+        if (!move) return;
+        playTicTacToe(move[0], move[1], "pc");
+      }, 420);
+    }
+
+    function evaluateTicTacToe() {
+      for (const cells of ticTacToeLines()) {
         const [a, b, c] = cells;
         const value = state.board[a[0]][a[1]];
         if (value && value === state.board[b[0]][b[1]] && value === state.board[c[0]][c[1]]) {
@@ -16664,6 +16807,7 @@
       const canPickFormat = !state.active && state.pot <= 0 && (!state.online.room || localOnlineRole() === DOM);
       const canStartMatch = !state.active && state.pot <= 0 && !state.pendingWager && !state.normalReplayPrompt && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
       const canContinue = game.pendingNextBoard && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
+      const isVsPc = isTicTacToeVsPc();
       const setup = document.createElement("div");
       setup.className = `ttt-match-panel ${(!state.active || game.pendingNextBoard) ? "ttt-match-popup" : ""}`.trim();
       setup.innerHTML = `
@@ -16677,7 +16821,7 @@
             <button type="button" data-ttt-format="${option.id}" class="${option.id === format.id ? "active" : ""}"${canPickFormat ? "" : " disabled"}>${option.label}</button>
           `).join("")}
         </div>
-        <p class="ttt-match-note">${format.label}: first to ${format.target} board wins${game.scores.draws ? ` · Draws ${game.scores.draws}` : ""}.</p>
+        <p class="ttt-match-note">${format.label}: first to ${format.target} board wins${isVsPc ? " · You are X, PC dom is O" : ""}${game.scores.draws ? ` · Draws ${game.scores.draws}` : ""}.</p>
         ${!game.matchActive && state.pot <= 0 && !state.normalReplayPrompt ? `<button type="button" class="primary ttt-next-board-btn" data-ttt-start${canStartMatch ? "" : " disabled"}>Start</button>` : ""}
         ${game.pendingNextBoard ? `<button type="button" class="primary ttt-next-board-btn" data-ttt-next-board${canContinue ? "" : " disabled"}>Start Next Board</button>` : ""}
       `;
@@ -16705,7 +16849,7 @@
           if (winSet.has(`${row},${col}`)) cell.classList.add("win");
           cell.textContent = value === SUB ? "X" : (value === DOM ? "O" : "");
           cell.setAttribute("aria-label", value ? `${labelFor(value)} mark` : `empty tic tac toe square`);
-          cell.disabled = !state.active || Boolean(value) || (localOnlineRole() && localOnlineRole() !== state.turn);
+          cell.disabled = !state.active || Boolean(value) || (isVsPc && state.turn !== SUB) || (localOnlineRole() && localOnlineRole() !== state.turn);
           cell.addEventListener("click", () => playTicTacToe(row, col));
           grid.appendChild(cell);
         }
@@ -19540,6 +19684,7 @@
     }
 
     function currentGameLabel() {
+      if (isTicTacToeVsPc()) return "Tic Tac Toe vs PC";
       if (state.currentGame === "tributeChess") return "Tribute Chess";
       if (state.currentGame === "tributeCheckers") return "Tribute Checkers";
       if (state.currentGame === "tributeReversi") return "Tribute Reversi";
@@ -19973,7 +20118,7 @@
       }
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
         ? (isThroneSession() ? "Throne Wheel" : "Free Spin")
-        : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Duel" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))))));
+        : (isTicTacToeVsPc() ? "Vs PC" : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Duel" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match")))))));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
@@ -20101,6 +20246,8 @@
         } else if (state.currentGame === "tributeFleet" && state.fleet && state.fleet.placementPending) {
           const owner = fleetPlacementOwner();
           els.turnText.innerHTML = `<strong>${labelFor(owner)}</strong> is placing ships.`;
+        } else if (isTicTacToeVsPc()) {
+          els.turnText.innerHTML = `<strong>Tic Tac Toe vs PC.</strong> Pick a match length and start when ready.`;
         } else if (isThroneSession() && state.normalReplayPrompt) {
           els.turnText.innerHTML = `<strong>${currentGameLabel()} finished.</strong> Replay or go back to Game Select.`;
         } else if (isThroneSession()) {
@@ -20291,8 +20438,10 @@
         return;
       }
       if (state.currentGame === "tributeTicTacToe") {
-        els.gameTitle.textContent = "Tribute Tic Tac Toe";
-        els.gameSubtitle.textContent = "Fast three-in-a-row matches. The dom picks the match length before the first board; reclaim lets her start and take drawn boards.";
+        els.gameTitle.textContent = isTicTacToeVsPc() ? "Tic Tac Toe vs PC" : "Tribute Tic Tac Toe";
+        els.gameSubtitle.textContent = isTicTacToeVsPc()
+          ? "A local three-in-a-row match against the PC dom. You play X; she plays O."
+          : "Fast three-in-a-row matches. The dom picks the match length before the first board; reclaim lets her start and take drawn boards.";
         return;
       }
       if (state.currentGame === "wheelSpin") {
@@ -21175,6 +21324,7 @@
       doubleSolitaire: openDoubleSolitaire,
       solitaire: openSolitaire,
       memoryMatch: openMemoryMatch,
+      ticTacToePc: openTicTacToeVsPc,
       tributeTicTacToe: openTributeTicTacToe,
       wheelSpin: openWheelSpin,
       obedienceOrders: openObedienceOrders,
@@ -21189,7 +21339,7 @@
         if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
         const opener = gameOpeners[card.dataset.openGame];
         if (!opener) return;
-        const soloOpeners = new Set(["solitaire", "memoryMatch"]);
+        const soloOpeners = new Set(["solitaire", "memoryMatch", "ticTacToePc"]);
         if (!soloOpeners.has(card.dataset.openGame) && shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
         opener();
       });
