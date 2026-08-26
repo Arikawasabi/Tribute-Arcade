@@ -7886,7 +7886,7 @@
           <button id="soloGamesBtn" class="primary">Open Solo</button>
         </div>
         <div class="panel-body">
-          <p class="chooser-line">Play solitaire, image games, and Vs PC games where the PC dom can use gallery distractions.</p>
+          <p class="chooser-line">Play solitaire, image games, and experimental Vs PC games where the PC dom can use gallery distractions.</p>
         </div>
       </div>
     </section>
@@ -8084,7 +8084,7 @@
       <button class="game-select-tab" data-game-tab="cards">Cards</button>
       <button class="game-select-tab" data-game-tab="chance">Chance</button>
       <button class="game-select-tab" data-game-tab="solo">Solo</button>
-      <button class="game-select-tab" data-game-tab="vs-pc">Vs PC</button>
+      <button class="game-select-tab" data-game-tab="vs-pc">Vs PC Testing</button>
       <button class="game-select-tab" data-game-tab="wip">WIP</button>
       <button class="game-select-tab" data-game-tab="all">All</button>
     </div>
@@ -8197,33 +8197,33 @@
       <button class="panel game-card" id="ticTacToePcCard" data-open-game="ticTacToePc" data-game-categories="vs-pc">
         <span>
           <span class="game-card-title">Tic Tac Toe vs PC</span>
-          <span class="game-card-copy">A quick local match against the PC dom. You play X, she plays O.</span>
+          <span class="game-card-copy">Testing mode: a quick local match against the PC dom. You play X, she plays O.</span>
         </span>
-        <strong class="status-pill">Play Vs PC</strong>
+        <strong class="status-pill">Testing</strong>
       </button>
 
       <button class="panel game-card" id="chessPcCard" data-open-game="chessPc" data-game-categories="vs-pc">
         <span>
           <span class="game-card-title">Chess vs PC</span>
-          <span class="game-card-copy">A first-pass solo chess match against a local PC dom. You play white.</span>
+          <span class="game-card-copy">Testing mode: a first-pass solo chess match against a local PC dom. You play white.</span>
         </span>
-        <strong class="status-pill">Play Vs PC</strong>
+        <strong class="status-pill">Testing</strong>
       </button>
 
       <button class="panel game-card" id="checkersPcCard" data-open-game="checkersPc" data-game-categories="vs-pc">
         <span>
           <span class="game-card-title">Checkers vs PC</span>
-          <span class="game-card-copy">A local checkers match against the PC dom. Captures, crowns, and pressure still matter.</span>
+          <span class="game-card-copy">Testing mode: a local checkers match against the PC dom. Captures, crowns, and pressure still matter.</span>
         </span>
-        <strong class="status-pill">Play Vs PC</strong>
+        <strong class="status-pill">Testing</strong>
       </button>
 
       <button class="panel game-card" id="reversiPcCard" data-open-game="reversiPc" data-game-categories="vs-pc">
         <span>
           <span class="game-card-title">Reversi vs PC</span>
-          <span class="game-card-copy">A local disc-control match against the PC dom. Corners, edges, and mobility decide the squeeze.</span>
+          <span class="game-card-copy">Testing mode: a local disc-control match against the PC dom. Corners, edges, and mobility decide the squeeze.</span>
         </span>
-        <strong class="status-pill">Play Vs PC</strong>
+        <strong class="status-pill">Testing</strong>
       </button>
 
       <button class="panel game-card" id="obedienceOrdersCard" data-open-game="obedienceOrders" data-game-categories="wip all" data-game-hidden="true">
@@ -12045,7 +12045,7 @@
       if (els.gameSelectInfoPanel) els.gameSelectInfoPanel.classList.toggle("hidden", soloSelect);
       if (soloSelect) {
         els.playerSummary.textContent = state.settings.activeGameTab === "vs-pc"
-          ? "Play against the PC dom."
+          ? "Testing mode: play against the PC dom."
           : "Choose a solo game.";
       }
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;

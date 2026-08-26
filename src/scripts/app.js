@@ -2726,7 +2726,7 @@
       if (els.gameSelectInfoPanel) els.gameSelectInfoPanel.classList.toggle("hidden", soloSelect);
       if (soloSelect) {
         els.playerSummary.textContent = state.settings.activeGameTab === "vs-pc"
-          ? "Play against the PC dom."
+          ? "Testing mode: play against the PC dom."
           : "Choose a solo game.";
       }
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
