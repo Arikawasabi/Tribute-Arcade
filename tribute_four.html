@@ -8201,6 +8201,22 @@
         <strong class="status-pill">Play Vs PC</strong>
       </button>
 
+      <button class="panel game-card" id="checkersPcCard" data-open-game="checkersPc" data-game-categories="vs-pc">
+        <span>
+          <span class="game-card-title">Checkers vs PC</span>
+          <span class="game-card-copy">A local checkers match against the PC dom. Captures, crowns, and pressure still matter.</span>
+        </span>
+        <strong class="status-pill">Play Vs PC</strong>
+      </button>
+
+      <button class="panel game-card" id="reversiPcCard" data-open-game="reversiPc" data-game-categories="vs-pc">
+        <span>
+          <span class="game-card-title">Reversi vs PC</span>
+          <span class="game-card-copy">A local disc-control match against the PC dom. Corners, edges, and mobility decide the squeeze.</span>
+        </span>
+        <strong class="status-pill">Play Vs PC</strong>
+      </button>
+
       <button class="panel game-card" id="obedienceOrdersCard" data-open-game="obedienceOrders" data-game-categories="wip all" data-game-hidden="true">
         <span>
           <span class="game-card-title">Obedience Orders</span>
@@ -8572,6 +8588,15 @@
           <input id="reversiHintToggle" type="checkbox" checked>
           <span>Show legal move number hints</span>
         </label>
+        <div class="hidden" id="chessPcDifficultyRow">
+          <p class="chooser-line">PC dom difficulty</p>
+          <div class="blackjack-round-grid chess-timer-grid">
+            <button data-chess-pc-difficulty="easy">Easy</button>
+            <button data-chess-pc-difficulty="normal" class="primary">Normal</button>
+            <button data-chess-pc-difficulty="hard">Hard</button>
+            <button data-chess-pc-difficulty="brutal">Brutal</button>
+          </div>
+        </div>
         <div class="setup-actions">
           <button id="chessSettingsConfirmBtn" class="primary">Start Game</button>
         </div>
@@ -9812,6 +9837,8 @@
       tributeTicTacToeCard: document.getElementById("tributeTicTacToeCard"),
       ticTacToePcCard: document.getElementById("ticTacToePcCard"),
       chessPcCard: document.getElementById("chessPcCard"),
+      checkersPcCard: document.getElementById("checkersPcCard"),
+      reversiPcCard: document.getElementById("reversiPcCard"),
       tributeWheelCard: document.getElementById("tributeWheelCard"),
       obedienceOrdersCard: document.getElementById("obedienceOrdersCard"),
       tributeTrailCard: document.getElementById("tributeTrailCard"),
@@ -9868,6 +9895,7 @@
       chessSettingsText: document.getElementById("chessSettingsText"),
       chessCustomTimerRow: document.getElementById("chessCustomTimerRow"),
       chessCustomTimerInput: document.getElementById("chessCustomTimerInput"),
+      chessPcDifficultyRow: document.getElementById("chessPcDifficultyRow"),
       chessSettingsConfirmBtn: document.getElementById("chessSettingsConfirmBtn"),
       reversiHintToggleRow: document.getElementById("reversiHintToggleRow"),
       reversiHintToggle: document.getElementById("reversiHintToggle"),
@@ -9968,6 +9996,8 @@
     let localDoubleSolitaireViewed = null;
     let localTicTacToePcTimer = null;
     let localChessPcTimer = null;
+    let localCheckersPcTimer = null;
+    let localReversiPcTimer = null;
     let localFleetView = null;
     let localFleetViewTurn = null;
     let localFleetHoldUntil = 0;
@@ -10021,6 +10051,9 @@
     let localPcDomSlowMoveTimer = null;
     let localPcDomRapidFireTimer = null;
     let localPcDomRapidFireUntil = 0;
+    let localAmbientGalleryPopupTimer = null;
+    let localAmbientGalleryPopupNextAt = 0;
+    let localAmbientGalleryPopupLoading = false;
     let localMemoryMatchAfter = "";
     let localMemoryMatchSubreddit = "";
     let localMemoryMatchRecentUrls = [];
@@ -10105,7 +10138,8 @@
         game: "",
         humanRole: SUB,
         pcRole: DOM,
-        chessDepth: 2
+        chessDepth: 2,
+        chessDifficulty: "normal"
       };
     }
 
@@ -10118,7 +10152,7 @@
     ];
 
     const SOLO_GAME_IDS = ["solitaire", "memoryMatch"];
-    const VS_PC_GAME_IDS = ["ticTacToePc", "chessPc"];
+    const VS_PC_GAME_IDS = ["ticTacToePc", "chessPc", "checkersPc", "reversiPc"];
 
     function ticTacToeFormatById(id) {
       return TIC_TAC_TOE_FORMATS.find((format) => format.id === id) || TIC_TAC_TOE_FORMATS[1];
@@ -11180,6 +11214,18 @@
           localChessPcTimer = null;
         }
       }
+      if (screen !== "game" || state.currentGame !== "tributeCheckers") {
+        if (localCheckersPcTimer) {
+          window.clearTimeout(localCheckersPcTimer);
+          localCheckersPcTimer = null;
+        }
+      }
+      if (screen !== "game" || state.currentGame !== "tributeReversi") {
+        if (localReversiPcTimer) {
+          window.clearTimeout(localReversiPcTimer);
+          localReversiPcTimer = null;
+        }
+      }
       if (screen !== "game") clearThroneKissSplash();
       if (screen !== "solitaire") hideSolitaireCardPreview();
       els.setupScreen.classList.toggle("hidden", screen !== "setup");
@@ -11322,6 +11368,14 @@
       if (localChessPcTimer) {
         window.clearTimeout(localChessPcTimer);
         localChessPcTimer = null;
+      }
+      if (localCheckersPcTimer) {
+        window.clearTimeout(localCheckersPcTimer);
+        localCheckersPcTimer = null;
+      }
+      if (localReversiPcTimer) {
+        window.clearTimeout(localReversiPcTimer);
+        localReversiPcTimer = null;
       }
       clearPcDomTurnPressureTimers();
       state.vsPc = createVsPcState();
@@ -11750,7 +11804,8 @@
         ...createVsPcState(),
         active: true,
         game: "tributeChess",
-        chessDepth: 2
+        chessDepth: 2,
+        chessDifficulty: "normal"
       };
       state.roles = { one: DOM, two: SUB };
       state.names = { dom: "PC Dom", sub: "You" };
@@ -11763,6 +11818,50 @@
       state.pot = 0;
       els.log.innerHTML = "";
       startChessSetup({ w: SUB, b: DOM }, `<strong>Chess vs PC opened.</strong> You play white. The PC dom plays black.`);
+      render();
+    }
+
+    function openCheckersVsPc() {
+      resetLocalOnlineState();
+      state.vsPc = {
+        ...createVsPcState(),
+        active: true,
+        game: "tributeCheckers",
+        checkersDifficulty: "normal"
+      };
+      state.roles = { one: DOM, two: SUB };
+      state.names = { dom: "PC Dom", sub: "You" };
+      state.pendingWager = null;
+      state.normalReplayPrompt = null;
+      state.currentGame = "tributeCheckers";
+      setScreen("game");
+      resetLossPressure();
+      state.mode = "normal";
+      state.pot = 0;
+      els.log.innerHTML = "";
+      startCheckersSetup(SUB, `<strong>Checkers vs PC opened.</strong> You move first. The PC dom plays the dom side.`);
+      render();
+    }
+
+    function openReversiVsPc() {
+      resetLocalOnlineState();
+      state.vsPc = {
+        ...createVsPcState(),
+        active: true,
+        game: "tributeReversi",
+        reversiDifficulty: "normal"
+      };
+      state.roles = { one: DOM, two: SUB };
+      state.names = { dom: "PC Dom", sub: "You" };
+      state.pendingWager = null;
+      state.normalReplayPrompt = null;
+      state.currentGame = "tributeReversi";
+      setScreen("game");
+      resetLossPressure();
+      state.mode = "normal";
+      state.pot = 0;
+      els.log.innerHTML = "";
+      startReversiSetup(SUB, `<strong>Reversi vs PC opened.</strong> You play dark and move first. The PC dom plays light.`);
       render();
     }
 
@@ -11932,6 +12031,8 @@
       if (els.memoryMatchCard) els.memoryMatchCard.disabled = false;
       if (els.ticTacToePcCard) els.ticTacToePcCard.disabled = false;
       if (els.chessPcCard) els.chessPcCard.disabled = false;
+      if (els.checkersPcCard) els.checkersPcCard.disabled = false;
+      if (els.reversiPcCard) els.reversiPcCard.disabled = false;
       if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.disabled = domPickBlocked;
       if (els.doubleSolitaireCard) els.doubleSolitaireCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
@@ -15721,6 +15822,84 @@
       }
     }
 
+    function ambientGalleryPopupContext() {
+      if (state.vsPc && state.vsPc.active) return { key: `vspc:${state.currentGame || state.vsPc.game}`, chance: 0.26, minMs: 22000, maxMs: 48000 };
+      if (SOLO_GAME_IDS.includes(state.screen)) return { key: `solo:${state.screen}`, chance: 0.2, minMs: 28000, maxMs: 62000 };
+      if (state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "solo" || state.settings.activeGameTab === "vs-pc")) {
+        return { key: `select:${state.settings.activeGameTab || "solo"}`, chance: 0.08, minMs: 38000, maxMs: 90000 };
+      }
+      return null;
+    }
+
+    function ambientGalleryPopupsAllowed() {
+      if (state.settings.redditeryAutoPopup || state.settings.redditeryRapidFire || localSubAutoPopupActive()) return false;
+      if (localRedditeryAutoPopupLoading || localAmbientGalleryPopupLoading) return false;
+      if (activeAutoFullVideoOverlay()) return false;
+      if (autoPopupSourceKey() === "reddit" && !redditSelectionForScope("auto").length) return false;
+      return Boolean(ambientGalleryPopupContext());
+    }
+
+    function scheduleNextAmbientGalleryPopup(context = ambientGalleryPopupContext()) {
+      if (localAmbientGalleryPopupTimer) window.clearTimeout(localAmbientGalleryPopupTimer);
+      localAmbientGalleryPopupTimer = null;
+      if (!context || !ambientGalleryPopupsAllowed()) {
+        localAmbientGalleryPopupNextAt = 0;
+        return;
+      }
+      const delay = Number(context.minMs || 30000) + Math.floor(Math.random() * Math.max(1000, Number(context.maxMs || 60000) - Number(context.minMs || 30000)));
+      localAmbientGalleryPopupNextAt = Date.now() + delay;
+      localAmbientGalleryPopupTimer = window.setTimeout(resolveAmbientGalleryPopup, delay + 40);
+    }
+
+    async function resolveAmbientGalleryPopup() {
+      const context = ambientGalleryPopupContext();
+      if (!context || !ambientGalleryPopupsAllowed()) {
+        scheduleNextAmbientGalleryPopup(context);
+        return;
+      }
+      if (Date.now() < Number(localAmbientGalleryPopupNextAt || 0)) {
+        scheduleNextAmbientGalleryPopup(context);
+        return;
+      }
+      localAmbientGalleryPopupLoading = true;
+      try {
+        if (Math.random() <= Number(context.chance || 0.1)) {
+          const settings = autoPopupSettings();
+          const item = await takeNextAutoPopupItem();
+          const url = item && normalizeDistractionSource(item.url);
+          const media = {
+            mediaType: item && mediaTypeForDistraction(url, item.mediaType),
+            muted: !(autoPopupSourceKey() === "booru" && localDanbooruUnmuteVideos),
+            autoFullVideo: false,
+            targetSettings: settings,
+            placement: "random"
+          };
+          if (url && addAutoDistractionOverlay(url, media)) {
+            renderDistractionBackground();
+            if (settings === state.settings) showAutoPopupPreview(item, media);
+          }
+        }
+      } catch (error) {
+        console.warn("Ambient gallery popup failed.", error);
+      } finally {
+        localAmbientGalleryPopupLoading = false;
+        scheduleNextAmbientGalleryPopup(ambientGalleryPopupContext());
+      }
+    }
+
+    function maintainAmbientGalleryPopups() {
+      const context = ambientGalleryPopupContext();
+      if (!context || !ambientGalleryPopupsAllowed()) {
+        if (localAmbientGalleryPopupTimer) window.clearTimeout(localAmbientGalleryPopupTimer);
+        localAmbientGalleryPopupTimer = null;
+        localAmbientGalleryPopupNextAt = 0;
+        return;
+      }
+      if (!localAmbientGalleryPopupTimer && Date.now() >= Number(localAmbientGalleryPopupNextAt || 0)) {
+        scheduleNextAmbientGalleryPopup(context);
+      }
+    }
+
     const PC_DOM_BOORU_TAGS = [
       "ai-generated",
       "ai-generated",
@@ -15825,6 +16004,14 @@
       if (state.currentGame === "tributeTicTacToe") {
         if (!isTicTacToeVsPc() || state.ticTacToe.pendingNextBoard) return "";
         return `ttt:${(state.board || []).map((row) => row.join("-")).join("|")}`;
+      }
+      if (state.currentGame === "tributeCheckers") {
+        if (!isCheckersVsPc() || state.checkers.setupPending || state.checkers.queenSetup) return "";
+        return `checkers:${(state.checkers.board || []).map((row) => row.map((piece) => piece ? `${piece.role[0]}${piece.king ? "k" : "m"}` : "__").join("-")).join("|")}`;
+      }
+      if (state.currentGame === "tributeReversi") {
+        if (!isReversiVsPc() || state.reversi.setupPending) return "";
+        return `reversi:${(state.reversi.board || []).map((row) => row.join("")).join("|")}`;
       }
       return "";
     }
@@ -18477,9 +18664,11 @@
       return { sub, dom };
     }
 
-    function playReversiMove(row, col) {
+    function playReversiMove(row, col, options = {}) {
       if (state.currentGame !== "tributeReversi" || !state.active) return;
       if (state.reversi && state.reversi.setupPending) return;
+      const pcMove = Boolean(options.pcMove);
+      if (isReversiVsPc() && state.turn !== SUB && !pcMove) return;
       const commanded = Boolean(state.reversi && state.reversi.commandMode && state.turn === SUB);
       if (state.reversi && state.reversi.commandWindow && !commanded) return;
       if (localOnlineRole() && localOnlineRole() !== state.turn && !(commanded && localOnlineRole() === DOM)) return;
@@ -18612,6 +18801,131 @@
       state.pot = 0;
       render();
       publishState();
+    }
+
+    const REVERSI_PC_DIFFICULTIES = {
+      easy: { label: "Easy", depth: 1, mistakeChance: 0.34, candidateCount: 5, noise: 28 },
+      normal: { label: "Normal", depth: 1, mistakeChance: 0.14, candidateCount: 3, noise: 12 },
+      hard: { label: "Hard", depth: 2, mistakeChance: 0.05, candidateCount: 2, noise: 5 },
+      brutal: { label: "Brutal", depth: 3, mistakeChance: 0.015, candidateCount: 1, noise: 2 }
+    };
+
+    const REVERSI_PC_WEIGHTS = [
+      [120, -30, 24, 12, 12, 24, -30, 120],
+      [-30, -44, -8, -6, -6, -8, -44, -30],
+      [24, -8, 10, 5, 5, 10, -8, 24],
+      [12, -6, 5, 2, 2, 5, -6, 12],
+      [12, -6, 5, 2, 2, 5, -6, 12],
+      [24, -8, 10, 5, 5, 10, -8, 24],
+      [-30, -44, -8, -6, -6, -8, -44, -30],
+      [120, -30, 24, 12, 12, 24, -30, 120]
+    ];
+
+    function reversiPcDifficultyConfig() {
+      const key = String(state.vsPc && state.vsPc.reversiDifficulty || state.vsPc && state.vsPc.chessDifficulty || "normal").toLowerCase();
+      return REVERSI_PC_DIFFICULTIES[key] || REVERSI_PC_DIFFICULTIES.normal;
+    }
+
+    function reversiCloneBoard(board = reversiBoard()) {
+      return (board || []).map((row) => [...row]);
+    }
+
+    function reversiApplyMoveToBoard(board, move, player) {
+      const next = reversiCloneBoard(board);
+      next[move.row][move.col] = player;
+      move.flips.forEach(([row, col]) => {
+        next[row][col] = player;
+      });
+      return next;
+    }
+
+    function reversiFilledCount(board = reversiBoard()) {
+      return board.reduce((total, row) => total + row.filter(Boolean).length, 0);
+    }
+
+    function reversiCornerCount(board, player) {
+      return [[0, 0], [0, 7], [7, 0], [7, 7]].filter(([row, col]) => board[row][col] === player).length;
+    }
+
+    function reversiPcEvaluateBoard(board) {
+      const filled = reversiFilledCount(board);
+      const score = reversiScore(board);
+      let value = 0;
+      for (let row = 0; row < 8; row += 1) {
+        for (let col = 0; col < 8; col += 1) {
+          if (board[row][col] === DOM) value += REVERSI_PC_WEIGHTS[row][col];
+          if (board[row][col] === SUB) value -= REVERSI_PC_WEIGHTS[row][col];
+        }
+      }
+      const domMoves = reversiLegalMoves(DOM, board).length;
+      const subMoves = reversiLegalMoves(SUB, board).length;
+      value += (domMoves - subMoves) * 9;
+      value += (reversiCornerCount(board, DOM) - reversiCornerCount(board, SUB)) * 80;
+      value += (score.dom - score.sub) * (filled >= 50 ? 5 : 0.7);
+      return value;
+    }
+
+    function reversiPcSearch(board, player, depth, alpha = -Infinity, beta = Infinity) {
+      const moves = reversiLegalMoves(player, board);
+      const opponent = reversiOpponent(player);
+      const opponentMoves = reversiLegalMoves(opponent, board);
+      if (depth <= 0 || (!moves.length && !opponentMoves.length)) return reversiPcEvaluateBoard(board);
+      if (!moves.length) return reversiPcSearch(board, opponent, depth - 1, alpha, beta);
+      const maximizing = player === DOM;
+      let best = maximizing ? -Infinity : Infinity;
+      for (const move of moves) {
+        const next = reversiApplyMoveToBoard(board, move, player);
+        const score = reversiPcSearch(next, opponent, depth - 1, alpha, beta);
+        if (maximizing) {
+          best = Math.max(best, score);
+          alpha = Math.max(alpha, best);
+        } else {
+          best = Math.min(best, score);
+          beta = Math.min(beta, best);
+        }
+        if (beta <= alpha) break;
+      }
+      return best;
+    }
+
+    function chooseReversiPcMove() {
+      if (!isReversiVsPc() || !state.active || state.turn !== DOM || state.reversi.setupPending) return null;
+      const moves = reversiLegalMoves(DOM);
+      if (!moves.length) return null;
+      const difficulty = reversiPcDifficultyConfig();
+      const depth = Math.max(1, Math.min(3, Number(difficulty.depth || 1)));
+      const board = reversiBoard();
+      const scored = moves.map((move) => {
+        const next = reversiApplyMoveToBoard(board, move, DOM);
+        let score = reversiPcSearch(next, SUB, depth - 1);
+        if (reversiIsCorner(move.row, move.col)) score += 180;
+        else if (reversiIsEdge(move.row, move.col)) score += 22;
+        score += move.flips.length * (reversiFilledCount(board) >= 48 ? 4 : 0.8);
+        score += (Math.random() - 0.5) * Number(difficulty.noise || 0);
+        return { move, score };
+      }).sort((a, b) => b.score - a.score);
+      if (Math.random() < Number(difficulty.mistakeChance || 0) && scored.length > 1) {
+        const start = scored.length > 2 ? 1 : 0;
+        const end = Math.min(scored.length, Math.max(start + 1, Number(difficulty.candidateCount || 2)));
+        const pool = scored.slice(start, end);
+        return pool[Math.floor(Math.random() * pool.length)].move;
+      }
+      return scored[0].move;
+    }
+
+    function maybeQueueReversiPcMove() {
+      if (!isReversiVsPc() || !state.active || state.turn !== DOM || state.reversi.setupPending || state.reversi.commandWindow || state.reversi.commandMode) return;
+      if (localReversiPcTimer) window.clearTimeout(localReversiPcTimer);
+      localReversiPcTimer = window.setTimeout(() => {
+        localReversiPcTimer = null;
+        if (!isReversiVsPc() || !state.active || state.turn !== DOM) return;
+        const move = chooseReversiPcMove();
+        if (move) {
+          playReversiMove(move.row, move.col, { pcMove: true });
+        } else {
+          advanceReversiTurn();
+        }
+      }, 560);
     }
 
     function canUseReversiCommandMove() {
@@ -20696,7 +21010,9 @@
       if (els.turnTimerSettingsTitle) els.turnTimerSettingsTitle.textContent = `${label} Settings`;
       if (els.chessSettingsText) {
         els.chessSettingsText.textContent = canChoose
-          ? `Choose whether this ${label} game uses a timer.`
+          ? ((isChessVsPc() && key === "chess") || (isCheckersVsPc() && key === "checkers") || (isReversiVsPc() && key === "reversi")
+            ? `Choose the PC dom difficulty and whether this ${label} game uses a timer.`
+            : `Choose whether this ${label} game uses a timer.`)
           : `${state.names.dom} is choosing the ${label} settings.`;
       }
       els.chessSettingsModal.querySelectorAll("[data-chess-timer]").forEach((button) => {
@@ -20716,6 +21032,19 @@
       if (els.reversiHintToggle) {
         els.reversiHintToggle.checked = game.showNumberHints !== false;
         els.reversiHintToggle.disabled = !canChoose;
+      }
+      if (els.chessPcDifficultyRow) {
+        const showDifficulty = (isChessVsPc() && key === "chess") || (isCheckersVsPc() && key === "checkers") || (isReversiVsPc() && key === "reversi");
+        const activeDifficulty = isCheckersVsPc()
+          ? String(state.vsPc && state.vsPc.checkersDifficulty || "normal")
+          : isReversiVsPc()
+            ? String(state.vsPc && state.vsPc.reversiDifficulty || "normal")
+          : chessPcDifficultyKey();
+        els.chessPcDifficultyRow.classList.toggle("hidden", !showDifficulty);
+        els.chessPcDifficultyRow.querySelectorAll("[data-chess-pc-difficulty]").forEach((button) => {
+          button.classList.toggle("primary", (button.dataset.chessPcDifficulty || "normal") === activeDifficulty);
+          button.disabled = !showDifficulty || !canChoose;
+        });
       }
       if (els.chessSettingsConfirmBtn) {
         els.chessSettingsConfirmBtn.textContent = `Start ${label}`;
@@ -21360,6 +21689,7 @@
     function selectCheckersSquare(row, col) {
       if (state.currentGame !== "tributeCheckers" || !state.active) return;
       if (state.checkers && state.checkers.setupPending) return;
+      if (isCheckersVsPc() && state.turn !== SUB) return;
       if (state.checkers.powerMode || state.checkers.lockMode) {
         if (state.checkers.lockMode) {
           lockCheckersPiece(row, col);
@@ -21443,6 +21773,111 @@
       passCheckersTurn();
       render();
       publishState();
+    }
+
+    const CHECKERS_PC_DIFFICULTIES = {
+      easy: { label: "Easy", mistakeChance: 0.34, candidateCount: 5, noise: 18 },
+      normal: { label: "Normal", mistakeChance: 0.16, candidateCount: 3, noise: 8 },
+      hard: { label: "Hard", mistakeChance: 0.06, candidateCount: 2, noise: 3 },
+      brutal: { label: "Brutal", mistakeChance: 0.015, candidateCount: 1, noise: 1 }
+    };
+
+    function checkersPcDifficultyConfig() {
+      const key = String(state.vsPc && state.vsPc.checkersDifficulty || state.vsPc && state.vsPc.chessDifficulty || "normal").toLowerCase();
+      return CHECKERS_PC_DIFFICULTIES[key] || CHECKERS_PC_DIFFICULTIES.normal;
+    }
+
+    function checkersCloneBoard(board = state.checkers && state.checkers.board) {
+      return (board || []).map((row) => row.map((piece) => piece ? { ...piece } : null));
+    }
+
+    function checkersApplyMoveToBoard(board, move) {
+      const clone = checkersCloneBoard(board);
+      const [fromRow, fromCol] = move.from;
+      const [toRow, toCol] = move.to;
+      const piece = clone[fromRow] && clone[fromRow][fromCol];
+      if (!piece) return clone;
+      clone[fromRow][fromCol] = null;
+      clone[toRow][toCol] = piece;
+      if (move.capture) clone[move.capture[0]][move.capture[1]] = null;
+      if ((piece.role === DOM && toRow === 7) || (piece.role === SUB && toRow === 0)) piece.king = true;
+      return clone;
+    }
+
+    function checkersMoveCrowned(board, move) {
+      const piece = board[move.from[0]] && board[move.from[0]][move.from[1]];
+      if (!piece || piece.king) return false;
+      return (piece.role === DOM && move.to[0] === 7) || (piece.role === SUB && move.to[0] === 0);
+    }
+
+    function checkersPieceCanBeCaptured(board, role, row, col) {
+      const enemyRole = otherRole(role);
+      for (let enemyRow = 0; enemyRow < 8; enemyRow += 1) {
+        for (let enemyCol = 0; enemyCol < 8; enemyCol += 1) {
+          const enemy = board[enemyRow] && board[enemyRow][enemyCol];
+          if (!enemy || enemy.role !== enemyRole) continue;
+          for (const [dr, dc] of checkersDirections(enemy)) {
+            const stepRow = enemyRow + dr;
+            const stepCol = enemyCol + dc;
+            const landRow = enemyRow + dr * 2;
+            const landCol = enemyCol + dc * 2;
+            if (stepRow === row && stepCol === col && checkersInside(landRow, landCol) && !board[landRow][landCol]) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function checkersBoardMaterial(board) {
+      let score = 0;
+      board.forEach((row) => row.forEach((piece) => {
+        if (!piece) return;
+        const value = piece.king ? 180 : 100;
+        score += piece.role === DOM ? value : -value;
+      }));
+      return score;
+    }
+
+    function chooseCheckersPcMove() {
+      if (!isCheckersVsPc() || !state.active || state.turn !== DOM) return null;
+      const forcedMoves = state.checkers.selected && (state.checkers.legalMoves || []).length ? state.checkers.legalMoves : [];
+      const moves = forcedMoves.length ? forcedMoves : allCheckersMoves(DOM);
+      if (!moves.length) return null;
+      const difficulty = checkersPcDifficultyConfig();
+      const board = state.checkers.board;
+      const scored = moves.map((move) => {
+        const piece = board[move.from[0]] && board[move.from[0]][move.from[1]];
+        const captured = move.capture ? board[move.capture[0]] && board[move.capture[1]] : null;
+        const nextBoard = checkersApplyMoveToBoard(board, move);
+        const toRow = move.to[0];
+        const toCol = move.to[1];
+        let score = checkersBoardMaterial(nextBoard);
+        if (captured) score += captured.king ? 260 : 170;
+        if (checkersMoveCrowned(board, move)) score += 140;
+        if (piece && piece.king) score += 18;
+        score += Math.max(0, toRow - move.from[0]) * 5;
+        if (checkersPieceCanBeCaptured(nextBoard, DOM, toRow, toCol)) score -= piece && piece.king ? 150 : 90;
+        score += (Math.random() - 0.5) * Number(difficulty.noise || 0);
+        return { move, score };
+      }).sort((a, b) => b.score - a.score);
+      if (Math.random() < Number(difficulty.mistakeChance || 0) && scored.length > 1) {
+        const start = scored.length > 2 ? 1 : 0;
+        const end = Math.min(scored.length, Math.max(start + 1, Number(difficulty.candidateCount || 2)));
+        const pool = scored.slice(start, end);
+        return pool[Math.floor(Math.random() * pool.length)].move;
+      }
+      return scored[0].move;
+    }
+
+    function maybeQueueCheckersPcMove() {
+      if (!isCheckersVsPc() || !state.active || state.turn !== DOM || state.checkers.setupPending || state.checkers.queenSetup) return;
+      if (localCheckersPcTimer) window.clearTimeout(localCheckersPcTimer);
+      localCheckersPcTimer = window.setTimeout(() => {
+        localCheckersPcTimer = null;
+        const move = chooseCheckersPcMove();
+        if (!move || !isCheckersVsPc() || !state.active || state.turn !== DOM) return;
+        moveCheckersPiece(move);
+      }, 520);
     }
 
     function passCheckersTurn() {
@@ -21999,6 +22434,14 @@
       return Boolean(state.vsPc && state.vsPc.active && state.vsPc.game === "tributeChess");
     }
 
+    function isCheckersVsPc() {
+      return Boolean(state.vsPc && state.vsPc.active && state.vsPc.game === "tributeCheckers");
+    }
+
+    function isReversiVsPc() {
+      return Boolean(state.vsPc && state.vsPc.active && state.vsPc.game === "tributeReversi");
+    }
+
     function setTicTacToeFormat(formatId) {
       if (state.currentGame !== "tributeTicTacToe") return;
       if (state.active || state.pot > 0) return;
@@ -22413,6 +22856,36 @@
       return "Chess";
     }
 
+    const CHESS_PC_DIFFICULTIES = {
+      easy: { label: "Easy", depth: 1, mistakeChance: 0.34, candidateCount: 5, noise: 80 },
+      normal: { label: "Normal", depth: 2, mistakeChance: 0.16, candidateCount: 3, noise: 28 },
+      hard: { label: "Hard", depth: 3, mistakeChance: 0.06, candidateCount: 2, noise: 10 },
+      brutal: { label: "Brutal", depth: 3, mistakeChance: 0.015, candidateCount: 1, noise: 3 }
+    };
+
+    function chessPcDifficultyKey() {
+      const key = String(state.vsPc && state.vsPc.chessDifficulty || "normal").toLowerCase();
+      return CHESS_PC_DIFFICULTIES[key] ? key : "normal";
+    }
+
+    function chessPcDifficultyConfig() {
+      return CHESS_PC_DIFFICULTIES[chessPcDifficultyKey()];
+    }
+
+    function setChessPcDifficulty(key) {
+      if (!isChessVsPc() && !isCheckersVsPc() && !isReversiVsPc()) return;
+      const difficulty = CHESS_PC_DIFFICULTIES[String(key || "").toLowerCase()] ? String(key).toLowerCase() : "normal";
+      if (isChessVsPc()) {
+        state.vsPc.chessDifficulty = difficulty;
+        state.vsPc.chessDepth = CHESS_PC_DIFFICULTIES[difficulty].depth;
+      } else if (isCheckersVsPc()) {
+        state.vsPc.checkersDifficulty = difficulty;
+      } else if (isReversiVsPc()) {
+        state.vsPc.reversiDifficulty = difficulty;
+      }
+      render();
+    }
+
     function timerGameState(key = timerGameKey()) {
       if (key === "chess") return state.chess;
       if (key === "checkers") return state.checkers;
@@ -22573,9 +23046,14 @@
       } else if (key === "checkers") {
         const starter = state.checkers.pendingStarter || SUB;
         const intro = state.checkers.pendingIntro || `${labelFor(starter)} moves first.`;
-        beginCheckersQueenSetup(starter);
-        setupTurnTimers(state.checkers, mode, customMinutes, target);
-        state.checkers.setupPending = false;
+        if (isCheckersVsPc()) {
+          resetCheckersMatch(starter);
+          setupTurnTimers(state.checkers, mode, customMinutes, target);
+        } else {
+          beginCheckersQueenSetup(starter);
+          setupTurnTimers(state.checkers, mode, customMinutes, target);
+          state.checkers.setupPending = false;
+        }
         addLog(intro);
       } else if (key === "reversi") {
         const starter = state.reversi.pendingStarter || SUB;
@@ -22583,7 +23061,7 @@
         const showNumberHints = els.reversiHintToggle ? els.reversiHintToggle.checked : state.reversi.showNumberHints !== false;
         state.reversi = createReversiState();
         state.reversi.showNumberHints = showNumberHints;
-        state.reversi.commandAvailable = reversiTierActive(5);
+        state.reversi.commandAvailable = !isReversiVsPc() && reversiTierActive(5);
         setupTurnTimers(state.reversi, mode, customMinutes, target);
         state.turn = starter;
         state.active = true;
@@ -22593,9 +23071,18 @@
       addLog(minutes > 0
         ? `<strong>${label} clock set.</strong> ${target === "sub" ? `${state.names.sub} has` : "Each player has"} ${minutes} minute${minutes === 1 ? "" : "s"}.`
         : `<strong>No ${label} clock.</strong> This game has no timer.`);
+      if (key === "chess" && isChessVsPc()) {
+        addLog(`<strong>PC dom difficulty:</strong> ${chessPcDifficultyConfig().label}.`);
+      } else if (key === "checkers" && isCheckersVsPc()) {
+        addLog(`<strong>PC dom difficulty:</strong> ${checkersPcDifficultyConfig().label}.`);
+      } else if (key === "reversi" && isReversiVsPc()) {
+        addLog(`<strong>PC dom difficulty:</strong> ${reversiPcDifficultyConfig().label}.`);
+      }
       render();
       publishState();
       maybeQueueChessPcMove();
+      maybeQueueCheckersPcMove();
+      maybeQueueReversiPcMove();
     }
 
     function roleForChessColor(color) {
@@ -22841,9 +23328,14 @@
       els.chessCaptureBanner.classList.toggle("hidden", !show);
       if (!show) {
         els.chessCaptureBanner.innerHTML = "";
+        els.chessCaptureBanner.dataset.bannerId = "";
         return;
       }
-      els.chessCaptureBanner.innerHTML = `<img src="${escapeHtml(banner.url)}" alt="" aria-hidden="true">`;
+      const bannerId = String(banner.id || banner.url || "");
+      if (els.chessCaptureBanner.dataset.bannerId !== bannerId) {
+        els.chessCaptureBanner.dataset.bannerId = bannerId;
+        els.chessCaptureBanner.innerHTML = `<img src="${escapeHtml(banner.url)}" alt="" aria-hidden="true">`;
+      }
       window.clearTimeout(renderChessCaptureBanner.timer);
       renderChessCaptureBanner.timer = window.setTimeout(renderChessCaptureBanner, Math.max(80, Number(banner.until || 0) - Date.now() + 40));
     }
@@ -23444,6 +23936,36 @@
       return colorForChessRole(DOM);
     }
 
+    function chessBotCloneWithTurn(game, color) {
+      try {
+        const clone = new window.Chess(game.fen());
+        const parts = clone.fen().split(" ");
+        parts[1] = color;
+        if (typeof clone.load === "function") clone.load(parts.join(" "));
+        return clone;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function chessBotColorInCheck(game, color) {
+      const clone = chessBotCloneWithTurn(game, color);
+      if (!clone || typeof clone.in_check !== "function") return false;
+      return Boolean(clone.in_check());
+    }
+
+    function chessBotCapturePressure(game, color) {
+      const clone = chessBotCloneWithTurn(game, color);
+      if (!clone) return 0;
+      try {
+        return clone.moves({ verbose: true }).reduce((total, move) => {
+          return total + (move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) : 0);
+        }, 0);
+      } catch (error) {
+        return 0;
+      }
+    }
+
     function chessBotEvaluate(game) {
       if (!game) return 0;
       if (isChessGameOver(game)) {
@@ -23471,32 +23993,14 @@
           score += owner * (value + centerBonus + pawnAdvance);
         }
       }
-      const turn = game.turn();
-      const domMobility = (() => {
-        try {
-          const clone = new window.Chess(game.fen());
-          const parts = clone.fen().split(" ");
-          parts[1] = domColor;
-          if (typeof clone.load === "function") clone.load(parts.join(" "));
-          return clone.moves().length;
-        } catch (error) {
-          return 0;
-        }
-      })();
-      const subMobility = (() => {
-        try {
-          const clone = new window.Chess(game.fen());
-          const parts = clone.fen().split(" ");
-          parts[1] = subColor;
-          if (typeof clone.load === "function") clone.load(parts.join(" "));
-          return clone.moves().length;
-        } catch (error) {
-          return 0;
-        }
-      })();
+      const domClone = chessBotCloneWithTurn(game, domColor);
+      const subClone = chessBotCloneWithTurn(game, subColor);
+      const domMobility = domClone ? domClone.moves().length : 0;
+      const subMobility = subClone ? subClone.moves().length : 0;
       score += (domMobility - subMobility) * 2;
-      if (turn === domColor && typeof game.in_check === "function" && game.in_check()) score -= 35;
-      if (turn === subColor && typeof game.in_check === "function" && game.in_check()) score += 35;
+      score += (chessBotCapturePressure(game, domColor) - chessBotCapturePressure(game, subColor)) * 0.18;
+      if (chessBotColorInCheck(game, domColor)) score -= 70;
+      if (chessBotColorInCheck(game, subColor)) score += 70;
       return score;
     }
 
@@ -23545,18 +24049,31 @@
       if (!game || roleForChessColor(game.turn()) !== DOM) return null;
       const moves = game.moves({ verbose: true });
       if (!moves.length) return null;
-      const depth = Math.max(1, Math.min(3, Number(state.vsPc && state.vsPc.chessDepth || 2)));
+      const difficulty = chessPcDifficultyConfig();
+      const depth = Math.max(1, Math.min(3, Number(state.vsPc && state.vsPc.chessDepth || difficulty.depth)));
       try {
         const scored = moves.map((move) => {
           const applied = chessBotTryMove(game, move);
           if (!applied) return null;
           const score = chessBotSearch(game, depth - 1);
+          const givesCheckmate = isChessCheckmate(game);
+          const givesCheck = !givesCheckmate && typeof game.in_check === "function" && game.in_check();
           game.undo();
-          const captureBonus = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) / 1000 : 0;
-          return { move, score: score + captureBonus };
+          const captureBonus = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) * 0.42 : 0;
+          const promotionBonus = move.promotion ? (CHESS_BOT_VALUES[move.promotion] || 0) * 0.25 : 0;
+          const checkBonus = givesCheckmate ? 50000 : (givesCheck ? 65 : 0);
+          const noise = (Math.random() - 0.5) * Number(difficulty.noise || 0);
+          return { move, score: score + captureBonus + promotionBonus + checkBonus + noise };
         }).filter(Boolean);
         if (scored.length) {
-          const bestScore = Math.max(...scored.map((entry) => entry.score));
+          scored.sort((a, b) => b.score - a.score);
+          if (Math.random() < Number(difficulty.mistakeChance || 0) && scored.length > 1) {
+            const start = scored.length > 2 ? 1 : 0;
+            const end = Math.min(scored.length, Math.max(start + 1, Number(difficulty.candidateCount || 2)));
+            const pool = scored.slice(start, end);
+            return pool[Math.floor(Math.random() * pool.length)].move;
+          }
+          const bestScore = scored[0].score;
           const bestMoves = scored.filter((entry) => Math.abs(entry.score - bestScore) < 0.001);
           return bestMoves[Math.floor(Math.random() * bestMoves.length)].move;
         }
@@ -26757,7 +27274,7 @@
           const role = localOnlineRole();
           const commandPending = state.reversi && state.reversi.commandWindow && !state.reversi.commandMode;
           const commandViewer = state.reversi && state.reversi.commandMode && state.turn === SUB && (!role || role === DOM);
-          cell.disabled = !state.active || !move || commandPending || (role && role !== state.turn && !commandViewer);
+          cell.disabled = !state.active || !move || commandPending || (isReversiVsPc() && state.turn !== SUB) || (role && role !== state.turn && !commandViewer);
           cell.setAttribute("aria-label", value
             ? `${labelFor(value)} disc row ${row + 1}, column ${col + 1}`
             : `empty reversi square row ${row + 1}, column ${col + 1}`);
@@ -30262,7 +30779,10 @@
       renderBrattyWelcomeModal();
       renderPressureViewPromptModal();
       maybeQueueChessPcMove();
+      maybeQueueCheckersPcMove();
+      maybeQueueReversiPcMove();
       schedulePcDomTurnPressure();
+      maintainAmbientGalleryPopups();
     }
 
     els.normalBtn.addEventListener("click", startNormalMatch);
@@ -30385,6 +30905,9 @@
       });
       els.chessSettingsModal.querySelectorAll("[data-chess-timer-target]").forEach((button) => {
         button.addEventListener("click", () => setChessTimerTarget(button.dataset.chessTimerTarget));
+      });
+      els.chessSettingsModal.querySelectorAll("[data-chess-pc-difficulty]").forEach((button) => {
+        button.addEventListener("click", () => setChessPcDifficulty(button.dataset.chessPcDifficulty));
       });
     }
     if (els.chessCustomTimerInput) {
@@ -31093,6 +31616,8 @@
       memoryMatch: openMemoryMatch,
       ticTacToePc: openTicTacToeVsPc,
       chessPc: openChessVsPc,
+      checkersPc: openCheckersVsPc,
+      reversiPc: openReversiVsPc,
       tributeTicTacToe: openTributeTicTacToe,
       wheelSpin: openWheelSpin,
       obedienceOrders: openObedienceOrders,
@@ -31107,7 +31632,7 @@
         if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
         const opener = gameOpeners[card.dataset.openGame];
         if (!opener) return;
-        const soloOpeners = new Set(["solitaire", "memoryMatch", "ticTacToePc", "chessPc"]);
+        const soloOpeners = new Set(["solitaire", "memoryMatch", "ticTacToePc", "chessPc", "checkersPc", "reversiPc"]);
         if (!soloOpeners.has(card.dataset.openGame) && shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
         opener();
       });

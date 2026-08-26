@@ -421,6 +421,22 @@
         <strong class="status-pill">Play Vs PC</strong>
       </button>
 
+      <button class="panel game-card" id="checkersPcCard" data-open-game="checkersPc" data-game-categories="vs-pc">
+        <span>
+          <span class="game-card-title">Checkers vs PC</span>
+          <span class="game-card-copy">A local checkers match against the PC dom. Captures, crowns, and pressure still matter.</span>
+        </span>
+        <strong class="status-pill">Play Vs PC</strong>
+      </button>
+
+      <button class="panel game-card" id="reversiPcCard" data-open-game="reversiPc" data-game-categories="vs-pc">
+        <span>
+          <span class="game-card-title">Reversi vs PC</span>
+          <span class="game-card-copy">A local disc-control match against the PC dom. Corners, edges, and mobility decide the squeeze.</span>
+        </span>
+        <strong class="status-pill">Play Vs PC</strong>
+      </button>
+
       <button class="panel game-card" id="obedienceOrdersCard" data-open-game="obedienceOrders" data-game-categories="wip all" data-game-hidden="true">
         <span>
           <span class="game-card-title">Obedience Orders</span>
@@ -792,6 +808,15 @@
           <input id="reversiHintToggle" type="checkbox" checked>
           <span>Show legal move number hints</span>
         </label>
+        <div class="hidden" id="chessPcDifficultyRow">
+          <p class="chooser-line">PC dom difficulty</p>
+          <div class="blackjack-round-grid chess-timer-grid">
+            <button data-chess-pc-difficulty="easy">Easy</button>
+            <button data-chess-pc-difficulty="normal" class="primary">Normal</button>
+            <button data-chess-pc-difficulty="hard">Hard</button>
+            <button data-chess-pc-difficulty="brutal">Brutal</button>
+          </div>
+        </div>
         <div class="setup-actions">
           <button id="chessSettingsConfirmBtn" class="primary">Start Game</button>
         </div>
