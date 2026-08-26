@@ -53,7 +53,7 @@
   <main class="screen splash" id="lobbyScreen">
     <header class="splash-header">
       <h1>Tribute Arcade</h1>
-      <p class="subtitle">Host a room or enter a code to join the other player's lobby.</p>
+      <p class="subtitle">Host online, play locally, or open solo games with PC dom modes.</p>
     </header>
 
     <section class="menu-dashboard">
@@ -90,14 +90,23 @@
 
       <div class="panel" id="localTestingPanel">
         <div class="panel-header">
-          <h2 class="panel-title">Local Testing</h2>
+          <h2 class="panel-title">Local Game</h2>
         </div>
         <div class="panel-body">
-          <p class="chooser-line">Play both sides on this device, or open solo card games without creating a room.</p>
+          <p class="chooser-line">Play the same dom/sub game flow on one device. No AI opponent is used.</p>
           <div class="setup-actions">
-            <button id="playLocalBtn" class="primary">Play Locally</button>
-            <button id="soloGamesBtn">Solo Games</button>
+            <button id="playLocalBtn" class="primary">Local Game</button>
           </div>
+        </div>
+      </div>
+
+      <div class="panel" id="soloGamesPanel">
+        <div class="panel-header">
+          <h2 class="panel-title">Solo Games</h2>
+          <button id="soloGamesBtn" class="primary">Open Solo</button>
+        </div>
+        <div class="panel-body">
+          <p class="chooser-line">Play solitaire, image games, and Vs PC games where the PC dom can use gallery distractions.</p>
         </div>
       </div>
     </section>
@@ -244,7 +253,7 @@
 
   <main class="screen splash hidden" id="gameSelectScreen">
     <header class="splash-header">
-      <h1>Game Select</h1>
+      <h1 id="gameSelectTitle">Game Select</h1>
       <p class="subtitle" id="playerSummary">Choose a game.</p>
       <div class="setup-actions">
         <button class="leave-room-btn hidden">Leave Lobby</button>
@@ -261,7 +270,7 @@
       </div>
     </header>
 
-    <section class="menu-dashboard">
+    <section class="menu-dashboard" id="gameSelectInfoPanel">
       <div class="panel">
         <div class="panel-header">
           <h2 class="panel-title">Global Bank</h2>

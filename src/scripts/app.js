@@ -547,6 +547,8 @@
       localTestingPanel: document.getElementById("localTestingPanel"),
       playLocalBtn: document.getElementById("playLocalBtn"),
       soloGamesBtn: document.getElementById("soloGamesBtn"),
+      gameSelectTitle: document.getElementById("gameSelectTitle"),
+      gameSelectInfoPanel: document.getElementById("gameSelectInfoPanel"),
       lobbyPlayerList: document.getElementById("lobbyPlayerList"),
       lobbyReadyBtn: document.getElementById("lobbyReadyBtn"),
       roleModal: document.getElementById("roleModal"),
@@ -852,8 +854,16 @@
       return isTicTacToeVsPc()
         ? TIC_TAC_TOE_FORMATS
         : isThroneSession()
-        ? TIC_TAC_TOE_FORMATS.filter((format) => format.id !== "first1")
-        : TIC_TAC_TOE_FORMATS;
+          ? TIC_TAC_TOE_FORMATS.filter((format) => format.id !== "first1")
+          : TIC_TAC_TOE_FORMATS;
+    }
+
+    function soloGameSelectOpen() {
+      return state.screen === "select"
+        && (SOLO_GAME_IDS.includes(state.currentGame)
+          || VS_PC_GAME_IDS.includes(state.currentGame)
+          || state.settings.activeGameTab === "solo"
+          || state.settings.activeGameTab === "vs-pc");
     }
 
     function currentTicTacToeFormat() {
@@ -2018,7 +2028,7 @@
       resetLocalOnlineState();
       state.vsPc = createVsPcState();
       state.settings.activeGameTab = "solo";
-      state.currentGame = "solitaire";
+      state.currentGame = "";
       clearLocalRoomUrl();
       setScreen("select");
       renderMenu();
@@ -2651,6 +2661,8 @@
 
     function backToMenuFromSolo() {
       stopBrainDrainSnapTimer();
+      state.settings.activeGameTab = "solo";
+      state.currentGame = "";
       setScreen("select");
       renderMenu();
     }
@@ -2709,6 +2721,14 @@
     }
 
     function renderMenu() {
+      const soloSelect = soloGameSelectOpen();
+      if (els.gameSelectTitle) els.gameSelectTitle.textContent = soloSelect ? "Solo Games" : "Game Select";
+      if (els.gameSelectInfoPanel) els.gameSelectInfoPanel.classList.toggle("hidden", soloSelect);
+      if (soloSelect) {
+        els.playerSummary.textContent = state.settings.activeGameTab === "vs-pc"
+          ? "Play against the PC dom."
+          : "Choose a solo game.";
+      }
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
       els.menuDomBank.textContent = money(state.domVault);
       updateOnlineUi();
@@ -2777,7 +2797,7 @@
         control: "chance"
       };
       const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
-      const soloMenuOpen = state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc");
+      const soloMenuOpen = soloGameSelectOpen();
       const allowedTabs = soloMenuOpen
         ? ["solo", "vs-pc"]
         : ["board", "cards", "chance", "wip", "all"];
@@ -3860,7 +3880,7 @@
       const inGame = state.screen === "game";
       const inGameSelect = state.screen === "select";
       const vsPcContext = Boolean(state.vsPc && state.vsPc.active);
-      const soloContext = soloMode || vsPcContext || (inGameSelect && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc"));
+      const soloContext = soloMode || vsPcContext || soloGameSelectOpen();
       if (!soloContext && !inGame && !inGameSelect) {
         els.sidePopout.classList.add("hidden");
         els.sideRestoreTabs.forEach((button) => button.classList.add("hidden"));
@@ -4953,7 +4973,7 @@
     }
 
     function soloAutoPopupControlsAllowed() {
-      return (state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc"))
+      return soloGameSelectOpen()
         || SOLO_GAME_IDS.includes(state.screen)
         || Boolean(state.vsPc && state.vsPc.active);
     }
@@ -6324,7 +6344,7 @@
     }
 
     function redditeryAutoPopupControlAllowed() {
-      const soloMenuOpen = state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc");
+      const soloMenuOpen = soloGameSelectOpen();
       return domLinkControlsAllowed() || subGalleryPrivateMode() || soloMenuOpen || SOLO_GAME_IDS.includes(state.screen) || Boolean(state.vsPc && state.vsPc.active);
     }
 
@@ -6402,7 +6422,7 @@
       if (!enabled) {
         statusText = SOLO_GAME_IDS.includes(state.screen) || Boolean(state.vsPc && state.vsPc.active)
           ? "Off. When enabled, a random gallery image pops up on the selected timer."
-          : state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "vs-pc")
+          : soloGameSelectOpen()
             ? "Off. When enabled, a random gallery image pops up during solo games."
           : "Off. When enabled, a random gallery image pops up for the sub on the selected timer.";
         statusEls.forEach((status) => { status.textContent = statusText; });
@@ -6515,7 +6535,7 @@
     function ambientGalleryPopupContext() {
       if (state.vsPc && state.vsPc.active) return { key: `vspc:${state.currentGame || state.vsPc.game}`, chance: 0.26, minMs: 22000, maxMs: 48000 };
       if (SOLO_GAME_IDS.includes(state.screen)) return { key: `solo:${state.screen}`, chance: 0.2, minMs: 28000, maxMs: 62000 };
-      if (state.screen === "select" && (SOLO_GAME_IDS.includes(state.currentGame) || VS_PC_GAME_IDS.includes(state.currentGame) || state.settings.activeGameTab === "solo" || state.settings.activeGameTab === "vs-pc")) {
+      if (soloGameSelectOpen()) {
         return { key: `select:${state.settings.activeGameTab || "solo"}`, chance: 0.08, minMs: 38000, maxMs: 90000 };
       }
       return null;
