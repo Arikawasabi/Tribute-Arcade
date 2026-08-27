@@ -14598,8 +14598,10 @@
     function pickGoonerSubreddit(previous = "", categoryKey = goonerGalleryCategoryKey(), pool = null) {
       const selectedPool = normalizeRedditPageSelection(pool);
       const subreddits = selectedPool.length ? selectedPool : categorySubreddits(categoryKey);
-      if (previous && subreddits.includes(previous)) return previous;
-      return subreddits[Math.floor(Math.random() * subreddits.length)] || "gooninghentai";
+      const choices = subreddits.length > 1
+        ? subreddits.filter((subreddit) => subreddit !== previous)
+        : subreddits;
+      return choices[Math.floor(Math.random() * choices.length)] || "gooninghentai";
     }
 
     function goonerCategoryForSubreddit(subreddit = "") {
@@ -15932,12 +15934,20 @@
     const PC_DOM_BOORU_TAGS = [
       "ai-generated",
       "ai-generated",
+      "ai-generated",
+      "ai-generated",
       "ai_assisted",
+      "ai_assisted",
+      "ai-generated gooner",
+      "ai-generated looking_at_viewer",
       "ai-generated foot_focus",
       "ai-generated feet",
       "ai-generated huge_breasts",
       "ai-generated large_breasts",
       "ai-generated huge_ass",
+      "ai-generated plump",
+      "ai-generated female_domination",
+      "ai-generated small_penis_humiliation",
       "foot_focus",
       "feet",
       "huge_breasts",
@@ -15954,9 +15964,29 @@
       return tag;
     }
 
+    function pcDomRedditPool() {
+      const priority = [
+        "gooninghentai",
+        "gooninghentai",
+        "gooninghentai",
+        "aihentaihub",
+        "aihentaigif",
+        "hentaidiffusion",
+        "jerkbudshentai",
+        "hentaiigooning",
+        "hentailimitless",
+        "hentaicensore"
+      ];
+      const allowed = new Set(goonerRedditPages().map((page) => page.subreddit));
+      const base = priority.filter((subreddit) => allowed.has(subreddit));
+      const aiPool = categorySubreddits("ai");
+      const baitPool = categorySubreddits("goonerbait");
+      return [...base, ...aiPool, ...baitPool].filter((subreddit) => allowed.has(subreddit));
+    }
+
     async function takeNextPcDomBooruItem() {
       let lastError = null;
-      for (let attempt = 0; attempt < 5; attempt += 1) {
+      for (let attempt = 0; attempt < 7; attempt += 1) {
         const tag = nextPcDomBooruTag();
         localPcDomBooruPage = (localPcDomBooruPage % 8) + 1;
         const params = new URLSearchParams({
@@ -15989,20 +16019,23 @@
     }
 
     async function takeNextPcDomRedditItem() {
-      const selected = redditSelectionForScope("auto");
-      const aiPool = categorySubreddits("ai");
-      const baitPool = categorySubreddits("goonerbait");
-      const mixedPool = selected.length
-        ? selected
-        : [...aiPool, ...aiPool, ...baitPool];
-      const subreddit = pickGoonerSubreddit(localPcDomRedditSubreddit, "ai", mixedPool);
+      const mixedPool = pcDomRedditPool();
+      const subreddit = pickGoonerSubreddit(localPcDomRedditSubreddit, "goonerbait", mixedPool);
       localPcDomRedditSubreddit = subreddit;
       const items = await fetchRedditeryItems(false, { auto: true, category: goonerCategoryForSubreddit(subreddit), subreddit, limit: 12 });
-      return shuffledGalleryItems(items.filter((item) => item && normalizeDistractionSource(item.url)))[0] || null;
+      const item = shuffledGalleryItems(items.filter((entry) => entry && normalizeDistractionSource(entry.url)))[0] || null;
+      if (!item) return null;
+      const page = goonerRedditPages().find((entry) => entry.subreddit === subreddit);
+      return {
+        ...item,
+        source: "peekstr",
+        sourceSubreddit: subreddit,
+        sourceLabel: page ? page.label : `r/${subreddit}`
+      };
     }
 
     async function takeNextPcDomDistractionItem() {
-      const preferBooru = Math.random() < 0.35;
+      const preferBooru = Math.random() < 0.58;
       const primary = preferBooru ? takeNextPcDomBooruItem : takeNextPcDomRedditItem;
       const fallback = preferBooru ? takeNextPcDomRedditItem : takeNextPcDomBooruItem;
       try {
