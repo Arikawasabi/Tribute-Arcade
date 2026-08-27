@@ -19399,7 +19399,7 @@
     }
 
     function canOpenChessPowerModal() {
-      return state.currentGame === "tributeChess" && chessQueenStancesActive() && queenPowerControlsAllowed(localOnlineRole());
+      return state.currentGame === "tributeChess" && !isChessVsPc() && chessQueenStancesActive() && queenPowerControlsAllowed(localOnlineRole());
     }
 
     function openChessPowerModal() {
@@ -22886,10 +22886,10 @@
     }
 
     const CHESS_PC_DIFFICULTIES = {
-      easy: { label: "Easy", depth: 1, mistakeChance: 0.34, candidateCount: 5, noise: 80 },
-      normal: { label: "Normal", depth: 2, mistakeChance: 0.16, candidateCount: 3, noise: 28 },
-      hard: { label: "Hard", depth: 3, mistakeChance: 0.06, candidateCount: 2, noise: 10 },
-      brutal: { label: "Brutal", depth: 3, mistakeChance: 0.015, candidateCount: 1, noise: 3 }
+      easy: { label: "Easy", depth: 1, mistakeChance: 0.34, candidateCount: 5, noise: 85, timeMs: 120, powerChance: 0.08 },
+      normal: { label: "Normal", depth: 2, mistakeChance: 0.14, candidateCount: 3, noise: 28, timeMs: 220, powerChance: 0.18 },
+      hard: { label: "Hard", depth: 3, mistakeChance: 0.05, candidateCount: 2, noise: 10, timeMs: 420, powerChance: 0.28 },
+      brutal: { label: "Brutal", depth: 4, mistakeChance: 0.012, candidateCount: 1, noise: 3, timeMs: 720, powerChance: 0.42 }
     };
 
     function chessPcDifficultyKey() {
@@ -23123,7 +23123,9 @@
     }
 
     function chessQueenStancesActive() {
-      if (!domAdvantagesEnabled() || state.currentGame !== "tributeChess" || !reclaimPerksActive()) return false;
+      if (!domAdvantagesEnabled() || state.currentGame !== "tributeChess") return false;
+      if (isChessVsPc()) return true;
+      if (!reclaimPerksActive()) return false;
       if (state.settings.queenPowerMode === "off") return false;
       if (state.settings.queenPowerMode === "always") return true;
       return state.tiltLevel >= 1;
@@ -23472,6 +23474,13 @@
     }
 
     function queenAffectedTypes() {
+      if (isChessVsPc()) {
+        const difficulty = chessPcDifficultyKey();
+        if (difficulty === "brutal") return ["p", "n", "b", "r", "q"];
+        if (difficulty === "hard") return ["p", "n", "b", "r"];
+        if (difficulty === "normal") return ["p", "n", "b"];
+        return ["p", "n"];
+      }
       if (state.tiltLevel >= 5) return ["p", "n", "b", "r", "q"];
       if (state.tiltLevel >= 4) return ["p", "n", "b", "r"];
       if (state.tiltLevel >= 3) return ["p", "n", "b"];
@@ -23960,6 +23969,65 @@
       q: 900,
       k: 0
     };
+    let localChessBotSearchDeadline = 0;
+
+    function chessBotPieceSquareBonus(piece, square) {
+      if (!piece || !square) return 0;
+      const file = square.charCodeAt(0) - 97;
+      const rank = Number(square[1] || 1);
+      const centerFile = 3.5 - Math.abs(file - 3.5);
+      const centerRank = 3.5 - Math.abs(rank - 4.5);
+      const center = Math.max(0, centerFile + centerRank);
+      const forwardRank = piece.color === "w" ? rank : 9 - rank;
+      if (piece.type === "p") return Math.max(0, forwardRank - 2) * 7 + center * 1.5;
+      if (piece.type === "n") return center * 13 - (file === 0 || file === 7 ? 18 : 0);
+      if (piece.type === "b") return center * 8 + (forwardRank >= 3 ? 12 : 0);
+      if (piece.type === "r") return (forwardRank >= 4 ? 10 : 0) + (file === 0 || file === 7 ? 3 : 0);
+      if (piece.type === "q") return center * 4;
+      if (piece.type === "k") {
+        const homeRank = piece.color === "w" ? 1 : 8;
+        const castledFile = file === 2 || file === 6;
+        return rank === homeRank && castledFile ? 34 : -center * 8;
+      }
+      return 0;
+    }
+
+    function chessBotKingSquare(game, color) {
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      for (let rank = 1; rank <= 8; rank += 1) {
+        for (const file of files) {
+          const square = `${file}${rank}`;
+          const piece = game.get(square);
+          if (piece && piece.color === color && piece.type === "k") return square;
+        }
+      }
+      return "";
+    }
+
+    function chessBotKingDanger(game, color) {
+      const square = chessBotKingSquare(game, color);
+      if (!square) return 0;
+      const enemy = color === "w" ? "b" : "w";
+      const coords = squareCoords(square);
+      let danger = chessBotColorInCheck(game, color) ? 130 : 0;
+      for (let df = -1; df <= 1; df += 1) {
+        for (let dr = -1; dr <= 1; dr += 1) {
+          const file = coords.file + df;
+          const rank = coords.rank + dr;
+          if (file < 0 || file >= 8 || rank < 0 || rank >= 8) continue;
+          if (chessSquareAttackedBy(game, coordsSquare(file, rank), enemy)) danger += 12;
+        }
+      }
+      return danger;
+    }
+
+    function chessBotMoveOrderScore(move) {
+      if (!move) return 0;
+      const captured = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) : 0;
+      const attacker = move.piece ? (CHESS_BOT_VALUES[move.piece] || 0) : 0;
+      const promotion = move.promotion ? (CHESS_BOT_VALUES[move.promotion] || 0) : 0;
+      return captured * 10 - attacker + promotion;
+    }
 
     function chessBotColor() {
       return colorForChessRole(DOM);
@@ -24012,14 +24080,7 @@
           if (!piece) continue;
           const owner = piece.color === domColor ? 1 : -1;
           const value = CHESS_BOT_VALUES[piece.type] || 0;
-          const fileIndex = files.indexOf(file);
-          const centerFile = 3.5 - Math.abs(fileIndex - 3.5);
-          const centerRank = 3.5 - Math.abs(rank - 4.5);
-          const centerBonus = Math.max(0, centerFile + centerRank) * 3;
-          const pawnAdvance = piece.type === "p"
-            ? (piece.color === "w" ? rank - 2 : 7 - rank) * 4
-            : 0;
-          score += owner * (value + centerBonus + pawnAdvance);
+          score += owner * (value + chessBotPieceSquareBonus(piece, square));
         }
       }
       const domClone = chessBotCloneWithTurn(game, domColor);
@@ -24028,8 +24089,14 @@
       const subMobility = subClone ? subClone.moves().length : 0;
       score += (domMobility - subMobility) * 2;
       score += (chessBotCapturePressure(game, domColor) - chessBotCapturePressure(game, subColor)) * 0.18;
-      if (chessBotColorInCheck(game, domColor)) score -= 70;
-      if (chessBotColorInCheck(game, subColor)) score += 70;
+      score -= chessBotKingDanger(game, domColor);
+      score += chessBotKingDanger(game, subColor);
+      if (chessQueenStancesActive()) {
+        const queenSquare = findDomQueenSquare(game);
+        if (queenSquare) score += state.chess.queenStance === "none" ? 0 : 16;
+        score += Math.min(4, Number(state.chess.charges || 0)) * 20;
+        if (state.chess.skipQueued || state.chess.commandQueued) score += 80;
+      }
       return score;
     }
 
@@ -24047,12 +24114,11 @@
     }
 
     function chessBotSearch(game, depth, alpha = -Infinity, beta = Infinity) {
+      if (localChessBotSearchDeadline && Date.now() > localChessBotSearchDeadline) return chessBotEvaluate(game);
       if (!game || depth <= 0 || isChessGameOver(game)) return chessBotEvaluate(game);
       const maximizing = roleForChessColor(game.turn()) === DOM;
       const moves = game.moves({ verbose: true }).sort((a, b) => {
-        const captureA = a.captured ? (CHESS_BOT_VALUES[a.captured] || 0) : 0;
-        const captureB = b.captured ? (CHESS_BOT_VALUES[b.captured] || 0) : 0;
-        return captureB - captureA;
+        return chessBotMoveOrderScore(b) - chessBotMoveOrderScore(a);
       });
       if (!moves.length) return chessBotEvaluate(game);
       let best = maximizing ? -Infinity : Infinity;
@@ -24079,7 +24145,8 @@
       const moves = game.moves({ verbose: true });
       if (!moves.length) return null;
       const difficulty = chessPcDifficultyConfig();
-      const depth = Math.max(1, Math.min(3, Number(state.vsPc && state.vsPc.chessDepth || difficulty.depth)));
+      const depth = Math.max(1, Math.min(4, Number(state.vsPc && state.vsPc.chessDepth || difficulty.depth)));
+      localChessBotSearchDeadline = Date.now() + Math.max(80, Number(difficulty.timeMs || 240));
       try {
         const scored = moves.map((move) => {
           const applied = chessBotTryMove(game, move);
@@ -24091,8 +24158,9 @@
           const captureBonus = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) * 0.42 : 0;
           const promotionBonus = move.promotion ? (CHESS_BOT_VALUES[move.promotion] || 0) * 0.25 : 0;
           const checkBonus = givesCheckmate ? 50000 : (givesCheck ? 65 : 0);
+          const orderBonus = chessBotMoveOrderScore(move) * 0.02;
           const noise = (Math.random() - 0.5) * Number(difficulty.noise || 0);
-          return { move, score: score + captureBonus + promotionBonus + checkBonus + noise };
+          return { move, score: score + captureBonus + promotionBonus + checkBonus + orderBonus + noise };
         }).filter(Boolean);
         if (scored.length) {
           scored.sort((a, b) => b.score - a.score);
@@ -24108,10 +24176,75 @@
         }
       } catch (error) {
         console.warn("Chess PC search failed; using fallback move.", error);
+      } finally {
+        localChessBotSearchDeadline = 0;
       }
       const captures = moves.filter((move) => move.captured);
       const fallbackPool = captures.length ? captures : moves;
       return fallbackPool[Math.floor(Math.random() * fallbackPool.length)] || null;
+    }
+
+    function chessPcChooseQueenStance(game) {
+      if (!game || !isChessVsPc() || !chessQueenStancesActive() || roleForChessColor(game.turn()) !== DOM) return;
+      const queenSquare = findDomQueenSquare(game);
+      if (!queenSquare) return;
+      const domQueenCaptures = game.moves({ square: queenSquare, verbose: true }).some((move) => isQueenAffectedPiece(game.get(move.to)));
+      const leashedCount = countLeashedSubPieces(game);
+      const nextStance = domQueenCaptures
+        ? "tithe"
+        : leashedCount > 0
+          ? "leash"
+          : "gaze";
+      if (state.chess.queenStance !== nextStance) {
+        state.chess.queenStance = nextStance;
+        addLog(`<strong>PC dom stance.</strong> She shifts to ${stanceLabel(nextStance)}.`);
+      }
+    }
+
+    function chessPcFreezeTarget(game) {
+      if (!game || state.chess.freezeSquare) return "";
+      const subColor = colorForChessRole(SUB);
+      const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      const candidates = [];
+      for (let rank = 1; rank <= 8; rank += 1) {
+        for (const file of files) {
+          const square = `${file}${rank}`;
+          const piece = game.get(square);
+          if (!piece || piece.color !== subColor || piece.type === "k") continue;
+          const legal = chessBotCloneWithTurn(game, subColor);
+          const mobility = legal ? legal.moves({ square, verbose: true }).length : 0;
+          if (!mobility) continue;
+          candidates.push({
+            square,
+            score: (CHESS_BOT_VALUES[piece.type] || 0) + mobility * 12 + chessBotPieceSquareBonus(piece, square)
+          });
+        }
+      }
+      candidates.sort((a, b) => b.score - a.score);
+      return candidates[0] && candidates[0].square || "";
+    }
+
+    function maybeUseChessPcQueenPower(game) {
+      if (!game || !isChessVsPc() || !state.active || !chessQueenStancesActive()) return;
+      if (roleForChessColor(game.turn()) !== DOM) return;
+      const difficulty = chessPcDifficultyConfig();
+      chessPcChooseQueenStance(game);
+      const chance = Number(difficulty.powerChance || 0);
+      if (state.chess.charges >= 2 && !state.chess.skipQueued && Math.random() < chance * 0.34) {
+        state.chess.charges -= 2;
+        state.chess.skipQueued = true;
+        addLog(`<strong>PC dom power.</strong> She queues Skip for your next turn.`);
+        return;
+      }
+      if (state.chess.charges >= 1 && !state.chess.freezeSquare && Math.random() < chance) {
+        const target = chessPcFreezeTarget(game);
+        if (target) {
+          state.chess.charges -= 1;
+          state.chess.freezeSquare = target;
+          state.chess.freezeTurnsRemaining = 2;
+          addLog(`<strong>PC dom power.</strong> She freezes one of your pieces.`);
+        }
+      }
     }
 
     function maybeQueueChessPcMove() {
@@ -24124,6 +24257,7 @@
         try {
           const liveGame = chessEngine();
           if (!isChessVsPc() || !state.active || !liveGame || roleForChessColor(liveGame.turn()) !== DOM) return;
+          maybeUseChessPcQueenPower(liveGame);
           const move = chooseChessPcMove() || liveGame.moves({ verbose: true })[0];
           if (!move) return;
           applyChessMove(liveGame, move.from, move, false);
@@ -24295,7 +24429,7 @@
     }
 
     function activateQueuedChessPowers() {
-      if (state.mode !== "reclaim" || state.turn !== SUB) return;
+      if (!(state.mode === "reclaim" || isChessVsPc()) || state.turn !== SUB) return;
       if (state.chess.skipQueued) {
         state.chess.skipQueued = false;
         setChessFenTurn(colorForChessRole(DOM));
