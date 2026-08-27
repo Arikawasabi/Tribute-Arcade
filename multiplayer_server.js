@@ -523,7 +523,15 @@ function interleavePeekstrPostItems(children, limit) {
     .map((child, index) => normalizePeekstrPost(child, index))
     .filter((group) => group.length);
   const mixed = [];
-  for (let depth = 0; mixed.length < limit; depth += 1) {
+  const galleryBurst = 4;
+  for (const group of groups) {
+    const take = group.length > 1 ? Math.min(galleryBurst, group.length) : 1;
+    for (let index = 0; index < take && mixed.length < limit; index += 1) {
+      mixed.push(group[index]);
+    }
+    if (mixed.length >= limit) break;
+  }
+  for (let depth = galleryBurst; mixed.length < limit; depth += 1) {
     let added = false;
     for (const group of groups) {
       if (group[depth]) {
