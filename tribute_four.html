@@ -22922,7 +22922,7 @@
       easy: { label: "Easy", depth: 1, mistakeChance: 0.34, candidateCount: 5, noise: 85, timeMs: 120, powerChance: 0.08 },
       normal: { label: "Normal", depth: 2, mistakeChance: 0.14, candidateCount: 3, noise: 28, timeMs: 220, powerChance: 0.18 },
       hard: { label: "Hard", depth: 3, mistakeChance: 0.05, candidateCount: 2, noise: 10, timeMs: 420, powerChance: 0.28 },
-      brutal: { label: "Brutal", depth: 4, mistakeChance: 0.012, candidateCount: 1, noise: 3, timeMs: 720, powerChance: 0.42 }
+      brutal: { label: "Brutal", depth: 4, mistakeChance: 0, candidateCount: 1, noise: 1, timeMs: 900, powerChance: 0.42 }
     };
 
     function chessPcDifficultyKey() {
@@ -24062,6 +24062,30 @@
       return captured * 10 - attacker + promotion;
     }
 
+    function chessBotPiecePressure(game, square, piece) {
+      if (!game || !square || !piece || piece.type === "k") return 0;
+      const value = CHESS_BOT_VALUES[piece.type] || 0;
+      if (!value) return 0;
+      const enemy = piece.color === "w" ? "b" : "w";
+      if (!chessSquareAttackedBy(game, square, enemy)) return 0;
+      const defended = chessSquareAttackedBy(game, square, piece.color);
+      const queenPanic = piece.type === "q" ? 1.35 : 1;
+      return value * (defended ? 0.18 : 0.48) * queenPanic;
+    }
+
+    function chessBotMoveSafetyPenalty(game, move, applied) {
+      if (!game || !move || !applied) return 0;
+      const piece = game.get(move.to);
+      if (!piece || piece.color !== chessBotColor() || piece.type === "k") return 0;
+      const value = CHESS_BOT_VALUES[piece.type] || 0;
+      const capturedValue = applied.captured ? (CHESS_BOT_VALUES[applied.captured] || 0) : 0;
+      const pressure = chessBotPiecePressure(game, move.to, piece);
+      if (!pressure) return 0;
+      const badTrade = Math.max(0, value - capturedValue);
+      const queenExtra = piece.type === "q" && capturedValue <= CHESS_BOT_VALUES.p ? 420 : 0;
+      return pressure + badTrade * 0.55 + queenExtra;
+    }
+
     function chessBotColor() {
       return colorForChessRole(DOM);
     }
@@ -24113,7 +24137,8 @@
           if (!piece) continue;
           const owner = piece.color === domColor ? 1 : -1;
           const value = CHESS_BOT_VALUES[piece.type] || 0;
-          score += owner * (value + chessBotPieceSquareBonus(piece, square));
+          const pressure = chessBotPiecePressure(game, square, piece);
+          score += owner * (value + chessBotPieceSquareBonus(piece, square) - pressure);
         }
       }
       const domClone = chessBotCloneWithTurn(game, domColor);
@@ -24187,13 +24212,14 @@
           const score = chessBotSearch(game, depth - 1);
           const givesCheckmate = isChessCheckmate(game);
           const givesCheck = !givesCheckmate && typeof game.in_check === "function" && game.in_check();
+          const safetyPenalty = chessBotMoveSafetyPenalty(game, move, applied);
           game.undo();
           const captureBonus = move.captured ? (CHESS_BOT_VALUES[move.captured] || 0) * 0.42 : 0;
           const promotionBonus = move.promotion ? (CHESS_BOT_VALUES[move.promotion] || 0) * 0.25 : 0;
           const checkBonus = givesCheckmate ? 50000 : (givesCheck ? 65 : 0);
           const orderBonus = chessBotMoveOrderScore(move) * 0.02;
           const noise = (Math.random() - 0.5) * Number(difficulty.noise || 0);
-          return { move, score: score + captureBonus + promotionBonus + checkBonus + orderBonus + noise };
+          return { move, score: score + captureBonus + promotionBonus + checkBonus + orderBonus - safetyPenalty + noise };
         }).filter(Boolean);
         if (scored.length) {
           scored.sort((a, b) => b.score - a.score);
