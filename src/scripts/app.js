@@ -135,7 +135,6 @@
         redditeryAutoPopupInterval: 30,
         redditeryRapidFire: false,
         autoPopupDomPreview: false,
-        pcDomDistractions: true,
         booruDateFilter: "all",
         booruAutoPopupFullVideos: false,
         leaveNotice: null,
@@ -416,6 +415,7 @@
       chatMessages: document.getElementById("chatMessages"),
       chatInput: document.getElementById("chatInput"),
       sendChatBtn: document.getElementById("sendChatBtn"),
+      popupChatBtn: document.getElementById("popupChatBtn"),
       sideDomLinkInput: document.getElementById("sideDomLinkInput"),
       sideSendDomLinkBtn: document.getElementById("sideSendDomLinkBtn"),
       sideDomLinkStatus: document.getElementById("sideDomLinkStatus"),
@@ -455,7 +455,6 @@
       galleryCollapsePanels: document.querySelectorAll("[data-gallery-panel]"),
       redditeryAutoPopupToggle: document.getElementById("redditeryAutoPopupToggle"),
       redditeryRapidFireToggle: document.getElementById("redditeryRapidFireToggle"),
-      pcDomDistractionsToggle: document.getElementById("pcDomDistractionsToggle"),
       redditeryAutoPopupSource: document.getElementById("redditeryAutoPopupSource"),
       redditeryAutoPopupCategoryRow: document.getElementById("redditeryAutoPopupCategoryRow"),
       redditeryAutoPopupCategory: document.getElementById("redditeryAutoPopupCategory"),
@@ -721,6 +720,7 @@
     let localRedditeryGalleryCursors = {};
     let localRedditeryGalleryEnded = {};
     let localRedditeryGalleryRecentUrls = [];
+    let localRedditeryGallerySignature = "";
     let localCustomGoonerRedditPages = [];
     let localBrattyGalleryPrefsLoaded = false;
     let localBrattyGalleryPrefsSaving = false;
@@ -844,7 +844,8 @@
     ];
 
     const SOLO_GAME_IDS = ["solitaire", "memoryMatch"];
-    const VS_PC_GAME_IDS = ["ticTacToePc", "chessPc", "checkersPc", "reversiPc"];
+    const VS_PC_GAME_IDS = [];
+    const REMOVED_VS_PC_GAME_IDS = ["ticTacToePc", "chessPc", "checkersPc", "reversiPc"];
 
     function ticTacToeFormatById(id) {
       return TIC_TAC_TOE_FORMATS.find((format) => format.id === id) || TIC_TAC_TOE_FORMATS[1];
@@ -861,9 +862,8 @@
     function soloGameSelectOpen() {
       return state.screen === "select"
         && (SOLO_GAME_IDS.includes(state.currentGame)
-          || VS_PC_GAME_IDS.includes(state.currentGame)
           || state.settings.activeGameTab === "solo"
-          || state.settings.activeGameTab === "vs-pc");
+        );
     }
 
     function currentTicTacToeFormat() {
@@ -2674,7 +2674,7 @@
         state.active = false;
         state.pendingWager = null;
         state.pot = 0;
-        state.settings.activeGameTab = "vs-pc";
+        state.settings.activeGameTab = "solo";
         setScreen("select");
         renderMenu();
         return;
@@ -2725,9 +2725,7 @@
       if (els.gameSelectTitle) els.gameSelectTitle.textContent = soloSelect ? "Solo Games" : "Game Select";
       if (els.gameSelectInfoPanel) els.gameSelectInfoPanel.classList.toggle("hidden", soloSelect);
       if (soloSelect) {
-        els.playerSummary.textContent = state.settings.activeGameTab === "vs-pc"
-          ? "Testing mode: play against the PC dom."
-          : "Choose a solo game.";
+        els.playerSummary.textContent = "Choose a solo game.";
       }
       els.menuBankLabel.textContent = `${state.names.dom}'s bank`;
       els.menuDomBank.textContent = money(state.domVault);
@@ -2739,10 +2737,6 @@
       els.tributeTwentyOneCard.disabled = domPickBlocked;
       if (els.higherLowerCard) els.higherLowerCard.disabled = domPickBlocked;
       if (els.memoryMatchCard) els.memoryMatchCard.disabled = false;
-      if (els.ticTacToePcCard) els.ticTacToePcCard.disabled = false;
-      if (els.chessPcCard) els.chessPcCard.disabled = false;
-      if (els.checkersPcCard) els.checkersPcCard.disabled = false;
-      if (els.reversiPcCard) els.reversiPcCard.disabled = false;
       if (els.tributeCrazyEightsCard) els.tributeCrazyEightsCard.disabled = domPickBlocked;
       if (els.doubleSolitaireCard) els.doubleSolitaireCard.disabled = domPickBlocked;
       els.tributeTicTacToeCard.disabled = domPickBlocked;
@@ -2799,13 +2793,13 @@
       const requestedTab = tabAliases[state.settings.activeGameTab] || state.settings.activeGameTab;
       const soloMenuOpen = soloGameSelectOpen();
       const allowedTabs = soloMenuOpen
-        ? ["solo", "vs-pc"]
+        ? ["solo"]
         : ["board", "cards", "chance", "wip", "all"];
       const tab = allowedTabs.includes(requestedTab) ? requestedTab : allowedTabs[0];
       state.settings.activeGameTab = tab;
       els.gameSelectTabs.forEach((button) => {
         const buttonTab = button.dataset.gameTab;
-        button.classList.toggle("hidden", soloMenuOpen ? !["solo", "vs-pc"].includes(buttonTab) : ["solo", "vs-pc"].includes(buttonTab));
+        button.classList.toggle("hidden", soloMenuOpen ? buttonTab !== "solo" : buttonTab === "solo");
         button.classList.toggle("active", buttonTab === tab);
       });
       updateRedditeryAutoPopupStatus();
@@ -3198,7 +3192,6 @@
         : "captions";
       state.settings.redditeryAutoPopupSubreddits = normalizeRedditPageSelection(state.settings.redditeryAutoPopupSubreddits);
       state.settings.redditeryRapidFire = Boolean(state.settings.redditeryRapidFire);
-      state.settings.pcDomDistractions = state.settings.pcDomDistractions !== false;
       state.settings.booruDateFilter = normalizeBooruDateFilter(state.settings.booruDateFilter);
       state.settings.booruAutoPopupFullVideos = Boolean(state.settings.booruAutoPopupFullVideos);
       state.settings.reclaimPowersAlways = Boolean(state.settings.reclaimPowersAlways);
@@ -3989,6 +3982,10 @@
       if (els.subLinkWarningMode) els.subLinkWarningMode.disabled = !canUseSubSettings;
       els.chatInput.disabled = false;
       els.sendChatBtn.disabled = false;
+      if (els.popupChatBtn) {
+        els.popupChatBtn.disabled = !domLinkControlsAllowed();
+        els.popupChatBtn.classList.toggle("hidden", !domLinkControlsAllowed());
+      }
       els.chatInput.placeholder = "Send a message";
       const galleryTarget = galleryEffectSettings();
       if (document.activeElement !== els.sideDistractionInput) {
@@ -4162,6 +4159,45 @@
       els.chatInput.value = "";
       renderSidePanel();
       publishChatMessage(message);
+    }
+
+    function addTextDistractionOverlay(text, duration = normalizeDistractionDuration(state.settings.distractionDuration)) {
+      const cleanText = String(text || "").replace(/\s+/g, " ").trim().slice(0, 160);
+      if (!cleanText || !domLinkControlsAllowed()) return false;
+      const target = state.settings;
+      const placement = popupPlacement();
+      const existingOverlays = activeDistractionOverlays(target);
+      const randomAnchor = randomPopupAnchor(placement, existingOverlays);
+      const overlayUntil = Date.now() + normalizeDistractionDuration(duration) * 1000;
+      target.distractionOverlays = [
+        ...existingOverlays,
+        {
+          id: `text-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          kind: "text",
+          text: cleanText,
+          placement,
+          anchorX: randomAnchor.x,
+          anchorY: randomAnchor.y,
+          until: overlayUntil,
+          jitterX: 0,
+          jitterY: 0
+        }
+      ].slice(-3);
+      target.distractionOverlayUntil = overlayUntil;
+      target.distractionUntil = overlayUntil;
+      return true;
+    }
+
+    function sendChatPopup() {
+      const text = els.chatInput.value.trim();
+      if (!text) return;
+      if (!domLinkControlsAllowed()) return;
+      const posted = addTextDistractionOverlay(text);
+      if (!posted) return;
+      els.chatInput.value = "";
+      renderDistractionBackground();
+      renderSidePanel();
+      publishSettingsState();
     }
 
     function addDistractionOverlay(url, duration = normalizeDistractionDuration(state.settings.distractionDuration), options = {}) {
@@ -5599,15 +5635,20 @@
       return choices[Math.floor(Math.random() * choices.length)] || "captions";
     }
 
-    function resetGoonerFeedCursors() {
+    function resetGoonerGalleryFeedCursors() {
       localRedditeryPage = -1;
       localRedditeryAfter = "";
       localRedditeryActiveSubreddit = "";
       localRedditeryGalleryCursors = {};
       localRedditeryGalleryEnded = {};
       localRedditeryGalleryRecentUrls = [];
+      localRedditeryGallerySignature = "";
       localRedditeryReachedEnd = false;
       localRedditeryGalleryItems = [];
+    }
+
+    function resetGoonerFeedCursors() {
+      resetGoonerGalleryFeedCursors();
       resetAutoPopupFeedCursors();
       localMemoryMatchAfter = "";
       localMemoryMatchSubreddit = "";
@@ -6020,6 +6061,13 @@
       return shuffledGalleryItems(mixed).slice(0, limit);
     }
 
+    function redditGallerySignature(source, subredditPool) {
+      return JSON.stringify({
+        source,
+        subreddits: normalizeRedditPageSelection(subredditPool).sort()
+      });
+    }
+
     async function fetchRedditeryGalleryResults() {
       const source = goonerGallerySource();
       const subredditPool = redditSelectionForScope("gallery");
@@ -6028,6 +6076,15 @@
         localRedditeryGalleryItems = [];
         renderRedditeryGallery();
         return [];
+      }
+      const signature = redditGallerySignature(source, subredditPool);
+      if (signature !== localRedditeryGallerySignature) {
+        resetGoonerGalleryFeedCursors();
+        localRedditeryGallerySignature = signature;
+      }
+      if (localRedditeryReachedEnd) {
+        resetGoonerGalleryFeedCursors();
+        localRedditeryGallerySignature = signature;
       }
       const nextPage = Math.min(30, Math.max(0, localRedditeryPage + 1));
       const perPageLimit = Math.max(4, Math.min(12, Math.ceil(24 / Math.max(1, subredditPool.length))));
@@ -6053,7 +6110,6 @@
         const response = await fetch(`/api/redditery-gallery?${params.toString()}`);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-          localRedditeryGalleryEnded[subreddit] = true;
           return [];
         }
         localRedditeryGalleryCursors[subreddit] = String(data.after || "");
@@ -6328,9 +6384,9 @@
         return;
       }
       els.redditeryRandomBtn.textContent = localRedditeryReachedEnd
-        ? "No More Found"
+        ? "Retry Results"
         : (localRedditeryPage >= 0 ? "Load More" : "Show Results");
-      els.redditeryRandomBtn.disabled = !galleryControlsAllowed() || localRedditeryReachedEnd;
+      els.redditeryRandomBtn.disabled = !galleryControlsAllowed() || !redditSelectionForScope("gallery").length;
       if (els.goonerGalleryTopBtn) els.goonerGalleryTopBtn.disabled = !galleryControlsAllowed() || localRedditeryGalleryLoading || localRedditeryPage <= 0;
     }
 
@@ -6405,12 +6461,6 @@
         els.redditeryRapidFireToggle.disabled = !domLinkControlsAllowed();
         els.redditeryRapidFireToggle.classList.toggle("active", rapidFire);
         els.redditeryRapidFireToggle.setAttribute("aria-pressed", rapidFire ? "true" : "false");
-      }
-      if (els.pcDomDistractionsToggle) {
-        const pcDomOn = state.settings.pcDomDistractions !== false;
-        els.pcDomDistractionsToggle.disabled = false;
-        els.pcDomDistractionsToggle.classList.toggle("active", pcDomOn);
-        els.pcDomDistractionsToggle.setAttribute("aria-pressed", pcDomOn ? "true" : "false");
       }
       [els.redditeryAutoPopupDuration, els.soloRedditeryAutoPopupDuration].forEach((input) => {
         if (input && document.activeElement !== input) input.value = normalizeDistractionDuration(settings.redditeryAutoPopupDuration);
@@ -6869,7 +6919,9 @@
       const now = Date.now();
       const list = Array.isArray(source.distractionOverlays) ? source.distractionOverlays : [];
       const active = list
-        .filter((item) => item && normalizeDistractionSource(item.url) && Number(item.until || 0) > now)
+        .filter((item) => item
+          && Number(item.until || 0) > now
+          && (normalizeDistractionSource(item.url) || (item.kind === "text" && String(item.text || "").trim())))
         .slice(-Math.max(1, Number(maxItems || 3)));
       const oldUrl = normalizeDistractionSource(source.distractionOverlayUrl || (source.distractionMode === "overlay-sub" ? source.distractionUrl : ""));
       const oldUntil = Number(source.distractionOverlayUntil || source.distractionUntil || 0);
@@ -6987,6 +7039,15 @@
 
     function overlayBoxSizePx(overlay, count, viewportWidth, viewportHeight) {
       const sizingCount = normalizePopupPlacement(overlay && overlay.placement) === "random" ? 1 : count;
+      if (overlay && overlay.kind === "text") {
+        const textLength = String(overlay.text || "").trim().length;
+        const width = Math.min(viewportWidth - 28, Math.max(260, Math.min(540, 260 + textLength * 5)));
+        const height = Math.min(viewportHeight - 28, Math.max(96, Math.min(220, 82 + Math.ceil(textLength / 22) * 30)));
+        return {
+          width: Math.round(width),
+          height: Math.round(height)
+        };
+      }
       if (overlay && overlay.rapidFire) {
         const margin = 10;
         const sizeScale = Math.max(1, Math.min(1.2, Number(overlay.sizeScale || 1)));
@@ -7089,7 +7150,9 @@
         const box = overlayBoxSizePx(overlay, overlays.length, viewport.width, viewport.height);
         return [
           overlay.id || "",
+          overlay.kind || "",
           normalizeDistractionSource(overlay.url),
+          String(overlay.text || ""),
           overlay.mediaType || "",
           overlay.muted === false ? "audio" : "muted",
           overlay.loop === false ? "once" : "loop",
@@ -7191,6 +7254,20 @@
       node.style.setProperty("--distraction-overlay-width", `${box.width}px`);
       node.style.setProperty("--distraction-overlay-height", `${box.height}px`);
       node.classList.toggle("rapid-fire", Boolean(overlay && overlay.rapidFire));
+      node.classList.toggle("text-popup", Boolean(overlay && overlay.kind === "text"));
+
+      if (overlay && overlay.kind === "text") {
+        const text = String(overlay.text || "").trim();
+        const existingText = node.querySelector("[data-distraction-overlay-text]");
+        if (!existingText || existingText.dataset.distractionOverlayText !== text) {
+          const textCard = document.createElement("div");
+          textCard.className = "distraction-overlay-text";
+          textCard.dataset.distractionOverlayText = text;
+          textCard.textContent = text;
+          node.replaceChildren(textCard);
+        }
+        return;
+      }
 
       const isVideo = overlay.mediaType === "video" || isVideoDistractionSource(normalizedUrl);
       const existing = node.firstElementChild;
@@ -7487,7 +7564,6 @@
         crazyEights: state.crazyEights,
         doubleSolitaire: state.doubleSolitaire,
         ticTacToe: state.ticTacToe,
-        vsPc: state.vsPc,
         dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
@@ -7537,7 +7613,9 @@
       state.settings.sideOpen = localSideOpen;
       state.settings.activeSideTab = localActiveSideTab;
       state.pendingWager = snapshot.pendingWager || null;
-      state.currentGame = snapshot.currentGame || state.currentGame;
+      state.currentGame = REMOVED_VS_PC_GAME_IDS.includes(snapshot.currentGame)
+        ? ""
+        : (snapshot.currentGame || state.currentGame);
       state.board = snapshot.board || state.board;
       state.turn = snapshot.turn || state.turn;
       state.active = Boolean(snapshot.active);
@@ -7565,7 +7643,7 @@
       state.crazyEights = snapshot.crazyEights || state.crazyEights;
       state.doubleSolitaire = snapshot.doubleSolitaire || state.doubleSolitaire;
       state.ticTacToe = normalizeTicTacToeState(snapshot.ticTacToe || state.ticTacToe);
-      state.vsPc = snapshot.vsPc || createVsPcState();
+      state.vsPc = createVsPcState();
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
       state.trail = snapshot.trail || state.trail;
@@ -21681,10 +21759,6 @@
       renderDomTriggerOverlay();
       renderBrattyWelcomeModal();
       renderPressureViewPromptModal();
-      maybeQueueChessPcMove();
-      maybeQueueCheckersPcMove();
-      maybeQueueReversiPcMove();
-      schedulePcDomTurnPressure();
       maintainAmbientGalleryPopups();
     }
 
@@ -21879,6 +21953,7 @@
       });
     });
     els.sendChatBtn.addEventListener("click", sendChatMessage);
+    if (els.popupChatBtn) els.popupChatBtn.addEventListener("click", sendChatPopup);
     els.chatInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") sendChatMessage();
     });
@@ -22162,11 +22237,6 @@
     if (els.redditeryRapidFireToggle) {
       els.redditeryRapidFireToggle.addEventListener("click", () => {
         setRedditeryRapidFireEnabled(!state.settings.redditeryRapidFire);
-      });
-    }
-    if (els.pcDomDistractionsToggle) {
-      els.pcDomDistractionsToggle.addEventListener("click", () => {
-        updateSettings({ pcDomDistractions: state.settings.pcDomDistractions === false });
       });
     }
     [els.redditeryAutoPopupSource, els.soloRedditeryAutoPopupSource].forEach((select) => {
@@ -22517,10 +22587,6 @@
       doubleSolitaire: openDoubleSolitaire,
       solitaire: openSolitaire,
       memoryMatch: openMemoryMatch,
-      ticTacToePc: openTicTacToeVsPc,
-      chessPc: openChessVsPc,
-      checkersPc: openCheckersVsPc,
-      reversiPc: openReversiVsPc,
       tributeTicTacToe: openTributeTicTacToe,
       wheelSpin: openWheelSpin,
       obedienceOrders: openObedienceOrders,
@@ -22535,7 +22601,7 @@
         if (!card || !els.mainGamesGrid.contains(card) || card.disabled || card.classList.contains("hidden")) return;
         const opener = gameOpeners[card.dataset.openGame];
         if (!opener) return;
-        const soloOpeners = new Set(["solitaire", "memoryMatch", "ticTacToePc", "chessPc", "checkersPc", "reversiPc"]);
+        const soloOpeners = new Set(["solitaire", "memoryMatch"]);
         if (!soloOpeners.has(card.dataset.openGame) && shouldConfirmThroneAmountBeforeGame() && openThroneAmountConfirmModal(card.dataset.openGame, opener)) return;
         opener();
       });

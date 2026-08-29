@@ -53,7 +53,7 @@
   <main class="screen splash" id="lobbyScreen">
     <header class="splash-header">
       <h1>Tribute Arcade</h1>
-      <p class="subtitle">Host online, play locally, or open solo games with PC dom modes.</p>
+      <p class="subtitle">Host online, play locally, or open solo games.</p>
     </header>
 
     <section class="menu-dashboard">
@@ -106,7 +106,7 @@
           <button id="soloGamesBtn" class="primary">Open Solo</button>
         </div>
         <div class="panel-body">
-          <p class="chooser-line">Play solitaire, image games, and experimental Vs PC games where the PC dom can use gallery distractions.</p>
+          <p class="chooser-line">Play solitaire and image games without opening a room.</p>
         </div>
       </div>
     </section>
@@ -304,7 +304,6 @@
       <button class="game-select-tab" data-game-tab="cards">Cards</button>
       <button class="game-select-tab" data-game-tab="chance">Chance</button>
       <button class="game-select-tab" data-game-tab="solo">Solo</button>
-      <button class="game-select-tab" data-game-tab="vs-pc">Vs PC Testing</button>
       <button class="game-select-tab" data-game-tab="wip">WIP</button>
       <button class="game-select-tab" data-game-tab="all">All</button>
     </div>
@@ -412,38 +411,6 @@
           <span class="game-card-copy">Flip paired gooner images before your focus melts out of your head.</span>
         </span>
         <strong class="status-pill">Play Solo</strong>
-      </button>
-
-      <button class="panel game-card" id="ticTacToePcCard" data-open-game="ticTacToePc" data-game-categories="vs-pc">
-        <span>
-          <span class="game-card-title">Tic Tac Toe vs PC</span>
-          <span class="game-card-copy">Testing mode: a quick local match against the PC dom. You play X, she plays O.</span>
-        </span>
-        <strong class="status-pill">Testing</strong>
-      </button>
-
-      <button class="panel game-card" id="chessPcCard" data-open-game="chessPc" data-game-categories="vs-pc">
-        <span>
-          <span class="game-card-title">Chess vs PC</span>
-          <span class="game-card-copy">Testing mode: a first-pass solo chess match against a local PC dom. You play white.</span>
-        </span>
-        <strong class="status-pill">Testing</strong>
-      </button>
-
-      <button class="panel game-card" id="checkersPcCard" data-open-game="checkersPc" data-game-categories="vs-pc">
-        <span>
-          <span class="game-card-title">Checkers vs PC</span>
-          <span class="game-card-copy">Testing mode: a local checkers match against the PC dom. Captures, crowns, and pressure still matter.</span>
-        </span>
-        <strong class="status-pill">Testing</strong>
-      </button>
-
-      <button class="panel game-card" id="reversiPcCard" data-open-game="reversiPc" data-game-categories="vs-pc">
-        <span>
-          <span class="game-card-title">Reversi vs PC</span>
-          <span class="game-card-copy">Testing mode: a local disc-control match against the PC dom. Corners, edges, and mobility decide the squeeze.</span>
-        </span>
-        <strong class="status-pill">Testing</strong>
       </button>
 
       <button class="panel game-card" id="obedienceOrdersCard" data-open-game="obedienceOrders" data-game-categories="wip all" data-game-hidden="true">
@@ -817,15 +784,6 @@
           <input id="reversiHintToggle" type="checkbox" checked>
           <span>Show legal move number hints</span>
         </label>
-        <div class="hidden" id="chessPcDifficultyRow">
-          <p class="chooser-line">PC dom difficulty</p>
-          <div class="blackjack-round-grid chess-timer-grid">
-            <button data-chess-pc-difficulty="easy">Easy</button>
-            <button data-chess-pc-difficulty="normal" class="primary">Normal</button>
-            <button data-chess-pc-difficulty="hard">Hard</button>
-            <button data-chess-pc-difficulty="brutal">Brutal</button>
-          </div>
-        </div>
         <div class="setup-actions">
           <button id="chessSettingsConfirmBtn" class="primary">Start Game</button>
         </div>
@@ -1061,6 +1019,7 @@
         <div class="chat-compose">
           <input id="chatInput" type="text" maxlength="220" autocomplete="off" placeholder="Send a message">
           <button id="sendChatBtn" class="primary">Send</button>
+          <button id="popupChatBtn" title="Pop this text up for the sub">Pop Up</button>
         </div>
       </section>
       <section class="side-pane ledger-pane hidden" id="sideLedgerPane">
@@ -1161,7 +1120,6 @@
             <div class="booru-test-panel compact random-popup-panel">
               <button id="redditeryAutoPopupToggle" type="button" class="toggle-button full-width" aria-pressed="false">Auto Sub Popup</button>
               <button id="redditeryRapidFireToggle" type="button" class="toggle-button full-width" aria-pressed="false">Rapid Fire Popups</button>
-              <button id="pcDomDistractionsToggle" type="button" class="toggle-button full-width" aria-pressed="false">PC Dom Popups</button>
               <button id="autoPopupDomPreviewInput" type="button" class="toggle-button full-width" aria-pressed="false">Show Dom Preview</button>
               <label class="field-label">
                 Popup source

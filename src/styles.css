@@ -141,6 +141,43 @@
       filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.48));
     }
 
+    .distraction-overlay-item.text-popup {
+      overflow: visible;
+    }
+
+    .distraction-overlay-text {
+      width: 100%;
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 18px 22px;
+      border: 1px solid rgba(255, 79, 134, 0.62);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255, 120, 175, 0.34), transparent 12rem),
+        linear-gradient(145deg, rgba(59, 14, 32, 0.96), rgba(13, 7, 10, 0.92));
+      color: #fff4f8;
+      box-shadow:
+        0 0 24px rgba(255, 79, 134, 0.35),
+        inset 0 0 28px rgba(255, 255, 255, 0.06);
+      font-size: clamp(1.35rem, 3.5vw, 2.55rem);
+      font-weight: 900;
+      line-height: 1.08;
+      text-align: center;
+      overflow-wrap: anywhere;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+      animation: textPopupDrift 5200ms ease-in-out infinite alternate;
+    }
+
+    @keyframes textPopupDrift {
+      from {
+        transform: translate3d(-4px, 2px, 0) rotate(-0.6deg);
+      }
+      to {
+        transform: translate3d(5px, -3px, 0) rotate(0.7deg);
+      }
+    }
+
     .distraction-overlay-item img,
     .distraction-overlay-item video {
       display: block;
