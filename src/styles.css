@@ -159,7 +159,9 @@
       line-height: 1.04;
       text-align: center;
       text-transform: uppercase;
-      overflow-wrap: anywhere;
+      white-space: normal;
+      overflow-wrap: normal;
+      word-break: normal;
       text-shadow:
         0 0 10px rgba(255, 63, 146, 0.95),
         0 0 28px rgba(255, 63, 146, 0.72),
@@ -211,6 +213,12 @@
       height: 100%;
       border-radius: 8px;
       background: rgba(0, 0, 0, 0.72);
+    }
+
+    @media (max-width: 760px) {
+      .distraction-overlay-text {
+        font-size: clamp(1.35rem, 9vw, 3rem);
+      }
     }
 
     .dom-trigger-overlay {
@@ -6746,6 +6754,12 @@
 
     .chat-compose input {
       flex: 1;
+    }
+
+    .chat-compose button {
+      flex: 0 0 76px;
+      padding-inline: 10px;
+      white-space: nowrap;
     }
 
     #sideDistractionInput.drop-ready {

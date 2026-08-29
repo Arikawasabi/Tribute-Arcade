@@ -7050,8 +7050,8 @@
       const sizingCount = normalizePopupPlacement(overlay && overlay.placement) === "random" ? 1 : count;
       if (overlay && overlay.kind === "text") {
         const textLength = String(overlay.text || "").trim().length;
-        const width = Math.min(viewportWidth - 28, Math.max(320, Math.min(760, 320 + textLength * 7)));
-        const height = Math.min(viewportHeight - 28, Math.max(90, Math.min(190, 72 + Math.ceil(textLength / 24) * 28)));
+        const width = Math.min(viewportWidth - 28, Math.max(420, Math.min(980, 300 + textLength * 18)));
+        const height = Math.min(viewportHeight - 28, Math.max(84, Math.min(180, 76 + Math.ceil(Math.max(0, textLength - 16) / 26) * 28)));
         return {
           width: Math.round(width),
           height: Math.round(height)
