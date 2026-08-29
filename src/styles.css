@@ -168,7 +168,7 @@
       animation-name: textPopupDrift;
       animation-duration: var(--text-popup-duration, 14000ms);
       animation-delay: var(--text-popup-delay, 0ms);
-      animation-timing-function: linear;
+      animation-timing-function: cubic-bezier(0.16, 0.84, 0.22, 1);
       animation-fill-mode: both;
       animation-iteration-count: 1;
     }
@@ -176,13 +176,13 @@
     @keyframes textPopupDrift {
       0% {
         opacity: 0;
-        transform: translate3d(0, 8px, 0) scale(0.94);
-        filter: blur(3px);
+        transform: translate3d(calc(var(--text-popup-drift-x, 44vw) * -0.08), 14px, 0) scale(0.9);
+        filter: blur(5px);
       }
-      12% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-        filter: blur(0);
+      16% {
+        opacity: 0.92;
+        transform: translate3d(calc(var(--text-popup-drift-x, 44vw) * 0.08), calc(var(--text-popup-drift-y, 0vh) * 0.08), 0) scale(0.98);
+        filter: blur(0.5px);
       }
       82% {
         opacity: 0.98;

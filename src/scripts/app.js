@@ -4170,7 +4170,8 @@
       const randomAnchor = randomPopupAnchor(placement, existingOverlays);
       const now = Date.now();
       const durationMs = normalizeDistractionDuration(duration) * 1000;
-      const driftX = (Math.random() < 0.5 ? -1 : 1) * (34 + Math.random() * 28);
+      const targetX = randomAnchor.x < 50 ? 88 + Math.random() * 8 : 12 - Math.random() * 8;
+      const driftX = targetX - randomAnchor.x;
       const driftY = -12 + Math.random() * 24;
       const overlayUntil = now + durationMs;
       target.distractionOverlays = [
