@@ -4168,9 +4168,11 @@
       const placement = popupPlacement();
       const existingOverlays = activeDistractionOverlays(target);
       const randomAnchor = randomPopupAnchor(placement, existingOverlays);
-      const driftX = (Math.random() < 0.5 ? -1 : 1) * (16 + Math.random() * 24);
-      const driftY = -7 + Math.random() * 14;
-      const overlayUntil = Date.now() + normalizeDistractionDuration(duration) * 1000;
+      const now = Date.now();
+      const durationMs = normalizeDistractionDuration(duration) * 1000;
+      const driftX = (Math.random() < 0.5 ? -1 : 1) * (34 + Math.random() * 28);
+      const driftY = -12 + Math.random() * 24;
+      const overlayUntil = now + durationMs;
       target.distractionOverlays = [
         ...existingOverlays,
         {
@@ -4182,6 +4184,8 @@
           anchorY: randomAnchor.y,
           driftX,
           driftY,
+          startedAt: now,
+          durationMs,
           until: overlayUntil,
           jitterX: 0,
           jitterY: 0
@@ -7164,6 +7168,8 @@
           normalizePopupPlacement(overlay.placement),
           Number(overlay.anchorX || 0),
           Number(overlay.anchorY || 0),
+          Number(overlay.startedAt || 0),
+          Number(overlay.durationMs || 0),
           Number(overlay.until || 0),
           Number(overlay.jitterX || 0),
           Number(overlay.jitterY || 0),
@@ -7262,8 +7268,13 @@
 
       if (overlay && overlay.kind === "text") {
         const text = String(overlay.text || "").trim();
+        const startedAt = Number(overlay.startedAt || 0) || Date.now();
+        const durationMs = Math.max(2400, Number(overlay.durationMs || 0) || Math.max(2400, Number(overlay.until || 0) - startedAt));
+        const elapsedMs = Math.max(0, Date.now() - startedAt);
         node.style.setProperty("--text-popup-drift-x", `${Number(overlay.driftX || 22).toFixed(1)}vw`);
         node.style.setProperty("--text-popup-drift-y", `${Number(overlay.driftY || 0).toFixed(1)}vh`);
+        node.style.setProperty("--text-popup-duration", `${durationMs}ms`);
+        node.style.setProperty("--text-popup-delay", `${-Math.min(durationMs - 16, elapsedMs)}ms`);
         const existingText = node.querySelector("[data-distraction-overlay-text]");
         if (!existingText || existingText.dataset.distractionOverlayText !== text) {
           const textCard = document.createElement("div");
