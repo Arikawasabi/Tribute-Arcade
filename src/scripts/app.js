@@ -4168,6 +4168,8 @@
       const placement = popupPlacement();
       const existingOverlays = activeDistractionOverlays(target);
       const randomAnchor = randomPopupAnchor(placement, existingOverlays);
+      const driftX = (Math.random() < 0.5 ? -1 : 1) * (16 + Math.random() * 24);
+      const driftY = -7 + Math.random() * 14;
       const overlayUntil = Date.now() + normalizeDistractionDuration(duration) * 1000;
       target.distractionOverlays = [
         ...existingOverlays,
@@ -4178,6 +4180,8 @@
           placement,
           anchorX: randomAnchor.x,
           anchorY: randomAnchor.y,
+          driftX,
+          driftY,
           until: overlayUntil,
           jitterX: 0,
           jitterY: 0
@@ -7041,8 +7045,8 @@
       const sizingCount = normalizePopupPlacement(overlay && overlay.placement) === "random" ? 1 : count;
       if (overlay && overlay.kind === "text") {
         const textLength = String(overlay.text || "").trim().length;
-        const width = Math.min(viewportWidth - 28, Math.max(260, Math.min(540, 260 + textLength * 5)));
-        const height = Math.min(viewportHeight - 28, Math.max(96, Math.min(220, 82 + Math.ceil(textLength / 22) * 30)));
+        const width = Math.min(viewportWidth - 28, Math.max(320, Math.min(760, 320 + textLength * 7)));
+        const height = Math.min(viewportHeight - 28, Math.max(90, Math.min(190, 72 + Math.ceil(textLength / 24) * 28)));
         return {
           width: Math.round(width),
           height: Math.round(height)
@@ -7258,6 +7262,8 @@
 
       if (overlay && overlay.kind === "text") {
         const text = String(overlay.text || "").trim();
+        node.style.setProperty("--text-popup-drift-x", `${Number(overlay.driftX || 22).toFixed(1)}vw`);
+        node.style.setProperty("--text-popup-drift-y", `${Number(overlay.driftY || 0).toFixed(1)}vh`);
         const existingText = node.querySelector("[data-distraction-overlay-text]");
         if (!existingText || existingText.dataset.distractionOverlayText !== text) {
           const textCard = document.createElement("div");
