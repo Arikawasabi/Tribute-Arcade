@@ -2902,6 +2902,7 @@
         .filter((card) => !card.disabled
           && !card.classList.contains("hidden")
           && card.dataset.gameHidden !== "true"
+          && !(card.dataset.gameCategories || "").split(/\s+/).includes("wip")
           && card.dataset.openGame);
     }
 
@@ -18487,12 +18488,11 @@
       const rows = Array.from({ length: difficulty.guesses }, (_, index) => {
         const guess = game.guesses[player][index];
         if (!guess) {
-          return `<div class="wallet-lock-row empty">${Array.from({ length: difficulty.codeLength }, () => "<span></span>").join("")}<b></b></div>`;
+          return `<div class="wallet-lock-row empty">${Array.from({ length: difficulty.codeLength }, () => "<span></span>").join("")}</div>`;
         }
         return `
           <div class="wallet-lock-row">
-            ${guess.symbols.map((symbol) => `<span>${symbol}</span>`).join("")}
-            <b>${guess.feedback.map((item) => `<i class="${item}"></i>`).join("")}</b>
+            ${guess.symbols.map((symbol, symbolIndex) => `<span class="${escapeHtml(guess.feedback[symbolIndex] || "miss")}">${symbol}</span>`).join("")}
           </div>
         `;
       }).join("");
@@ -21515,7 +21515,7 @@
         `<strong>Goal:</strong> crack the hidden symbol code before the other player.`,
         `<strong>Setup:</strong> ${state.names.dom} chooses the lock difficulty. Harder locks use longer codes and more possible symbols.`,
         `<strong>Play:</strong> players take turns submitting a full row of symbols.`,
-        `<strong>Feedback:</strong> gold dots mean a symbol is correct and in the right place. Pink dots mean the symbol is in the code but in another place. Dark dots mean it is not used there.`,
+        `<strong>Feedback:</strong> gold squares mean a symbol is correct and in the right place. Pink squares mean the symbol is in the code but in another place. Dark squares mean it is not used there.`,
         `<strong>Repeats:</strong> the hidden code may use the same symbol more than once.`,
         `<strong>Reclaim:</strong> if neither player cracks the code, ${state.names.dom} claims the locked round.`
       ];

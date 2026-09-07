@@ -2107,33 +2107,24 @@
       opacity: 0.45;
     }
 
-    .wallet-lock-row b {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      align-items: center;
-      min-width: 58px;
-      margin-left: 2px;
-    }
-
-    .wallet-lock-row i {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(244, 239, 232, 0.15);
-      background: rgba(244, 239, 232, 0.12);
-    }
-
-    .wallet-lock-row i.exact {
+    .wallet-lock-row span.exact {
       border-color: rgba(239, 199, 94, 0.9);
-      background: var(--gold);
-      box-shadow: 0 0 10px rgba(239, 199, 94, 0.32);
+      background: linear-gradient(145deg, rgba(239, 199, 94, 0.9), rgba(138, 93, 28, 0.88));
+      color: #17100a;
+      box-shadow: 0 0 14px rgba(239, 199, 94, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
 
-    .wallet-lock-row i.near {
+    .wallet-lock-row span.near {
       border-color: rgba(255, 112, 154, 0.9);
-      background: #ff709a;
-      box-shadow: 0 0 10px rgba(255, 79, 134, 0.28);
+      background: linear-gradient(145deg, rgba(255, 112, 154, 0.88), rgba(126, 35, 72, 0.88));
+      color: #fff8ec;
+      box-shadow: 0 0 14px rgba(255, 79, 134, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .wallet-lock-row span.miss {
+      border-color: rgba(244, 239, 232, 0.16);
+      background: linear-gradient(145deg, rgba(50, 42, 50, 0.9), rgba(12, 10, 15, 0.92));
+      color: rgba(244, 239, 232, 0.78);
     }
 
     .wallet-lock-controls {
@@ -8490,12 +8481,12 @@
         <strong class="status-pill">Play</strong>
       </button>
 
-      <button class="panel game-card" id="walletLockCard" data-open-game="walletLock" data-game-categories="board chance all">
+      <button class="panel game-card" id="walletLockCard" data-open-game="walletLock" data-game-categories="wip">
         <span>
           <span class="game-card-title">Wallet Lock</span>
           <span class="game-card-copy">Race to crack the same random symbol code before the wallet opens.</span>
         </span>
-        <strong class="status-pill">Play</strong>
+        <strong class="status-pill">WIP</strong>
       </button>
 
       <button class="panel game-card" id="tributeWheelCard" data-open-game="wheelSpin" data-game-categories="chance all">
@@ -12516,6 +12507,7 @@
         .filter((card) => !card.disabled
           && !card.classList.contains("hidden")
           && card.dataset.gameHidden !== "true"
+          && !(card.dataset.gameCategories || "").split(/\s+/).includes("wip")
           && card.dataset.openGame);
     }
 
@@ -28101,12 +28093,11 @@
       const rows = Array.from({ length: difficulty.guesses }, (_, index) => {
         const guess = game.guesses[player][index];
         if (!guess) {
-          return `<div class="wallet-lock-row empty">${Array.from({ length: difficulty.codeLength }, () => "<span></span>").join("")}<b></b></div>`;
+          return `<div class="wallet-lock-row empty">${Array.from({ length: difficulty.codeLength }, () => "<span></span>").join("")}</div>`;
         }
         return `
           <div class="wallet-lock-row">
-            ${guess.symbols.map((symbol) => `<span>${symbol}</span>`).join("")}
-            <b>${guess.feedback.map((item) => `<i class="${item}"></i>`).join("")}</b>
+            ${guess.symbols.map((symbol, symbolIndex) => `<span class="${escapeHtml(guess.feedback[symbolIndex] || "miss")}">${symbol}</span>`).join("")}
           </div>
         `;
       }).join("");
@@ -31129,7 +31120,7 @@
         `<strong>Goal:</strong> crack the hidden symbol code before the other player.`,
         `<strong>Setup:</strong> ${state.names.dom} chooses the lock difficulty. Harder locks use longer codes and more possible symbols.`,
         `<strong>Play:</strong> players take turns submitting a full row of symbols.`,
-        `<strong>Feedback:</strong> gold dots mean a symbol is correct and in the right place. Pink dots mean the symbol is in the code but in another place. Dark dots mean it is not used there.`,
+        `<strong>Feedback:</strong> gold squares mean a symbol is correct and in the right place. Pink squares mean the symbol is in the code but in another place. Dark squares mean it is not used there.`,
         `<strong>Repeats:</strong> the hidden code may use the same symbol more than once.`,
         `<strong>Reclaim:</strong> if neither player cracks the code, ${state.names.dom} claims the locked round.`
       ];
