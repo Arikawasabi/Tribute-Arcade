@@ -23031,6 +23031,7 @@
       const difficulty = walletLockDifficultyById(game.difficulty);
       const symbols = sampleWalletLockSymbols(difficulty.symbolCount);
       state.turn = type === "reclaim" ? DOM : chooseStartingPlayer();
+      state.active = true;
       state.walletLock = {
         ...createWalletLockState(),
         difficulty: difficulty.id,
@@ -23069,11 +23070,18 @@
     }
 
     function walletLockCanAct(player = state.turn) {
+      const role = localOnlineRole();
+      const hotSeatOnlineTest = Boolean(
+        state.online.room
+        && role
+        && role !== SPECTATOR
+        && !(state.online.seats && state.online.seats.one && state.online.seats.two)
+      );
       return state.currentGame === "walletLock"
         && state.active
         && state.walletLock
         && state.walletLock.phase === "active"
-        && (!localOnlineRole() || localOnlineRole() === player);
+        && (!role || role === player || hotSeatOnlineTest);
     }
 
     function walletLockDraftFor(player) {
@@ -28058,6 +28066,7 @@
         const canAct = walletLockCanAct();
         controls.className = "wallet-lock-controls";
         controls.innerHTML = `
+          ${canAct ? "" : `<p class="wallet-lock-note">Waiting for ${escapeHtml(labelFor(state.turn))} to submit a guess.</p>`}
           <div class="wallet-lock-draft">
             ${Array.from({ length: difficulty.codeLength }, (_, index) => `<span>${draft[index] || ""}</span>`).join("")}
           </div>
@@ -31789,6 +31798,11 @@
         els.gameSubtitle.textContent = isTicTacToeVsPc()
           ? "A local three-in-a-row match against the PC dom. You play X; she plays O."
           : "Fast three-in-a-row matches. The dom picks the match length before the first board; reclaim lets her start and take drawn boards.";
+        return;
+      }
+      if (state.currentGame === "walletLock") {
+        els.gameTitle.textContent = "Wallet Lock";
+        els.gameSubtitle.textContent = "A turn-based symbol code race. Crack the hidden lock before the other player opens the wallet.";
         return;
       }
       if (state.currentGame === "wheelSpin") {
