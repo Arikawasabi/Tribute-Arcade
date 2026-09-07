@@ -2061,6 +2061,10 @@
       margin-top: 14px;
     }
 
+    .wallet-lock-histories.single {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .wallet-lock-history {
       display: grid;
       gap: 7px;

@@ -18397,6 +18397,7 @@
       state.walletLock = normalizeWalletLockState(state.walletLock);
       const game = state.walletLock;
       const difficulty = walletLockDifficultyById(game.difficulty);
+      const visibleHistoryPlayers = walletLockVisibleHistoryPlayers();
       const canSetup = !state.active && state.pot <= 0 && !state.pendingWager && !state.normalReplayPrompt && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
       const setup = document.createElement("div");
       setup.className = `wallet-lock-panel ${!state.active ? "wallet-lock-popup" : ""}`.trim();
@@ -18441,19 +18442,18 @@
           ${(revealCode ? game.code : Array.from({ length: difficulty.codeLength }, () => "🔒")).map((symbol) => `<span>${symbol}</span>`).join("")}
         </div>
         <div class="wallet-lock-status">${escapeHtml(game.message || (state.active ? `${labelFor(state.turn)} is guessing.` : "The lock is ready."))}</div>
-        <div class="wallet-lock-histories">
-          ${[SUB, DOM].map((player) => renderWalletLockHistory(player, difficulty)).join("")}
+        <div class="wallet-lock-histories ${visibleHistoryPlayers.length === 1 ? "single" : ""}">
+          ${visibleHistoryPlayers.map((player) => renderWalletLockHistory(player, difficulty)).join("")}
         </div>
       `;
       els.board.appendChild(table);
 
       if (state.active && game.phase === "active") {
         const controls = document.createElement("div");
-        const draft = game.draft[state.turn] || [];
         const canAct = walletLockCanAct();
+        const draft = canAct ? (game.draft[state.turn] || []) : [];
         controls.className = "wallet-lock-controls";
-        controls.innerHTML = `
-          ${canAct ? "" : `<p class="wallet-lock-note">Waiting for ${escapeHtml(labelFor(state.turn))} to submit a guess.</p>`}
+        controls.innerHTML = canAct ? `
           <div class="wallet-lock-draft">
             ${Array.from({ length: difficulty.codeLength }, (_, index) => `<span>${draft[index] || ""}</span>`).join("")}
           </div>
@@ -18465,7 +18465,7 @@
             <button type="button" data-wallet-lock-action="clear"${canAct ? "" : " disabled"}>Clear</button>
             <button type="button" class="primary" data-wallet-lock-submit${canAct ? "" : " disabled"}>Submit</button>
           </div>
-        `;
+        ` : `<p class="wallet-lock-note">Waiting for ${escapeHtml(labelFor(state.turn))} to submit a guess.</p>`;
         controls.addEventListener("click", (event) => {
           const symbolButton = event.target.closest("[data-wallet-lock-symbol]");
           if (symbolButton) {
@@ -18481,6 +18481,12 @@
         });
         els.board.appendChild(controls);
       }
+    }
+
+    function walletLockVisibleHistoryPlayers() {
+      const role = localOnlineRole();
+      if (state.online.room && (role === SUB || role === DOM)) return [role];
+      return [SUB, DOM];
     }
 
     function renderWalletLockHistory(player, difficulty) {
