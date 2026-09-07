@@ -256,6 +256,7 @@
       <h1 id="gameSelectTitle">Game Select</h1>
       <p class="subtitle" id="playerSummary">Choose a game.</p>
       <div class="setup-actions">
+        <button id="randomGameBtn" class="random-game-button" type="button">Random Game</button>
         <button class="leave-room-btn hidden">Leave Lobby</button>
         <a class="download-link-button deck-download" href="https://files.catbox.moe/i898dp.zip" target="_blank" rel="noopener">Download card deck</a>
         <a class="download-link-button throne-extension-download hidden" id="throneExtensionDownloadLink" href="https://catbox.moe/c/q6bnvl" target="_blank" rel="noopener">Install Throne helper</a>
@@ -377,6 +378,14 @@
         <span>
           <span class="game-card-title">Tribute Tic Tac Toe</span>
           <span class="game-card-copy">Quick three-in-a-row bets. In reclaim, the dom starts and drawn boards go to her.</span>
+        </span>
+        <strong class="status-pill">Play</strong>
+      </button>
+
+      <button class="panel game-card" id="walletLockCard" data-open-game="walletLock" data-game-categories="board chance all">
+        <span>
+          <span class="game-card-title">Wallet Lock</span>
+          <span class="game-card-copy">Race to crack the same random symbol code before the wallet opens.</span>
         </span>
         <strong class="status-pill">Play</strong>
       </button>

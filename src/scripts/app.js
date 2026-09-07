@@ -17,6 +17,18 @@
     const SUB = "sub";
     const DOM = "dom";
     const SPECTATOR = "spectator";
+    const WALLET_LOCK_SYMBOLS = [
+      "💵", "💳", "💰", "🤑", "🐷",
+      "🔒", "💎", "🛐", "🧎", "👠",
+      "🦶", "💋", "🫦", "🖤", "♠️",
+      "😵‍💫", "🥵", "🤤", "🫠", "🍆"
+    ];
+    const WALLET_LOCK_DIFFICULTIES = [
+      { id: "easy", label: "Easy", codeLength: 4, symbolCount: 10, guesses: 8 },
+      { id: "standard", label: "Standard", codeLength: 4, symbolCount: 12, guesses: 8 },
+      { id: "hard", label: "Hard", codeLength: 5, symbolCount: 14, guesses: 9 },
+      { id: "cruel", label: "Cruel", codeLength: 5, symbolCount: 16, guesses: 10 }
+    ];
     const WHEEL_LIMIT_WINDOW_MS = 15 * 60 * 1000;
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
@@ -219,6 +231,7 @@
       crazyEights: createCrazyEightsState(),
       doubleSolitaire: createDoubleSolitaireState(),
       ticTacToe: createTicTacToeState(),
+      walletLock: createWalletLockState(),
       dice: createDiceState(),
       wheel: createWheelState(),
       trail: createTrailState(),
@@ -363,6 +376,7 @@
       menuRulesFinalText: document.getElementById("menuRulesFinalText"),
       settingsTabs: document.querySelectorAll(".settings-tab"),
       gameSelectTabs: document.querySelectorAll(".game-select-tab"),
+      randomGameBtn: document.getElementById("randomGameBtn"),
       throneExtensionDownloadLink: document.getElementById("throneExtensionDownloadLink"),
       throneAmountControl: document.getElementById("throneAmountControl"),
       throneAmountInput: document.getElementById("throneAmountInput"),
@@ -824,6 +838,26 @@
       };
     }
 
+    function createWalletLockState() {
+      const difficulty = walletLockDifficultyById("standard");
+      return {
+        difficulty: difficulty.id,
+        phase: "idle",
+        symbols: [],
+        code: [],
+        guesses: {
+          sub: [],
+          dom: []
+        },
+        draft: {
+          sub: [],
+          dom: []
+        },
+        winner: null,
+        message: "Choose a lock setup."
+      };
+    }
+
     function createVsPcState() {
       return {
         active: false,
@@ -857,6 +891,34 @@
         : isThroneSession()
           ? TIC_TAC_TOE_FORMATS.filter((format) => format.id !== "first1")
           : TIC_TAC_TOE_FORMATS;
+    }
+
+    function walletLockDifficultyById(id) {
+      return WALLET_LOCK_DIFFICULTIES.find((option) => option.id === id) || WALLET_LOCK_DIFFICULTIES[1];
+    }
+
+    function normalizeWalletLockState(value) {
+      const base = createWalletLockState();
+      const merged = {
+        ...base,
+        ...(value || {})
+      };
+      const difficulty = walletLockDifficultyById(merged.difficulty);
+      merged.difficulty = difficulty.id;
+      merged.phase = ["idle", "setup", "active", "finished"].includes(merged.phase) ? merged.phase : "idle";
+      merged.symbols = Array.isArray(merged.symbols) ? merged.symbols.filter(Boolean) : [];
+      merged.code = Array.isArray(merged.code) ? merged.code.filter(Boolean) : [];
+      merged.guesses = {
+        sub: Array.isArray(merged.guesses && merged.guesses.sub) ? merged.guesses.sub : [],
+        dom: Array.isArray(merged.guesses && merged.guesses.dom) ? merged.guesses.dom : []
+      };
+      merged.draft = {
+        sub: Array.isArray(merged.draft && merged.draft.sub) ? merged.draft.sub : [],
+        dom: Array.isArray(merged.draft && merged.draft.dom) ? merged.draft.dom : []
+      };
+      merged.winner = merged.winner === SUB || merged.winner === DOM || merged.winner === "draw" ? merged.winner : null;
+      merged.message = String(merged.message || "");
+      return merged;
     }
 
     function soloGameSelectOpen() {
@@ -2460,6 +2522,21 @@
       publishState();
     }
 
+    function openWalletLock() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "walletLock";
+      setScreen("game");
+      resetLossPressure();
+      resetWalletLockBoard();
+      state.walletLock.phase = "setup";
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>Wallet Lock opened.</strong> ${state.names.dom} picks a lock setup, then both players race to crack the same symbol code.`);
+      render();
+      publishState();
+    }
+
     function openWheelSpin() {
       if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
       state.pendingWager = null;
@@ -2776,6 +2853,7 @@
       renderMenuRules();
       renderSettings();
       renderGameSelectTabs();
+      updateRandomGameButton();
       renderControlGlow();
       maybePromptSessionMode();
     }
@@ -2815,6 +2893,35 @@
         const categories = (card.dataset.gameCategories || "").split(/\s+/);
         card.classList.toggle("hidden", !categories.includes(tab));
       });
+      updateRandomGameButton();
+    }
+
+    function randomGameCards() {
+      if (!els.mainGamesGrid) return [];
+      return [...els.mainGamesGrid.querySelectorAll(".game-card[data-open-game]")]
+        .filter((card) => !card.disabled
+          && !card.classList.contains("hidden")
+          && card.dataset.gameHidden !== "true"
+          && card.dataset.openGame);
+    }
+
+    function updateRandomGameButton() {
+      if (!els.randomGameBtn) return;
+      const cards = randomGameCards();
+      const soloSelect = soloGameSelectOpen();
+      els.randomGameBtn.classList.toggle("hidden", state.screen !== "select");
+      els.randomGameBtn.disabled = state.screen !== "select" || !cards.length;
+      els.randomGameBtn.textContent = soloSelect ? "Random Solo" : "Random Game";
+      els.randomGameBtn.title = cards.length
+        ? `Pick from ${cards.length} visible game${cards.length === 1 ? "" : "s"}`
+        : "No available games in this tab";
+    }
+
+    function openRandomGame() {
+      const cards = randomGameCards();
+      if (!cards.length) return;
+      const card = cards[Math.floor(Math.random() * cards.length)];
+      card.click();
     }
 
     function pipPositions(count) {
@@ -7582,6 +7689,7 @@
         crazyEights: state.crazyEights,
         doubleSolitaire: state.doubleSolitaire,
         ticTacToe: state.ticTacToe,
+        walletLock: state.walletLock,
         dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
@@ -7661,6 +7769,7 @@
       state.crazyEights = snapshot.crazyEights || state.crazyEights;
       state.doubleSolitaire = snapshot.doubleSolitaire || state.doubleSolitaire;
       state.ticTacToe = normalizeTicTacToeState(snapshot.ticTacToe || state.ticTacToe);
+      state.walletLock = normalizeWalletLockState(snapshot.walletLock || state.walletLock);
       state.vsPc = createVsPcState();
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
@@ -7887,6 +7996,7 @@
           crazyEights: latest.crazyEights,
           doubleSolitaire: latest.doubleSolitaire,
           ticTacToe: latest.ticTacToe,
+          walletLock: latest.walletLock,
           dice: latest.dice,
           wheel: latest.wheel,
           trail: latest.trail,
@@ -8305,7 +8415,8 @@
       "tributeTwentyOne",
       "tributeCrazyEights",
       "doubleSolitaire",
-      "tributeTicTacToe"
+      "tributeTicTacToe",
+      "walletLock"
     ]);
 
     function usesRoundFlow(game = state.currentGame) {
@@ -8970,6 +9081,10 @@
         startTicTacToeNormalMatch();
         return;
       }
+      if (state.currentGame === "walletLock") {
+        startWalletLockNormalMatch();
+        return;
+      }
       if (state.currentGame === "wheelSpin") {
         startWheelSpinNormalMatch();
         return;
@@ -9026,6 +9141,10 @@
       }
       if (state.currentGame === "tributeTicTacToe") {
         startTicTacToeReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "walletLock") {
+        startWalletLockReclaimMatch();
         return;
       }
       if (state.currentGame === "wheelSpin") {
@@ -12085,6 +12204,8 @@
         resetDoubleSolitaireBoard();
       } else if (state.currentGame === "tributeTicTacToe") {
         resetTributeTicTacToeBoard();
+      } else if (state.currentGame === "walletLock") {
+        resetWalletLockBoard();
       } else if (state.currentGame === "wheelSpin") {
         resetWheelSpinBoard();
       } else if (state.currentGame === "tributeTrail") {
@@ -13263,6 +13384,196 @@
       state.reclaimPassAvailable = false;
       state.blockedColumns = [];
       state.domOpened = false;
+    }
+
+    function resetWalletLockBoard() {
+      state.walletLock = createWalletLockState();
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+    }
+
+    function sampleWalletLockSymbols(count) {
+      const symbols = [...WALLET_LOCK_SYMBOLS];
+      for (let index = symbols.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [symbols[index], symbols[swapIndex]] = [symbols[swapIndex], symbols[index]];
+      }
+      return symbols.slice(0, Math.max(1, Math.min(symbols.length, Number(count) || 12)));
+    }
+
+    function createWalletLockCode(symbols, length) {
+      const pool = symbols && symbols.length ? symbols : sampleWalletLockSymbols(12);
+      return Array.from({ length: Math.max(1, Number(length) || 4) }, () => pool[Math.floor(Math.random() * pool.length)]);
+    }
+
+    function startWalletLockRound(type) {
+      const amount = prepareRound(type, "lock");
+      if (amount === null) return;
+      const game = normalizeWalletLockState(state.walletLock);
+      const difficulty = walletLockDifficultyById(game.difficulty);
+      const symbols = sampleWalletLockSymbols(difficulty.symbolCount);
+      state.turn = type === "reclaim" ? DOM : chooseStartingPlayer();
+      state.walletLock = {
+        ...createWalletLockState(),
+        difficulty: difficulty.id,
+        phase: "active",
+        symbols,
+        code: createWalletLockCode(symbols, difficulty.codeLength),
+        message: `${labelFor(state.turn)} is guessing first.`
+      };
+      const intro = type === "reclaim"
+        ? `<strong>Reclaim lock:</strong> ${state.names.sub} is trying to crack back ${money(amount)}.`
+        : normalRoundAmountIntro(amount);
+      finishRoundStart(`${intro} Wallet Lock is armed with ${difficulty.codeLength} symbols. ${labelFor(state.turn)} guesses first.`);
+    }
+
+    function startWalletLockNormalMatch() {
+      startWalletLockRound("normal");
+    }
+
+    function startWalletLockReclaimMatch() {
+      startWalletLockRound("reclaim");
+    }
+
+    function setWalletLockDifficulty(difficultyId) {
+      if (state.currentGame !== "walletLock") return;
+      if (state.active || state.pot > 0 || state.pendingWager || state.normalReplayPrompt) return;
+      if (state.online.room && localOnlineRole() && localOnlineRole() !== DOM) return;
+      const difficulty = walletLockDifficultyById(difficultyId);
+      state.walletLock = normalizeWalletLockState({
+        ...state.walletLock,
+        difficulty: difficulty.id,
+        phase: "setup",
+        message: `${difficulty.label} lock selected.`
+      });
+      render();
+      publishState();
+    }
+
+    function walletLockCanAct(player = state.turn) {
+      return state.currentGame === "walletLock"
+        && state.active
+        && state.walletLock
+        && state.walletLock.phase === "active"
+        && (!localOnlineRole() || localOnlineRole() === player);
+    }
+
+    function walletLockDraftFor(player) {
+      state.walletLock = normalizeWalletLockState(state.walletLock);
+      if (!Array.isArray(state.walletLock.draft[player])) state.walletLock.draft[player] = [];
+      return state.walletLock.draft[player];
+    }
+
+    function chooseWalletLockSymbol(symbol) {
+      if (!walletLockCanAct()) return;
+      const game = normalizeWalletLockState(state.walletLock);
+      const difficulty = walletLockDifficultyById(game.difficulty);
+      const draft = walletLockDraftFor(state.turn);
+      if (draft.length >= difficulty.codeLength || !game.symbols.includes(symbol)) return;
+      draft.push(symbol);
+      state.walletLock.message = `${labelFor(state.turn)} is building a guess.`;
+      render();
+      publishState();
+    }
+
+    function editWalletLockDraft(action) {
+      if (!walletLockCanAct()) return;
+      const draft = walletLockDraftFor(state.turn);
+      if (action === "back") draft.pop();
+      if (action === "clear") draft.splice(0, draft.length);
+      state.walletLock.message = draft.length ? `${labelFor(state.turn)} is building a guess.` : `${labelFor(state.turn)} needs a code guess.`;
+      render();
+      publishState();
+    }
+
+    function scoreWalletLockGuess(guess, code) {
+      const remaining = {};
+      const feedback = guess.map((symbol, index) => {
+        if (symbol === code[index]) return "exact";
+        remaining[code[index]] = Number(remaining[code[index]] || 0) + 1;
+        return "";
+      });
+      return feedback.map((value, index) => {
+        if (value) return value;
+        const symbol = guess[index];
+        if (remaining[symbol] > 0) {
+          remaining[symbol] -= 1;
+          return "near";
+        }
+        return "miss";
+      });
+    }
+
+    function submitWalletLockGuess() {
+      if (!walletLockCanAct()) return;
+      const game = normalizeWalletLockState(state.walletLock);
+      const difficulty = walletLockDifficultyById(game.difficulty);
+      const draft = walletLockDraftFor(state.turn);
+      if (draft.length !== difficulty.codeLength) {
+        state.walletLock.message = `Pick ${difficulty.codeLength} symbols before submitting.`;
+        render();
+        return;
+      }
+      const guess = [...draft];
+      const feedback = scoreWalletLockGuess(guess, game.code);
+      state.walletLock.guesses[state.turn].push({
+        symbols: guess,
+        feedback
+      });
+      state.walletLock.draft[state.turn] = [];
+      if (feedback.every((item) => item === "exact")) {
+        finishWalletLock(state.turn, `${labelFor(state.turn)} cracked the wallet lock.`);
+        return;
+      }
+      const subDone = state.walletLock.guesses.sub.length >= difficulty.guesses;
+      const domDone = state.walletLock.guesses.dom.length >= difficulty.guesses;
+      if (subDone && domDone) {
+        finishWalletLock(state.mode === "reclaim" ? DOM : "draw", `Nobody cracked the lock.`);
+        return;
+      }
+      state.turn = state.turn === SUB ? DOM : SUB;
+      if (state.walletLock.guesses[state.turn].length >= difficulty.guesses) {
+        state.turn = state.turn === SUB ? DOM : SUB;
+      }
+      state.walletLock.message = `${labelFor(state.turn)} guesses next.`;
+      render();
+      publishState();
+    }
+
+    function finishWalletLock(winner, reason) {
+      state.active = false;
+      state.walletLock = normalizeWalletLockState({
+        ...state.walletLock,
+        phase: "finished",
+        winner,
+        message: reason
+      });
+      if (winner === "draw") {
+        addLog(`<strong>Wallet Lock holds.</strong> ${reason}`);
+        state.pot = 0;
+        render();
+        publishState();
+        return;
+      }
+      const result = settleRoundBank(winner);
+      if (result.outcome === "subReclaim") {
+        addLog(`<strong>${state.names.sub} cracks Wallet Lock.</strong> ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "subNormal") {
+        addLog(`<strong>${state.names.sub} cracks Wallet Lock.</strong> The wallet stays shut.`);
+      } else if (result.outcome === "domReclaim") {
+        addLog(`<strong>${state.names.dom} cracks Wallet Lock.</strong> ${money(result.amount)} is added to her bank.`);
+      } else if (result.outcome === "domNormal") {
+        addLog(`<strong>${state.names.dom} cracks Wallet Lock.</strong> ${money(result.amount)} moves into her bank.`);
+      } else if (result.outcome === "domThrone") {
+        addLog(`<strong>${state.names.sub} loses Wallet Lock.</strong> The Throne page opens automatically.`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
     }
 
     function isTicTacToeVsPc() {
@@ -18029,6 +18340,10 @@
         renderTicTacToeBoard();
         return;
       }
+      if (state.currentGame === "walletLock") {
+        renderWalletLockBoard();
+        return;
+      }
       if (state.currentGame === "wheelSpin") {
         renderWheelSpinBoard();
         return;
@@ -18065,6 +18380,119 @@
           els.board.appendChild(cell);
         }
       }
+    }
+
+    function renderWalletLockBoard() {
+      els.board.innerHTML = "";
+      els.board.className = "wallet-lock-shell";
+      state.walletLock = normalizeWalletLockState(state.walletLock);
+      const game = state.walletLock;
+      const difficulty = walletLockDifficultyById(game.difficulty);
+      const canSetup = !state.active && state.pot <= 0 && !state.pendingWager && !state.normalReplayPrompt && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
+      const setup = document.createElement("div");
+      setup.className = `wallet-lock-panel ${!state.active ? "wallet-lock-popup" : ""}`.trim();
+      setup.innerHTML = `
+        <div class="wallet-lock-topline">
+          <strong>${escapeHtml(difficulty.label)} Lock</strong>
+          <span>${difficulty.codeLength} symbols · ${difficulty.symbolCount} in play · ${difficulty.guesses} guesses each</span>
+        </div>
+        <div class="wallet-lock-difficulty-row">
+          ${WALLET_LOCK_DIFFICULTIES.map((option) => `
+            <button type="button" data-wallet-lock-difficulty="${option.id}" class="${option.id === difficulty.id ? "active" : ""}"${canSetup ? "" : " disabled"}>${option.label}</button>
+          `).join("")}
+        </div>
+        ${!state.active && !state.normalReplayPrompt ? `
+          <p class="wallet-lock-note">${state.online.room && localOnlineRole() && localOnlineRole() !== DOM ? `${escapeHtml(state.names.dom)} is choosing the lock.` : "Pick the lock size, then start the race."}</p>
+          ${isThroneSession() ? `<button type="button" class="primary wallet-lock-start" data-wallet-lock-start${canSetup ? "" : " disabled"}>Start</button>` : ""}
+        ` : ""}
+      `;
+      setup.addEventListener("click", (event) => {
+        const difficultyButton = event.target.closest("[data-wallet-lock-difficulty]");
+        if (difficultyButton && !difficultyButton.disabled) {
+          setWalletLockDifficulty(difficultyButton.dataset.walletLockDifficulty);
+          return;
+        }
+        const startButton = event.target.closest("[data-wallet-lock-start]");
+        if (startButton && !startButton.disabled) {
+          wagerStartBypass = true;
+          try {
+            startNormalMatch();
+          } finally {
+            wagerStartBypass = false;
+          }
+        }
+      });
+      els.board.appendChild(setup);
+
+      const table = document.createElement("div");
+      table.className = "wallet-lock-table";
+      const revealCode = !state.active && game.code.length;
+      table.innerHTML = `
+        <div class="wallet-lock-secret" aria-label="Secret code">
+          ${(revealCode ? game.code : Array.from({ length: difficulty.codeLength }, () => "🔒")).map((symbol) => `<span>${symbol}</span>`).join("")}
+        </div>
+        <div class="wallet-lock-status">${escapeHtml(game.message || (state.active ? `${labelFor(state.turn)} is guessing.` : "The lock is ready."))}</div>
+        <div class="wallet-lock-histories">
+          ${[SUB, DOM].map((player) => renderWalletLockHistory(player, difficulty)).join("")}
+        </div>
+      `;
+      els.board.appendChild(table);
+
+      if (state.active && game.phase === "active") {
+        const controls = document.createElement("div");
+        const draft = game.draft[state.turn] || [];
+        const canAct = walletLockCanAct();
+        controls.className = "wallet-lock-controls";
+        controls.innerHTML = `
+          <div class="wallet-lock-draft">
+            ${Array.from({ length: difficulty.codeLength }, (_, index) => `<span>${draft[index] || ""}</span>`).join("")}
+          </div>
+          <div class="wallet-lock-symbols">
+            ${game.symbols.map((symbol) => `<button type="button" data-wallet-lock-symbol="${escapeHtml(symbol)}"${canAct ? "" : " disabled"}>${symbol}</button>`).join("")}
+          </div>
+          <div class="wallet-lock-actions">
+            <button type="button" data-wallet-lock-action="back"${canAct ? "" : " disabled"}>Back</button>
+            <button type="button" data-wallet-lock-action="clear"${canAct ? "" : " disabled"}>Clear</button>
+            <button type="button" class="primary" data-wallet-lock-submit${canAct ? "" : " disabled"}>Submit</button>
+          </div>
+        `;
+        controls.addEventListener("click", (event) => {
+          const symbolButton = event.target.closest("[data-wallet-lock-symbol]");
+          if (symbolButton) {
+            chooseWalletLockSymbol(symbolButton.dataset.walletLockSymbol);
+            return;
+          }
+          const actionButton = event.target.closest("[data-wallet-lock-action]");
+          if (actionButton) {
+            editWalletLockDraft(actionButton.dataset.walletLockAction);
+            return;
+          }
+          if (event.target.closest("[data-wallet-lock-submit]")) submitWalletLockGuess();
+        });
+        els.board.appendChild(controls);
+      }
+    }
+
+    function renderWalletLockHistory(player, difficulty) {
+      const game = normalizeWalletLockState(state.walletLock);
+      const rows = Array.from({ length: difficulty.guesses }, (_, index) => {
+        const guess = game.guesses[player][index];
+        if (!guess) {
+          return `<div class="wallet-lock-row empty">${Array.from({ length: difficulty.codeLength }, () => "<span></span>").join("")}<b></b></div>`;
+        }
+        return `
+          <div class="wallet-lock-row">
+            ${guess.symbols.map((symbol) => `<span>${symbol}</span>`).join("")}
+            <b>${guess.feedback.map((item) => `<i class="${item}"></i>`).join("")}</b>
+          </div>
+        `;
+      }).join("");
+      return `
+        <section class="wallet-lock-history ${player} ${state.turn === player && state.active ? "active" : ""}">
+          <h3>${escapeHtml(labelFor(player))}</h3>
+          ${rows}
+        </section>
+      `;
     }
 
     function renderTicTacToeBoard() {
@@ -20895,7 +21323,7 @@
 
     function currentTiltStatusItems() {
       if (state.screen !== "game") return [];
-      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") return [];
+      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "walletLock" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") return [];
       if (state.currentGame === "tributeReversi") {
         if (state.mode !== "reclaim") return [];
         const commandText = state.reversi && state.reversi.commandMode
@@ -20965,6 +21393,7 @@
       if (state.currentGame === "tributeCrazyEights") return "Tribute 8s";
       if (state.currentGame === "doubleSolitaire") return "Solitaire Duel";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
+      if (state.currentGame === "walletLock") return "Wallet Lock";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
       if (state.currentGame === "tributeTrail") return "Tribute Trail";
       if (state.currentGame === "obedienceOrders") return "Obedience Orders";
@@ -21005,6 +21434,10 @@
       }
       if (state.currentGame === "tributeTicTacToe") {
         renderTicTacToeRules();
+        return;
+      }
+      if (state.currentGame === "walletLock") {
+        renderWalletLockRules();
         return;
       }
       if (state.currentGame === "wheelSpin") {
@@ -21064,6 +21497,18 @@
         `<strong>Draw:</strong> if you cannot play, draw one card. If you still have no legal play, the turn passes automatically.`,
         `<strong>Normal win:</strong> if ${state.names.dom} empties her hand first, the bet enters her bank. If ${state.names.sub} wins, the bet is safe.`,
         `<strong>Reclaim:</strong> ${state.names.sub} plays to win back ${state.names.dom}'s bank; ${state.names.dom} starts reclaim games.`
+      ];
+      setRuleList(rules);
+    }
+
+    function renderWalletLockRules() {
+      const rules = [
+        `<strong>Goal:</strong> crack the hidden symbol code before the other player.`,
+        `<strong>Setup:</strong> ${state.names.dom} chooses the lock difficulty. Harder locks use longer codes and more possible symbols.`,
+        `<strong>Play:</strong> players take turns submitting a full row of symbols.`,
+        `<strong>Feedback:</strong> gold dots mean a symbol is correct and in the right place. Pink dots mean the symbol is in the code but in another place. Dark dots mean it is not used there.`,
+        `<strong>Repeats:</strong> the hidden code may use the same symbol more than once.`,
+        `<strong>Reclaim:</strong> if neither player cracks the code, ${state.names.dom} claims the locked round.`
       ];
       setRuleList(rules);
     }
@@ -21390,7 +21835,7 @@
       }
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
         ? (isThroneSession() ? "Throne Wheel" : "Free Spin")
-        : (isTicTacToeVsPc() ? "Vs PC" : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Duel" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match")))))));
+        : (isTicTacToeVsPc() ? "Vs PC" : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Duel" : (state.currentGame === "walletLock" ? "Symbol Lock" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))))))));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
@@ -21478,6 +21923,18 @@
           els.turnText.innerHTML = `<strong>Tic Tac Toe match finished.</strong> ${ticTacToeScoreText()}.`;
         } else {
           els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Tic Tac Toe match length before the first board.`;
+        }
+      } else if (state.currentGame === "walletLock") {
+        const game = normalizeWalletLockState(state.walletLock);
+        const difficulty = walletLockDifficultyById(game.difficulty);
+        if (state.active) {
+          els.turnText.innerHTML = `<strong>${labelFor(state.turn)}</strong> is cracking the Wallet Lock. ${difficulty.guesses - game.guesses[state.turn].length} guess${difficulty.guesses - game.guesses[state.turn].length === 1 ? "" : "es"} left.`;
+        } else if (game.winner) {
+          els.turnText.innerHTML = game.winner === "draw"
+            ? `<strong>Wallet Lock held.</strong> Nobody cracked the code.`
+            : `<strong>${labelFor(game.winner)}</strong> cracked the Wallet Lock.`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Wallet Lock setup.`;
         }
       } else if (state.currentGame === "tributeReversi") {
         const score = reversiScore();
@@ -21630,7 +22087,7 @@
         els.passBtn.classList.toggle("hidden", !(canCommand || (state.reversi && state.reversi.commandMode)));
         els.passBtn.disabled = !canCommand;
         els.passBtn.textContent = state.reversi && state.reversi.commandMode ? "Command Armed" : "Command Move";
-      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") {
+      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "walletLock" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") {
         els.passBtn.classList.add("hidden");
       } else {
         const tributeFourPowerReady = !state.lockColumnMode && ((state.lockColumnAvailable && !state.lockColumnMode) || (state.pressureDropAvailable && !state.pressureDropArmed));
@@ -21890,6 +22347,7 @@
     els.gameSelectTabs.forEach((button) => {
       button.addEventListener("click", () => updateSettings({ activeGameTab: button.dataset.gameTab }));
     });
+    if (els.randomGameBtn) els.randomGameBtn.addEventListener("click", openRandomGame);
     els.blackjackSettingsModal.querySelectorAll("[data-blackjack-rounds]").forEach((button) => {
       button.addEventListener("click", () => setBlackjackRounds(button.dataset.blackjackRounds));
     });
@@ -22606,6 +23064,7 @@
       solitaire: openSolitaire,
       memoryMatch: openMemoryMatch,
       tributeTicTacToe: openTributeTicTacToe,
+      walletLock: openWalletLock,
       wheelSpin: openWheelSpin,
       obedienceOrders: openObedienceOrders,
       tributeTrail: openTributeTrail,
