@@ -29,6 +29,9 @@
       { id: "hard", label: "Hard", codeLength: 5, symbolCount: 14, guesses: 9 },
       { id: "cruel", label: "Cruel", codeLength: 5, symbolCount: 16, guesses: 10 }
     ];
+    const WALLET_WORD_GUESSES = 6;
+    const WALLET_WORD_MIN_LENGTH = 4;
+    const WALLET_WORD_MAX_LENGTH = 10;
     const WHEEL_LIMIT_WINDOW_MS = 15 * 60 * 1000;
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
@@ -232,6 +235,7 @@
       doubleSolitaire: createDoubleSolitaireState(),
       ticTacToe: createTicTacToeState(),
       walletLock: createWalletLockState(),
+      walletWord: createWalletWordState(),
       dice: createDiceState(),
       wheel: createWheelState(),
       trail: createTrailState(),
@@ -858,6 +862,18 @@
       };
     }
 
+    function createWalletWordState() {
+      return {
+        phase: "idle",
+        word: "",
+        wordLength: 5,
+        guesses: [],
+        draft: "",
+        winner: null,
+        message: "Dom chooses the wallet word."
+      };
+    }
+
     function createVsPcState() {
       return {
         active: false,
@@ -916,6 +932,33 @@
         sub: Array.isArray(merged.draft && merged.draft.sub) ? merged.draft.sub : [],
         dom: Array.isArray(merged.draft && merged.draft.dom) ? merged.draft.dom : []
       };
+      merged.winner = merged.winner === SUB || merged.winner === DOM || merged.winner === "draw" ? merged.winner : null;
+      merged.message = String(merged.message || "");
+      return merged;
+    }
+
+    function normalizeWalletWordText(value) {
+      return String(value || "")
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "")
+        .slice(0, WALLET_WORD_MAX_LENGTH);
+    }
+
+    function normalizeWalletWordState(value) {
+      const base = createWalletWordState();
+      const merged = {
+        ...base,
+        ...(value || {})
+      };
+      merged.phase = ["idle", "setup", "active", "finished"].includes(merged.phase) ? merged.phase : "idle";
+      merged.word = normalizeWalletWordText(merged.word);
+      merged.wordLength = Math.max(
+        WALLET_WORD_MIN_LENGTH,
+        Math.min(WALLET_WORD_MAX_LENGTH, Number(merged.wordLength) || merged.word.length || 5)
+      );
+      if (merged.word.length) merged.wordLength = merged.word.length;
+      merged.guesses = Array.isArray(merged.guesses) ? merged.guesses : [];
+      merged.draft = normalizeWalletWordText(merged.draft).slice(0, merged.wordLength);
       merged.winner = merged.winner === SUB || merged.winner === DOM || merged.winner === "draw" ? merged.winner : null;
       merged.message = String(merged.message || "");
       return merged;
@@ -2533,6 +2576,21 @@
       applyDefaultBet();
       els.log.innerHTML = "";
       addLog(`<strong>Wallet Lock opened.</strong> ${state.names.dom} picks a lock setup, then both players race to crack the same symbol code.`);
+      render();
+      publishState();
+    }
+
+    function openWalletWord() {
+      if (state.screen === "select" && localOnlineRole() && localOnlineRole() !== DOM) return;
+      state.pendingWager = null;
+      state.currentGame = "walletWord";
+      setScreen("game");
+      resetLossPressure();
+      resetWalletWordBoard();
+      state.walletWord.phase = "setup";
+      applyDefaultBet();
+      els.log.innerHTML = "";
+      addLog(`<strong>Wallet Word opened.</strong> ${state.names.dom} locks in a secret word, then ${state.names.sub} gets six guesses to crack it.`);
       render();
       publishState();
     }
@@ -7689,9 +7747,10 @@
         higherLower: state.higherLower,
         crazyEights: state.crazyEights,
         doubleSolitaire: state.doubleSolitaire,
-        ticTacToe: state.ticTacToe,
-        walletLock: state.walletLock,
-        dice: state.dice,
+      ticTacToe: state.ticTacToe,
+      walletLock: state.walletLock,
+      walletWord: state.walletWord,
+      dice: state.dice,
         wheel: state.wheel,
         trail: state.trail,
         obedience: state.obedience,
@@ -7771,6 +7830,7 @@
       state.doubleSolitaire = snapshot.doubleSolitaire || state.doubleSolitaire;
       state.ticTacToe = normalizeTicTacToeState(snapshot.ticTacToe || state.ticTacToe);
       state.walletLock = normalizeWalletLockState(snapshot.walletLock || state.walletLock);
+      state.walletWord = normalizeWalletWordState(snapshot.walletWord || state.walletWord);
       state.vsPc = createVsPcState();
       state.dice = snapshot.dice || state.dice;
       state.wheel = snapshot.wheel || state.wheel;
@@ -7998,6 +8058,7 @@
           doubleSolitaire: latest.doubleSolitaire,
           ticTacToe: latest.ticTacToe,
           walletLock: latest.walletLock,
+          walletWord: latest.walletWord,
           dice: latest.dice,
           wheel: latest.wheel,
           trail: latest.trail,
@@ -8417,7 +8478,8 @@
       "tributeCrazyEights",
       "doubleSolitaire",
       "tributeTicTacToe",
-      "walletLock"
+      "walletLock",
+      "walletWord"
     ]);
 
     function usesRoundFlow(game = state.currentGame) {
@@ -9049,6 +9111,16 @@
     }
 
     function startNormalMatch() {
+      if (state.currentGame === "walletWord" && !walletWordReadyToStart()) {
+        state.walletWord = normalizeWalletWordState({
+          ...state.walletWord,
+          phase: "setup",
+          message: `Enter a ${WALLET_WORD_MIN_LENGTH}-${WALLET_WORD_MAX_LENGTH} letter word first.`
+        });
+        render();
+        publishState();
+        return;
+      }
       if (!wagerStartBypass && !requestWagerApproval("normal")) return;
       if (state.currentGame === "tributeChess") {
         startChessNormalMatch();
@@ -9086,6 +9158,10 @@
         startWalletLockNormalMatch();
         return;
       }
+      if (state.currentGame === "walletWord") {
+        startWalletWordNormalMatch();
+        return;
+      }
       if (state.currentGame === "wheelSpin") {
         startWheelSpinNormalMatch();
         return;
@@ -9112,6 +9188,16 @@
     }
 
     function startReclaimMatch() {
+      if (state.currentGame === "walletWord" && !walletWordReadyToStart()) {
+        state.walletWord = normalizeWalletWordState({
+          ...state.walletWord,
+          phase: "setup",
+          message: `Enter a ${WALLET_WORD_MIN_LENGTH}-${WALLET_WORD_MAX_LENGTH} letter word first.`
+        });
+        render();
+        publishState();
+        return;
+      }
       if (!wagerStartBypass && !requestWagerApproval("reclaim")) return;
       if (state.currentGame === "tributeChess") {
         startChessReclaimMatch();
@@ -9146,6 +9232,10 @@
       }
       if (state.currentGame === "walletLock") {
         startWalletLockReclaimMatch();
+        return;
+      }
+      if (state.currentGame === "walletWord") {
+        startWalletWordReclaimMatch();
         return;
       }
       if (state.currentGame === "wheelSpin") {
@@ -12147,6 +12237,22 @@
         publishState();
         return;
       }
+      if (state.currentGame === "walletLock") {
+        resetWalletLockBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Wallet Lock reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
+      if (state.currentGame === "walletWord") {
+        resetWalletWordBoard();
+        els.log.innerHTML = "";
+        addLog(`<strong>Wallet Word reset.</strong> ${state.names.dom}'s bank stays at ${money(state.domVault)}.`);
+        render();
+        publishState();
+        return;
+      }
       if (state.currentGame === "wheelSpin") {
         resetWheelSpinBoard();
         els.log.innerHTML = "";
@@ -12207,6 +12313,8 @@
         resetTributeTicTacToeBoard();
       } else if (state.currentGame === "walletLock") {
         resetWalletLockBoard();
+      } else if (state.currentGame === "walletWord") {
+        resetWalletWordBoard();
       } else if (state.currentGame === "wheelSpin") {
         resetWheelSpinBoard();
       } else if (state.currentGame === "tributeTrail") {
@@ -13397,6 +13505,16 @@
       state.winningCells = [];
     }
 
+    function resetWalletWordBoard() {
+      state.walletWord = createWalletWordState();
+      state.turn = SUB;
+      state.active = false;
+      state.mode = "normal";
+      state.pot = 0;
+      state.lockedTribute = state.domVault;
+      state.winningCells = [];
+    }
+
     function sampleWalletLockSymbols(count) {
       const symbols = [...WALLET_LOCK_SYMBOLS];
       for (let index = symbols.length - 1; index > 0; index -= 1) {
@@ -13579,6 +13697,164 @@
         addLog(`<strong>${state.names.dom} cracks Wallet Lock.</strong> ${money(result.amount)} moves into her bank.`);
       } else if (result.outcome === "domThrone") {
         addLog(`<strong>${state.names.sub} loses Wallet Lock.</strong> The Throne page opens automatically.`);
+      }
+      state.pot = 0;
+      render();
+      publishState();
+    }
+
+    function walletWordReadyToStart() {
+      const game = normalizeWalletWordState(state.walletWord);
+      return game.word.length >= WALLET_WORD_MIN_LENGTH && game.word.length <= WALLET_WORD_MAX_LENGTH;
+    }
+
+    function startWalletWordRound(type) {
+      state.walletWord = normalizeWalletWordState(state.walletWord);
+      if (!walletWordReadyToStart()) {
+        state.walletWord.message = `Enter a ${WALLET_WORD_MIN_LENGTH}-${WALLET_WORD_MAX_LENGTH} letter word first.`;
+        render();
+        publishState();
+        return;
+      }
+      const amount = prepareRound(type, "word");
+      if (amount === null) return;
+      const word = normalizeWalletWordText(state.walletWord.word);
+      state.turn = SUB;
+      state.active = true;
+      state.walletWord = {
+        ...createWalletWordState(),
+        phase: "active",
+        word,
+        wordLength: word.length,
+        message: `${state.names.sub} is guessing.`
+      };
+      const intro = type === "reclaim"
+        ? `<strong>Reclaim word:</strong> ${state.names.sub} is trying to spell back ${money(amount)}.`
+        : normalRoundAmountIntro(amount);
+      finishRoundStart(`${intro} Wallet Word is locked with ${word.length} letters. ${state.names.sub} has ${WALLET_WORD_GUESSES} guesses.`);
+    }
+
+    function startWalletWordNormalMatch() {
+      startWalletWordRound("normal");
+    }
+
+    function startWalletWordReclaimMatch() {
+      startWalletWordRound("reclaim");
+    }
+
+    function setWalletWordSecret(value) {
+      if (state.currentGame !== "walletWord") return;
+      if (state.active || state.pot > 0 || state.pendingWager || state.normalReplayPrompt) return;
+      if (state.online.room && localOnlineRole() && localOnlineRole() !== DOM) return;
+      const word = normalizeWalletWordText(value);
+      state.walletWord = normalizeWalletWordState({
+        ...state.walletWord,
+        phase: "setup",
+        word,
+        wordLength: word.length || 5,
+        message: word.length
+          ? `${word.length} letter word ready.`
+          : "Dom chooses the wallet word."
+      });
+    }
+
+    function walletWordCanSetup() {
+      return state.currentGame === "walletWord"
+        && !state.active
+        && state.pot <= 0
+        && !state.pendingWager
+        && !state.normalReplayPrompt
+        && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
+    }
+
+    function walletWordCanAct() {
+      const role = localOnlineRole();
+      const hotSeatOnlineTest = Boolean(
+        state.online.room
+        && role
+        && role !== SPECTATOR
+        && !(state.online.seats && state.online.seats.one && state.online.seats.two)
+      );
+      return state.currentGame === "walletWord"
+        && state.active
+        && state.walletWord
+        && state.walletWord.phase === "active"
+        && (!role || role === SUB || hotSeatOnlineTest);
+    }
+
+    function setWalletWordDraft(value) {
+      if (!walletWordCanAct()) return;
+      state.walletWord = normalizeWalletWordState({
+        ...state.walletWord,
+        draft: normalizeWalletWordText(value).slice(0, state.walletWord.wordLength)
+      });
+      render();
+      publishState();
+    }
+
+    function editWalletWordDraft(action) {
+      if (!walletWordCanAct()) return;
+      const draft = normalizeWalletWordText(state.walletWord.draft);
+      if (action === "back") {
+        setWalletWordDraft(draft.slice(0, -1));
+        return;
+      }
+      if (action === "clear") {
+        setWalletWordDraft("");
+      }
+    }
+
+    function scoreWalletWordGuess(guess, answer) {
+      return scoreWalletLockGuess([...guess], [...answer]);
+    }
+
+    function submitWalletWordGuess() {
+      if (!walletWordCanAct()) return;
+      const game = normalizeWalletWordState(state.walletWord);
+      const guess = normalizeWalletWordText(game.draft);
+      if (guess.length !== game.wordLength) {
+        state.walletWord.message = `Type ${game.wordLength} letters before submitting.`;
+        render();
+        return;
+      }
+      const feedback = scoreWalletWordGuess(guess, game.word);
+      state.walletWord.guesses.push({
+        word: guess,
+        feedback
+      });
+      state.walletWord.draft = "";
+      if (feedback.every((item) => item === "exact")) {
+        finishWalletWord(SUB, `${state.names.sub} cracked the wallet word.`);
+        return;
+      }
+      if (state.walletWord.guesses.length >= WALLET_WORD_GUESSES) {
+        finishWalletWord(DOM, `${state.names.sub} ran out of guesses.`);
+        return;
+      }
+      state.walletWord.message = `${WALLET_WORD_GUESSES - state.walletWord.guesses.length} guesses left.`;
+      render();
+      publishState();
+    }
+
+    function finishWalletWord(winner, reason) {
+      state.active = false;
+      state.walletWord = normalizeWalletWordState({
+        ...state.walletWord,
+        phase: "finished",
+        winner,
+        message: reason
+      });
+      const result = settleRoundBank(winner);
+      if (result.outcome === "subReclaim") {
+        addLog(`<strong>${state.names.sub} cracks Wallet Word.</strong> ${money(result.amount)} is taken back from ${state.names.dom}'s bank.`);
+      } else if (result.outcome === "subNormal") {
+        addLog(`<strong>${state.names.sub} cracks Wallet Word.</strong> The wallet stays shut.`);
+      } else if (result.outcome === "domReclaim") {
+        addLog(`<strong>${state.names.dom}'s word holds.</strong> ${money(result.amount)} is added to her bank.`);
+      } else if (result.outcome === "domNormal") {
+        addLog(`<strong>${state.names.dom}'s word holds.</strong> ${money(result.amount)} moves into her bank.`);
+      } else if (result.outcome === "domThrone") {
+        addLog(`<strong>${state.names.sub} fails Wallet Word.</strong> The Throne page opens automatically.`);
       }
       state.pot = 0;
       render();
@@ -18353,6 +18629,10 @@
         renderWalletLockBoard();
         return;
       }
+      if (state.currentGame === "walletWord") {
+        renderWalletWordBoard();
+        return;
+      }
       if (state.currentGame === "wheelSpin") {
         renderWheelSpinBoard();
         return;
@@ -18529,6 +18809,158 @@
           ${rows}
         </section>
       `;
+    }
+
+    function renderWalletWordBoard() {
+      els.board.innerHTML = "";
+      state.walletWord = normalizeWalletWordState(state.walletWord);
+      const game = state.walletWord;
+      const canSetup = walletWordCanSetup();
+      const showSetupOnly = !state.active && !state.normalReplayPrompt && game.phase !== "finished";
+      els.board.className = `wallet-lock-shell wallet-word-shell ${showSetupOnly ? "wallet-lock-setup-screen" : ""}`.trim();
+
+      if (showSetupOnly) {
+        const setup = document.createElement("div");
+        setup.className = "wallet-lock-panel wallet-lock-popup wallet-word-setup";
+        setup.innerHTML = canSetup ? `
+          <div class="wallet-lock-topline">
+            <strong>Wallet Word</strong>
+            <span>${WALLET_WORD_GUESSES} guesses · ${WALLET_WORD_MIN_LENGTH}-${WALLET_WORD_MAX_LENGTH} letters</span>
+          </div>
+          <label class="wallet-word-secret-label">
+            <span>Secret word</span>
+            <input type="password" data-wallet-word-secret value="${escapeHtml(game.word)}" maxlength="${WALLET_WORD_MAX_LENGTH}" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="wallet">
+          </label>
+          <p class="wallet-lock-note">${escapeHtml(game.message || "Dom chooses the wallet word.")}</p>
+          ${isThroneSession() ? `<button type="button" class="primary wallet-lock-start" data-wallet-word-start${walletWordReadyToStart() ? "" : " disabled"}>Start</button>` : `<p class="wallet-lock-note">Use the bet controls to start once the word is ready.</p>`}
+        ` : `
+          <div class="wallet-lock-topline">
+            <strong>Wallet Word</strong>
+            <span>${WALLET_WORD_GUESSES} guesses</span>
+          </div>
+          <p class="wallet-lock-note">${escapeHtml(state.names.dom)} is choosing the secret word.</p>
+        `;
+        setup.addEventListener("input", (event) => {
+          const input = event.target.closest("[data-wallet-word-secret]");
+          if (!input || !canSetup) return;
+          setWalletWordSecret(input.value);
+          const startButton = setup.querySelector("[data-wallet-word-start]");
+          if (startButton) startButton.disabled = !walletWordReadyToStart();
+        });
+        setup.addEventListener("change", () => {
+          if (!canSetup) return;
+          render();
+          publishState();
+        });
+        setup.addEventListener("click", (event) => {
+          const startButton = event.target.closest("[data-wallet-word-start]");
+          if (startButton && !startButton.disabled) {
+            const input = setup.querySelector("[data-wallet-word-secret]");
+            if (input) setWalletWordSecret(input.value);
+            wagerStartBypass = true;
+            try {
+              startNormalMatch();
+            } finally {
+              wagerStartBypass = false;
+            }
+          }
+        });
+        els.board.appendChild(setup);
+        return;
+      }
+
+      const table = document.createElement("div");
+      table.className = "wallet-lock-table wallet-word-table";
+      const revealWord = !state.active && game.word.length;
+      const answerCells = revealWord ? [...game.word] : Array.from({ length: game.wordLength }, () => "•");
+      table.innerHTML = `
+        <div class="wallet-lock-secret wallet-word-secret" aria-label="Secret word">
+          ${answerCells.map((letter) => `<span>${escapeHtml(letter)}</span>`).join("")}
+        </div>
+        <div class="wallet-lock-status">${escapeHtml(game.message || (state.active ? `${state.names.sub} is guessing.` : "The wallet word is ready."))}</div>
+        ${renderWalletWordHistory()}
+      `;
+      els.board.appendChild(table);
+
+      if (state.active && game.phase === "active") {
+        const controls = document.createElement("div");
+        const canAct = walletWordCanAct();
+        const letterStates = walletWordLetterStates();
+        controls.className = "wallet-lock-controls wallet-word-controls";
+        controls.innerHTML = canAct ? `
+          <input class="wallet-word-guess-input" type="text" data-wallet-word-draft value="${escapeHtml(game.draft)}" maxlength="${game.wordLength}" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="${"•".repeat(game.wordLength)}">
+          <div class="wallet-word-keyboard" aria-label="Letter clues">
+            ${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => `<span class="${letterStates[letter] || ""}">${letter}</span>`).join("")}
+          </div>
+          <div class="wallet-lock-actions">
+            <button type="button" data-wallet-word-action="back">Back</button>
+            <button type="button" data-wallet-word-action="clear">Clear</button>
+            <button type="button" class="primary" data-wallet-word-submit${game.draft.length === game.wordLength ? "" : " disabled"}>Submit</button>
+          </div>
+        ` : `<p class="wallet-lock-note">Waiting for ${escapeHtml(state.names.sub)} to submit a guess.</p>`;
+        controls.addEventListener("input", (event) => {
+          const input = event.target.closest("[data-wallet-word-draft]");
+          if (!input || !walletWordCanAct()) return;
+          state.walletWord.draft = normalizeWalletWordText(input.value).slice(0, state.walletWord.wordLength);
+          input.value = state.walletWord.draft;
+          const submit = controls.querySelector("[data-wallet-word-submit]");
+          if (submit) submit.disabled = state.walletWord.draft.length !== state.walletWord.wordLength;
+        });
+        controls.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" && walletWordCanAct()) {
+            const input = event.target.closest("[data-wallet-word-draft]");
+            if (input) state.walletWord.draft = normalizeWalletWordText(input.value).slice(0, state.walletWord.wordLength);
+            submitWalletWordGuess();
+          }
+        });
+        controls.addEventListener("click", (event) => {
+          const input = controls.querySelector("[data-wallet-word-draft]");
+          if (input) state.walletWord.draft = normalizeWalletWordText(input.value).slice(0, state.walletWord.wordLength);
+          const actionButton = event.target.closest("[data-wallet-word-action]");
+          if (actionButton) {
+            editWalletWordDraft(actionButton.dataset.walletWordAction);
+            return;
+          }
+          if (event.target.closest("[data-wallet-word-submit]")) submitWalletWordGuess();
+        });
+        els.board.appendChild(controls);
+        const input = controls.querySelector("[data-wallet-word-draft]");
+        if (input) input.focus({ preventScroll: true });
+      }
+    }
+
+    function renderWalletWordHistory() {
+      const game = normalizeWalletWordState(state.walletWord);
+      const rows = Array.from({ length: WALLET_WORD_GUESSES }, (_, index) => {
+        const guess = game.guesses[index];
+        if (!guess) {
+          return `<div class="wallet-lock-row wallet-word-row empty">${Array.from({ length: game.wordLength }, () => "<span></span>").join("")}</div>`;
+        }
+        return `
+          <div class="wallet-lock-row wallet-word-row">
+            ${[...guess.word].map((letter, letterIndex) => `<span class="${escapeHtml(guess.feedback[letterIndex] || "miss")}">${escapeHtml(letter)}</span>`).join("")}
+          </div>
+        `;
+      }).join("");
+      return `
+        <section class="wallet-lock-history wallet-word-history ${state.active ? "active" : ""}">
+          <h3><span>${escapeHtml(state.names.sub)}</span><span>${game.guesses.length}/${WALLET_WORD_GUESSES}</span></h3>
+          ${rows}
+        </section>
+      `;
+    }
+
+    function walletWordLetterStates() {
+      const priority = { miss: 1, near: 2, exact: 3 };
+      const states = {};
+      const game = normalizeWalletWordState(state.walletWord);
+      game.guesses.forEach((guess) => {
+        [...guess.word].forEach((letter, index) => {
+          const feedback = guess.feedback[index] || "miss";
+          if (!states[letter] || priority[feedback] > priority[states[letter]]) states[letter] = feedback;
+        });
+      });
+      return states;
     }
 
     function renderTicTacToeBoard() {
@@ -21359,7 +21791,7 @@
 
     function currentTiltStatusItems() {
       if (state.screen !== "game") return [];
-      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "walletLock" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") return [];
+      if (state.currentGame === "tributeTicTacToe" || state.currentGame === "walletLock" || state.currentGame === "walletWord" || state.currentGame === "wheelSpin" || state.currentGame === "tributeTrail" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") return [];
       if (state.currentGame === "tributeReversi") {
         if (state.mode !== "reclaim") return [];
         const commandText = state.reversi && state.reversi.commandMode
@@ -21430,6 +21862,7 @@
       if (state.currentGame === "doubleSolitaire") return "Solitaire Duel";
       if (state.currentGame === "tributeTicTacToe") return "Tribute Tic Tac Toe";
       if (state.currentGame === "walletLock") return "Wallet Lock";
+      if (state.currentGame === "walletWord") return "Wallet Word";
       if (state.currentGame === "wheelSpin") return "Wheel Spin";
       if (state.currentGame === "tributeTrail") return "Tribute Trail";
       if (state.currentGame === "obedienceOrders") return "Obedience Orders";
@@ -21474,6 +21907,10 @@
       }
       if (state.currentGame === "walletLock") {
         renderWalletLockRules();
+        return;
+      }
+      if (state.currentGame === "walletWord") {
+        renderWalletWordRules();
         return;
       }
       if (state.currentGame === "wheelSpin") {
@@ -21542,9 +21979,21 @@
         `<strong>Goal:</strong> crack the hidden symbol code before the other player.`,
         `<strong>Setup:</strong> ${state.names.dom} chooses the lock difficulty. Harder locks use longer codes and more possible symbols.`,
         `<strong>Play:</strong> players take turns submitting a full row of symbols.`,
-        `<strong>Feedback:</strong> gold squares mean a symbol is correct and in the right place. Pink squares mean the symbol is in the code but in another place. Dark squares mean it is not used there.`,
+        `<strong>Feedback:</strong> green squares mean a symbol is correct and in the right place. Yellow squares mean the symbol is in the code but in another place. Dark squares mean it is not used there.`,
         `<strong>Repeats:</strong> the hidden code may use the same symbol more than once.`,
         `<strong>Reclaim:</strong> if neither player cracks the code, ${state.names.dom} claims the locked round.`
+      ];
+      setRuleList(rules);
+    }
+
+    function renderWalletWordRules() {
+      const rules = [
+        `<strong>Goal:</strong> ${state.names.sub} must guess the secret word before running out of attempts.`,
+        `<strong>Setup:</strong> ${state.names.dom} enters a ${WALLET_WORD_MIN_LENGTH}-${WALLET_WORD_MAX_LENGTH} letter word before the round starts.`,
+        `<strong>Play:</strong> ${state.names.sub} submits one full word per guess. This WIP version accepts letter-only guesses without checking a dictionary.`,
+        `<strong>Feedback:</strong> green squares mean a letter is correct and in the right place. Yellow squares mean the letter is in the word but in another place. Dark squares mean it is not used there.`,
+        `<strong>Repeats:</strong> the hidden word may use the same letter more than once.`,
+        `<strong>Result:</strong> cracking the word lets ${state.names.sub} escape or reclaim. Running out of guesses gives the round to ${state.names.dom}.`
       ];
       setRuleList(rules);
     }
@@ -21871,7 +22320,7 @@
       }
       els.modeLabel.textContent = state.currentGame === "wheelSpin"
         ? (isThroneSession() ? "Throne Wheel" : "Free Spin")
-        : (isTicTacToeVsPc() ? "Vs PC" : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Duel" : (state.currentGame === "walletLock" ? "Symbol Lock" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match"))))))));
+        : (isTicTacToeVsPc() ? "Vs PC" : (state.currentGame === "tributeTrail" ? "Trail Race" : (state.currentGame === "obedienceOrders" ? "Order Chain" : (state.currentGame === "higherLower" ? "Card Streak" : (state.currentGame === "tributeCrazyEights" ? "Card Duel" : (state.currentGame === "doubleSolitaire" ? "Solitaire Duel" : (state.currentGame === "walletLock" ? "Symbol Lock" : (state.currentGame === "walletWord" ? "Word Lock" : (state.mode === "reclaim" ? "Reclaim Match" : "Normal Match")))))))));
 
       if (state.currentGame === "wheelSpin") {
         els.turnText.innerHTML = state.wheel.spinning
@@ -21971,6 +22420,18 @@
             : `<strong>${labelFor(game.winner)}</strong> cracked the Wallet Lock.`;
         } else {
           els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Wallet Lock setup.`;
+        }
+      } else if (state.currentGame === "walletWord") {
+        const game = normalizeWalletWordState(state.walletWord);
+        if (state.active) {
+          const guessesLeft = WALLET_WORD_GUESSES - game.guesses.length;
+          els.turnText.innerHTML = `<strong>${state.names.sub}</strong> is cracking the Wallet Word. ${guessesLeft} guess${guessesLeft === 1 ? "" : "es"} left.`;
+        } else if (game.winner) {
+          els.turnText.innerHTML = game.winner === SUB
+            ? `<strong>${state.names.sub}</strong> cracked the Wallet Word.`
+            : `<strong>${state.names.dom}</strong>'s word held.`;
+        } else {
+          els.turnText.innerHTML = `<strong>${state.names.dom}</strong> chooses the Wallet Word.`;
         }
       } else if (state.currentGame === "tributeReversi") {
         const score = reversiScore();
@@ -22123,7 +22584,7 @@
         els.passBtn.classList.toggle("hidden", !(canCommand || (state.reversi && state.reversi.commandMode)));
         els.passBtn.disabled = !canCommand;
         els.passBtn.textContent = state.reversi && state.reversi.commandMode ? "Command Armed" : "Command Move";
-      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "walletLock" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") {
+      } else if (state.currentGame === "tributeTicTacToe" || state.currentGame === "walletLock" || state.currentGame === "walletWord" || state.currentGame === "wheelSpin" || state.currentGame === "obedienceOrders" || state.currentGame === "higherLower" || state.currentGame === "tributeCrazyEights" || state.currentGame === "doubleSolitaire") {
         els.passBtn.classList.add("hidden");
       } else {
         const tributeFourPowerReady = !state.lockColumnMode && ((state.lockColumnAvailable && !state.lockColumnMode) || (state.pressureDropAvailable && !state.pressureDropArmed));
@@ -22216,6 +22677,11 @@
       if (state.currentGame === "walletLock") {
         els.gameTitle.textContent = "Wallet Lock";
         els.gameSubtitle.textContent = "A turn-based symbol code race. Crack the hidden lock before the other player opens the wallet.";
+        return;
+      }
+      if (state.currentGame === "walletWord") {
+        els.gameTitle.textContent = "Wallet Word";
+        els.gameSubtitle.textContent = "A Wordle-style wallet lock. The dom chooses the secret word; the sub gets six guesses to crack it.";
         return;
       }
       if (state.currentGame === "wheelSpin") {
@@ -23106,6 +23572,7 @@
       memoryMatch: openMemoryMatch,
       tributeTicTacToe: openTributeTicTacToe,
       walletLock: openWalletLock,
+      walletWord: openWalletWord,
       wheelSpin: openWheelSpin,
       obedienceOrders: openObedienceOrders,
       tributeTrail: openTributeTrail,

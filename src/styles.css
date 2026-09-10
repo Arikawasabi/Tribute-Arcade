@@ -2033,6 +2033,28 @@
       margin: 10px auto 0;
     }
 
+    .wallet-word-secret-label {
+      display: grid;
+      gap: 7px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .wallet-word-secret-label input,
+    .wallet-word-guess-input {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid rgba(241, 201, 101, 0.24);
+      border-radius: 8px;
+      background: rgba(7, 6, 8, 0.84);
+      color: var(--text);
+      font: 900 1.15rem "Montserrat", sans-serif;
+      letter-spacing: 0.12em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
     .wallet-lock-secret {
       display: flex;
       justify-content: center;
@@ -2120,18 +2142,23 @@
       display: none;
     }
 
+    .wallet-word-history {
+      width: min(100%, 560px);
+      margin: 14px auto 0;
+    }
+
     .wallet-lock-row span.exact {
-      border-color: rgba(239, 199, 94, 0.9);
-      background: linear-gradient(145deg, rgba(239, 199, 94, 0.9), rgba(138, 93, 28, 0.88));
-      color: #17100a;
-      box-shadow: 0 0 14px rgba(239, 199, 94, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      border-color: rgba(101, 210, 143, 0.92);
+      background: linear-gradient(145deg, rgba(101, 210, 143, 0.92), rgba(34, 125, 83, 0.9));
+      color: #08140d;
+      box-shadow: 0 0 14px rgba(101, 210, 143, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
 
     .wallet-lock-row span.near {
-      border-color: rgba(255, 112, 154, 0.9);
-      background: linear-gradient(145deg, rgba(255, 112, 154, 0.88), rgba(126, 35, 72, 0.88));
-      color: #fff8ec;
-      box-shadow: 0 0 14px rgba(255, 79, 134, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      border-color: rgba(239, 199, 94, 0.9);
+      background: linear-gradient(145deg, rgba(239, 199, 94, 0.9), rgba(138, 93, 28, 0.88));
+      color: #17100a;
+      box-shadow: 0 0 14px rgba(239, 199, 94, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .wallet-lock-row span.miss {
@@ -2143,6 +2170,11 @@
     .wallet-lock-controls {
       display: grid;
       gap: 12px;
+    }
+
+    .wallet-word-controls {
+      width: min(100%, 620px);
+      margin: 0 auto;
     }
 
     .wallet-lock-draft {
@@ -2174,6 +2206,41 @@
     .wallet-lock-symbols button.ruled-out:hover:not(:disabled),
     .wallet-lock-symbols button.ruled-out:focus-visible:not(:disabled) {
       opacity: 0.58;
+    }
+
+    .wallet-word-keyboard {
+      display: grid;
+      grid-template-columns: repeat(13, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .wallet-word-keyboard span {
+      display: grid;
+      min-height: 28px;
+      place-items: center;
+      border: 1px solid rgba(241, 201, 101, 0.16);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--muted);
+      font: 900 0.78rem "Montserrat", sans-serif;
+    }
+
+    .wallet-word-keyboard span.exact {
+      border-color: rgba(101, 210, 143, 0.8);
+      background: rgba(101, 210, 143, 0.75);
+      color: #08140d;
+    }
+
+    .wallet-word-keyboard span.near {
+      border-color: rgba(239, 199, 94, 0.82);
+      background: rgba(239, 199, 94, 0.75);
+      color: #17100a;
+    }
+
+    .wallet-word-keyboard span.miss {
+      opacity: 0.36;
+      filter: grayscale(1);
+      background: rgba(12, 10, 15, 0.86);
     }
 
     .wallet-lock-actions {
@@ -2226,6 +2293,10 @@
 
       .wallet-lock-actions {
         grid-template-columns: 1fr;
+      }
+
+      .wallet-word-keyboard {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
       }
     }
 
