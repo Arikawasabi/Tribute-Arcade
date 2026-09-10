@@ -1968,6 +1968,11 @@
       margin: 0 auto;
     }
 
+    .wallet-lock-setup-screen {
+      min-height: min(54vh, 460px);
+      place-items: center;
+    }
+
     .wallet-lock-panel,
     .wallet-lock-table,
     .wallet-lock-controls {
@@ -1978,6 +1983,7 @@
     }
 
     .wallet-lock-popup {
+      width: min(100%, 620px);
       background:
         linear-gradient(145deg, rgba(58, 32, 42, 0.96), rgba(19, 10, 16, 0.98)),
         var(--panel);
@@ -2083,6 +2089,10 @@
     }
 
     .wallet-lock-history h3 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
       margin: 0 0 3px;
       color: var(--gold);
       font-family: "Montserrat", sans-serif;
@@ -2104,6 +2114,10 @@
 
     .wallet-lock-row.empty span {
       opacity: 0.45;
+    }
+
+    .wallet-lock-row.empty {
+      display: none;
     }
 
     .wallet-lock-row span.exact {
@@ -2150,6 +2164,18 @@
       line-height: 1;
     }
 
+    .wallet-lock-symbols button.ruled-out {
+      opacity: 0.36;
+      filter: grayscale(1);
+      border-color: rgba(244, 239, 232, 0.1);
+      background: rgba(12, 10, 15, 0.86);
+    }
+
+    .wallet-lock-symbols button.ruled-out:hover:not(:disabled),
+    .wallet-lock-symbols button.ruled-out:focus-visible:not(:disabled) {
+      opacity: 0.58;
+    }
+
     .wallet-lock-actions {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -2157,8 +2183,20 @@
     }
 
     @media (max-width: 720px) {
+      .wallet-lock-shell {
+        gap: 10px;
+      }
+
+      .wallet-lock-panel,
+      .wallet-lock-table,
+      .wallet-lock-controls {
+        padding: 10px;
+      }
+
       .wallet-lock-histories {
         grid-template-columns: 1fr;
+        gap: 8px;
+        margin-top: 10px;
       }
 
       .wallet-lock-topline {
@@ -2179,6 +2217,11 @@
 
       .wallet-lock-symbols {
         grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+        gap: 6px;
+      }
+
+      .wallet-lock-symbols button {
+        min-height: 42px;
       }
 
       .wallet-lock-actions {

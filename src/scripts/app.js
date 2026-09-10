@@ -18393,46 +18393,51 @@
 
     function renderWalletLockBoard() {
       els.board.innerHTML = "";
-      els.board.className = "wallet-lock-shell";
       state.walletLock = normalizeWalletLockState(state.walletLock);
       const game = state.walletLock;
       const difficulty = walletLockDifficultyById(game.difficulty);
       const visibleHistoryPlayers = walletLockVisibleHistoryPlayers();
       const canSetup = !state.active && state.pot <= 0 && !state.pendingWager && !state.normalReplayPrompt && (!state.online.room || !localOnlineRole() || localOnlineRole() === DOM);
-      const setup = document.createElement("div");
-      setup.className = `wallet-lock-panel ${!state.active ? "wallet-lock-popup" : ""}`.trim();
-      setup.innerHTML = `
-        <div class="wallet-lock-topline">
-          <strong>${escapeHtml(difficulty.label)} Lock</strong>
-          <span>${difficulty.codeLength} symbols · ${difficulty.symbolCount} in play · ${difficulty.guesses} guesses each</span>
-        </div>
-        <div class="wallet-lock-difficulty-row">
-          ${WALLET_LOCK_DIFFICULTIES.map((option) => `
-            <button type="button" data-wallet-lock-difficulty="${option.id}" class="${option.id === difficulty.id ? "active" : ""}"${canSetup ? "" : " disabled"}>${option.label}</button>
-          `).join("")}
-        </div>
-        ${!state.active && !state.normalReplayPrompt ? `
-          <p class="wallet-lock-note">${state.online.room && localOnlineRole() && localOnlineRole() !== DOM ? `${escapeHtml(state.names.dom)} is choosing the lock.` : "Pick the lock size, then start the race."}</p>
-          ${isThroneSession() ? `<button type="button" class="primary wallet-lock-start" data-wallet-lock-start${canSetup ? "" : " disabled"}>Start</button>` : ""}
-        ` : ""}
-      `;
-      setup.addEventListener("click", (event) => {
-        const difficultyButton = event.target.closest("[data-wallet-lock-difficulty]");
-        if (difficultyButton && !difficultyButton.disabled) {
-          setWalletLockDifficulty(difficultyButton.dataset.walletLockDifficulty);
-          return;
-        }
-        const startButton = event.target.closest("[data-wallet-lock-start]");
-        if (startButton && !startButton.disabled) {
-          wagerStartBypass = true;
-          try {
-            startNormalMatch();
-          } finally {
-            wagerStartBypass = false;
+      const showSetupOnly = !state.active && !state.normalReplayPrompt && !game.code.length;
+      els.board.className = `wallet-lock-shell ${showSetupOnly ? "wallet-lock-setup-screen" : ""}`.trim();
+      if (!state.active || game.phase !== "active") {
+        const setup = document.createElement("div");
+        setup.className = `wallet-lock-panel ${!state.active ? "wallet-lock-popup" : ""}`.trim();
+        setup.innerHTML = `
+          <div class="wallet-lock-topline">
+            <strong>${escapeHtml(difficulty.label)} Lock</strong>
+            <span>${difficulty.codeLength} symbols · ${difficulty.symbolCount} in play · ${difficulty.guesses} guesses each</span>
+          </div>
+          <div class="wallet-lock-difficulty-row">
+            ${WALLET_LOCK_DIFFICULTIES.map((option) => `
+              <button type="button" data-wallet-lock-difficulty="${option.id}" class="${option.id === difficulty.id ? "active" : ""}"${canSetup ? "" : " disabled"}>${option.label}</button>
+            `).join("")}
+          </div>
+          ${!state.active && !state.normalReplayPrompt ? `
+            <p class="wallet-lock-note">${state.online.room && localOnlineRole() && localOnlineRole() !== DOM ? `${escapeHtml(state.names.dom)} is choosing the lock.` : "Pick the lock size, then start the race."}</p>
+            ${isThroneSession() ? `<button type="button" class="primary wallet-lock-start" data-wallet-lock-start${canSetup ? "" : " disabled"}>Start</button>` : ""}
+          ` : ""}
+        `;
+        setup.addEventListener("click", (event) => {
+          const difficultyButton = event.target.closest("[data-wallet-lock-difficulty]");
+          if (difficultyButton && !difficultyButton.disabled) {
+            setWalletLockDifficulty(difficultyButton.dataset.walletLockDifficulty);
+            return;
           }
-        }
-      });
-      els.board.appendChild(setup);
+          const startButton = event.target.closest("[data-wallet-lock-start]");
+          if (startButton && !startButton.disabled) {
+            wagerStartBypass = true;
+            try {
+              startNormalMatch();
+            } finally {
+              wagerStartBypass = false;
+            }
+          }
+        });
+        els.board.appendChild(setup);
+      }
+
+      if (showSetupOnly) return;
 
       const table = document.createElement("div");
       table.className = "wallet-lock-table";
@@ -18452,13 +18457,14 @@
         const controls = document.createElement("div");
         const canAct = walletLockCanAct();
         const draft = canAct ? (game.draft[state.turn] || []) : [];
+        const ruledOutSymbols = canAct ? walletLockRuledOutSymbols(state.turn) : new Set();
         controls.className = "wallet-lock-controls";
         controls.innerHTML = canAct ? `
           <div class="wallet-lock-draft">
             ${Array.from({ length: difficulty.codeLength }, (_, index) => `<span>${draft[index] || ""}</span>`).join("")}
           </div>
           <div class="wallet-lock-symbols">
-            ${game.symbols.map((symbol) => `<button type="button" data-wallet-lock-symbol="${escapeHtml(symbol)}"${canAct ? "" : " disabled"}>${symbol}</button>`).join("")}
+            ${game.symbols.map((symbol) => `<button type="button" class="${ruledOutSymbols.has(symbol) ? "ruled-out" : ""}" data-wallet-lock-symbol="${escapeHtml(symbol)}"${canAct ? "" : " disabled"}>${symbol}</button>`).join("")}
           </div>
           <div class="wallet-lock-actions">
             <button type="button" data-wallet-lock-action="back"${canAct ? "" : " disabled"}>Back</button>
@@ -18483,6 +18489,20 @@
       }
     }
 
+    function walletLockRuledOutSymbols(player) {
+      const game = normalizeWalletLockState(state.walletLock);
+      const present = new Set();
+      const missed = new Set();
+      (game.guesses[player] || []).forEach((guess) => {
+        (guess.symbols || []).forEach((symbol, index) => {
+          const feedback = guess.feedback?.[index];
+          if (feedback === "exact" || feedback === "near") present.add(symbol);
+          if (feedback === "miss") missed.add(symbol);
+        });
+      });
+      return new Set([...missed].filter((symbol) => !present.has(symbol)));
+    }
+
     function walletLockVisibleHistoryPlayers() {
       const role = localOnlineRole();
       if (state.online.room && (role === SUB || role === DOM)) return [role];
@@ -18491,8 +18511,9 @@
 
     function renderWalletLockHistory(player, difficulty) {
       const game = normalizeWalletLockState(state.walletLock);
+      const guesses = game.guesses[player] || [];
       const rows = Array.from({ length: difficulty.guesses }, (_, index) => {
-        const guess = game.guesses[player][index];
+        const guess = guesses[index];
         if (!guess) {
           return `<div class="wallet-lock-row empty">${Array.from({ length: difficulty.codeLength }, () => "<span></span>").join("")}</div>`;
         }
@@ -18504,7 +18525,7 @@
       }).join("");
       return `
         <section class="wallet-lock-history ${player} ${state.turn === player && state.active ? "active" : ""}">
-          <h3>${escapeHtml(labelFor(player))}</h3>
+          <h3><span>${escapeHtml(labelFor(player))}</span><span>${guesses.length}/${difficulty.guesses}</span></h3>
           ${rows}
         </section>
       `;
