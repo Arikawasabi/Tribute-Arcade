@@ -32,6 +32,8 @@
     const WALLET_WORD_GUESSES = 6;
     const WALLET_WORD_MIN_LENGTH = 4;
     const WALLET_WORD_MAX_LENGTH = 10;
+    const WALLET_WORD_PRESSURE_DELAY_MS = 30 * 1000;
+    const WALLET_WORD_COUNTDOWN_MS = 10 * 1000;
     const WHEEL_LIMIT_WINDOW_MS = 15 * 60 * 1000;
     const WHEEL_SPIN_LIMIT = 8;
     const WHEEL_POWER_LIMIT = 2;
@@ -869,6 +871,8 @@
         wordLength: 5,
         guesses: [],
         draft: "",
+        guessStartedAt: 0,
+        countdownUntil: 0,
         winner: null,
         message: "Dom chooses the wallet word."
       };
@@ -959,6 +963,8 @@
       if (merged.word.length) merged.wordLength = merged.word.length;
       merged.guesses = Array.isArray(merged.guesses) ? merged.guesses : [];
       merged.draft = normalizeWalletWordText(merged.draft).slice(0, merged.wordLength);
+      merged.guessStartedAt = Number(merged.guessStartedAt || 0);
+      merged.countdownUntil = Number(merged.countdownUntil || 0);
       merged.winner = merged.winner === SUB || merged.winner === DOM || merged.winner === "draw" ? merged.winner : null;
       merged.message = String(merged.message || "");
       return merged;
@@ -13726,6 +13732,8 @@
         phase: "active",
         word,
         wordLength: word.length,
+        guessStartedAt: Date.now(),
+        countdownUntil: 0,
         message: `${state.names.sub} is guessing.`
       };
       const intro = type === "reclaim"
@@ -13782,8 +13790,59 @@
         && (!role || role === SUB || hotSeatOnlineTest);
     }
 
+    function walletWordDomControlsAllowed() {
+      const role = localOnlineRole();
+      return state.currentGame === "walletWord"
+        && state.active
+        && state.walletWord
+        && state.walletWord.phase === "active"
+        && (!role || role === DOM);
+    }
+
+    function walletWordCountdownRemaining() {
+      const game = normalizeWalletWordState(state.walletWord);
+      if (!game.countdownUntil) return 0;
+      return Math.max(0, game.countdownUntil - Date.now());
+    }
+
+    function walletWordPressureAvailable() {
+      const game = normalizeWalletWordState(state.walletWord);
+      return state.currentGame === "walletWord"
+        && state.active
+        && game.phase === "active"
+        && !game.countdownUntil
+        && Date.now() - Number(game.guessStartedAt || 0) >= WALLET_WORD_PRESSURE_DELAY_MS;
+    }
+
+    function walletWordPressureWaitMs() {
+      const game = normalizeWalletWordState(state.walletWord);
+      if (!state.active || game.phase !== "active" || game.countdownUntil) return 0;
+      return Math.max(0, Number(game.guessStartedAt || 0) + WALLET_WORD_PRESSURE_DELAY_MS - Date.now());
+    }
+
+    function startWalletWordCountdown() {
+      if (!walletWordDomControlsAllowed() || !walletWordPressureAvailable()) return;
+      state.walletWord = normalizeWalletWordState({
+        ...state.walletWord,
+        countdownUntil: Date.now() + WALLET_WORD_COUNTDOWN_MS,
+        message: `${state.names.dom} starts a 10 second countdown.`
+      });
+      addLog(`<strong>Wallet Word pressure.</strong> ${state.names.dom} starts a 10 second countdown.`);
+      render();
+      publishState();
+    }
+
+    function resolveWalletWordCountdown() {
+      const game = normalizeWalletWordState(state.walletWord);
+      if (state.currentGame !== "walletWord" || !state.active || game.phase !== "active") return false;
+      if (!game.countdownUntil || Date.now() < game.countdownUntil) return false;
+      finishWalletWord(DOM, `${state.names.sub} ran out of countdown time.`);
+      return true;
+    }
+
     function setWalletWordDraft(value) {
       if (!walletWordCanAct()) return;
+      if (resolveWalletWordCountdown()) return;
       state.walletWord = normalizeWalletWordState({
         ...state.walletWord,
         draft: normalizeWalletWordText(value).slice(0, state.walletWord.wordLength)
@@ -13794,6 +13853,7 @@
 
     function editWalletWordDraft(action) {
       if (!walletWordCanAct()) return;
+      if (resolveWalletWordCountdown()) return;
       const draft = normalizeWalletWordText(state.walletWord.draft);
       if (action === "back") {
         setWalletWordDraft(draft.slice(0, -1));
@@ -13810,6 +13870,7 @@
 
     function submitWalletWordGuess() {
       if (!walletWordCanAct()) return;
+      if (resolveWalletWordCountdown()) return;
       const game = normalizeWalletWordState(state.walletWord);
       const guess = normalizeWalletWordText(game.draft);
       if (guess.length !== game.wordLength) {
@@ -13832,6 +13893,8 @@
         return;
       }
       state.walletWord.message = `${WALLET_WORD_GUESSES - state.walletWord.guesses.length} guesses left.`;
+      state.walletWord.guessStartedAt = Date.now();
+      state.walletWord.countdownUntil = 0;
       render();
       publishState();
     }
@@ -18814,10 +18877,13 @@
     function renderWalletWordBoard() {
       els.board.innerHTML = "";
       state.walletWord = normalizeWalletWordState(state.walletWord);
+      if (resolveWalletWordCountdown()) return;
       const game = state.walletWord;
       const canSetup = walletWordCanSetup();
       const showSetupOnly = !state.active && !state.normalReplayPrompt && game.phase !== "finished";
+      const countdownRemaining = walletWordCountdownRemaining();
       els.board.className = `wallet-lock-shell wallet-word-shell ${showSetupOnly ? "wallet-lock-setup-screen" : ""}`.trim();
+      window.clearTimeout(renderWalletWordBoard.pressureTimer);
 
       if (showSetupOnly) {
         const setup = document.createElement("div");
@@ -18877,10 +18943,12 @@
         <div class="wallet-lock-secret wallet-word-secret" aria-label="Secret word">
           ${answerCells.map((letter) => `<span>${escapeHtml(letter)}</span>`).join("")}
         </div>
-        <div class="wallet-lock-status">${escapeHtml(game.message || (state.active ? `${state.names.sub} is guessing.` : "The wallet word is ready."))}</div>
+        <div class="wallet-lock-status">${escapeHtml(countdownRemaining ? `${Math.ceil(countdownRemaining / 1000)} seconds left to submit.` : (game.message || (state.active ? `${state.names.sub} is guessing.` : "The wallet word is ready.")))}</div>
         ${renderWalletWordHistory()}
       `;
       els.board.appendChild(table);
+      const pressure = renderWalletWordPressureControls(countdownRemaining);
+      if (pressure) els.board.appendChild(pressure);
 
       if (state.active && game.phase === "active") {
         const controls = document.createElement("div");
@@ -18901,6 +18969,7 @@
         controls.addEventListener("input", (event) => {
           const input = event.target.closest("[data-wallet-word-draft]");
           if (!input || !walletWordCanAct()) return;
+          if (resolveWalletWordCountdown()) return;
           state.walletWord.draft = normalizeWalletWordText(input.value).slice(0, state.walletWord.wordLength);
           input.value = state.walletWord.draft;
           const submit = controls.querySelector("[data-wallet-word-submit]");
@@ -18924,9 +18993,37 @@
           if (event.target.closest("[data-wallet-word-submit]")) submitWalletWordGuess();
         });
         els.board.appendChild(controls);
-        const input = controls.querySelector("[data-wallet-word-draft]");
-        if (input) input.focus({ preventScroll: true });
       }
+      const refreshIn = countdownRemaining
+        ? Math.max(120, Math.min(1000, countdownRemaining))
+        : walletWordPressureWaitMs();
+      if (refreshIn > 0) renderWalletWordBoard.pressureTimer = window.setTimeout(render, refreshIn + 40);
+    }
+
+    function renderWalletWordPressureControls(countdownRemaining = walletWordCountdownRemaining()) {
+      if (!state.active || state.walletWord.phase !== "active") return null;
+      const panel = document.createElement("div");
+      panel.className = "wallet-word-pressure";
+      if (countdownRemaining) {
+        panel.innerHTML = `
+          <strong>${Math.ceil(countdownRemaining / 1000)}</strong>
+          <span>${escapeHtml(state.names.sub)} must submit before the countdown ends.</span>
+        `;
+        return panel;
+      }
+      if (!walletWordDomControlsAllowed()) return null;
+      if (walletWordPressureAvailable()) {
+        panel.innerHTML = `
+          <span>${escapeHtml(state.names.sub)} has taken over 30 seconds.</span>
+          <button type="button" class="primary" data-wallet-word-countdown>Start 10s Countdown</button>
+        `;
+      } else {
+        panel.innerHTML = `<span>Countdown pressure unlocks after 30 seconds without a guess.</span>`;
+      }
+      panel.addEventListener("click", (event) => {
+        if (event.target.closest("[data-wallet-word-countdown]")) startWalletWordCountdown();
+      });
+      return panel;
     }
 
     function renderWalletWordHistory() {
@@ -21992,6 +22089,7 @@
         `<strong>Setup:</strong> ${state.names.dom} enters a ${WALLET_WORD_MIN_LENGTH}-${WALLET_WORD_MAX_LENGTH} letter word before the round starts.`,
         `<strong>Play:</strong> ${state.names.sub} submits one full word per guess. This WIP version accepts letter-only guesses without checking a dictionary.`,
         `<strong>Feedback:</strong> green squares mean a letter is correct and in the right place. Yellow squares mean the letter is in the word but in another place. Dark squares mean it is not used there.`,
+        `<strong>Pressure:</strong> if ${state.names.sub} takes more than 30 seconds on a guess, ${state.names.dom} can start a 10 second countdown. If it runs out, ${state.names.dom}'s word holds.`,
         `<strong>Repeats:</strong> the hidden word may use the same letter more than once.`,
         `<strong>Result:</strong> cracking the word lets ${state.names.sub} escape or reclaim. Running out of guesses gives the round to ${state.names.dom}.`
       ];

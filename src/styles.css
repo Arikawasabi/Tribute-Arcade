@@ -2177,6 +2177,39 @@
       margin: 0 auto;
     }
 
+    .wallet-word-pressure {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: min(100%, 620px);
+      margin: 0 auto;
+      border: 1px solid rgba(255, 112, 154, 0.26);
+      border-radius: 8px;
+      background: rgba(45, 12, 26, 0.62);
+      padding: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .wallet-word-pressure strong {
+      display: grid;
+      place-items: center;
+      min-width: 52px;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      background: linear-gradient(145deg, rgba(255, 112, 154, 0.9), rgba(126, 35, 72, 0.9));
+      color: #fff8ec;
+      font: 900 1.5rem "Montserrat", sans-serif;
+      box-shadow: 0 0 20px rgba(255, 79, 134, 0.22);
+    }
+
+    .wallet-word-pressure button {
+      min-height: 42px;
+      white-space: nowrap;
+    }
+
     .wallet-lock-draft {
       display: flex;
       justify-content: center;
@@ -2293,6 +2326,15 @@
 
       .wallet-lock-actions {
         grid-template-columns: 1fr;
+      }
+
+      .wallet-word-pressure {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .wallet-word-pressure strong {
+        margin: 0 auto;
       }
 
       .wallet-word-keyboard {
