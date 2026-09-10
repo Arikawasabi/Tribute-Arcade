@@ -9597,14 +9597,14 @@
       if (bet === null) return;
       const starter = chooseStartingPlayer();
       startReversiSetup(starter, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} plays dark and moves first.`);
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.dom} chooses the Reversi settings.`, false);
+      finishRoundStart(`<strong>Reversi setup:</strong> ${state.names.dom} chooses the Reversi settings.`, false);
     }
 
     function startReversiReclaimMatch() {
       const pot = prepareRound("reclaim", "reversi match");
       if (pot === null) return;
       startReversiSetup(DOM, `<strong>Reclaim edge:</strong> ${state.names.dom} plays first as light. Tier ${state.tiltLevel} advantages stack.`);
-      finishRoundStart(`<strong>Reclaim match:</strong> ${state.names.sub} is trying to win back ${money(pot)} on the Reversi board. ${state.names.dom} chooses the Reversi settings.`, false);
+      finishRoundStart(`<strong>Reversi setup:</strong> ${state.names.dom} chooses the Reversi settings.`, false);
     }
 
     function startReversiSetup(starter, intro) {
@@ -12426,14 +12426,14 @@
       if (bet === null) return;
       const starter = chooseStartingPlayer();
       preserveTiltLevel(() => startCheckersSetup(starter, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} moves first.`));
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.dom} chooses the Checkers settings.`, false);
+      finishRoundStart(`<strong>Checkers setup:</strong> ${state.names.dom} chooses the Checkers settings.`, false);
     }
 
     function startCheckersReclaimMatch() {
       const pot = prepareRound("reclaim", "game");
       if (pot === null) return;
       startCheckersSetup(DOM, `<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} starts after settings. Tilt level ${state.tiltLevel}.`);
-      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} chooses the Checkers settings.`, false);
+      finishRoundStart(`<strong>Checkers setup:</strong> ${state.names.dom} chooses the Checkers settings.`, false);
     }
 
     function startCheckersSetup(starter, intro) {
@@ -12462,7 +12462,7 @@
           };
         } else {
           state.checkers.queenSetup = null;
-          state.active = true;
+          activateCheckersMatch(starter);
         }
         return;
       }
@@ -12477,6 +12477,17 @@
       state.checkers = createCheckersState();
       state.turn = starter;
       state.active = true;
+    }
+
+    function activateCheckersMatch(starter) {
+      state.checkers.setupPending = false;
+      state.checkers.queenSetup = null;
+      state.checkers.selected = null;
+      state.checkers.legalMoves = [];
+      state.checkers.mustContinue = false;
+      state.turn = starter;
+      state.active = true;
+      resetChessClockTick();
     }
 
     function randomCheckersQueenRow() {
@@ -12510,10 +12521,7 @@
 
     function finishCheckersQueenSetup() {
       const starter = state.checkers.queenSetup && state.checkers.queenSetup.starter || state.turn || SUB;
-      state.checkers.queenSetup = null;
-      state.turn = starter;
-      state.active = true;
-      resetChessClockTick();
+      activateCheckersMatch(starter);
       addLog(`<strong>Checkers begins.</strong> ${labelFor(starter)} moves first.`);
       render();
       publishState();
@@ -14306,14 +14314,14 @@
       const starter = chooseStartingPlayer();
       const colors = starter === SUB ? { w: SUB, b: DOM } : { w: DOM, b: SUB };
       preserveTiltLevel(() => startChessSetup(colors, `${normalRoundAmountIntro(bet)} ${labelFor(starter)} plays white and starts.`));
-      finishRoundStart(`${normalRoundAmountIntro(bet)} ${state.names.dom} chooses the Chess settings.`, false);
+      finishRoundStart(`<strong>Chess setup:</strong> ${state.names.dom} chooses the Chess settings.`, false);
     }
 
     function startChessReclaimMatch() {
       const pot = prepareRound("reclaim");
       if (pot === null) return;
       startChessSetup({ w: DOM, b: SUB }, `<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} plays white.`);
-      finishRoundStart(`<strong>Reclaim game:</strong> ${state.names.sub} is trying to win back ${money(pot)}. ${state.names.dom} chooses the Chess settings.`, false);
+      finishRoundStart(`<strong>Chess setup:</strong> ${state.names.dom} chooses the Chess settings.`, false);
     }
 
     function startChessSetup(colors, intro) {
@@ -18622,6 +18630,10 @@
       els.board.innerHTML = "";
       const selected = checkers.selected ? `${checkers.selected[0]},${checkers.selected[1]}` : "";
       const legal = new Set((checkers.legalMoves || []).map((move) => `${move.to[0]},${move.to[1]}`));
+      const normalMoveMode = !checkers.lockMode && !checkers.powerMode && state.active && !checkers.setupPending && !checkers.queenSetup;
+      const playableOrigins = new Set(normalMoveMode
+        ? allCheckersMoves(state.turn).map((move) => `${move.from[0]},${move.from[1]}`)
+        : []);
       for (let row = 0; row < 8; row += 1) {
         for (let col = 0; col < 8; col += 1) {
           const dark = (row + col) % 2 === 1;
@@ -18629,12 +18641,16 @@
           cell.className = `checkers-square ${dark ? "dark" : "light"}`;
           if (selected === `${row},${col}`) cell.classList.add("selected");
           if (legal.has(`${row},${col}`)) cell.classList.add("legal");
+          if (playableOrigins.has(`${row},${col}`)) cell.classList.add("playable");
           const localRole = localOnlineRole();
+          const blockedByRole = checkers.lockMode || checkers.powerMode
+            ? Boolean(localRole && localRole !== DOM)
+            : Boolean(localRole && localRole !== state.turn);
+          const clickableNormalSquare = !normalMoveMode || legal.has(`${row},${col}`) || playableOrigins.has(`${row},${col}`);
           cell.disabled = !state.active
             || !dark
-            || (checkers.lockMode || checkers.powerMode
-              ? Boolean(localRole && localRole !== DOM)
-              : Boolean(localRole && localRole !== state.turn));
+            || blockedByRole
+            || !clickableNormalSquare;
           cell.setAttribute("aria-label", `Checkers row ${row + 1}, column ${col + 1}`);
           cell.addEventListener("click", () => selectCheckersSquare(row, col));
           const piece = checkers.board[row] && checkers.board[row][col];

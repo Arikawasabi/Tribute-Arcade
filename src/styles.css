@@ -5857,6 +5857,16 @@
       box-shadow: inset 0 0 0 999px rgba(101, 210, 143, 0.22);
     }
 
+    .checkers-square.playable::after {
+      content: "";
+      position: absolute;
+      inset: 12%;
+      border: 2px solid rgba(239, 199, 94, 0.68);
+      border-radius: 999px;
+      box-shadow: 0 0 18px rgba(239, 199, 94, 0.22);
+      pointer-events: none;
+    }
+
     .checkers-piece {
       position: relative;
       width: 68%;
